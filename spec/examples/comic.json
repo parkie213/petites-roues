@@ -1,0 +1,34 @@
+{
+  "id": "1f0f3bc3-58ca-4951-84f9-734f5fdd33db",
+  "title": "Example",
+  "sourceLanguage": "fr",
+  "translationLanguage": "en",
+  "notesLanguage": "en",
+  "comic": {
+    "pages": [
+      {
+        "id": "page-1",
+        "entry": "001.jpg"
+      }
+    ],
+    "cues": [
+      {
+        "pageId": "page-1",
+        "order": 1,
+        "regions": [
+          {
+            "x": 0.1,
+            "y": 0.1,
+            "width": 0.3,
+            "height": 0.2
+          }
+        ],
+        "study": {
+          "id": "04bb8a44-555d-489e-93cc-a85cc49263b6",
+          "source": "Bonjour !",
+          "notes": []
+        }
+      }
+    ]
+  }
+}

@@ -1,0 +1,191 @@
+.video-stage {
+  position: relative;
+  flex: 1 1 0;
+  min-height: 0;
+}
+.left .video-stage video,
+.left .video-player:fullscreen .video-stage video {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  object-fit: contain;
+}
+.video-subtitles {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  text-align: center;
+  color: white;
+  font:
+    clamp(18px, 1.8vw, 30px)/1.35 "Segoe UI",
+    sans-serif;
+}
+.video-subtitle-line {
+  position: absolute;
+  bottom: 4%;
+  left: 3%;
+  right: 3%;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 4px 7px;
+}
+.video-subtitles .video-subtitle-phrase,
+.video-subtitle-plain {
+  font: inherit;
+  color: white;
+  background: #000d;
+  padding: 2px 6px;
+  border: 0;
+  border-radius: 4px;
+  text-shadow: 0 1px 3px black;
+  max-width: 100%;
+  white-space: normal;
+}
+.video-subtitles .video-subtitle-phrase {
+  pointer-events: auto;
+  border-bottom: 3px solid var(--phrase-color);
+  cursor: pointer;
+}
+.video-subtitles .video-subtitle-phrase[data-active],
+.video-subtitles .video-subtitle-phrase:focus-visible {
+  outline: 2px solid var(--phrase-color);
+  outline-offset: 1px;
+  background: #20262af5;
+}
+.video-player:fullscreen .video-subtitles {
+  font-size: clamp(24px, 3vh, 48px);
+}
+@media (max-width: 900px) {
+  .video-stage {
+    flex: 0 0 40vh;
+    min-height: 150px;
+  }
+  .video-player:fullscreen .video-stage {
+    flex: 1 1 0;
+    min-height: 0;
+  }
+}
+
+.video-subtitle-notes {
+  position: absolute;
+  z-index: 1;
+  width: min(440px, calc(100% - 24px));
+  box-sizing: border-box;
+  padding: 12px 16px;
+  border: 1px solid #ffffff30;
+  border-radius: 10px;
+  background: #101419e0;
+  backdrop-filter: blur(6px);
+  box-shadow: 0 8px 28px #0006;
+  text-align: left;
+  overflow-y: auto;
+  pointer-events: auto;
+  color: #c8d4e0;
+  font-size: 14px;
+  line-height: 1.55;
+}
+.video-subtitle-notes p {
+  margin: 8px 0 0;
+}
+/* The whole translation, fixed above its line while any phrase is explored. */
+.video-subtitle-english {
+  position: absolute;
+  left: 3%;
+  right: 3%;
+  text-align: center;
+  pointer-events: none;
+}
+.video-subtitle-english-line {
+  display: inline-block;
+  padding: 0.1em 0.45em 0.2em;
+  border-radius: 6px;
+  background: #000000cc;
+  color: #9aa6b2;
+  font-size: 0.72em;
+  line-height: 1.45;
+}
+.video-subtitle-context-chunk {
+  text-decoration: underline 1px var(--phrase-color);
+  text-underline-offset: 4px;
+}
+/* Emphasis that never changes width, so neighbouring chunks stay put (bold would shift them). */
+.video-subtitle-context-chunk[data-active] {
+  color: #fff;
+  background: color-mix(in srgb, var(--phrase-color) 22%, transparent);
+  border-radius: 3px;
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--phrase-color) 22%, transparent);
+  text-decoration-thickness: 3px;
+}
+.video-player:fullscreen .video-subtitle-notes {
+  width: min(520px, calc(100% - 24px));
+  font-size: clamp(16px, 1.5vh, 22px);
+}
+.video-study-help {
+  position: absolute;
+  left: 3%;
+  right: 3%;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  pointer-events: none;
+}
+.video-full-translation {
+  flex: 0 0 auto;
+  max-width: 100%;
+  box-sizing: border-box;
+  padding: 5px 12px;
+  border-radius: 6px;
+  background: #101419f5;
+  color: #fff;
+  font-size: clamp(16px, 1.5vw, 24px);
+  line-height: 1.4;
+  text-align: center;
+  white-space: pre-line;
+}
+.video-sentence-notes {
+  width: min(600px, 100%);
+  min-height: 0;
+  overflow-y: auto;
+  box-sizing: border-box;
+  padding: 12px 16px;
+  border: 1px solid #ffffff30;
+  border-radius: 10px;
+  background: #101419e0;
+  backdrop-filter: blur(6px);
+  color: #c8d4e0;
+  font-size: 14px;
+  line-height: 1.55;
+  pointer-events: auto;
+}
+.video-sentence-notes h3 {
+  display: flex;
+  justify-content: space-between;
+  margin: 0 0 8px;
+  color: #e8ecf0;
+  font-size: 13px;
+}
+.video-sentence-notes kbd {
+  color: var(--dim);
+  font: inherit;
+}
+.video-sentence-notes ul {
+  margin: 0;
+  padding-left: 18px;
+}
+.video-sentence-notes li + li {
+  margin-top: 8px;
+}
+.video-sentence-notes p {
+  margin: 0;
+}
+.video-player:fullscreen .video-full-translation {
+  font-size: clamp(20px, 2.5vh, 36px);
+}
+.video-player:fullscreen .video-sentence-notes {
+  font-size: clamp(16px, 1.5vh, 22px);
+}

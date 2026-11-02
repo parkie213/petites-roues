@@ -1,0 +1,109 @@
+/* Poster grid: 2:3 cards that keep their proportions from phone to desktop widths. */
+.poster-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 22px 16px;
+}
+@media (max-width: 600px) {
+  .poster-grid {
+    grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+    gap: 16px 12px;
+  }
+}
+.poster-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+.poster-link {
+  display: block;
+  color: inherit;
+  text-decoration: none;
+  border-radius: var(--mantine-radius-md);
+  outline-offset: 3px;
+}
+.poster-art {
+  display: block;
+  width: 100%;
+  aspect-ratio: 2 / 3;
+  object-fit: cover;
+  border-radius: var(--mantine-radius-md);
+  background: var(--mantine-color-dark-6);
+  box-shadow:
+    0 1px 0 var(--mantine-color-dark-4) inset,
+    0 6px 18px rgb(0 0 0 / 0.35);
+  transition:
+    transform 140ms ease,
+    box-shadow 140ms ease;
+}
+a.poster-link:hover .poster-art,
+a.poster-link:focus-visible .poster-art {
+  transform: translateY(-3px);
+  box-shadow:
+    0 0 0 2px var(--mantine-color-sage-4),
+    0 10px 24px rgb(0 0 0 / 0.45);
+}
+.poster-placeholder {
+  display: grid;
+  place-items: center;
+  color: hsl(var(--poster-hue) 25% 70% / 0.7);
+  background: linear-gradient(
+    160deg,
+    hsl(var(--poster-hue) 28% 30%),
+    hsl(calc(var(--poster-hue) + 40) 24% 16%)
+  );
+}
+.poster-frame {
+  position: relative;
+}
+.poster-problem {
+  position: absolute;
+  left: 8px;
+  right: 8px;
+  bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 7px;
+  border-radius: var(--mantine-radius-sm);
+  background: rgb(10 11 14 / 0.82);
+  color: var(--mantine-color-yellow-4);
+  font-size: 11px;
+  line-height: 1.4;
+  white-space: nowrap;
+}
+.poster-problem span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.poster-problem svg {
+  flex: none;
+}
+.poster-progress {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 4px;
+  overflow: hidden;
+  border-radius: 0 0 var(--mantine-radius-md) var(--mantine-radius-md);
+  background: rgb(0 0 0 / 0.55);
+  pointer-events: none;
+}
+.poster-progress > span {
+  display: block;
+  height: 100%;
+  background: var(--mantine-color-sage-4);
+}
+/* The problem banner sits above the progress bar when a title has both. */
+.poster-frame:has(.poster-progress) .poster-problem {
+  bottom: 12px;
+}
+.poster-caption {
+  min-width: 0;
+}
+.poster-unavailable .poster-art {
+  opacity: 0.45;
+  filter: grayscale(0.6);
+}

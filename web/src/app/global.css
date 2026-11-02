@@ -1,0 +1,158 @@
+:root {
+  font-family: "Segoe UI", system-ui, sans-serif;
+  color: var(--tx);
+  background: var(--bg);
+  color-scheme: dark;
+  font-synthesis: none;
+  --bg: #14161a;
+  --pan: #1d2026;
+  --tx: #e8e6e3;
+  --dim: #9aa0a8;
+  --acc: #7fb98a;
+  --bd: #2a2e35;
+}
+* {
+  box-sizing: border-box;
+}
+body {
+  margin: 0;
+}
+button,
+input,
+select {
+  font: inherit;
+}
+button,
+a,
+input,
+summary {
+  touch-action: manipulation;
+}
+button {
+  cursor: pointer;
+}
+button:disabled {
+  cursor: default;
+  opacity: 0.5;
+}
+a {
+  color: var(--acc);
+}
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+summary:focus-visible {
+  outline: 2px solid #7fb98a;
+  outline-offset: 3px;
+}
+.page {
+  max-width: 1200px;
+  margin: 40px auto;
+  padding: 24px;
+  font-size: 17px;
+  line-height: 1.5;
+}
+.page h1 {
+  margin: 0;
+}
+.page p,
+.detail {
+  color: var(--dim);
+}
+.page-header {
+  display: flex;
+  gap: 20px;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+}
+.action {
+  display: inline-block;
+  border: 0;
+  background: var(--acc);
+  color: #141c16;
+  padding: 10px 16px;
+  border-radius: 8px;
+  text-decoration: none;
+  white-space: nowrap;
+}
+.table-wrap {
+  overflow: auto;
+  background: var(--pan);
+  border: 1px solid var(--bd);
+  border-radius: 12px;
+}
+table {
+  border-collapse: collapse;
+  width: 100%;
+}
+th,
+td {
+  text-align: left;
+  padding: 18px;
+  border-bottom: 1px solid var(--bd);
+}
+th {
+  font-size: 14px;
+  color: var(--dim);
+}
+td:first-child {
+  min-width: 260px;
+}
+.detail {
+  font-size: 14px;
+}
+caption {
+  text-align: left;
+  padding: 16px;
+  font-size: 14px;
+  color: var(--dim);
+}
+.empty {
+  padding: 20px;
+}
+.page .error {
+  color: #ff9c92;
+  white-space: pre-wrap;
+}
+.import-page {
+  max-width: 800px;
+}
+.import-page label {
+  display: block;
+  margin: 18px 0;
+}
+.import-page input {
+  display: block;
+  width: 100%;
+  padding: 10px;
+  border: 1px solid var(--bd);
+  background: var(--pan);
+  color: var(--tx);
+  border-radius: 6px;
+}
+.import-page small {
+  display: block;
+  color: var(--dim);
+}
+.import-page details {
+  margin: 24px 0;
+}
+.import-page fieldset {
+  border: 0;
+  padding: 0;
+}
+
+@media (max-width: 900px) {
+  .page {
+    margin: 12px auto;
+    padding: 12px;
+  }
+  .page-header {
+    align-items: flex-start;
+  }
+  th,
+  td {
+    padding: 12px;
+  }
+}

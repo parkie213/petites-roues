@@ -1,0 +1,27 @@
+@startuml
+hide methods
+hide circle
+skinparam shadowing false
+skinparam classAttributeIconSize 0
+skinparam linetype ortho
+
+class Repository {
+  Registered content folder
+  Git optional
+}
+
+class Title {
+  Local identity
+  Document location
+}
+
+class Cue {
+  Stable identity and timing
+  French and English text
+  Sentence notes
+}
+
+Repository "1" -- "0..*" Title : groups
+Title "1" *-- "0..*" Cue
+
+@enduml

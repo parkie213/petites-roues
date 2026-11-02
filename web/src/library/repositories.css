@@ -1,0 +1,84 @@
+.repositories-page {
+  max-width: 1100px;
+}
+.repository-add input {
+  background: var(--bg);
+  color: var(--tx);
+  border: 1px solid var(--bd);
+  border-radius: 6px;
+  padding: 9px 12px;
+  font: inherit;
+}
+.repositories-page button {
+  background: #252a31;
+  color: var(--tx);
+  border: 1px solid var(--bd);
+  border-radius: 6px;
+  padding: 8px 12px;
+  font: inherit;
+  cursor: pointer;
+}
+.repositories-page button:hover {
+  border-color: var(--acc);
+}
+.repositories-page button.action {
+  background: var(--acc);
+  color: #14251a;
+}
+.repositories-page button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.repository-add,
+.repository-card {
+  padding: 24px;
+  border: 1px solid var(--bd);
+  border-radius: 10px;
+  background: var(--pan);
+  margin: 20px 0;
+}
+.repository-add {
+  display: grid;
+  gap: 10px;
+}
+.repository-add h2,
+.repository-card h2 {
+  margin: 0 0 8px;
+}
+.repository-add > input {
+  max-width: 400px;
+}
+.repository-add > .action {
+  justify-self: start;
+  margin-top: 8px;
+}
+.repository-path {
+  display: flex;
+  gap: 8px;
+}
+.repository-path input {
+  flex: 1;
+  min-width: 0;
+}
+.repository-card {
+  display: flex;
+  justify-content: space-between;
+  gap: 24px;
+}
+.repository-directory {
+  overflow-wrap: anywhere;
+  color: var(--dim);
+}
+.repository-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-content: start;
+  align-items: center;
+  gap: 10px;
+  max-width: 330px;
+}
+@media (max-width: 700px) {
+  .repository-card {
+    flex-direction: column;
+  }
+}

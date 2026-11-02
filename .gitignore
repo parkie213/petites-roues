@@ -1,0 +1,40 @@
+# Application sources only; catalogs, media and study documents remain local.
+/*
+!/.gitignore
+!/.gitattributes
+!/AGENTS.md
+!/README.md
+!/LICENSE
+!/images/
+!/branding/
+!/docs/
+!/agents/
+!/prepare/
+!/java/
+!/web/
+!/android/
+/web/node_modules/
+/web/dist/
+**/__pycache__/
+*.log
+*.zip
+
+# One deliberately small, bundled demonstration; personal exports remain ignored.
+!/example/
+
+# Local media, subtitle documents, library state and backups.
+/content/
+/content-archive/
+
+# Shared development runtimes and automated verification.
+!/.nvmrc
+!/.java-version
+!/.github/
+
+# Local IntelliJ project metadata.
+**/.idea/
+*.iml
+
+# Maven reactor and canonical portable format.
+!/spec/
+**/target/

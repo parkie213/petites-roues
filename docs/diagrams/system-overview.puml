@@ -1,0 +1,24 @@
+@startuml
+left to right direction
+skinparam componentStyle rectangle
+
+actor User as user
+component "React frontend" as frontend
+component "Java server" as server
+queue "Review Queue" as queue
+database "SQLite DB" as db
+component "Coding agent" as agent
+component "Whisper transcription" as whisper
+folder "Document repository" as documents
+folder "Video repository" as videos
+
+user -- frontend
+frontend --> server
+server -right- db
+server -- documents
+server -down- queue : Push reviews
+queue -down- agent : Review queue
+agent -right- documents : Generate and update
+whisper -right- agent : Annotate
+videos -right- whisper : Transcript
+@enduml

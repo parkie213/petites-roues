@@ -1,0 +1,4 @@
+<resources>
+  <!-- The cream of branding/logo_v3.png, behind the launcher icon's wheels. -->
+  <color name="ic_launcher_background">#FBF7F4</color>
+</resources>

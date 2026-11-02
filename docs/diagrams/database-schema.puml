@@ -1,0 +1,55 @@
+@startuml
+hide circle
+skinparam linetype ortho
+skinparam shadowing false
+
+entity "repositories" as repositories {
+  * id : TEXT <<PK>>
+  --
+  * name : TEXT
+  * local_path : TEXT <<UNIQUE>>
+  last_refreshed_at : TEXT
+}
+
+entity "titles" as titles {
+  * id : TEXT <<PK>>
+  --
+  * repository_id : TEXT <<FK>>
+  * document_id : TEXT
+  * title : TEXT
+  series : TEXT
+  season : INTEGER
+  episode : INTEGER
+  source_url : TEXT
+  * document_path : TEXT
+  * missing : INTEGER = 0
+  edition : TEXT
+  duration_seconds : REAL
+  --
+  UNIQUE(repository_id, document_id)
+}
+
+entity "review_queue" as reviews {
+  * sequence : INTEGER <<PK, AUTOINCREMENT>>
+  --
+  * title_id : TEXT <<FK>>
+  * timestamp : TEXT
+  * kind : TEXT
+  * cue_ids_json : TEXT
+  suggestion : TEXT
+  reviewed_at : TEXT
+  outcome : TEXT
+}
+
+entity "playback_progress" as progress {
+  * title_id : TEXT <<PK, FK>>
+  --
+  * position_seconds : REAL
+  * updated_at : TEXT
+}
+
+repositories ||--o{ titles
+titles ||--o{ reviews
+titles ||--o| progress
+
+@enduml

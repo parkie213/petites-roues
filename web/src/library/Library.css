@@ -1,0 +1,31 @@
+/* Mantine supplies controls and spacing; these rules describe the column browser. */
+.mantine-library {
+  min-height: 100dvh;
+  background: var(--mantine-color-dark-8);
+  color: var(--mantine-color-text);
+}
+.library-browser-shell {
+  overflow: hidden;
+}
+.library-browser-columns {
+  display: flex;
+  overflow-x: auto;
+  min-height: 430px;
+  border-top: 1px solid var(--mantine-color-dark-4);
+}
+.library-browser-column {
+  flex: 0 0 260px;
+  border-right: 1px solid var(--mantine-color-dark-4);
+}
+.library-browser-column:last-child {
+  border-right: 0;
+}
+.library-browser-placeholder {
+  flex: 1;
+  min-width: 280px;
+}
+@media (max-width: 600px) {
+  .library-browser-column {
+    flex-basis: 230px;
+  }
+}

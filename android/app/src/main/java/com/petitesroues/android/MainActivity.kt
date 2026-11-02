@@ -1,0 +1,216 @@
+package com.petitesroues.android
+
+import android.content.Intent
+import android.net.Uri
+import android.os.Bundle
+import android.util.Log
+import androidx.activity.ComponentActivity
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.compose.setContent
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.lazy.grid.rememberLazyGridState
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.material3.darkColorScheme
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.unit.dp
+import androidx.compose.foundation.layout.padding
+import com.petitesroues.android.comic.ReadScreen
+import com.petitesroues.android.library.Browse
+import com.petitesroues.android.library.CardImages
+import com.petitesroues.android.library.LibraryScreen
+import com.petitesroues.android.library.LibraryService
+import com.petitesroues.android.library.LibraryState
+import com.petitesroues.android.library.LibraryUsage
+import com.petitesroues.android.quiz.GeneralQuizDialog
+import com.petitesroues.android.pages.MarkdownPage
+import com.petitesroues.android.pages.MarkdownPageScanner
+import com.petitesroues.android.pages.NotesScreen
+import com.petitesroues.android.quiz.QuizShare
+import com.petitesroues.android.library.LibraryStore
+import com.petitesroues.android.library.Title
+import com.petitesroues.android.library.TitleKind
+import com.petitesroues.android.player.WatchScreen
+import com.petitesroues.model.document.StudyDocument
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+
+/**
+ * The single activity: the library, and the player or comic reader for the open title. The app
+ * only reads the content folder; documents are written on the desktop by agents.
+ */
+class MainActivity : ComponentActivity() {
+  private val settings by lazy { Settings(this) }
+  private val store by lazy { LibraryStore(this) }
+  private val library by lazy { LibraryService(contentResolver, store) }
+  private val images by lazy { CardImages(this) }
+
+  override fun onCreate(savedInstanceState: Bundle?) {
+    super.onCreate(savedInstanceState)
+    setContent {
+      MaterialTheme(colorScheme = darkColorScheme(primary = Color(0xFF89C9B3))) { App() }
+    }
+  }
+
+  @Composable
+  private fun App() {
+    val scope = rememberCoroutineScope()
+    var openPath by rememberSaveable { mutableStateOf<String?>(null) }
+    // Kept here so returning from a title restores the open series and the shelves' scroll.
+    var browseGroup by rememberSaveable { mutableStateOf<String?>(null) }
+    var browseSeason by rememberSaveable { mutableStateOf<Int?>(null) }
+    val shelvesScroll = rememberLazyGridState()
+    var state by remember {
+      mutableStateOf(
+        LibraryState(settings.contentTrees, emptyList(), emptyMap(), false, emptyList(), null)
+      )
+    }
+
+    suspend fun reload() {
+      val (titles, progress) = withContext(Dispatchers.IO) { store.titles() to store.progress() }
+      val usage =
+        withContext(Dispatchers.IO) {
+          runCatching { LibraryUsage.line(settings.libraryBytes, LibraryUsage.free(this@MainActivity, settings.contentTrees)) }
+            .getOrNull()
+            ?.ifBlank { null }
+        }
+      state = state.copy(titles = titles, progress = progress, usage = usage)
+    }
+
+    fun refresh() {
+      val trees = settings.contentTrees
+      state = state.copy(folders = trees, refreshing = true, message = null)
+      scope.launch {
+        try {
+          val started = System.nanoTime()
+          val refreshed =
+            withContext(Dispatchers.IO) { library.refresh(trees).also { images.clear() } }
+          Log.i("Library", "Refreshed ${trees.size} folders in ${(System.nanoTime() - started) / 1_000_000} ms")
+          settings.libraryBytes = refreshed.bytes
+          state = state.copy(problems = refreshed.problems)
+          reload()
+        } catch (failure: Exception) {
+          state = state.copy(message = "Refresh failed: ${failure.message}")
+        } finally {
+          state = state.copy(refreshing = false)
+        }
+      }
+    }
+
+    val addFolder =
+      rememberLauncherForActivityResult(ActivityResultContracts.OpenDocumentTree()) { tree: Uri? ->
+        if (tree == null) return@rememberLauncherForActivityResult
+        contentResolver.takePersistableUriPermission(tree, Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        if (tree !in settings.contentTrees) settings.contentTrees += tree
+        refresh()
+      }
+
+    fun removeFolder(tree: Uri) {
+      settings.contentTrees -= tree
+      runCatching { contentResolver.releasePersistableUriPermission(tree, Intent.FLAG_GRANT_READ_URI_PERMISSION) }
+      refresh()
+    }
+
+    // The general quizzes, read from the content folders each time Quiz me opens; null when closed.
+    var quizzes by remember { mutableStateOf<List<MarkdownPage>?>(null) }
+    quizzes?.let { found ->
+      GeneralQuizDialog(
+        found,
+        settings.generalQuiz,
+        onDismiss = { quizzes = null },
+        onShare = { quiz ->
+          settings.generalQuiz = quiz.key
+          quizzes = null
+          QuizShare.share(this@MainActivity, quiz)
+        },
+      )
+    }
+
+    // The study notes screen replaces the library while open; its notes are read on opening.
+    var notesOpen by rememberSaveable { mutableStateOf(false) }
+    var notes by remember { mutableStateOf<List<MarkdownPage>?>(null) }
+    if (notesOpen) {
+      LaunchedEffect(Unit) {
+        notes = withContext(Dispatchers.IO) { MarkdownPageScanner(contentResolver).scan(settings.contentTrees, MarkdownPage.NOTES) }
+      }
+      NotesScreen(notes) {
+        notesOpen = false
+        notes = null
+      }
+      return
+    }
+
+    val open = openPath?.let { path -> state.titles.firstOrNull { it.path == path } }
+    if (open == null) {
+      LaunchedEffect(Unit) { reload() }
+      LibraryScreen(
+        state,
+        images,
+        Browse(browseGroup, browseSeason),
+        shelvesScroll,
+        onBrowse = {
+          browseGroup = it.group
+          browseSeason = it.season
+        },
+        onAddFolder = { addFolder.launch(null) },
+        onRemoveFolder = ::removeFolder,
+        onRefresh = ::refresh,
+        onNotes = { notesOpen = true },
+        onQuiz = {
+          scope.launch {
+            quizzes = withContext(Dispatchers.IO) { MarkdownPageScanner(contentResolver).scan(settings.contentTrees, MarkdownPage.QUIZZES) }
+          }
+        },
+        onOpen = { openPath = it.path },
+        onClearProgress = { title ->
+          scope.launch {
+            withContext(Dispatchers.IO) { store.clearProgress(title.path) }
+            reload()
+          }
+        },
+      )
+    } else
+      TitleScreen(open) {
+        openPath = null
+      }
+  }
+
+  /** Loads the title's document, then shows the player or reader for it. */
+  @Composable
+  private fun TitleScreen(title: Title, onBack: () -> Unit) {
+    var loaded by remember(title) { mutableStateOf<Result<StudyDocument>?>(null) }
+    LaunchedEffect(title) {
+      loaded = withContext(Dispatchers.IO) { runCatching { library.read(title.documentUri) } }
+    }
+    val document = loaded?.getOrNull()
+    when {
+      loaded == null ->
+        Box(Modifier.fillMaxSize().background(Color.Black), contentAlignment = Alignment.Center) {
+          CircularProgressIndicator()
+        }
+      document == null -> {
+        androidx.activity.compose.BackHandler(onBack = onBack)
+        Box(Modifier.fillMaxSize().background(Color.Black).padding(24.dp), contentAlignment = Alignment.Center) {
+          Text("Cannot open ${title.name}: ${loaded!!.exceptionOrNull()?.message}", color = Color(0xFFFFB4A9))
+        }
+      }
+      title.kind == TitleKind.VIDEO -> WatchScreen(title, document, store, settings, onBack)
+      else -> ReadScreen(title, document, store, settings, onBack)
+    }
+  }
+}

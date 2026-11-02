@@ -1,0 +1,20 @@
+{
+  "id": "950b15be-e458-40b8-a89d-3fae51532e01",
+  "title": "Example",
+  "sourceLanguage": "fr",
+  "translationLanguage": "en",
+  "notesLanguage": "en",
+  "video": {
+    "cues": [
+      {
+        "start": 0,
+        "end": 2,
+        "study": {
+          "id": "8877195e-e22f-47b5-b001-e2ed1fb24892",
+          "source": "Bonjour !",
+          "notes": []
+        }
+      }
+    ]
+  }
+}

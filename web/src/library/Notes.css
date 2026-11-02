@@ -1,0 +1,14 @@
+.note-link {
+  display: block;
+  padding: 10px 12px;
+  border-radius: var(--mantine-radius-md);
+}
+
+.note-link:hover {
+  background: var(--mantine-color-default-hover);
+}
+
+.note-page table {
+  display: block;
+  overflow-x: auto;
+}

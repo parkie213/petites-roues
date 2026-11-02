@@ -1,0 +1,14 @@
+@startuml
+top to bottom direction
+
+rectangle Transcription
+rectangle DataModel
+rectangle Annotation
+rectangle Player
+rectangle Storage
+
+Transcription --> Annotation
+DataModel --> Annotation
+Annotation --> Player
+Annotation --> Storage
+@enduml

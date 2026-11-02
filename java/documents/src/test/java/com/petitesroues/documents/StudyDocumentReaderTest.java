@@ -1,0 +1,135 @@
+package com.petitesroues.documents;
+
+import static com.petitesroues.support.DocumentFixtures.document;
+import static com.petitesroues.support.SpecFixtures.*;
+import static org.junit.jupiter.api.Assertions.*;
+
+import com.petitesroues.model.document.StudyDocument;
+import java.nio.charset.StandardCharsets;
+import java.util.List;
+import org.junit.jupiter.api.Test;
+import tools.jackson.databind.json.JsonMapper;
+import tools.jackson.databind.node.ObjectNode;
+
+class StudyDocumentReaderTest {
+  private final JsonMapper mapper = JsonMapper.builder().build();
+  private final StudyDocumentCodec codec = new StudyDocumentCodec();
+  private final StudyDocumentReader reader = new StudyDocumentReader();
+
+  private StudyDocument roundTrip(StudyDocument document) {
+    return reader.decode(codec.encode(document).getBytes(StandardCharsets.UTF_8));
+  }
+
+  @Test
+  void specExamplesLoadAndRoundTripWithoutLocalMedia() throws Exception {
+    for (String type : new String[] {"video", "comic"}) {
+      try (var input = getClass().getResourceAsStream("/spec/" + type + ".json")) {
+        var loaded = reader.decode(input.readAllBytes());
+        assertEquals(loaded, roundTrip(loaded));
+        assertEquals(type.equals("comic"), loaded.hasComic());
+      }
+    }
+  }
+
+  @Test
+  void writesOneStableCanonicalLayout() {
+    var json = codec.encode(document("example"));
+    assertEquals(json, codec.encode(codec.decode(json.getBytes(StandardCharsets.UTF_8))));
+    assertTrue(json.startsWith("{\n  \"id\": \"example\",\n  \"title\": "));
+    assertTrue(json.contains("\"notes\": [\n            \"A greeting.\"\n          ]"));
+    assertTrue(json.endsWith("}\n"));
+    assertFalse(json.contains("\"series\""), "absent optional fields are omitted");
+    assertTrue(json.contains("\"alignmentStale\": false"), "booleans are always written");
+  }
+
+  @Test
+  void preservesOptionalTranslationPresenceAndExplicitZeroStart() {
+    for (String translation : new String[] {null, "", "Hello!"}) {
+      var doc =
+          document("example")
+              .withVideo(
+                  v ->
+                      v.withCue(
+                          0,
+                          c ->
+                              c.withTiming(0.0, .9)
+                                  .withStudy(s -> s.withTranslation(translation))));
+      var loaded = roundTrip(doc);
+      assertEquals(translation, loaded.video().cues().getFirst().study().translation());
+      assertEquals(0, loaded.video().cues().getFirst().start());
+    }
+  }
+
+  @Test
+  void rejectsMissingTimingStudyBodyUnknownFieldsAndLegacyDocuments() {
+    var json = mapper.readTree(codec.encode(document("example")));
+    for (String field : new String[] {"start", "end", "study"}) {
+      var changed = json.deepCopy();
+      ((ObjectNode) changed.path("video").path("cues").get(0)).remove(field);
+      assertThrows(
+          IllegalArgumentException.class, () -> reader.decode(mapper.writeValueAsBytes(changed)));
+    }
+    assertThrows(IllegalArgumentException.class, () -> reader.decode("{}".getBytes()));
+    assertThrows(
+        IllegalArgumentException.class,
+        () ->
+            reader.decode(
+                "{\"format\":\"sacre-bleu-study\",\"version\":3}"
+                    .getBytes(StandardCharsets.UTF_8)));
+    var changed = json.deepCopy();
+    ((ObjectNode) changed).put("unknown", true);
+    assertThrows(
+        IllegalArgumentException.class, () -> reader.decode(mapper.writeValueAsBytes(changed)));
+    assertThrows(
+        IllegalArgumentException.class,
+        () -> reader.decode("{\"id\":\"a\",\"id\":\"b\"}".getBytes(StandardCharsets.UTF_8)));
+  }
+
+  @Test
+  void multilingualAlignmentsAndChecksSurviveRoundTrip() {
+    for (var pair :
+        List.of(
+            List.of("de", "en", "Ich stehe auf.", "I get up."),
+            List.of("ko", "fr", "저는 사과를 먹어요.", "Je mange une pomme."))) {
+      var alignment =
+          newAlignment(
+              pair.get(2),
+              pair.get(3),
+              List.of(pair.get(2)),
+              List.of(pair.get(3)),
+              List.of(newLink(List.of(0), List.of(0), "Meaning")));
+      var doc =
+          document("an edition: 1")
+              .withLanguages(pair.get(0), pair.get(1), pair.get(1))
+              .withVideo(
+                  v ->
+                      v.withCue(
+                          0,
+                          c ->
+                              c.withListeningCheck("Keep unresolved evidence")
+                                  .withStudy(
+                                      s ->
+                                          s.withSource(pair.get(2))
+                                              .withTranslation(pair.get(3))
+                                              .withAlignment(alignment))));
+      var json = codec.encode(doc);
+      assertEquals(doc, reader.decode(json.getBytes(StandardCharsets.UTF_8)));
+      assertFalse(mapper.readTree(json).has("format"));
+      var stale =
+          doc.withVideo(v -> v.withCue(0, c -> c.withStudy(s -> s.withAlignmentStale(true))));
+      assertThrows(IllegalArgumentException.class, () -> codec.encode(stale));
+    }
+  }
+
+  @Test
+  void sortsVideoCuesWithoutDetachingAnnotations() {
+    var original = document("example").video().cues().getFirst();
+    var early = original.withStudy(s -> s.withId("early"));
+    var doc =
+        document("example")
+            .withVideo(v -> v.withCues(List.of(original.withTiming(4.0, 5.0), early)));
+    var loaded = roundTrip(doc);
+    assertEquals("early", loaded.video().cues().getFirst().study().id());
+    assertEquals(original.study().notes(), loaded.video().cues().getFirst().study().notes());
+  }
+}
