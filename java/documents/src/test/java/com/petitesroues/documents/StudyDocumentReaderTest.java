@@ -21,9 +21,9 @@ class StudyDocumentReaderTest {
   }
 
   @Test
-  void specExamplesLoadAndRoundTripWithoutLocalMedia() throws Exception {
+  void exampleDocumentsLoadAndRoundTripWithoutLocalMedia() throws Exception {
     for (String type : new String[] {"video", "comic"}) {
-      try (var input = getClass().getResourceAsStream("/spec/" + type + ".json")) {
+      try (var input = getClass().getResourceAsStream("/documents/" + type + ".json")) {
         var loaded = reader.decode(input.readAllBytes());
         assertEquals(loaded, roundTrip(loaded));
         assertEquals(type.equals("comic"), loaded.hasComic());

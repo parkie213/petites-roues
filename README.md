@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="branding/logo_v3.png" alt="petites roues logo" width="128">
+<img src="images/branding/logo_v3.png" alt="petites roues logo" width="128">
 
 # petites roues
 

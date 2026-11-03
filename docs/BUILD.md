@@ -13,8 +13,7 @@ npm --prefix web test
 ## Layout
 
 ```text
-spec/                 Format README and example documents
-branding/             Project name and logo reference
+images/               Screenshots and branding assets
 java/
   pom.xml             Java-only Maven parent and reactor
   mvnw                Maven wrapper (mvnw.cmd on Windows)
@@ -36,8 +35,8 @@ media readers and local application models. `java/server` depends on application
 and supplies HTTP controllers, framework wiring, database migrations and startup.
 The dependency direction is `server → application → documents`.
 
-Unit tests live beside their owning module. Documents tests load `spec/examples`
-directly and publish a test-only fixtures JAR for application/server tests. HTTP
+Unit tests live beside their owning module. Documents tests load examples from
+`java/documents/src/test/resources/documents/` and publish a test-only fixtures JAR for application/server tests. HTTP
 and real-database integration tests stay in server, alongside the canonical Flyway
 migrations; application unit tests require no server dependency. Synthetic media
 fixtures live in application test resources; server tests also load that directory.

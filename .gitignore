@@ -6,7 +6,6 @@
 !/README.md
 !/LICENSE
 !/images/
-!/branding/
 !/docs/
 !/agents/
 !/prepare/
@@ -35,6 +34,5 @@
 **/.idea/
 *.iml
 
-# Maven reactor and canonical portable format.
-!/spec/
+# Maven build output.
 **/target/
