@@ -41,7 +41,8 @@ private val noteStyle = TextStyle(color = Color(0xFFC8D4E0), fontSize = 14.sp, l
  * A bubble's text as a line of phrases with its whole translation and sentence notes beneath, as
  * the browser's bubble card. Tapping a phrase, or a translation chunk, highlights its part of the
  * translation and shows its explanation in place of the sentence notes; tapping again clears it.
- * The ask and listen buttons sit at the bottom of the card. The ask button hands [onAsk] the phrase being explored, if any, to ask a chat app about it.
+ * The ask and listen buttons sit at the bottom of the card; listen reads the pinned phrase alone
+ * when one is pinned. The ask button hands [onAsk] the phrase being explored, if any, to ask a chat app about it.
  */
 @Composable
 fun BubbleCard(cue: StudyCue, readAloud: ReadAloud, onAsk: (Int?) -> Unit, modifier: Modifier = Modifier) {
@@ -72,14 +73,15 @@ fun BubbleCard(cue: StudyCue, readAloud: ReadAloud, onAsk: (Int?) -> Unit, modif
       HorizontalDivider(color = Color(0x22FFFFFF))
       Text("Tap a phrase for its explanation.", style = noteStyle.copy(color = Color(0xFF8592A0)))
     }
+    val listen = pinned?.let { alignment?.source()?.getOrNull(it) } ?: cue.source()
     // Ask and Listen sit in a short row under the notes, leaving the source line the card's width.
     Row(Modifier.align(Alignment.End), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
       IconButton(onClick = { onAsk(pinned) }, modifier = Modifier.size(36.dp)) {
         Icon(Icons.AutoMirrored.Filled.Chat, contentDescription = "Ask about this bubble", modifier = Modifier.size(20.dp))
       }
-      IconButton(onClick = { readAloud.toggle(cue.source()) }, modifier = Modifier.size(36.dp)) {
+      IconButton(onClick = { readAloud.toggle(listen) }, modifier = Modifier.size(36.dp)) {
         Icon(
-          if (readAloud.speaking == cue.source()) Icons.Filled.Stop
+          if (readAloud.speaking == listen) Icons.Filled.Stop
           else Icons.AutoMirrored.Filled.VolumeUp,
           contentDescription = "Listen",
           modifier = Modifier.size(20.dp),

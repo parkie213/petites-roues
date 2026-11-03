@@ -29,7 +29,8 @@ const AUTO_LISTEN_DELAY = 250;
  * clicking pins it. English chunks explore their source phrase the same way. The ask button opens
  * a question box that sends the bubble to a chat app (see {@link AskBox}); it and the listen button
  * sit at the card's foot so the source line has the full width. Highlighting never changes the card's size, so it never moves under the
- * pointer. The bubble is read aloud with R, or on opening when listen-on-open is enabled.
+ * pointer. The bubble is read aloud with R, or on opening when listen-on-open is enabled; the
+ * listen button reads the pinned phrase alone when one is pinned.
  */
 export function ComicBubbleCard({ cue, document, onKeep }) {
   const [asking, setAsking] = useState(false);
@@ -173,7 +174,9 @@ export function ComicBubbleCard({ cue, document, onKeep }) {
             </ActionIcon>
           </Tooltip>
         )}
-        <ListenButton text={cue.source} />
+        <ListenButton
+          text={pinned !== null ? alignment.source[pinned] : cue.source}
+        />
       </div>
       {asking && (
         <AskBox
