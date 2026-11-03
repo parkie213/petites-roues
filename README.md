@@ -10,10 +10,9 @@ A bike with training wheels. I know it's not funny if you have to explain the jo
 project for language learning beginners!
 
 [![License: MIT](https://img.shields.io/badge/license-MIT-e4554a)](LICENSE)
-![Java 25](https://img.shields.io/badge/Java-25-12294f)
-![Node.js 24](https://img.shields.io/badge/Node.js-24-12294f)
-![React](https://img.shields.io/badge/React-UI-12294f)
-![Android](https://img.shields.io/badge/Android-offline-12294f)
+[![Java 25](https://img.shields.io/badge/Java-25-12294f)](#quick-start)
+[![Node.js 24](https://img.shields.io/badge/Node.js-24-12294f)](#quick-start)
+[![Android](https://img.shields.io/badge/Android-offline-12294f)](docs/BUILD.md#android-app)
 
 A self-hosted app for anyone who wants help watching or reading in another language,
 in the browser or on Android.
