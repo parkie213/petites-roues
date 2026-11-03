@@ -123,18 +123,25 @@ down into phrases that are hopefully more digestible for a beginner.
 
 ### Study document creation
 
-I am currently doing this quite simply with OpenRouter:
+I am currently doing this quite simply with OpenRouter. Annotation happens in three stages, so
+that each model request does one job and the phrase chunks are settled before anything is
+written about them:
 
 ```mermaid
 flowchart LR
   media["Video / Comic"] --> first["<b>Voxtral</b> transcribes video<br/><b>Terra</b> boxes and reads comic text"]
-  first --> luna["<b>Luna</b><br/>first-pass annotations"]
-  luna --> opus["<b>Opus</b><br/>reviews and refines"]
-  opus --> doc[("document.json")]
+  first --> translate["<b>Luna</b><br/>translates"]
+  translate --> chunks["<b>Luna</b><br/>breaks lines into phrases"]
+  chunks --> review1["<b>Opus</b><br/>reviews the phrases"]
+  review1 --> notes["<b>Luna</b><br/>explains each phrase"]
+  notes --> review2["<b>Opus</b><br/>reviews and refines"]
+  review2 --> doc[("document.json")]
 ```
 
-It costs about **$1 per hour of video**. A later project might be to turn it into an agentic
-pipeline, but for now this is working well.
+Every stage leaves a valid document, so the player shows the work so far. The steps are in
+[docs/PREPARE-TITLE.md](docs/PREPARE-TITLE.md).
+
+A later project might be to turn it into an agentic pipeline, but for now this is working well.
 
 ### Content repositories
 

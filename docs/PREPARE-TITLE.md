@@ -2,28 +2,32 @@
 
 The steps for turning a video or a comic into a study document. They are written for a person
 or a coding agent to follow by hand. The library's **Add title** sets up the title folder; then
-three small scripts in [prepare/](../prepare/) call hosted models through
+small scripts in [prepare/](../prepare/) call hosted models through
 [OpenRouter](https://openrouter.ai) and fill in the document.
 There is no pipeline to maintain: when a step stops being useful, change this page.
 
 | Step | Script | Default model |
 | --- | --- | --- |
 | Speech to timed source text | `prepare/transcribe.py` | `mistralai/voxtral-small-transcribe-3-0` |
-| Comic page text and regions | `prepare/comic_text.py` | `qwen/qwen3.8-flash` |
-| First-pass translation, notes, phrase links | `prepare/notes.py` | `openai/gpt-6-luna` |
+| Comic page text and regions | `prepare/comic_text.py` | `openai/gpt-6.1-terra` |
+| First-pass translation | `prepare/translate.py` | `openai/gpt-6-luna` |
+| First-pass phrase breakdowns (chunks and links) | `prepare/phrases.py` | `openai/gpt-6-luna` |
+| First-pass link and sentence notes | `prepare/notes.py` | `openai/gpt-6-luna` |
 
 `prepare/spellings.py` corrects misheard names from a title's spelling list; it calls no model.
 
 Each script takes `--model` to try something else. All of them need Python 3 (standard
 library only) and `OPENROUTER_API_KEY` in the environment, and print the reported cost.
-`notes.py` also needs the app running, because it validates through the app and queues its
-output for review (set `PETITES_ROUES_URL` if the app is not on `http://localhost:8877`).
+`translate.py`, `phrases.py` and `notes.py` also need the app running, because they validate
+through the app and queue their output for review (set `PETITES_ROUES_URL` if the app is not
+on `http://localhost:8877`).
 The app and `transcribe.py` need FFmpeg, and [yt-dlp](https://github.com/yt-dlp/yt-dlp#installation)
 if you download videos. Use media you have permission to use.
 
 The order for a title is: **sample → spelling list → transcribe the rest → correct names →
-first-pass notes → agent review → commit**. Always check a sample before running a whole title (see each step), so a bad model or
-setting costs minutes, not a film.
+translate → phrase breakdowns → breakdown review → notes → notes review → commit**. Always
+check a sample before running a whole title (see each step), so a bad model or setting costs
+minutes, not a film.
 
 ## Ground rules
 
@@ -128,38 +132,93 @@ reads the pages instead:
 4. Write the list between `pages` and `cues`, check it with `POST /api/titles/{id}/validate`,
    and commit the documents.
 
-## Notes first pass
+## Annotate in three stages
 
-Run against the registered document:
+A cue's teaching material is built in three stages, each a script with its own review:
+
+1. **Translate** (`translate.py`): the translation only.
+2. **Break down** (`phrases.py`): the line divided into chunks linked to the translation, with no
+   notes yet. An agent reviews the chunks before anything is written about them.
+3. **Notes** (`notes.py`): a note for every link and the sentence notes, written for the
+   reviewed chunks.
+
+Keeping them apart lets each request do one job well, and lets the chunks be settled before
+notes are written about them. Each stage leaves a valid document, so the player shows what
+exists so far.
+
+All three scripts work the same way. They send batches of about 30 cues with neighbouring
+context, using [the teaching guide](../agents/guides/translation-notes.md) as the instructions.
+Each cue in an answer is checked with the app's validator and kept as soon as it passes; up to
+two repair requests resend only the cues that failed. Rerunning the same command resumes. When
+it finishes, a script validates the whole document, updates it in place (skipping any cue that
+changed while it ran), keeps a copy in the run directory and queues every cue it wrote as a review
+request, with any cue it could not do and why. The player never writes document files, so you
+don't need to coordinate with it: pending player edits keep showing on top. Don't run a script
+while an agent has a review batch open on the title. `--no-write` keeps the answers in the run
+directory only, and `--cues FILE` (a list of cue IDs) limits a run to a sample.
+
+For a new title, take the transcribed sample through all three stages and their reviews before
+transcribing and annotating the rest.
+
+### Translate
 
 ```bash
-python3 prepare/notes.py --document content/my-title/document.json --run-dir content-archive/runs/my-title-notes-1
+python3 prepare/translate.py --document content/my-title/document.json \
+  --run-dir content-archive/runs/my-title-translate-1
 ```
 
-The script fills cues that have no translation or have a stale alignment. Use `--all` to redo
-everything. It sends batches of about 30 cues with neighbouring context, using
-[the teaching guide](../agents/guides/translation-notes.md) as the instructions. Each cue in an
-answer is checked with the app's validator and kept as soon as it passes; up to two repair
-requests resend only the cues that failed. Rerunning the same command resumes.
+Fills cues that have no translation; `--all` redoes every cue. A retranslated cue loses its
+phrase breakdown, which was bound to the old translation.
 
-When it finishes, the script validates the whole document, updates it in place (skipping any cue
-whose text changed while it ran) and keeps a copy in the run directory. It then queues every
-annotated cue as a review request, along with any cue it could not annotate and why. The player
-never writes document files, so you don't need to coordinate with it: pending player edits keep
-showing on top. Don't run it while an agent has a review batch open on the title. If the content
-repository uses Git, commit the result.
+### Break down
 
-For a new title, run it on the transcribed sample first and review that before transcribing and
-annotating the rest.
+```bash
+python3 prepare/phrases.py --document content/my-title/document.json \
+  --run-dir content-archive/runs/my-title-phrases-1
+```
+
+With each translation fixed, the model divides the line into chunks and links them to the
+English, following the guide's *Chunking* and *Links* sections. By default it handles translated
+cues with no breakdown or a stale one; `--all` redoes every translated cue. A chunk of seven or
+more words is sent back once, asking for a split at a clause or adverbial boundary, or for it to
+stay whole only when the English wraps around it. A long chunk that survives is named in that
+cue's review request.
+
+Have an agent review the breakdowns (see [Review](#review)) before writing notes: changing a
+chunk later means rewriting its notes.
+
+To compare models or prompt changes, run a few dozen cues without writing, then compare:
+
+```bash
+python3 prepare/phrases.py --document DOC --run-dir content-archive/runs/my-title-phrases-try-a \
+  --cues content-archive/my-title/phrase-sample.txt --no-write --model MODEL
+python3 prepare/phrase_report.py --document DOC --out phrase-report.md \
+  content-archive/runs/my-title-phrases-try-a content-archive/runs/my-title-phrases-try-b
+```
+
+The report prints chunk sizes for the current breakdowns and each run, and writes every cue's
+breakdowns side by side.
+
+### Notes
+
+```bash
+python3 prepare/notes.py --document content/my-title/document.json \
+  --run-dir content-archive/runs/my-title-notes-1
+```
+
+Handles cues with a current breakdown in which some link has no note; `--all` redoes every cue
+with a breakdown. The chunks and links are fixed: the model writes one note per link and the
+sentence notes.
 
 ## Review
 
-The first pass is a draft. Notes can be confidently wrong, especially on idioms and
-pronominal verbs, and on words the transcript misheard. The review requests from `notes.py` are
-in the title's review queue: have a strong agent (Opus or Sol) work through them following
+Every first pass is a draft. Notes can be confidently wrong, especially on idioms and
+pronominal verbs, and on words the transcript misheard. Each script's review requests are in the
+title's review queue: have a strong agent (Opus or Sol) work through them following
 [the review workflow](../agents/workflows/review-content.md) and the title's
-**Copy notes review prompt**. It rewrites weak notes and records doubtful source text as
-listening or text checks. When the review keeps finding the same mistake, add it to the guide's
+**Copy notes review prompt**. The agent rewrites weak material and records doubtful source
+text as listening or text checks. A breakdown review checks only chunks and links, so finish
+it before running `notes.py`. When the review keeps finding the same mistake, add it to the guide's
 *Traps* section so the next first pass avoids it. Edits you make in the player are
 queued and shown on top of the file until the agent writes them in
 ([review API](REVIEW-API.md)). Keep listening checks separate from translation review.

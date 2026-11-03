@@ -21,7 +21,7 @@ from pathlib import Path
 
 from openrouter import chat_json, cost, load, save
 
-MODEL = "qwen/qwen3.8-flash"
+MODEL = "openai/gpt-6.1-terra"
 IMAGES = (".jpg", ".jpeg", ".png", ".webp")
 PROMPT = """Extract visible text from each {language} comic page below, including dialogue, narration, captions and readable sound effects. Transcribe, do not translate or paraphrase. Preserve accents and punctuation; join typographic line breaks within a text block and remove line-wrap hyphens only. Never invent obscured text; use [?] for unreadable portions. Return one region per speech bubble or distinct text block, not per line. Use {order} reading order: panels {panels}, top-to-bottom, then regions within each panel. Boxes must tightly enclose the TEXT, including all lines, not the whole bubble. Coordinates are integers normalized to 0..1000 relative to that complete page image: [left, top, right, bottom]. Include only visible text; no scene descriptions.
 Also, separately from the regions: when a page opens a chapter (it shows a chapter heading such as "Chapitre 3 - Title"), set "chapterStart" to its number (null for an unnumbered section) and its title without the "Chapitre N" prefix; otherwise "chapterStart" is null. A table of contents is not a chapter start: on that page copy every entry into "contents" with its number, title and printed page number; otherwise "contents" is []. Headings and contents lines are still transcribed as regions.

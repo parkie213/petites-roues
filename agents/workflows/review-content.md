@@ -20,7 +20,11 @@ file with their annotations, commit and push, then complete the batch. The API i
    a split together. A `review-request` asks you to check machine output: review the cue's
    translation, notes and alignment against the teaching guide, rewrite what falls short, and
    check the source text itself (see *Doubtful source text* below); one that says the model could
-   not annotate the cue needs you to write its annotations. A `comment` is the learner's feedback on a line (often a better translation
+   not annotate the cue needs you to write its annotations. A request for a **phrase breakdown**
+   ("check chunks and links only") comes before any notes exist: judge the chunk boundaries and
+   pairings against the guide's *Chunking* and *Links* sections, correct them in the file, and
+   write no notes. A fault in the translation itself is still yours to fix (remove the breakdown
+   and rebuild it for the new wording). A `comment` is the learner's feedback on a line (often a better translation
    or a confusing note): act on it in the file, or complete it `already_correct` if the line
    stands. A `suggestion` is a proposal: adopt it by correcting the source text, or
    keep the transcript with a specific `listeningCheck`. A `conflict` no longer applies to the file.

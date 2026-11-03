@@ -8,6 +8,12 @@ French–English; teach the real distinctions of other languages instead of forc
 grammar onto them (German case and separable verbs; Korean particles, endings and speech
 levels).
 
+First-pass annotation builds these layers in stages ([preparing a title](../../docs/PREPARE-TITLE.md#annotate-in-three-stages)):
+the translation first (*Translation*), then the breakdown's chunks and links (*Chunking*,
+*Links*), and after those are reviewed, the link notes and sentence notes (the remaining
+sections). Apply the sections for the stage you are doing; a reviewer of a full cue applies
+them all.
+
 Each cue carries three layers that work together:
 
 - **Translation** (`study.translation`): natural, accurate English for the line.
@@ -49,8 +55,34 @@ chunk `c'est bientôt…` → "it's almost…" is true.
 **Split** when a piece carries its own lesson and has its own natural English: a clause, a
 time or place expression, a reusable adverbial (`encore une fois` → "once again").
 
-Size: a short exclamation or name is one chunk. Aim for two to four chunks per clause. A
-one-word chunk is the exception, for a word with a lesson of its own. When unsure, merge.
+Size: a short exclamation or name is one chunk. A chunk is at most one clause; a sentence
+of two clauses is at least two chunks. Within a clause, split off a time or place
+expression, a manner adverbial or a gerund (`en courant`) whenever it has its own unbroken
+English. A one-word chunk is the exception, for a word with a lesson of its own. Between a
+clause-sized chunk and fragments, prefer the clause.
+
+**The note tells you when a chunk is too long.** If its link note has to gloss three or
+more separate pieces one after another ("`il` means he… `aucun bruit` means no noise…
+`en courant` means while running"), the chunk is probably several chunks:
+
+| Too long | Better |
+|---|---|
+| `IL NE FAIT ABSOLUMENT AUCUN BRUIT EN COURANT !` → He makes absolutely no noise while running! | `IL NE FAIT ABSOLUMENT AUCUN BRUIT` → He makes absolutely no noise · `EN COURANT !` → while running! |
+| `SA MÉTAMORPHOSE DE TOUT À L'HEURE AUSSI A DÛ LA FATIGUER ÉNORMÉMENT.` → Her transformation earlier must have worn her out too. | `SA MÉTAMORPHOSE` → Her transformation · `DE TOUT À L'HEURE` → earlier · `AUSSI A DÛ LA FATIGUER ÉNORMÉMENT.` → must have worn her out too. |
+
+Stay whole when the English wraps around the French: `C'EST LE PLUS FORT ET LE PLUS RAPIDE
+QUI GAGNE.` → "The strongest and fastest person wins." is one chunk, because `c'est … qui`
+frames the whole line and English has no matching pieces. When the English keeps the same
+cleft, split it like the English: `CE N'EST PAS ELLE` → it wasn't her · `QUI A TUÉ LES
+AUTRES !` → who killed the others!
+
+- Keep a subject pronoun with its verb after `que` too (`QUE JE DONNE`, never `QUE JE |
+  DONNE`), and a compound tense's auxiliary with its participle.
+- Don't leave `mais`, `et` or `car` as a chunk of its own: attach it to the chunk that follows
+  (`MAIS SI JE VEUX`).
+- When the translation reorders the line, one link may join French chunks that are not next to
+  each other (`PUISQUE` … `JE N'ARRIVE PAS À LES ÉVITER !` → since I can't avoid them). Prefer
+  that to a chunk whose English is false outside this sentence.
 
 Links:
 
