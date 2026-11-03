@@ -185,6 +185,21 @@ See [BUILD.md](docs/BUILD.md#android-app).
 | **Minimal noise** | I want to request help, not have it forced upon me. |
 | **Iteration is built into the model** | Both people and AIs make mistakes. Stable cue identities and correctable annotations mean study documents can be iterated on and improved. |
 
+## Roadmap
+
+Planned, roughly in this order:
+
+1. **Native desktop build.** A single GraalVM native binary, so running petites roues no
+   longer needs a Java installation.
+2. **Phone sync without extra tools.** Scan a QR code shown by the desktop app to pair the
+   phone, then choose titles to keep offline or stream on the same Wi-Fi. This replaces
+   syncing a folder with Syncthing, and later lets phone edits reach the review queue.
+3. **Articles.** Read news articles, blog posts and essays sentence by sentence, with the same
+   translations and notes as subtitles.
+4. **Magazines.** Laid-out magazine pages, handled like comics, with each article as a chapter.
+5. **Books.** Long-form text from DRM-free EPUBs, with chapter navigation and notes prepared a
+   chapter at a time.
+
 <div align="center">
 <br>
 <sub>MIT licensed</sub>
