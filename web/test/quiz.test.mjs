@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import {
-  QUIZ_LINES,
+  parseQuizTime,
   QUIZ_TYPES,
   quizBrief,
   quizFileName,
@@ -43,7 +43,7 @@ test("carries the rules and watched lines with their translations", () => {
     }),
     at(70, { source: "Pas encore vu", translation: "Not seen yet" }),
   ];
-  const brief = build(cues, 0);
+  const brief = build(cues, { start: 0, end: 30 });
   assert.ok(brief.startsWith("# Subtitle quiz: Le Film"));
   assert.ok(
     brief.includes("### Subtitle quiz agent"),
@@ -51,7 +51,7 @@ test("carries the rules and watched lines with their translations", () => {
   );
   assert.ok(!brief.includes("Teaching guide"), "the teaching guide stays out");
   assert.ok(brief.includes("`fr`"));
-  assert.ok(brief.includes("## Lines just watched (0:10–0:12)"));
+  assert.ok(brief.includes("## Lines in time range (0:00–0:30)"));
   assert.ok(brief.includes("\n- 0:10 Il fait beau → The weather is nice\n"));
   assert.ok(
     !brief.includes("adjective describes") &&
@@ -64,21 +64,48 @@ test("carries the rules and watched lines with their translations", () => {
   );
 });
 
-test("keeps only the last lines with source text", () => {
-  const cues = Array.from({ length: 40 }, (_, i) =>
-    at(i * 3, {
-      source: i === 39 ? "" : `Ligne ${i}`,
-      translation: `Line ${i}`,
-    }),
+test("whole episode includes all source lines without a line limit", () => {
+  const cues = Array.from({ length: 45 }, (_, i) =>
+    at(i * 3, { source: `Line ${i}` }),
   );
-  const brief = build(cues, 39);
-  assert.equal(brief.match(/^- \d+:\d\d /gm).length, QUIZ_LINES);
-  assert.ok(brief.includes("Ligne 38 → Line 38"));
-  assert.ok(!brief.includes("Ligne 8 "));
+  cues.push(at(150, { source: " " }));
+  const brief = build(cues, null);
+  assert.equal(brief.match(/^- \d+:\d\d /gm).length, 45);
+  assert.ok(brief.includes("## Whole episode"));
 });
 
-test("says so before the first line", () => {
-  assert.ok(build([at(5, { source: "Bonjour" })], -1).includes("None yet"));
+test("time range includes overlaps and excludes touching boundaries", () => {
+  const brief = build(
+    [
+      at(8, { source: "Before" }),
+      at(9, { source: "Overlaps start" }),
+      at(15, { source: "Inside" }),
+      at(19, { source: "Overlaps end" }),
+      at(20, { source: "After" }),
+    ],
+    { start: 10, end: 20 },
+  );
+  for (const text of ["Overlaps start", "Inside", "Overlaps end"])
+    assert.ok(brief.includes(text));
+  for (const text of ["Before", "After"]) assert.ok(!brief.includes(text));
+  assert.ok(build([], { start: 0, end: 10 }).includes("No subtitle lines"));
+});
+
+test("parses minute and hour ranges and rejects malformed times", () => {
+  assert.equal(parseQuizTime("30:00"), 1800);
+  assert.equal(parseQuizTime("1:02:03"), 3723);
+  assert.equal(parseQuizTime("0:00"), 0);
+  for (const value of [
+    "",
+    "-1:00",
+    "1:60",
+    "1:60:00",
+    "abc",
+    "1:2",
+    "Infinity",
+  ]) {
+    assert.equal(parseQuizTime(value), null);
+  }
 });
 
 test("names the file after the title", () => {
@@ -120,7 +147,7 @@ test("the chosen type sits above the rules", () => {
     "# Rules",
     doc,
     [at(1, { source: "Il est parti" })],
-    0,
+    null,
     type,
   );
   const at1 = brief.indexOf("## Quiz type: Verb tenses");

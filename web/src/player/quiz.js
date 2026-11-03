@@ -50,32 +50,36 @@ const SPREAD =
   "Pick items from all over these lines, in a mixed order: do not start at the " +
   "beginning, and do not take two items in a row from the same page or moment.";
 
-/** How many watched lines the brief carries, ending at the current one. */
-export const QUIZ_LINES = 30;
+/** Parses a player time in M:SS or H:MM:SS; invalid values return null. */
+export function parseQuizTime(value) {
+  if (!/^\d+:\d{2}(?::\d{2})?$/.test(value)) return null;
+  const parts = value.split(":").map(Number);
+  if (parts.at(-1) > 59 || (parts.length === 3 && parts[1] > 59)) return null;
+  const seconds = parts.reduce((total, part) => total * 60 + part, 0);
+  return Number.isFinite(seconds) ? seconds : null;
+}
 
-/**
- * The brief for [doc], with up to QUIZ_LINES cues ending at index [current] of [cues] (sorted by
- * start). Lines without source text are skipped.
- */
-export function quizBrief(rules, doc, cues, current, type) {
-  const watched = cues
-    .slice(0, Math.min(Math.max(current + 1, 0), cues.length))
-    .filter((cue) => cue.source?.trim())
-    .slice(-QUIZ_LINES);
+/** Includes all source lines, or lines overlapping the half-open time range [start, end). */
+export function quizBrief(rules, doc, cues, range, type) {
+  const watched = cues.filter(
+    (cue) =>
+      cue.source?.trim() &&
+      (!range || (cue.start < range.end && cue.end > range.start)),
+  );
   return briefMarkdown({
     rules,
     type,
     doc,
     heading: `Subtitle quiz: ${doc.title}`,
     intro:
-      "Run the subtitle quiz below for a learner, using the lines they have just watched. " +
+      "Run the subtitle quiz below for a learner, using the selected subtitle lines. " +
       "Start the first exercise straight away. Instructions about the browser player do " +
       "not apply here, and the rules mention files from the library (a teaching guide, " +
       "documents) that are not included: work from the lines below.",
-    section: watched.length
-      ? `Lines just watched (${clock(watched[0].start)}–${clock(watched.at(-1).end)})`
-      : "Lines just watched",
-    empty: "None yet: the learner is at the start of the film.",
+    section: range
+      ? `Lines in time range (${clock(range.start)}–${clock(range.end)})`
+      : "Whole episode",
+    empty: "No subtitle lines in this selection.",
     items: watched.map((cue) => ({ label: clock(cue.start), cue })),
   });
 }
@@ -159,7 +163,7 @@ export function demote(markdown) {
     .join("\n");
 }
 
-function clock(seconds) {
+export function clock(seconds) {
   const total = Math.max(0, Math.floor(seconds));
   const pad = (n) => String(n).padStart(2, "0");
   return total >= 3600

@@ -7,14 +7,15 @@ import {
   Select,
   Stack,
   Text,
+  TextInput,
   Tooltip,
 } from "@mantine/core";
 import { Lightbulb } from "lucide-react";
 import rules from "../../../../agents/workflows/subtitle-quiz.md?raw";
 import types from "../../../../agents/workflows/quiz-types.md?raw";
-import { currentCue } from "../model.js";
 import {
-  QUIZ_LINES,
+  clock,
+  parseQuizTime,
   QUIZ_TYPES,
   quizBrief,
   quizFileName,
@@ -27,15 +28,72 @@ const chats = [
   { name: "Claude", url: "https://claude.ai/new" },
 ];
 
-/** The video players' "Quiz me": the last lines watched, as on the phone player. */
+/** Exports a whole episode or the learner's chosen playback interval. */
 export function VideoQuizShare({ doc, cues, time }) {
-  const current = currentCue(cues, time);
+  const [scope, setScope] = useState("whole");
+  const [from, setFrom] = useState("0:00");
+  const [to, setTo] = useState("0:00");
+  const start = parseQuizTime(from);
+  const end = parseQuizTime(to);
+  const invalid =
+    scope === "range" && (start === null || end === null || end <= start);
+  const range = scope === "range" ? { start, end } : null;
+  const empty =
+    !invalid &&
+    !cues.some(
+      (cue) =>
+        cue.source?.trim() && (!range || (cue.start < end && cue.end > start)),
+    );
   return (
     <QuizShare
       doc={doc}
-      fileName={() => quizFileName(doc)}
-      brief={(rules, type) => quizBrief(rules, doc, cues, current, type)}
-      scopeNote={`Uses the last ${QUIZ_LINES} lines you watched.`}
+      fileName={() =>
+        quizFileName(doc, range ? `${clock(start)} to ${clock(end)}` : "")
+      }
+      brief={(rules, type) => quizBrief(rules, doc, cues, range, type)}
+      onOpen={() => {
+        setFrom("0:00");
+        setTo(clock(time));
+      }}
+      exportDisabled={invalid || empty}
+      scopeContent={
+        <Stack gap="sm">
+          <Radio.Group label="Quiz scope" value={scope} onChange={setScope}>
+            <Stack gap={6} mt={6}>
+              <Radio value="whole" label="Whole episode" />
+              <Radio value="range" label="Time range" />
+            </Stack>
+          </Radio.Group>
+          {scope === "range" && (
+            <>
+              <Group grow align="flex-start">
+                <TextInput
+                  label="From"
+                  value={from}
+                  onChange={(event) => setFrom(event.currentTarget.value)}
+                  placeholder="0:00"
+                />
+                <TextInput
+                  label="To"
+                  value={to}
+                  onChange={(event) => setTo(event.currentTarget.value)}
+                  placeholder="30:00"
+                />
+              </Group>
+              <Text size="xs" c={invalid ? "red" : "dimmed"}>
+                {invalid
+                  ? "Enter valid times with To later than From."
+                  : "Use M:SS or H:MM:SS."}
+              </Text>
+            </>
+          )}
+          {empty && (
+            <Text size="xs" c="red">
+              No subtitle lines in this selection.
+            </Text>
+          )}
+        </Stack>
+      }
     />
   );
 }
@@ -61,6 +119,8 @@ export function QuizShare({
   brief: build,
   scopes,
   scopeNote = "",
+  scopeContent,
+  exportDisabled = false,
   disabled = false,
   reason = "",
   onOpen,
@@ -130,23 +190,24 @@ export function QuizShare({
         portalProps={{ target: document.fullscreenElement || document.body }}
       >
         <Stack gap="md">
-          {scopes ? (
-            <Select
-              label={scopes.label}
-              data={scopes.options}
-              value={chosen}
-              onChange={(value) => {
-                if (!value) return;
-                setScope(value);
-                setStatus("");
-                scopes.onChange?.(value);
-              }}
-              allowDeselect={false}
-              comboboxProps={{ withinPortal: false }}
-            />
-          ) : (
-            <Text size="sm">{scopeNote}</Text>
-          )}
+          {scopeContent ||
+            (scopes ? (
+              <Select
+                label={scopes.label}
+                data={scopes.options}
+                value={chosen}
+                onChange={(value) => {
+                  if (!value) return;
+                  setScope(value);
+                  setStatus("");
+                  scopes.onChange?.(value);
+                }}
+                allowDeselect={false}
+                comboboxProps={{ withinPortal: false }}
+              />
+            ) : (
+              <Text size="sm">{scopeNote}</Text>
+            ))}
           {type && (
             <Radio.Group
               label="Quiz type"
@@ -171,6 +232,7 @@ export function QuizShare({
             <Group gap={6}>
               {chats.map((chat) => (
                 <Button
+                  disabled={exportDisabled}
                   key={chat.name}
                   size="compact-sm"
                   variant="light"
@@ -188,15 +250,26 @@ export function QuizShare({
               <Button
                 size="compact-sm"
                 variant="default"
+                disabled={exportDisabled}
                 onClick={() => copy("Copied: paste it into a chat.")}
               >
                 Copy
               </Button>
-              <Button size="compact-sm" variant="default" onClick={download}>
+              <Button
+                size="compact-sm"
+                variant="default"
+                disabled={exportDisabled}
+                onClick={download}
+              >
                 Download
               </Button>
               {typeof navigator.share === "function" && (
-                <Button size="compact-sm" variant="default" onClick={share}>
+                <Button
+                  size="compact-sm"
+                  variant="default"
+                  disabled={exportDisabled}
+                  onClick={share}
+                >
                   Share…
                 </Button>
               )}

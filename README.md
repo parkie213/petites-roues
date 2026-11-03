@@ -60,36 +60,17 @@ apply it to other text media soon.
 
 ## Quick start
 
-The quickest way to run it is in the browser, as a local desktop web application.
-
 > **Requires** Java 25 and Node.js 24.
 
-**1.** From the repository root, build the Java modules and start the API:
-
 ```bash
-./java/mvnw -f java/pom.xml verify
-mkdir -p content
+./java/mvnw -f java/pom.xml verify && mkdir -p content
 java -jar java/server/target/petites-roues-server-0.1.0-SNAPSHOT.jar
+cd web && npm ci && npm run dev   # in a second terminal
 ```
 
-**2.** In a second terminal, start the Node development server:
-
-```bash
-cd web
-npm ci
-npm run dev
-```
-
-**3.** Open <http://127.0.0.1:8875/> and use **Add repository** to select the `example` directory.
-
-A repository here is simply a content folder; Git is optional. Roughly:
-
-```text
-directory/
-  structure/
-    document.json
-    video.mp4
-```
+Open <http://127.0.0.1:8875/> and use **Add repository** to select the `example` directory.
+[Getting started](docs/GETTING-STARTED.md) walks through the example, its quiz and note, and
+what to try next.
 
 ## Why petites roues?
 
