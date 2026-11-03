@@ -83,7 +83,17 @@ API only; its JAR does not contain the UI.
 The comic reader's Listen button (and the R key) speaks text with a local
 [Piper](https://github.com/rhasspy/piper) voice. Java keeps one Piper process per
 language running and generates audio per request; nothing is stored. It expects the
-standalone Piper binary and voice models in these locations by default:
+standalone Piper binary and voice models in these locations by default.
+
+On Linux x64, install Piper and the French Siwis voice once from the repository root
+(requires `curl` and `tar`, no `sudo`):
+
+```bash
+bash setup/speech.sh
+```
+
+The script reuses existing files. Other platforms and languages need a manual installation
+at the paths below, or the configuration overrides described afterwards:
 
 ```text
 ~/.local/share/piper/piper/piper           # petitesroues.speech.piper

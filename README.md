@@ -46,7 +46,7 @@ apply it to other text media soon.
 <td>
 
 - Comics and manga, opening a speech bubble for the same phrase-by-phrase breakdown
-- Listen to a bubble or a single phrase read aloud
+- Listen to a bubble or a single phrase read aloud ([optional Piper setup](docs/BUILD.md#read-aloud-optional))
 - Take it with you: the Android app works offline from a synced folder
 
 </td>
@@ -64,7 +64,14 @@ apply it to other text media soon.
 ```bash
 ./java/mvnw -f java/pom.xml verify && mkdir -p content
 java -jar java/server/target/petites-roues-server-0.1.0-SNAPSHOT.jar
-cd web && npm ci && npm run dev   # in a second terminal
+```
+
+In a second terminal, from the repository root:
+
+```bash
+cd web
+npm ci
+npm run dev
 ```
 
 Open <http://127.0.0.1:8875/> and use **Add repository** to select the `example` directory.
@@ -99,13 +106,20 @@ The project consists of three parts: the document model, study document creation
 ### Document model
 
 The model is designed to provide contextual information to the learner, and to break sentences
-down into phrases that are hopefully more digestible for a beginner.
+down into phrases that are hopefully more digestible for a beginner. See the
+[document format](docs/DOCUMENT-FORMAT.md) for its structure and examples.
 
 ### Study document creation
 
-I am currently doing this quite simply with OpenRouter. Annotation happens in three stages, so
-that each model request does one job and the phrase chunks are settled before anything is
-written about them:
+Use whatever approach works for you. I use my Claude subscription for some of the work and
+OpenRouter for tasks where I prefer the results or want to save subscription usage. These are
+my current choices, rather than requirements for the player:
+
+- **Transcription:** Voxtral on OpenRouter. In my tests, local Whisper was slower and less accurate.
+- **Comic box placement and text extraction:** Terra on OpenRouter. It works well for me and
+  avoids using most of a Claude or GPT session on extraction. It costs more, but is manageable
+  for the amount I process.
+- **First passes:** Luna on OpenRouter, to keep costs and subscription usage down.
 
 ```mermaid
 flowchart LR
@@ -121,11 +135,12 @@ flowchart LR
 Every stage leaves a valid document, so the player shows the work so far. The steps are in
 [docs/PREPARE-TITLE.md](docs/PREPARE-TITLE.md).
 
-A later project might be to turn it into an agentic pipeline, but for now this is working well.
+A later project might be to turn it into a truly agentic pipeline, but for now this is working well.
 
 ### Content repositories
 
-The study documents are simply stored in Git repositories to be as portable as possible.
+Study documents live in ordinary content folders. Git is optional, but useful for versioning
+and sharing them.
 
 A repository can also hold:
 
