@@ -15,23 +15,15 @@ project for language learning beginners!
 ![React](https://img.shields.io/badge/React-UI-12294f)
 ![Android](https://img.shields.io/badge/Android-offline-12294f)
 
-[In short](#in-short) · [Motivation](#motivation) · [Principles](#principles) ·
-[How it works](#how-it-works) · [Quick start](#quick-start)
+A self-hosted app for anyone who wants help watching or reading in another language,
+in the browser or on Android.
+
+[Features](#features) · [Quick start](#quick-start) · [Why petites roues?](#why-petites-roues) ·
+[How it works](#how-it-works) · [Design principles](#design-principles)
 
 </div>
 
-<br>
-
-<p align="center">
-  <img src="images/player.jpg" alt="The video player with a subtitle broken into phrases and explained" width="100%">
-</p>
-
-petites roues is a self-hosted app for anyone who wants help watching or reading in another
-language. It has browser and Android app versions.
-
-## In short
-
-<img src="images/reader.jpg" alt="The comic reader explaining a speech bubble" width="230" align="right">
+## Features
 
 It's like Language Reactor with the auto-pause and translations, but with deeper explanations and
 sentences broken up into manageable chunks.
@@ -39,14 +31,67 @@ sentences broken up into manageable chunks.
 And it applies a similar methodology to reading too. Currently only on comics/manga, but I plan to
 apply it to other text media soon.
 
-- **Watch** with subtitles split into phrases, each with its translation and explanation
-- **Read** comics and manga, opening a speech bubble for the same breakdown
-- **Listen** to a line or a single phrase read aloud
-- **Take it with you**: the Android app works offline from a synced folder
+### Watch
 
-<br clear="right">
+<img src="images/player.jpg" alt="The video player with a subtitle broken into phrases and explained" width="100%">
 
-## Motivation
+- Subtitles split into phrases, each with its translation and explanation
+- Listen to a line or a single phrase read aloud
+- Correct translations and notes as you go; your edits are queued for an agent to apply
+
+### Read
+
+<table>
+<tr>
+<td width="35%"><img src="images/reader.jpg" alt="The comic reader on a phone explaining a speech bubble"></td>
+<td>
+
+- Comics and manga, opening a speech bubble for the same phrase-by-phrase breakdown
+- Listen to a bubble or a single phrase read aloud
+- Take it with you: the Android app works offline from a synced folder
+
+</td>
+</tr>
+</table>
+
+### And more
+
+- Quiz yourself and keep study notes alongside your titles
+
+## Quick start
+
+The quickest way to run it is in the browser, as a local desktop web application.
+
+> **Requires** Java 25 and Node.js 24.
+
+**1.** From the repository root, build the Java modules and start the API:
+
+```bash
+./java/mvnw -f java/pom.xml verify
+mkdir -p content
+java -jar java/server/target/petites-roues-server-0.1.0-SNAPSHOT.jar
+```
+
+**2.** In a second terminal, start the Node development server:
+
+```bash
+cd web
+npm ci
+npm run dev
+```
+
+**3.** Open <http://127.0.0.1:8875/> and use **Add repository** to select the `example` directory.
+
+A repository here is simply a content folder; Git is optional. Roughly:
+
+```text
+directory/
+  structure/
+    document.json
+    video.mp4
+```
+
+## Why petites roues?
 
 I've been learning French for a while, and iterating on ideas to make consuming French media
 easier for almost as long.
@@ -66,15 +111,6 @@ than a direct translation. This time I decided it would be an application with a
 rather than a crude layer on top of a coding agent.
 
 petites roues builds on top of that player, extends the model and applies it to other media.
-
-## Principles
-
-| | |
-|---|---|
-| **Portable annotations** | A lot of work goes into creating the study documents, so they are designed to be version controllable and as easy to share as running a `git clone`. |
-| **Contextual explanations** | A direct translation is useful, but I want more than that: grammar, idioms and so on. |
-| **Minimal noise** | I want to request help, not have it forced upon me. |
-| **Iteration is built into the model** | Both people and AIs make mistakes. Stable cue identities and correctable annotations mean study documents can be iterated on and improved. |
 
 ## How it works
 
@@ -138,40 +174,16 @@ flowchart LR
 the same study documents from a folder synced to the phone, using the same Java document model.
 See [BUILD.md](docs/BUILD.md#android-app).
 
-## Quick start
+## Design principles
 
-The quickest way to run it is in the browser, as a local desktop web application.
-
-> **Requires** Java 25 and Node.js 24.
-
-**1.** From the repository root, build the Java modules and start the API:
-
-```bash
-./java/mvnw -f java/pom.xml verify
-mkdir -p content
-java -jar java/server/target/petites-roues-server-0.1.0-SNAPSHOT.jar
-```
-
-**2.** In a second terminal, start the Node development server:
-
-```bash
-cd web
-npm ci
-npm run dev
-```
-
-**3.** Open <http://127.0.0.1:8875/> and use **Add repository** to select the `example` directory.
-
-A repository here is simply a content folder; Git is optional. Roughly:
-
-```text
-directory/
-  structure/
-    document.json
-    video.mp4
-```
+| | |
+|---|---|
+| **Portable annotations** | A lot of work goes into creating the study documents, so they are designed to be version controllable and as easy to share as running a `git clone`. |
+| **Contextual explanations** | A direct translation is useful, but I want more than that: grammar, idioms and so on. |
+| **Minimal noise** | I want to request help, not have it forced upon me. |
+| **Iteration is built into the model** | Both people and AIs make mistakes. Stable cue identities and correctable annotations mean study documents can be iterated on and improved. |
 
 <div align="center">
 <br>
-<sub>MIT licensed · made while learning French</sub>
+<sub>MIT licensed</sub>
 </div>
