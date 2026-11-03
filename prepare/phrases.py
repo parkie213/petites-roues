@@ -10,11 +10,13 @@ first, and notes.py explains the reviewed chunks. By default it handles translat
 no alignment or a stale one; --all redoes every translated cue and --cues takes a file of cue
 IDs, one per line. Existing breakdowns are not shown to the model.
 
-Needs the app running: each cue in an answer is accepted once it passes the app's validator.
-A chunk of LONG or more words is sent back once, asking for it to be split at a clause or
-adverbial boundary or kept whole only when the English wraps around it; the second answer is
-accepted either way and any long chunk left is named in the cue's review request. Up to two
-repair requests resend only the cues that failed. Rerunning the same command resumes.
+The prompt carries only the parts of the guide this stage needs: its introduction and the
+chunking and link rules. Needs the app running: each cue in an answer is accepted once it passes
+the app's validator. A breakdown with a known fault (a chunk of LONG or more words and, for
+French, a lone connector or a pronoun, negation or auxiliary cut off from its verb) is sent back
+once with what to reconsider; the second answer is accepted either way and any fault left is
+named in the cue's review request. Up to two repair requests resend only the cues that failed.
+Rerunning the same command resumes.
 
 Then updates DOC in place for every accepted cue whose source and translation still match
 what was sent, and queues each one for a breakdown review. --no-write keeps the answers in the run
@@ -22,6 +24,7 @@ directory only, for comparing prompts or models (see phrase_report.py).
 """
 import argparse
 import json
+import re
 from pathlib import Path
 
 import app
@@ -31,7 +34,8 @@ from openrouter import load
 MODEL = "openai/gpt-6-luna"
 LONG = 7
 GUIDE = Path(__file__).resolve().parent.parent / "agents/guides/translation-notes.md"
-CONTRACT = """Write the phrase breakdown for every assigned cue, applying the Chunking and Links sections of the guide below. Each cue's translation is fixed: divide that exact text. This stage writes no notes; they are written later for the reviewed chunks. Read neighbouring cues for context. Return only assigned IDs exactly once in input order. Return JSON only:
+SECTIONS = ("Chunking: the core rule",)
+CONTRACT = """Write the phrase breakdown for every assigned cue, applying the Chunking and Links rules of the guide below. Each cue's translation is fixed: divide that exact text. This stage writes no notes; they are written later for the reviewed chunks. Read neighbouring cues for context. Return only assigned IDs exactly once in input order. Return JSON only:
 {"cues":[{"id":"assigned-id","alignment":{"source":["exact source chunks"],"translation":["translation chunks"],"links":[{"source":[0],"translation":[0]}]}}]}
 Chunks joined with single spaces must exactly reproduce source/translation respectively, punctuation included. Every chunk must belong to exactly one link, translation indices in each link must be contiguous. Indices are zero-based. No markdown fences. Final-check all IDs, joins and links before returning.
 
@@ -76,18 +80,55 @@ def shape_errors(c):
     return []
 
 
+def guide_sections(guide, headings=SECTIONS):
+    """The guide's introduction (everything before its first ## heading) and the named ## sections."""
+    parts = re.split(r"(?m)^(?=## )", guide)
+    return "".join([parts[0]] + [p for p in parts[1:] if p[3:].split("\n", 1)[0].strip() in headings])
+
+
+def prompt_for(batch, guide):
+    """The breakdown request for one batch: the contract, the guide sections this stage uses and the
+    batch's cues."""
+    return CONTRACT + guide_sections(guide) + "\n\nINPUT:\n" + json.dumps(batch, ensure_ascii=False, indent=2)
+
+
 def words(chunk):
     return sum(any(ch.isalnum() for ch in token) for token in chunk.split())
 
 
-def long_chunks(answer):
-    return [chunk for chunk in answer["alignment"]["source"] if words(chunk) >= LONG]
+CONNECTORS = {"MAIS", "ET", "CAR", "DONC", "ALORS", "OU", "PUIS"}
+SUBJECTS = {"JE", "J'", "J’", "TU", "IL", "ON", "ILS"}
+NEGATION = {"NE", "N'", "N’"}
+AUXILIARIES = {"AI", "AS", "A", "AVONS", "AVEZ", "ONT", "AVAIS", "AVAIT", "AVIONS", "AVIEZ", "AVAIENT",
+               "SUIS", "ES", "EST", "SOMMES", "ÊTES", "SONT", "ÉTAIS", "ÉTAIT", "ÉTIONS", "ÉTIEZ", "ÉTAIENT"}
 
 
-def lint(answer):
-    return [f"Chunk “{chunk}” has {words(chunk)} words. Split off any clause, time or place expression, "
-            "adverbial or gerund that has its own unbroken English. Keep it whole only if the English "
-            "wraps around it." for chunk in long_chunks(answer)]
+def faults(alignment, language):
+    """Known breakdown faults, each phrased as what to reconsider. Length applies to every language;
+    the rest are French patterns found in reviews: a lone connector, and a subject pronoun, `ne` or
+    an auxiliary or `être` form cut off from the verb or complement in the next chunk."""
+    chunks = alignment["source"]
+    found = [f"Chunk “{c}” has {words(c)} words. Split off any clause, time or place expression, adverbial "
+             "or gerund that has its own unbroken English. Keep it whole only if the English wraps around it."
+             for c in chunks if words(c) >= LONG]
+    if not language.lower().startswith("fr"):
+        return found
+    for n, chunk in enumerate(chunks):
+        tokens = [re.sub(r"[^\w'’]", "", t.upper()) for t in chunk.split()]
+        tokens = [t for t in tokens if t]
+        if not tokens:
+            continue
+        last, more = tokens[-1], n < len(chunks) - 1
+        if tokens[0] in CONNECTORS and len(tokens) == 1 and more:
+            found.append(f"“{chunk}” stands alone: attach it to the chunk that follows.")
+        elif more and (last in SUBJECTS or last.endswith(("J'", "J’"))):
+            found.append(f"“{chunk}” ends with a subject pronoun: keep it with its verb in the next chunk.")
+        elif more and (last in NEGATION or last.endswith(("N'", "N’"))):
+            found.append(f"“{chunk}” ends with `ne`: keep the negation with its verb.")
+        elif more and last in AUXILIARIES and len(tokens) <= 2 and tokens[-2:] != ["Y", "A"]:
+            found.append(f"“{chunk}” is a subject and auxiliary or `être` alone: keep it with the participle "
+                         "or complement that follows.")
+    return found
 
 
 def main():
@@ -125,16 +166,19 @@ def main():
     guide = (args.run_dir / "teaching-guide.md").read_text(encoding="utf-8")
     base = load(args.run_dir / "base-document.json")
 
-    def prompt(batch):
-        return CONTRACT + guide + "\n\nINPUT:\n" + json.dumps(batch, ensure_ascii=False, indent=2)
+    language = base["sourceLanguage"]
+
+    def lint(answer):
+        return faults(answer["alignment"], language)
 
     def accept(answer, assigned, attempt):
         return batches.check(answer, assigned, title, base, shape_errors, annotate,
                              lint if attempt == 1 else None)
 
-    spent, sent, answers, failed = batches.run_all(args.run_dir, manifest, prompt, accept, args.workers)
-    still_long = {i: long_chunks(a) for i, a in answers.items() if long_chunks(a)}
-    print(f"Accepted {len(answers)} of {len(sent)} cues ({len(still_long)} still with a chunk of {LONG}+ words); "
+    spent, sent, answers, failed = batches.run_all(
+        args.run_dir, manifest, lambda batch: prompt_for(batch, guide), accept, args.workers)
+    remaining = {i: lint(a) for i, a in answers.items() if lint(a)}
+    print(f"Accepted {len(answers)} of {len(sent)} cues ({len(remaining)} still with a flagged fault); "
           f"this run cost USD {spent}")
     if args.no_write:
         print(f"Not written: answers are in {args.run_dir}/batch-*/accepted.json")
@@ -152,7 +196,7 @@ def main():
     model = manifest["model"]
     requests = [{"cueId": i, "text": f"First-pass phrase breakdown from {model}: check chunks and links only; "
                  "notes come later."
-                 + "".join(f" Long chunk kept: “{c}”." for c in still_long.get(i, []))} for i in applied]
+                 + "".join(f" Kept despite the check: {f}" for f in remaining.get(i, []))} for i in applied]
     requests += [{"cueId": i, "text": f"{model} could not write a phrase breakdown: " + "; ".join(e)[:1800]}
                  for i, e in failed.items() if i not in changed]
     queued = batches.queue(args.run_dir, title, requests)

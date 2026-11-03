@@ -36,30 +36,37 @@ translation into word-for-word English to make the breakdown tidy.
 paired with the English that naturally translates it.** Chunks exist to teach. A
 breakdown with fewer, meaningful chunks and rich notes beats a word-by-word map.
 
-Keep together:
+**First mark what must stay whole, then split what is left.** Never cut inside:
 
-- an article or possessive with its noun (`le Nouvel An`, `tes bottes`);
-- a subject pronoun with its verb (`je veux`), and object pronouns and negation with the
-  verb they belong to (`ne te sauve pas`);
-- idioms, set phrases and verb constructions whose parts mean little alone
-  (`se remplir le ventre`, `il y a deux jours`, `avoir besoin de`);
-- a construction whose English is built differently.
+- an article or possessive and its noun (`le Nouvel An`, `tes bottes`);
+- a subject pronoun and its verb, also after `que` (`que je donne`, never `que je | donne`);
+- a negation and its verb, with both parts of the negation: `ne … pas`, `ne … plus`,
+  `ne … jamais`, and `ne … que` with what it limits (`il ne me reste que deux euros`, one chunk);
+- object pronouns, `y` and `en` and their verb (`ne te sauve pas`, `j'y pense`);
+- an auxiliary and its participle (`je n'avais jamais eu`);
+- a verb and the construction that gives it its meaning: `arriver à` + infinitive (`je n'arrive
+  pas à dormir` → I can't sleep), `être en train de` + infinitive, `avoir besoin de`, and idioms
+  (`se remplir le ventre`, `il y a deux jours`, `prendre la fuite`);
+- a frame the English wraps around: `c'est … qui/que` when the English drops the cleft (`c'est
+  Paul qui paie` → Paul's paying), causative `faire` + infinitive (`il fait réparer la voiture`
+  → he's having the car repaired), `voir` + someone + infinitive;
+- `être` and its complement in a short clause (`tu es trempé` → you're soaked; never `tu es |
+  trempé`);
+- a connector (`mais`, `et`, `car`, `donc`, `alors`) and the chunk that follows (`mais je suis
+  en retard`).
 
-**Do not split when the English is built differently.** Try the split, then look at the
-English side. If any French chunk would need English words that are not next to each other,
-or would pair a word with a meaning that is only true in this sentence, the split is wrong:
-keep the construction as one chunk and teach its inside in the note. Example: `bientôt`
-means "soon", so a separate `bientôt` → "almost" chip teaches a false equivalence; the
-chunk `c'est bientôt…` → "it's almost…" is true.
+**Then split** where a piece carries its own lesson and has its own natural English: a clause,
+a time or place expression, a reusable adverbial (`encore une fois` → "once again"), a gerund
+(`en courant` → while running). A chunk is at most one clause; a sentence of two clauses is at
+least two chunks. A short exclamation or name is one chunk. A one-word chunk is the exception,
+for a word with a lesson of its own. Between a clause-sized chunk and fragments, prefer the
+clause.
 
-**Split** when a piece carries its own lesson and has its own natural English: a clause, a
-time or place expression, a reusable adverbial (`encore une fois` → "once again").
-
-Size: a short exclamation or name is one chunk. A chunk is at most one clause; a sentence
-of two clauses is at least two chunks. Within a clause, split off a time or place
-expression, a manner adverbial or a gerund (`en courant`) whenever it has its own unbroken
-English. A one-word chunk is the exception, for a word with a lesson of its own. Between a
-clause-sized chunk and fragments, prefer the clause.
+**Test every pairing alone.** Would a learner who reused that chunk with that English be right
+in another sentence? `bientôt` means "soon", so a separate `bientôt` → "almost" chip teaches a
+false equivalence; the chunk `c'est bientôt…` → "it's almost…" is true. If a French chunk would
+need English words that are not next to each other, or a meaning only true in this sentence,
+the split is wrong: keep the construction as one chunk and teach its inside in the note.
 
 **The note tells you when a chunk is too long.** If its link note has to gloss three or
 more separate pieces one after another ("`il` means he… `aucun bruit` means no noise…
@@ -70,19 +77,20 @@ more separate pieces one after another ("`il` means he… `aucun bruit` means no
 | `IL NE FAIT ABSOLUMENT AUCUN BRUIT EN COURANT !` → He makes absolutely no noise while running! | `IL NE FAIT ABSOLUMENT AUCUN BRUIT` → He makes absolutely no noise · `EN COURANT !` → while running! |
 | `SA MÉTAMORPHOSE DE TOUT À L'HEURE AUSSI A DÛ LA FATIGUER ÉNORMÉMENT.` → Her transformation earlier must have worn her out too. | `SA MÉTAMORPHOSE` → Her transformation · `DE TOUT À L'HEURE` → earlier · `AUSSI A DÛ LA FATIGUER ÉNORMÉMENT.` → must have worn her out too. |
 
-Stay whole when the English wraps around the French: `C'EST LE PLUS FORT ET LE PLUS RAPIDE
-QUI GAGNE.` → "The strongest and fastest person wins." is one chunk, because `c'est … qui`
-frames the whole line and English has no matching pieces. When the English keeps the same
-cleft, split it like the English: `CE N'EST PAS ELLE` → it wasn't her · `QUI A TUÉ LES
-AUTRES !` → who killed the others!
+And when a split would be wrong:
 
-- Keep a subject pronoun with its verb after `que` too (`QUE JE DONNE`, never `QUE JE |
-  DONNE`), and a compound tense's auxiliary with its participle.
-- Don't leave `mais`, `et` or `car` as a chunk of its own: attach it to the chunk that follows
-  (`MAIS SI JE VEUX`).
-- When the translation reorders the line, one link may join French chunks that are not next to
-  each other (`PUISQUE` … `JE N'ARRIVE PAS À LES ÉVITER !` → since I can't avoid them). Prefer
-  that to a chunk whose English is false outside this sentence.
+| Over-split | Right |
+|---|---|
+| `JE N'ARRIVE PLUS` · `À DORMIR LA NUIT.` | `JE N'ARRIVE PLUS À DORMIR` → I can't sleep anymore · `LA NUIT.` → at night. |
+| `IL NE NOUS RESTE` · `QUE DEUX JOURS.` | `IL NE NOUS RESTE QUE DEUX JOURS.` → We only have two days left. |
+| `C'EST MA SŒUR` · `QUI CONDUIT.` (English: My sister's driving.) | `C'EST MA SŒUR QUI CONDUIT.` → My sister's driving. |
+| `MAIS` · `TU ES` · `TREMPÉ !` | `MAIS TU ES TREMPÉ !` → But you're soaked! |
+
+When the English keeps the same cleft, split it like the English: `CE N'EST PAS MOI` → it
+wasn't me · `QUI AI CASSÉ LE VASE.` → who broke the vase. When the translation reorders the
+line, one link may join French chunks that are not next to each other (`PUISQUE` … `JE SUIS EN
+RETARD` → since I'm late, with `DE TOUTE FAÇON` → anyway); prefer that to a chunk whose English
+is false outside this sentence.
 
 Links:
 
@@ -225,6 +233,14 @@ Machine-written notes got these wrong; check them every time.
   around a pronoun in English: `Range-le` — put it away. A link's English must be one unbroken
   stretch, so link the whole `put it away` to `Range-le` and explain the parts in its note;
   never link `put` and `away` separately.
+- **"Set phrase" needs a dictionary.** Don't call a combination a fixed expression unless a
+  dictionary lists it. `exploser en larmes` is not one: the set phrases are `fondre en larmes`
+  and `éclater en sanglots`, and `exploser` is a vivid free choice. Say that instead.
+- **Reading order decides referents.** Manga read right to left, and a document's cue order
+  can differ from the reading order on the page. Before saying what `il`, `y` or `ça` refers
+  to, or which balloon a fragment completes, check the page: on Demon Slayer T01 p. 116 the
+  `il` that "gets in the way" is the katana in the balloon read just before, not a person.
+  Hedge ("presumably…") when the page doesn't settle it, and never invent scene details.
 
 ## Worked example: a manga balloon
 
