@@ -34,7 +34,8 @@ export function validAlignment(cue, candidate) {
   }
   const covered = { source: new Set(), translation: new Set() };
   for (const link of candidate.links) {
-    if (!link || typeof link.note !== "string" || !link.note.trim())
+    // Notes are optional: a breakdown is shown before the notes stage explains it.
+    if (!link || (link.note != null && typeof link.note !== "string"))
       return null;
     for (const side of ["source", "translation"]) {
       if (

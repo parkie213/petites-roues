@@ -49,7 +49,7 @@ export function Transcript({
       cues.map((line, index) => {
         const teaching =
           alignmentState(line) === "ready"
-            ? line.alignment.links.map((link) => link.note)
+            ? line.alignment.links.map((link) => link.note).filter(Boolean)
             : line.notes;
         const hay = [
           line.source,

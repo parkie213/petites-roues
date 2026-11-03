@@ -115,3 +115,19 @@ test("subtitle translations preserve order, shared links and gaps", () => {
   assert.equal(phraseTranslation(shared, 1), "one two … four");
   assert.equal(phraseTranslation(shared, 2), "");
 });
+
+test("a breakdown awaiting the notes stage is shown without link notes", () => {
+  const unexplained = {
+    ...alignment,
+    links: alignment.links.map(({ source, translation }, i) =>
+      i === 0 ? { source, translation, note: "" } : { source, translation },
+    ),
+  };
+  assert.equal(validAlignment(cue, unexplained), unexplained);
+  assert.equal(alignmentState({ ...cue, alignment: unexplained }), "ready");
+  const malformed = {
+    ...alignment,
+    links: [{ ...alignment.links[0], note: 3 }, ...alignment.links.slice(1)],
+  };
+  assert.equal(validAlignment(cue, malformed), null);
+});

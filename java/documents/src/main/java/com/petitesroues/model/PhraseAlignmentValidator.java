@@ -17,7 +17,8 @@ public final class PhraseAlignmentValidator {
   /**
    * Rejects malformed, incomplete or stale graphs without changing the alignment or cue text.
    * Crossing links, many-to-many links and phrases without a separate counterpart are allowed, but
-   * each phrase belongs to exactly one link. Structural validity does not establish the linguistic
+   * each phrase belongs to exactly one link. Link notes are optional: a breakdown is complete
+   * before the notes stage explains it. Structural validity does not establish the linguistic
    * accuracy of a translation or explanation.
    *
    * @param alignment graph to validate; required
@@ -51,8 +52,6 @@ public final class PhraseAlignmentValidator {
     Set<Integer> sourceCoverage = new HashSet<>();
     Set<Integer> targetCoverage = new HashSet<>();
     for (var link : alignment.links()) {
-      if (link.note().isBlank())
-        throw new IllegalArgumentException("Each alignment link needs an explanation");
       checkIndices(link.source(), alignment.source().size(), sourceCoverage, "Source");
       checkIndices(
           link.translation(), alignment.translation().size(), targetCoverage, "Translation");

@@ -119,7 +119,11 @@ export function PhraseAlignment({ cue, plain = false, showLinkNotes = false }) {
               aria-live="polite"
             >
               {active !== null ? (
-                <LearnerNote>{alignment.links[active].note}</LearnerNote>
+                alignment.links[active].note?.trim() ? (
+                  <LearnerNote>{alignment.links[active].note}</LearnerNote>
+                ) : (
+                  <span>No explanation yet.</span>
+                )
               ) : (
                 <span>Select a phrase to see its explanation.</span>
               )}

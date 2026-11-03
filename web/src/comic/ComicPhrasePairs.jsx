@@ -63,7 +63,11 @@ export function ComicPhrasePairs({ cue }) {
       ))}
       <p className="comic-pair-note" aria-live="polite">
         {active !== null ? (
-          <LearnerNote>{alignment.links[active].note}</LearnerNote>
+          alignment.links[active].note?.trim() ? (
+            <LearnerNote>{alignment.links[active].note}</LearnerNote>
+          ) : (
+            "No explanation yet."
+          )
         ) : (
           "Hover or click a row to see its explanation."
         )}

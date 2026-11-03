@@ -69,7 +69,8 @@ export function ComicBubbleCard({ cue, document, onKeep }) {
         ...new Set(
           alignment.links
             .filter((link) => link.source.includes(index))
-            .map((link) => link.note),
+            .map((link) => link.note)
+            .filter(Boolean),
         ),
       ])
     : [];

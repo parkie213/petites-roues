@@ -26,9 +26,9 @@ fun readyAlignment(cue: StudyCue): PhraseAlignment? {
 fun PhraseAlignment.linkOfSource(sourceIndex: Int): Int =
   links().indexOfFirst { sourceIndex in it.source() }
 
-/** Each distinct explanation attached to a source phrase, in link order. */
+/** Each distinct explanation attached to a source phrase, in link order; links not yet explained add none. */
 fun PhraseAlignment.phraseNotes(sourceIndex: Int): List<String> =
-  links().filter { sourceIndex in it.source() }.map { it.note() }.distinct()
+  links().filter { sourceIndex in it.source() }.map { it.note() }.filter { it.isNotBlank() }.distinct()
 
 /** One translation chunk with the link that colours it and whether it belongs to the explored phrase. */
 data class ContextChunk(val text: String, val link: Int, val active: Boolean, val sourcePhrase: Int?)

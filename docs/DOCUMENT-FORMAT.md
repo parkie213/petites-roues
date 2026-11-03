@@ -156,8 +156,10 @@ including punctuation and apostrophes.
 Link indices are zero-based positions in the phrase arrays. Every phrase on both
 sides must be covered. A link may connect several phrases on either side, or have
 an empty side when a phrase has no separate counterpart. Indices must be valid and
-unique within each side of a link, and every link needs a nonempty explanatory
-`note`. Group natural meaning units rather than mechanically splitting every word.
+unique within each side of a link. A link's `note` explains it to the learner; it is
+optional, because a breakdown is written and reviewed before its notes (the player shows
+"No explanation yet."), and an empty note is left out of the file. Group natural meaning
+units rather than mechanically splitting every word.
 
 With a valid graph, set `alignmentStale` to false. When wording changes without a
 replacement graph, remove the old `alignment` and set `alignmentStale` to true.

@@ -74,7 +74,8 @@ export function VideoSubtitles({
           ...new Set(
             alignment.links
               .filter((link) => link.source.includes(active))
-              .map((link) => link.note),
+              .map((link) => link.note)
+              .filter(Boolean),
           ),
         ]
       : [];

@@ -90,23 +90,29 @@ class PhraseAlignmentValidatorTest {
         Arguments.of(null, "Alignment must contain meaning links"),
         Arguments.of(List.of(), "Alignment must contain meaning links"),
         Arguments.of(
-            List.of(newLink(List.of(0), List.of(0), null)),
-            "Each alignment link needs an explanation"),
-        Arguments.of(
-            List.of(newLink(List.of(0), List.of(0), " ")),
-            "Each alignment link needs an explanation"),
-        Arguments.of(
             List.of(newLink(List.of(), List.of(), "No references")),
             "An alignment link must reference a phrase"));
   }
 
   @ParameterizedTest
   @MethodSource("invalidLinks")
-  void linksNeedReferencesAndExplanations(List<PhraseLink> links, String message) {
+  void linksNeedReferences(List<PhraseLink> links, String message) {
     var alignment = greeting(List.of("Salut"), List.of("Hi"), links);
     assertEquals(
         message,
         assertThrows(IllegalArgumentException.class, () -> validate(alignment)).getMessage());
+  }
+
+  @Test
+  void linkNotesAreOptionalUntilTheNotesStage() {
+    for (String note : Arrays.asList(null, "", " "))
+      assertDoesNotThrow(
+          () ->
+              validate(
+                  greeting(
+                      List.of("Salut"),
+                      List.of("Hi"),
+                      List.of(newLink(List.of(0), List.of(0), note)))));
   }
 
   static Stream<Arguments> invalidIndices() {
