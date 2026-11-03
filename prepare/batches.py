@@ -175,9 +175,10 @@ def write(document_path, run_dir, title, answers, unchanged, annotate):
 
 
 def queue(run_dir, title, requests):
-    """Queues review requests once per run."""
+    """Queues review requests once per run, shortening any text past the app's 2000-character limit."""
     if (run_dir / "queued.json").exists():
         return None
+    requests = [{**r, "text": r["text"] if len(r["text"]) <= 2000 else r["text"][:1999] + "…"} for r in requests]
     queued = app.request_review(title, requests)
     save(run_dir / "queued.json", requests)
     return queued

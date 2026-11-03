@@ -146,7 +146,8 @@ only that; a simple line often needs no sentence notes. Good candidates:
 - for balloons or subtitles that split one sentence, which part completes which.
 
 One teaching point per string: the player shows each string as its own bullet. Split a point
-that joins two independent constructions with "and" or a semicolon. Do not repeat link notes.
+that joins two independent constructions with "and" or a semicolon. Do not repeat link notes:
+delete a sentence note that only restates them, the most common first-pass fault.
 
 ## Style
 
@@ -193,7 +194,9 @@ Machine-written notes got these wrong; check them every time.
   (give back / `se rendre à` go to / `rendre visite` visit), `compter` (count / intend /
   matter), `attendre` (wait / expect), `apprendre` (learn / teach), `arriver à` (arrive /
   manage), `marcher` (walk / work), `manquer` (`tu me manques` — I miss you), `se servir de`
-  (use), `se battre` (fight), `se moquer de` (mock / `s'en moquer` not care).
+  (use), `se battre` (fight), `se moquer de` (mock / `s'en moquer` not care), `avoir raison`
+  (be right / `avoir raison de qqn` get the better of someone), `ignorer` (not know, more
+  often than ignore).
 - **Possessives before a vowel.** `Mon`, `ton`, `son` come before any word starting with a
   vowel sound, including feminine nouns (`mon amie`, `son épée`); this does not make the noun
   masculine. `Son`/`sa` agree with the thing owned, never the owner, so `sa mère` can be "his"
@@ -201,6 +204,13 @@ Machine-written notes got these wrong; check them every time.
 - **Pronoun referents.** Work out what `le`, `la`, `l'`, `lui`, `leur`, `y` and `en` stand for
   from the neighbouring cues before translating. `L'` hides gender and `lui` is "to him" or
   "to her". If the context does not settle it, say so instead of guessing.
+- **A pronoun before a body part.** French names the body part with `le`/`la` and puts the
+  owner in an indirect pronoun before the verb: `leur trancher la tête` — cut off their heads,
+  literally "cut the head from them". There `leur` is the pronoun "(from) them", not the
+  possessive "their"; `il s'est cassé la jambe` works the same way.
+- **`Rien` or `quelque chose` + `de` + adjective.** `Rien de nouveau` — nothing new,
+  `quelque chose de bizarre` — something strange: the `de` only links the adjective. Don't
+  gloss `de nouveau` as a unit, which is a different expression (again).
 - **`Tout` as an adverb.** Before an adjective `tout` means "completely", not "all":
   `tout neuf` — brand new, `tout seul` — all alone. It still takes the feminine form before a
   feminine adjective starting with a consonant, so `elles ne sont pas toutes neuves` is "they're
