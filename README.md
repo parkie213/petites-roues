@@ -1,112 +1,150 @@
+<div align="center">
+
+<img src="branding/logo_v3.png" alt="petites roues logo" width="128">
+
 # petites roues
 
-Un vélo avec des petites roues
+***Un vélo avec des petites roues***
 
-A bike with training wheels - I know it's not funny if you have to explain the joke but this is a project for language learning beginners!
+A bike with training wheels. I know it's not funny if you have to explain the joke, but this is a
+project for language learning beginners!
 
-![player](images/player.jpg)
+[![License: MIT](https://img.shields.io/badge/license-MIT-e4554a)](LICENSE)
+![Java 25](https://img.shields.io/badge/Java-25-12294f)
+![Node.js 24](https://img.shields.io/badge/Node.js-24-12294f)
+![React](https://img.shields.io/badge/React-UI-12294f)
+![Android](https://img.shields.io/badge/Android-offline-12294f)
 
-petites roues is a self hosted app for anyone who wants help watching/reading in another language. It has browser and Android app versions.
+[In short](#in-short) · [Motivation](#motivation) · [Principles](#principles) ·
+[How it works](#how-it-works) · [Quick start](#quick-start)
 
-## In short 
+</div>
 
-It's like Language Reactor with the auto-pause and translations. But with deeper explanations and sentences broken up into manageable chunks. 
+<br>
 
-And it applies a similar methodology to reading too. Currently only on comics/manga but I plan to apply it to other text media soon.
+<p align="center">
+  <img src="images/player.jpg" alt="The video player with a subtitle broken into phrases and explained" width="100%">
+</p>
 
-![reader](images/reader.jpg)
+petites roues is a self-hosted app for anyone who wants help watching or reading in another
+language. It has browser and Android app versions.
+
+## In short
+
+<img src="images/reader.jpg" alt="The comic reader explaining a speech bubble" width="230" align="right">
+
+It's like Language Reactor with the auto-pause and translations, but with deeper explanations and
+sentences broken up into manageable chunks.
+
+And it applies a similar methodology to reading too. Currently only on comics/manga, but I plan to
+apply it to other text media soon.
+
+- **Watch** with subtitles split into phrases, each with its translation and explanation
+- **Read** comics and manga, opening a speech bubble for the same breakdown
+- **Listen** to a line or a single phrase read aloud
+- **Take it with you**: the Android app works offline from a synced folder
+
+<br clear="right">
 
 ## Motivation
 
-I've been learning French for a while, and iterating on ideas to make consuming French media easier for almost as long.
+I've been learning French for a while, and iterating on ideas to make consuming French media
+easier for almost as long.
 
-I have found it seems to be a generally accepted practice that it's good to hear/read what you dont know to get used to not knowing and learning it later.
+It seems to be generally accepted that it's good to hear and read what you don't know, to get used
+to not knowing and learn it later.
 
-But as a software developer I was wanting a faster feedback loop. Encounter an unfamiliar phrase, get its contextual meaning and explanation, move on.
+But as a software developer I wanted a faster feedback loop: encounter an unfamiliar phrase, get
+its contextual meaning and explanation, move on.
 
-My first go was a browser extension for reading manga where I could highlight speech bubbles and submit a screenshot of the text to Claude to translate and explain the text.
+My first go was a browser extension for reading manga, where I could highlight speech bubbles and
+submit a screenshot of the text to Claude to translate and explain it. It worked pretty well but
+was rather clunky, and if I wanted to read the manga again, the data was in no format to be re-read.
 
-It worked pretty well but was rather clunky. And if I wanted to read the manga again, the data was in no format to be re-read.
+My next go was a video player called *Sacre Bleu*, inspired by Language Reactor but providing more
+than a direct translation. This time I decided it would be an application with a data format,
+rather than a crude layer on top of a coding agent.
 
-My next go was a video player called 'Sacre Bleu', inspired by Language Reactor but providing more than a direct translation. And this time I decided it would be an application with a data format rather than a crude layer on top of a coding agent.
-
-Petites roues builds on top of that player, extends the model and applies it to other media. 
+petites roues builds on top of that player, extends the model and applies it to other media.
 
 ## Principles
 
-### Portable annotations
+| | |
+|---|---|
+| **Portable annotations** | A lot of work goes into creating the study documents, so they are designed to be version controllable and as easy to share as running a `git clone`. |
+| **Contextual explanations** | A direct translation is useful, but I want more than that: grammar, idioms and so on. |
+| **Minimal noise** | I want to request help, not have it forced upon me. |
+| **Iteration is built into the model** | Both people and AIs make mistakes. Stable cue identities and correctable annotations mean study documents can be iterated on and improved. |
 
-A lot of work goes into the creation of the study documents, so they are designed to be version controllable and as easy to share as running a git clone.
+## How it works
 
-### Contextual explanations
+The project consists of three parts: the document model, study document creation and the player.
 
-A direct translation is useful, but I want more than that. Grammar, idioms etc
+### Document model
 
-### Minimal noise
+The model is designed to provide contextual information to the learner, and to break sentences
+down into phrases that are hopefully more digestible for a beginner.
 
-I want to request help, not have it forced upon me.
+### Study document creation
 
-### Iteration is built into the model
+I am currently doing this quite simply with OpenRouter:
 
-Stable cue identities and annotations that can be corrected.
+```mermaid
+flowchart LR
+  media["Video / Comic"] --> first["<b>Voxtral</b> transcribes video<br/><b>Terra</b> boxes and reads comic text"]
+  first --> luna["<b>Luna</b><br/>first-pass annotations"]
+  luna --> opus["<b>Opus</b><br/>reviews and refines"]
+  opus --> doc[("document.json")]
+```
 
-Both people and AIs make mistakes, the study documents are intended to be interated on and improved, so that is built into the model.
+It costs about **$1 per hour of video**. A later project might be to turn it into an agentic
+pipeline, but for now this is working well.
 
-## Project structure
+### Content repositories
 
-The project consists of three parts. 
+The study documents are simply stored in Git repositories to be as portable as possible.
 
-### Document Model
+A repository can also hold:
 
-The model is designed to facilite providing the contextual information to the user, and to break down sentances into phrases that are hopefully more digestable to a beginner. 
-
-### Study Document Creation
-
-I am currently doing this quite simply with Openrouter. 
-
-1. Vextral transcribes videos or Terra draws boxes on comics and extracts text.
-
-2. Luna does a first pass at annotating everything.
-
-3. Opus reviews and refines Lunas output.
-
-Costs about $1 per hour of video. 
-
-A later project might be to turn it into an agentic pipeline, but for now this is working well.
-
-### Content Repositories
-
-The study documents are simply stored in git repositories to be as portable as possible.
-A repository can also hold general quizzes not tied to a title: Markdown prompts in a
-`quizzes/` folder at its root, offered by the library's Quiz me (lightbulb) and handed to a
-chat app. See [agents/workflows/write-quiz.md](agents/workflows/write-quiz.md). Study notes,
-Markdown pages in a `notes/` folder at its root, are read in the library's Notes; see
-[agents/workflows/write-notes.md](agents/workflows/write-notes.md).
+- **Quizzes** not tied to a title: Markdown prompts in a `quizzes/` folder at its root, offered by
+  the library's *Quiz me* (lightbulb) and handed to a chat app. See
+  [write-quiz.md](agents/workflows/write-quiz.md).
+- **Study notes**: Markdown pages in a `notes/` folder at its root, read in the library's *Notes*.
+  See [write-notes.md](agents/workflows/write-notes.md).
 
 ### Player
 
-#### Java Server 
+**Java server.** As much logic as possible lives in the Java server, because that is what I am
+most comfortable with.
 
-As much logic as possible is contained in the java server because that is what I am most comfortable with. 
+The server has document editing functionality, but to stop an agent and the server fighting over
+document writes, the server stores user edits and makes them available over an API. An agent picks
+up a batch of changes, updates the documents and tells the server they have been applied. To avoid
+serving stale content, the server reads the document together with its pending edits.
 
-There is document editing functionality in the server. But to prevent an agent and the server fighting over document writes, the server stores user updates and makes them available over an API. Then an agent picks up a batch of changes, updates the documents and notifies the server that the changes have been applied. 
+```mermaid
+flowchart LR
+  you["You edit in<br/>the player"] --> queue[("Pending edits<br/>SQLite")]
+  queue --> agent["Agent claims<br/>a batch"]
+  agent --> doc[("document.json")]
+  agent -. completes .-> queue
+  doc --> serve["Served with<br/>pending edits applied"]
+  queue --> serve
+```
 
-And to prevent the server from serving stale content, the read model is to read the document and pending updates.
+**React UI.** Kept as simple as possible, effectively just making the backend functionality usable.
 
-#### React UI
+**Android.** An offline phone version of the player and comic reader, without edit mode. It reads
+the same study documents from a folder synced to the phone, using the same Java document model.
+See [BUILD.md](docs/BUILD.md#android-app).
 
-Kept as simple as possible, effectively just making the backend functionality usable.
+## Quick start
 
-#### Android
+The quickest way to run it is in the browser, as a local desktop web application.
 
-An offline phone version of the player and comic reader, without edit mode. It reads the same study documents from a folder synced to the phone, using the same Java document model. See [BUILD.md](docs/BUILD.md#android-app).
+> **Requires** Java 25 and Node.js 24.
 
-## Quick Start
-
-The quickest way to run it is via the browser. It's a local desktop web application. Requires Java 25 and
-Node.js 24.
-
-From the repository root, build the Java modules and start the API:
+**1.** From the repository root, build the Java modules and start the API:
 
 ```bash
 ./java/mvnw -f java/pom.xml verify
@@ -114,7 +152,7 @@ mkdir -p content
 java -jar java/server/target/petites-roues-server-0.1.0-SNAPSHOT.jar
 ```
 
-In a second terminal, start the Node development server:
+**2.** In a second terminal, start the Node development server:
 
 ```bash
 cd web
@@ -122,7 +160,9 @@ npm ci
 npm run dev
 ```
 
-Open [petites roues](http://127.0.0.1:8875/) then use **Add repository** to select the example directory. A repository here is simply a content folder; Git is optional. Roughly:
+**3.** Open <http://127.0.0.1:8875/> and use **Add repository** to select the `example` directory.
+
+A repository here is simply a content folder; Git is optional. Roughly:
 
 ```text
 directory/
@@ -130,3 +170,8 @@ directory/
     document.json
     video.mp4
 ```
+
+<div align="center">
+<br>
+<sub>MIT licensed · made while learning French</sub>
+</div>
