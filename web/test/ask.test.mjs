@@ -7,8 +7,6 @@ const weather = {
   translation: "The weather is nice",
 };
 const alignment = {
-  sourceText: "Il fait beau",
-  translationText: "The weather is nice",
   source: ["Il fait", "beau"],
   translation: ["The weather is", "nice"],
   links: [
@@ -37,12 +35,21 @@ const other = {
   notes: [],
 };
 const pending = { id: "c", pageId: "p1", order: 3, source: "", notes: [] };
+// Boxes in the reader's flat view, each holding one of these lines.
+const boxes = (...lines) =>
+  lines.map((line) => ({
+    id: `box-${line.id}`,
+    pageId: line.pageId,
+    order: line.order,
+    regions: [],
+    lines: [line],
+  }));
 const document = {
   title: "Le Livre",
   sourceLanguage: "fr",
   notesLanguage: "en",
   pages: [{ id: "p1", label: "12" }],
-  cues: [pending, other, beau],
+  boxes: boxes(pending, other, beau),
 };
 
 test("carries the question, bubble, notes and page context", () => {
@@ -69,7 +76,7 @@ test("carries the question, bubble, notes and page context", () => {
 });
 
 test("a blank question asks for depth; a lone bubble has no context list", () => {
-  const alone = { ...document, cues: [other] };
+  const alone = { ...document, boxes: boxes(other) };
   const message = askMessage(alone, other, null, " ");
   assert.ok(message.includes("Please explain this bubble in more depth."));
   assert.ok(!message.includes("My question"));

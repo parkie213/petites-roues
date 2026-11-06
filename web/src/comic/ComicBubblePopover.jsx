@@ -12,7 +12,7 @@ import { useStudyLanguages } from "../player/StudyLanguages.jsx";
  * `blockMode` chooses.
  */
 export function ComicBubblePopover({
-  cue,
+  box,
   selectedId,
   blockMode,
   onBlockMode,
@@ -27,8 +27,8 @@ export function ComicBubblePopover({
   children,
 }) {
   const { sourceLanguage } = useStudyLanguages();
-  const block = cue.studies.length > 1;
-  const study = cue.studies[0];
+  const block = box.lines.length > 1;
+  const line = box.lines[0];
   // The card only fits beside the bubble on wide screens.
   const wide = useMediaQuery("(min-width: 900px)");
   return (
@@ -55,7 +55,7 @@ export function ComicBubblePopover({
       >
         {block ? (
           <ComicBlockCard
-            cues={cue.studies}
+            lines={box.lines}
             selectedId={selectedId}
             onSelect={(id) => {
               onKeep();
@@ -66,10 +66,10 @@ export function ComicBubblePopover({
             document={document}
             onKeep={onKeep}
           />
-        ) : study.source ? (
+        ) : line.source ? (
           <ComicBubbleCard
-            key={study.id}
-            cue={study}
+            key={line.id}
+            cue={line}
             document={document}
             onKeep={onKeep}
           />

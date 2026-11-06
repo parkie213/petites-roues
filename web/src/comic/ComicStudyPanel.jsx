@@ -20,12 +20,12 @@ import { boxOf } from "./annotations.js";
 /**
  * Inspect an agent's proposed transcription and safely correct its text without changing regions.
  * A sentence from a text block is shown inside its block's running text so its context stays in
- * view; the other sentences are one click away. `cues` are the boxes on view, `studies` their
+ * view; the other sentences are one click away. `boxes` are the boxes on view, `lines` their
  * bubbles and sentences in reading order, which previous/next walk through.
  */
 export function ComicStudyPanel({
-  cues,
-  studies,
+  boxes,
+  lines,
   cue,
   api,
   onSelect,
@@ -53,7 +53,7 @@ export function ComicStudyPanel({
     setError("");
     try {
       const document = await request(
-        `${api}/studies/${encodeURIComponent(cue.id)}`,
+        `${api}/lines/${encodeURIComponent(cue.id)}`,
         {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
@@ -68,9 +68,9 @@ export function ComicStudyPanel({
       setSaving(false);
     }
   }
-  const position = studies.findIndex((item) => item.id === cue?.id);
-  const box = cue && boxOf(cues, cue.id);
-  const block = box?.studies.length > 1 ? box.studies : [];
+  const position = lines.findIndex((item) => item.id === cue?.id);
+  const box = cue && boxOf(boxes, cue.id);
+  const block = box?.lines.length > 1 ? box.lines : [];
   return (
     <aside
       className="comic-study-panel comic-phrases"
@@ -84,7 +84,7 @@ export function ComicStudyPanel({
                 ? "This page"
                 : block.length
                   ? `Sentence ${block.indexOf(cue) + 1} of ${block.length}`
-                  : `Bubble ${cues.indexOf(box) + 1} of ${cues.length}`}
+                  : `Bubble ${boxes.indexOf(box) + 1} of ${boxes.length}`}
             </Title>
             <Text size="xs" c="dimmed">
               Hover a bubble on the page to study it here.
@@ -97,15 +97,15 @@ export function ComicStudyPanel({
                 variant="default"
                 aria-label="Previous bubble"
                 disabled={editing || position === 0}
-                onClick={() => onSelect(studies[position - 1].id)}
+                onClick={() => onSelect(lines[position - 1].id)}
               >
                 <ChevronUp size={16} />
               </ActionIcon>
               <ActionIcon
                 variant="default"
                 aria-label="Next bubble"
-                disabled={editing || position === studies.length - 1}
-                onClick={() => onSelect(studies[position + 1].id)}
+                disabled={editing || position === lines.length - 1}
+                onClick={() => onSelect(lines[position + 1].id)}
               >
                 <ChevronDown size={16} />
               </ActionIcon>
@@ -228,11 +228,6 @@ export function ComicStudyPanel({
                       </div>
                     )}
                   </>
-                )}
-                {cue.alignmentStale && (
-                  <Alert color="yellow" title="Annotation review needed">
-                    The text changed. Teaching material needs to be regenerated.
-                  </Alert>
                 )}
                 <Button
                   size="xs"

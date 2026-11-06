@@ -3,7 +3,7 @@ package com.petitesroues.android.quiz
 import com.petitesroues.android.pages.MarkdownPage
 import com.petitesroues.android.comic.Chapters
 import com.petitesroues.model.document.ComicDocument
-import com.petitesroues.model.document.StudyCue
+import com.petitesroues.model.document.Line
 import com.petitesroues.model.document.StudyDocument
 import com.petitesroues.model.document.VideoCue
 import java.util.Locale
@@ -53,14 +53,14 @@ object QuizPack {
     Locale.forLanguageTag(tag).getDisplayLanguage(Locale.ENGLISH).ifBlank { tag }
 
   /** One line of a brief: an optional time [label], an optional page [group], and its cue. */
-  class Item(val study: StudyCue, val label: String? = null, val group: String? = null)
+  class Item(val line: Line, val label: String? = null, val group: String? = null)
 
   /**
    * The video brief for [document], with up to [LINES] cues ending at index [current] in [cues]
    * (the document's sorted video cues). Lines without source text are skipped.
    */
   fun build(rules: String, document: StudyDocument, cues: List<VideoCue>, current: Int, type: Chosen? = null): String {
-    val watched = cues.subList(0, (current + 1).coerceIn(0, cues.size)).filter { it.study().source().isNotBlank() }.takeLast(LINES)
+    val watched = cues.subList(0, (current + 1).coerceIn(0, cues.size)).filter { it.line().source().isNotBlank() }.takeLast(LINES)
     return brief(
       rules,
       type,
@@ -75,7 +75,7 @@ object QuizPack {
         if (watched.isEmpty()) "Lines just watched"
         else "Lines just watched (${clock(watched.first().start())}–${clock(watched.last().end())})",
       empty = "None yet: the learner is at the start of the film.",
-      items = watched.map { Item(it.study(), label = clock(it.start())) },
+      items = watched.map { Item(it.line(), label = clock(it.start())) },
     )
   }
 
@@ -86,12 +86,12 @@ object QuizPack {
     val start = { i: Int -> pages.indexOfFirst { it.id() == comic.chapters()[i].pageId() } }
     val first = start(index)
     val last = if (index + 1 < comic.chapters().size) start(index + 1) - 1 else pages.size - 1
-    val byPage = comic.cues().groupBy { it.pageId() }
+    val byPage = comic.boxes().groupBy { it.pageId() }
     val items =
       (first..last).flatMap { position ->
         val page = pages[position]
         val name = "Page ${page.label().orEmpty().ifBlank { "${position + 1}" }}"
-        byPage[page.id()].orEmpty().sortedBy { it.order() }.flatMap { it.studies() }.filter { it.source().isNotBlank() }.map { Item(it, group = name) }
+        byPage[page.id()].orEmpty().sortedBy { it.order() }.flatMap { it.lines() }.filter { it.source().isNotBlank() }.map { Item(it, group = name) }
       }
     val name = Chapters.name(chapter)
     return brief(
@@ -163,10 +163,10 @@ object QuizPack {
         appendLine()
       }
       group = item.group
-      val translation = item.study.translation()?.trim().orEmpty()
+      val translation = item.line.translation()?.trim().orEmpty()
       append("- ")
       item.label?.let { append("$it ") }
-      append(item.study.source().trim())
+      append(item.line.source().trim())
       if (translation.isNotEmpty()) append(" → $translation")
       appendLine()
     }

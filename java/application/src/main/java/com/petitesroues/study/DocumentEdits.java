@@ -1,9 +1,9 @@
 package com.petitesroues.study;
 
 import com.petitesroues.documents.StudyDocumentValidator;
-import com.petitesroues.model.document.ComicCue;
+import com.petitesroues.model.document.ComicBox;
 import com.petitesroues.model.document.ComicRegion;
-import com.petitesroues.model.document.StudyCue;
+import com.petitesroues.model.document.Line;
 import com.petitesroues.model.document.StudyDocument;
 import com.petitesroues.model.document.VideoCue;
 import com.petitesroues.model.editing.ComicRegionInput;
@@ -43,11 +43,11 @@ public final class DocumentEdits {
           case DeleteVideoCue cue ->
               withVideoCues(document, remove(cues(video(document)), index(document, cue.cueId())));
           case EditComicText text -> editComicText(comic(document), text);
-          case CreateComicCue create -> createComicCue(comic(document), create);
-          case PlaceComicCue place -> placeComicCue(comic(document), place);
-          case DeleteComicCue cue ->
+          case CreateComicBox create -> createComicBox(comic(document), create);
+          case PlaceComicBox place -> placeComicBox(comic(document), place);
+          case DeleteComicBox box ->
               document.withComic(
-                  c -> c.withCues(remove(c.cues(), boxIndex(document, cue.cueId()))));
+                  c -> c.withBoxes(remove(c.boxes(), boxIndex(document, box.boxId()))));
         };
     if (result.hasVideo())
       result =
@@ -105,7 +105,7 @@ public final class DocumentEdits {
     if (text == null || text.isBlank() || text.length() > 2000)
       throw new IllegalArgumentException("Write " + what + " (up to 2000 characters)");
     if (document.hasVideo()) index(document, cueId);
-    else studyBoxIndex(comic(document), cueId);
+    else lineBoxIndex(comic(document), cueId);
     return document;
   }
 
@@ -113,8 +113,8 @@ public final class DocumentEdits {
     int index = index(document, cueId);
     var previous = cues(document).get(index);
     var replacement = replacement(previous, edit);
-    var before = previous.study();
-    var after = replacement.study();
+    var before = previous.line();
+    var after = replacement.line();
     boolean sourceChanged = !before.source().equals(after.source());
     boolean changed =
         sourceChanged
@@ -124,17 +124,17 @@ public final class DocumentEdits {
       replacement =
           replacement
               .withListeningCheck(previous.listeningCheck())
-              .withStudy(after.withTextCheck(before.textCheck()));
-    if (changed) replacement = replacement.withStudy(replacement.study().invalidated());
+              .withLine(after.withTextCheck(before.textCheck()));
+    if (changed) replacement = replacement.withLine(replacement.line().withAlignment(null));
     var updated = replacement;
     return document.withVideo(v -> v.withCue(index, cue -> updated));
   }
 
   /** New cues carry the queued identity. */
   private static StudyDocument addCue(StudyDocument document, AddVideoCue add) {
-    if (cues(document).stream().anyMatch(c -> c.study().id().equals(add.cueId())))
+    if (cues(document).stream().anyMatch(c -> c.line().id().equals(add.cueId())))
       throw new IllegalArgumentException("Cue already exists: " + add.cueId());
-    var empty = new VideoCue(StudyCue.of(add.cueId(), ""), null, null, null);
+    var empty = new VideoCue(Line.of(add.cueId(), ""), null, null, null);
     var cue = replacement(empty, add.edit());
     var cues = new ArrayList<>(cues(document));
     cues.add(cue);
@@ -145,7 +145,7 @@ public final class DocumentEdits {
   private static StudyDocument split(StudyDocument document, SplitVideoCue command) {
     var split = command.split();
     int index = index(document, command.cueId());
-    if (cues(document).stream().anyMatch(c -> c.study().id().equals(command.secondId())))
+    if (cues(document).stream().anyMatch(c -> c.line().id().equals(command.secondId())))
       throw new IllegalArgumentException("Cue already exists: " + command.secondId());
     var original = cues(document).get(index);
     double start = split != null && split.start() != null ? split.start() : original.start();
@@ -166,19 +166,19 @@ public final class DocumentEdits {
     var first =
         original
             .withTiming(start, split.at())
-            .withStudy(original.study().withSource(split.first()).invalidated());
+            .withLine(original.line().withSource(split.first()).withAlignment(null));
     var second =
         original
             .withTiming(split.at(), end)
-            .withStudy(
+            .withLine(
                 original
-                    .study()
+                    .line()
                     .withId(command.secondId())
                     .withSource(split.second())
                     .withTranslation(null)
                     .withNotes(List.of())
                     .withContinuesPrevious(false)
-                    .invalidated());
+                    .withAlignment(null));
     var cues = new ArrayList<>(cues(document));
     cues.set(index, first);
     cues.add(index + 1, second);
@@ -194,7 +194,7 @@ public final class DocumentEdits {
       throw new IllegalArgumentException("Select at least two distinct consecutive cues");
     var ids = new HashSet<>(mergeIds);
     var cues = cues(document);
-    var selected = cues.stream().filter(c -> ids.contains(c.study().id())).toList();
+    var selected = cues.stream().filter(c -> ids.contains(c.line().id())).toList();
     if (selected.size() != ids.size()) throw new IllegalArgumentException("Unknown merge cue");
     int index = cues.indexOf(selected.getFirst());
     if (!cues.subList(index, index + selected.size()).equals(selected))
@@ -207,7 +207,7 @@ public final class DocumentEdits {
             .collect(Collectors.joining("\n"));
     String text =
         selected.stream()
-            .map(c -> c.study().textCheck())
+            .map(c -> c.line().textCheck())
             .filter(Objects::nonNull)
             .distinct()
             .collect(Collectors.joining("\n"));
@@ -216,14 +216,14 @@ public final class DocumentEdits {
         head.withTiming(
                 head.start(), selected.stream().mapToDouble(VideoCue::end).max().orElseThrow())
             .withListeningCheck(listening.isBlank() ? null : listening)
-            .withStudy(
-                head.study()
+            .withLine(
+                head.line()
                     .withSource(
                         selected.stream()
-                            .map(c -> c.study().source().strip())
+                            .map(c -> c.line().source().strip())
                             .collect(Collectors.joining(" ")))
                     .withTextCheck(text.isBlank() ? null : text)
-                    .invalidated());
+                    .withAlignment(null));
     var result = new ArrayList<>(cues);
     result.subList(index, index + selected.size()).clear();
     result.add(index, first);
@@ -231,7 +231,7 @@ public final class DocumentEdits {
   }
 
   /**
-   * Rejects stale edits, and clears teaching material tied to changed wording. The study may be a
+   * Rejects stale edits, and clears teaching material tied to changed wording. The line may be a
    * bubble's or one sentence of a text block. Geometry, IDs and outstanding written checks are
    * retained.
    */
@@ -242,27 +242,30 @@ public final class DocumentEdits {
         || edit.source().isBlank()
         || edit.expectedSource() == null)
       throw new IllegalArgumentException("Current and replacement source text are required");
-    int index = studyBoxIndex(document, command.studyId());
-    var study =
-        document.comic().cues().get(index).studies().stream()
-            .filter(s -> s.id().equals(command.studyId()))
+    int index = lineBoxIndex(document, command.lineId());
+    var line =
+        document.comic().boxes().get(index).lines().stream()
+            .filter(l -> l.id().equals(command.lineId()))
             .findFirst()
             .orElseThrow();
-    if (!Objects.equals(study.source(), edit.expectedSource()))
+    if (!Objects.equals(line.source(), edit.expectedSource()))
       throw new IllegalArgumentException(
           "This bubble changed since you opened it. Reload before editing.");
-    if (study.source().equals(edit.source())) return document;
+    if (line.source().equals(edit.source())) return document;
     var replaced =
-        study.withSource(edit.source()).withTranslation(null).withNotes(List.of()).invalidated();
+        line.withSource(edit.source())
+            .withTranslation(null)
+            .withNotes(List.of())
+            .withAlignment(null);
     return document.withComic(
-        c -> c.withCue(index, cue -> cue.withStudy(command.studyId(), old -> replaced)));
+        c -> c.withBox(index, box -> box.withLine(command.lineId(), old -> replaced)));
   }
 
   /**
-   * Adds one box, with the queued box and study identities, at the next free reading position on
-   * its page.
+   * Adds one box, with the queued box and line identities, at the next free reading position on its
+   * page.
    */
-  private static StudyDocument createComicCue(StudyDocument document, CreateComicCue command) {
+  private static StudyDocument createComicBox(StudyDocument document, CreateComicBox command) {
     var create = command.create();
     if (create == null
         || create.pageId() == null
@@ -270,52 +273,51 @@ public final class DocumentEdits {
         || create.region() == null)
       throw new IllegalArgumentException("Page and one region are required");
     pagePosition(document, create.pageId());
-    var cues = document.comic().cues();
-    if (cues.stream().anyMatch(c -> c.id().equals(command.cueId())))
-      throw new IllegalArgumentException("Box already exists: " + command.cueId());
-    if (cues.stream().anyMatch(c -> c.holds(command.studyId())))
-      throw new IllegalArgumentException("Study already exists: " + command.studyId());
+    var boxes = document.comic().boxes();
+    if (boxes.stream().anyMatch(b -> b.id().equals(command.boxId())))
+      throw new IllegalArgumentException("Box already exists: " + command.boxId());
+    if (boxes.stream().anyMatch(b -> b.holds(command.lineId())))
+      throw new IllegalArgumentException("Line already exists: " + command.lineId());
     int order =
-        cues.stream()
-                .filter(cue -> cue.pageId().equals(create.pageId()))
-                .mapToInt(ComicCue::order)
+        boxes.stream()
+                .filter(box -> box.pageId().equals(create.pageId()))
+                .mapToInt(ComicBox::order)
                 .max()
                 .orElse(0)
             + 1;
     var added =
-        new ComicCue(
-            command.cueId(),
+        new ComicBox(
+            command.boxId(),
             create.pageId(),
             order,
             List.of(region(create.region())),
             List.of(
-                StudyCue.of(
-                    command.studyId(), create.source() == null ? "" : create.source().trim())));
-    var updated = new ArrayList<>(cues);
+                Line.of(command.lineId(), create.source() == null ? "" : create.source().trim())));
+    var updated = new ArrayList<>(boxes);
     updated.add(added);
-    return document.withComic(c -> c.withCues(updated));
+    return document.withComic(c -> c.withBoxes(updated));
   }
 
   /**
-   * Replaces one box's regions and optional reading order, with all its studies. Stale expectations
+   * Replaces one box's regions and optional reading order, with all its lines. Stale expectations
    * are rejected; text, translations, notes and alignments are preserved.
    */
-  private static StudyDocument placeComicCue(StudyDocument document, PlaceComicCue command) {
+  private static StudyDocument placeComicBox(StudyDocument document, PlaceComicBox command) {
     var update = command.update();
     if (update == null
         || update.expectedRegions() == null
         || update.regions() == null
         || update.regions().isEmpty())
       throw new IllegalArgumentException("Current and replacement regions are required");
-    int index = boxIndex(document, command.cueId());
-    var cue = document.comic().cues().get(index);
-    if (!matches(cue.regions(), update.expectedRegions()))
+    int index = boxIndex(document, command.boxId());
+    var box = document.comic().boxes().get(index);
+    if (!matches(box.regions(), update.expectedRegions()))
       throw new IllegalArgumentException(
           "This bubble moved since you opened it. Reload before editing.");
-    var placed = cue.withRegions(update.regions().stream().map(DocumentEdits::region).toList());
+    var placed = box.withRegions(update.regions().stream().map(DocumentEdits::region).toList());
     if (update.order() != null) placed = placed.withOrder(update.order());
     var result = placed;
-    return document.withComic(c -> c.withCue(index, old -> result));
+    return document.withComic(c -> c.withBox(index, old -> result));
   }
 
   /** One-based manifest position of a page; unknown pages are rejected. */
@@ -353,22 +355,22 @@ public final class DocumentEdits {
 
   private static int index(StudyDocument document, String cueId) {
     var cues = cues(document);
-    for (int i = 0; i < cues.size(); i++) if (cues.get(i).study().id().equals(cueId)) return i;
+    for (int i = 0; i < cues.size(); i++) if (cues.get(i).line().id().equals(cueId)) return i;
     throw new NoSuchElementException("Unknown cue: " + cueId);
   }
 
   /** Position of the comic box {@code boxId}. */
   private static int boxIndex(StudyDocument document, String boxId) {
-    var cues = document.comic().cues();
-    for (int i = 0; i < cues.size(); i++) if (cues.get(i).id().equals(boxId)) return i;
+    var boxes = document.comic().boxes();
+    for (int i = 0; i < boxes.size(); i++) if (boxes.get(i).id().equals(boxId)) return i;
     throw new NoSuchElementException("Unknown comic box: " + boxId);
   }
 
-  /** Position of the comic box holding the study {@code studyId}. */
-  private static int studyBoxIndex(StudyDocument document, String studyId) {
-    var cues = document.comic().cues();
-    for (int i = 0; i < cues.size(); i++) if (cues.get(i).holds(studyId)) return i;
-    throw new NoSuchElementException("Unknown comic study: " + studyId);
+  /** Position of the comic box holding the line {@code lineId}. */
+  private static int lineBoxIndex(StudyDocument document, String lineId) {
+    var boxes = document.comic().boxes();
+    for (int i = 0; i < boxes.size(); i++) if (boxes.get(i).holds(lineId)) return i;
+    throw new NoSuchElementException("Unknown comic line: " + lineId);
   }
 
   private static void validateTiming(Double start, Double end) {
@@ -385,15 +387,15 @@ public final class DocumentEdits {
     if (edit == null || edit.source() == null || edit.source().isBlank())
       throw new IllegalArgumentException("Subtitle text is required");
     validateTiming(edit.start(), edit.end());
-    var study =
+    var line =
         previous
-            .study()
+            .line()
             .withSource(edit.source())
             .withTranslation(edit.translation())
             .withNotes(edit.notes() == null ? List.of() : edit.notes())
             .withContinuesPrevious(Boolean.TRUE.equals(edit.continuesPrevious()))
             .withTextCheck(edit.textCheck());
-    return new VideoCue(study, edit.start(), edit.end(), edit.listeningCheck());
+    return new VideoCue(line, edit.start(), edit.end(), edit.listeningCheck());
   }
 
   private static boolean matches(List<ComicRegion> current, List<ComicRegionInput> expected) {

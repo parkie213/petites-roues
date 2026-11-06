@@ -101,8 +101,8 @@ import com.petitesroues.android.quiz.QuizPack
 import com.petitesroues.android.quiz.QuizShare
 import com.petitesroues.android.library.LibraryStore
 import com.petitesroues.android.library.Title
-import com.petitesroues.model.document.ComicCue
-import com.petitesroues.model.document.StudyCue
+import com.petitesroues.model.document.ComicBox
+import com.petitesroues.model.document.Line
 import com.petitesroues.model.document.ComicChapter
 import com.petitesroues.model.document.ComicPage
 import com.petitesroues.model.document.ReadingDirection
@@ -140,7 +140,7 @@ fun ReadScreen(
   val comic = document.comic()
   val pages = comic.pages()
   val rtl = comic.readingDirection() == ReadingDirection.RTL
-  val cuesByPage = remember(comic) { comic.cues().sortedBy { it.order() }.groupBy { it.pageId() } }
+  val boxesByPage = remember(comic) { comic.boxes().sortedBy { it.order() }.groupBy { it.pageId() } }
   val reader = remember(title) { CbzReader(context.contentResolver, title.mediaUri!!) }
   val readAloud = remember(document) { ReadAloud(context, document.sourceLanguage()) }
   DisposableEffect(reader, readAloud) {
@@ -157,14 +157,14 @@ fun ReadScreen(
     val saved = store.progress(title.path)?.pageId
     mutableIntStateOf(pages.indexOfFirst { it.id() == saved }.coerceAtLeast(0))
   }
-  var selected by remember { mutableStateOf<ComicCue?>(null) }
+  var selected by remember { mutableStateOf<ComicBox?>(null) }
   // The sentence shown when the selected box is a text block.
   var sentence by remember { mutableIntStateOf(0) }
   // The bubble or sentence (and explored phrase) the learner is writing a question about.
   var asking by remember { mutableStateOf<Question?>(null) }
   var quizzing by remember { mutableStateOf(false) }
   // The bubble read aloud by an auto-listen tap, whose card opens on the next tap.
-  var heard by remember { mutableStateOf<ComicCue?>(null) }
+  var heard by remember { mutableStateOf<ComicBox?>(null) }
   var chrome by remember { mutableStateOf(false) }
   var autoListen by remember { mutableStateOf(settings.autoListen) }
   var outlines by remember { mutableStateOf(settings.comicOutlines) }
@@ -187,13 +187,13 @@ fun ReadScreen(
     heard = null
     readAloud.stop()
   }
-  val tap = { cue: ComicCue ->
-    if (cue.id() != selected?.id()) sentence = 0
-    if (autoListen && cue.id() != heard?.id()) {
+  val tap = { box: ComicBox ->
+    if (box.id() != selected?.id()) sentence = 0
+    if (autoListen && box.id() != heard?.id()) {
       selected = null
-      heard = cue
-      readAloud.say(cue.studies().firstOrNull()?.source().orEmpty())
-    } else selected = cue
+      heard = box
+      readAloud.say(box.lines().firstOrNull()?.source().orEmpty())
+    } else selected = box
   }
 
   Box(Modifier.fillMaxSize().background(Color.Black)) {
@@ -267,7 +267,7 @@ fun ReadScreen(
                   reader,
                   gutter,
                   pages[pageIndex],
-                  cuesByPage[pages[pageIndex].id()].orEmpty(),
+                  boxesByPage[pages[pageIndex].id()].orEmpty(),
                   selected ?: heard,
                   outlines,
                   onSelect = tap,
@@ -311,10 +311,10 @@ fun ReadScreen(
         }
     }
 
-    selected?.let { cue ->
-      val studies = cue.studies()
-      val shown = studies.getOrNull(sentence.coerceIn(0, studies.lastIndex.coerceAtLeast(0))) ?: return@let
-      val region = cue.regions().firstOrNull()
+    selected?.let { box ->
+      val lines = box.lines()
+      val shown = lines.getOrNull(sentence.coerceIn(0, lines.lastIndex.coerceAtLeast(0))) ?: return@let
+      val region = box.regions().firstOrNull()
       val atBottom = region == null || region.y() + region.height() / 2 < 0.5
       Surface(
         color = Color(0xF5161B21),
@@ -330,13 +330,13 @@ fun ReadScreen(
             .heightIn(max = LocalConfiguration.current.screenHeightDp.dp * 0.45f),
       ) {
         Column {
-          if (studies.size > 1) SentenceSteps(studies.indexOf(shown), studies.size, onStep = { sentence = it })
+          if (lines.size > 1) SentenceSteps(lines.indexOf(shown), lines.size, onStep = { sentence = it })
           // Keyed by the sentence so stepping starts its card fresh, scrolled to the top.
           key(shown.id()) {
             BubbleCard(
               shown,
               readAloud,
-              onAsk = { phrase -> asking = Question(cue, shown, phrase) },
+              onAsk = { phrase -> asking = Question(box, shown, phrase) },
               modifier = Modifier.weight(1f, fill = false),
             )
           }
@@ -438,16 +438,16 @@ fun ReadScreen(
         initialChapter = Chapters.at(pages, chapters, page).coerceAtLeast(0),
       )
 
-    asking?.let { (cue, study, phrase) ->
+    asking?.let { (box, line, phrase) ->
       AskDialog(
-        phrase = phrase?.let { readyAlignment(study)?.source()?.getOrNull(it) },
+        phrase = phrase?.let { readyAlignment(line)?.source()?.getOrNull(it) },
         onDismiss = { asking = null },
         onAsk = { question ->
           asking = null
-          val index = pages.indexOfFirst { it.id() == cue.pageId() }.coerceAtLeast(0)
+          val index = pages.indexOfFirst { it.id() == box.pageId() }.coerceAtLeast(0)
           AskShare.share(
             context,
-            AskPack.build(document, pageLabel(index), study, cuesByPage[cue.pageId()].orEmpty(), phrase, question),
+            AskPack.build(document, pageLabel(index), line, boxesByPage[box.pageId()].orEmpty(), phrase, question),
           )
         },
       )
@@ -499,8 +499,8 @@ private fun AskDialog(phrase: String?, onDismiss: () -> Unit, onAsk: (String) ->
   )
 }
 
-/** A question being written about [study], held by the box [cue], exploring source [phrase] if any. */
-private data class Question(val cue: ComicCue, val study: StudyCue, val phrase: Int?)
+/** A question being written about [line], held by [box], exploring source [phrase] if any. */
+private data class Question(val box: ComicBox, val line: Line, val phrase: Int?)
 
 /** One page image, fitted to its slot against [alignment] (the spine in a spread), with its bubbles as tap targets in normalised coordinates. */
 @Composable
@@ -508,10 +508,10 @@ private fun PageView(
   reader: CbzReader,
   alignment: Alignment,
   page: ComicPage,
-  cues: List<ComicCue>,
-  highlighted: ComicCue?,
+  boxes: List<ComicBox>,
+  highlighted: ComicBox?,
   outlined: Boolean,
-  onSelect: (ComicCue) -> Unit,
+  onSelect: (ComicBox) -> Unit,
 ) {
   BoxWithConstraints(Modifier.fillMaxSize(), contentAlignment = alignment) {
     val density = LocalDensity.current
@@ -528,9 +528,9 @@ private fun PageView(
       else ->
         BoxWithConstraints(Modifier.aspectRatio(bitmap.width.toFloat() / bitmap.height)) {
           Image(bitmap, contentDescription = page.label(), contentScale = ContentScale.Fit, modifier = Modifier.fillMaxSize())
-          cues.forEachIndexed { number, cue ->
-            val isSelected = cue.id() == highlighted?.id()
-            cue.regions().forEachIndexed { r, region ->
+          boxes.forEachIndexed { number, box ->
+            val isSelected = box.id() == highlighted?.id()
+            box.regions().forEachIndexed { r, region ->
               Box(
                 Modifier.offset(maxWidth * region.x().toFloat(), maxHeight * region.y().toFloat())
                   .size(maxWidth * region.width().toFloat(), maxHeight * region.height().toFloat())
@@ -542,7 +542,7 @@ private fun PageView(
                     }
                   )
                   .clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) {
-                    onSelect(cue)
+                    onSelect(box)
                   }
               ) {
                 // The bubble's number on its first region, as the browser's outlines label them.

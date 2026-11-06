@@ -14,7 +14,7 @@ test("nested video responses retain zero timing, annotations and optional transl
           start: 0,
           end: 2,
           listeningCheck: "Listen again",
-          study: { id: "cue", source: "Bonjour !", notes: ["A greeting."] },
+          line: { id: "cue", source: "Bonjour !", notes: ["A greeting."] },
         },
       ],
     },
@@ -30,30 +30,31 @@ test("nested video responses retain zero timing, annotations and optional transl
   assert.deepEqual(wire, before);
 });
 
-test("comic boxes keep their own id and placement beside flat studies", () => {
+test("comic boxes keep their own id and placement, and their lines know their box", () => {
   const wire = {
     id: "book",
     comic: {
-      readingDirection: "READING_DIRECTION_RTL",
+      readingDirection: "rtl",
       pages: [{ id: "p1", entry: "001.jpg" }],
-      cues: [
+      boxes: [
         {
           id: "box",
           pageId: "p1",
           order: 1,
           regions: [{ x: 0, y: 0, width: 1, height: 1 }],
-          studies: [{ id: "bubble", source: "Salut", translation: "Hi" }],
+          lines: [{ id: "bubble", source: "Salut", translation: "Hi" }],
         },
       ],
     },
   };
   const view = playerDocument(wire);
-  const [box] = view.cues;
+  const [box] = view.boxes;
+  assert.equal(view.cues, undefined);
   assert.equal(view.readingDirection, "rtl");
   assert.equal(box.id, "box");
   assert.equal(box.pageId, "p1");
   assert.equal(box.regions[0].width, 1);
-  assert.deepEqual(box.studies, [
+  assert.deepEqual(box.lines, [
     {
       id: "bubble",
       source: "Salut",
@@ -73,21 +74,22 @@ test("request leaves local catalogue and review records outside the portable doc
   assert.equal(await request("/review-queue"), records);
 });
 
-test("a study of a box awaiting text has an empty source for later text edits", () => {
+test("a line of a box awaiting text has an empty source for later text edits", () => {
   const document = playerDocument({
     comic: {
-      cues: [
+      boxes: [
         {
           id: "box",
           pageId: "page",
           order: 1,
           regions: [{ x: 0.1, y: 0.2, width: 0.3, height: 0.4 }],
-          studies: [{ id: "pending" }],
+          lines: [{ id: "pending" }],
         },
       ],
     },
   });
-  assert.equal(document.cues[0].id, "box");
-  assert.equal(document.cues[0].studies[0].source, "");
-  assert.equal(document.cues[0].regions.length, 1);
+  assert.equal(document.readingDirection, "ltr");
+  assert.equal(document.boxes[0].id, "box");
+  assert.equal(document.boxes[0].lines[0].source, "");
+  assert.equal(document.boxes[0].regions.length, 1);
 });

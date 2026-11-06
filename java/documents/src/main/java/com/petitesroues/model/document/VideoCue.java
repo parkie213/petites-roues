@@ -4,28 +4,28 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import java.util.function.UnaryOperator;
 
 /**
- * A timed subtitle: teaching material plus inclusive {@code start} and exclusive {@code end} in
- * seconds. {@code listeningCheck} holds one open question about the spoken words, or {@code null}.
+ * A timed subtitle: one line plus inclusive {@code start} and exclusive {@code end} in seconds.
+ * {@code listeningCheck} holds one open question about the spoken words, or {@code null}.
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
-public record VideoCue(StudyCue study, Double start, Double end, String listeningCheck) {
-  public boolean hasStudy() {
-    return study != null;
+public record VideoCue(Line line, Double start, Double end, String listeningCheck) {
+  public boolean hasLine() {
+    return line != null;
   }
 
-  public VideoCue withStudy(StudyCue study) {
-    return new VideoCue(study, start, end, listeningCheck);
+  public VideoCue withLine(Line line) {
+    return new VideoCue(line, start, end, listeningCheck);
   }
 
-  public VideoCue withStudy(UnaryOperator<StudyCue> change) {
-    return withStudy(change.apply(study));
+  public VideoCue withLine(UnaryOperator<Line> change) {
+    return withLine(change.apply(line));
   }
 
   public VideoCue withTiming(Double start, Double end) {
-    return new VideoCue(study, start, end, listeningCheck);
+    return new VideoCue(line, start, end, listeningCheck);
   }
 
   public VideoCue withListeningCheck(String listeningCheck) {
-    return new VideoCue(study, start, end, listeningCheck);
+    return new VideoCue(line, start, end, listeningCheck);
   }
 }

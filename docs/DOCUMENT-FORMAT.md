@@ -6,7 +6,8 @@ machine-specific media paths, playback progress or review queue.
 
 The format is plain JSON, defined by the immutable Java records in
 [com.petitesroues.model.document](../java/documents/src/main/java/com/petitesroues/model/document/),
-with exactly one `video` or `comic` body. Shared cue teaching fields live under `study`.
+with exactly one `video` or `comic` body. The unit of study is a `line`: a source text with its
+translation, notes and phrase breakdown. A video cue holds one `line`; a comic box holds `lines`.
 There are no `format`, `version` or `type` fields.
 
 [StudyDocumentCodec](../java/documents/src/main/java/com/petitesroues/documents/StudyDocumentCodec.java)
@@ -38,15 +39,14 @@ and add its parent content folder as a repository. It can be opened without a vi
       {
         "start": 0.5,
         "end": 2.5,
-        "study": {
+        "line": {
           "id": "cue-001",
           "source": "Tu me manques.",
           "translation": "I miss you.",
           "notes": [
             "French makes the person missed the subject: `tu`. The person feeling the absence is `me`. English reverses these roles."
           ],
-          "continuesPrevious": false,
-          "alignmentStale": false
+          "continuesPrevious": false
         }
       }
     ]
@@ -56,12 +56,12 @@ and add its parent content folder as a repository. It can be opened without a vi
 
 Document IDs must be nonblank and unique within
 a registered content repository. Cue IDs must be nonempty and unique within their
-document. Keep them stable when editing; they identify material independently of
+document (a video cue's ID is its line's `id`). Keep them stable when editing; they identify material independently of
 its subtitle number or timing. UUIDs are suitable for generated cues.
 
 `start` and `end` are finite numbers in seconds from the beginning of the reference
 video. Start must be nonnegative and end must be greater than start. The reader sorts
-cues chronologically. Overlap is permitted. Each cue requires a `study` object; omitted repeated fields such as `notes` default to empty lists. `translation` may be absent or null while material is
+cues chronologically. Overlap is permitted. Each cue requires a `line` object; omitted repeated fields such as `notes` default to empty lists. `translation` may be absent or null while material is
 being prepared.
 
 ## Language settings
@@ -89,8 +89,7 @@ Cue-specific fields carry more precise information:
 | `continuesPrevious` | This cue continues the preceding sentence; defaults to false |
 | `listeningCheck` | Optional specific unresolved question about the spoken words |
 | `textCheck` | Optional written-form issue, such as spelling or agreement |
-| `alignment` | Optional phrase links, described below |
-| `alignmentStale` | Links need regeneration after a change; defaults to false |
+| `alignment` | Optional phrase links, described below; absent means the line needs a breakdown |
 
 Completing an annotation review does not itself verify speech. Preserve unresolved checks
 when editing, and reconsider them for both parts of a split.
@@ -101,12 +100,10 @@ in `source`, `translation` or the phrase arrays.
 
 ## Phrase alignments
 
-Add this optional `alignment` object under the example cue’s `study` to connect its meanings:
+Add this optional `alignment` object to the example cue’s `line` to connect its meanings:
 
 ```json
 {
-  "sourceText": "Tu me manques.",
-  "translationText": "I miss you.",
   "source": [
     "Tu",
     "me",
@@ -149,9 +146,10 @@ Add this optional `alignment` object under the example cue’s `study` to connec
 }
 ```
 
-The field names `sourceText` and `translationText` bind the graph to the cue's exact full text.
-Joining each phrase array with single spaces must reproduce that text exactly,
-including punctuation and apostrophes.
+The phrase arrays bind the graph to the line's exact text: joining `source` with single spaces
+must reproduce the line's `source` exactly, and joining `translation` its `translation`,
+including punctuation and apostrophes. A graph made for older wording therefore fails
+validation.
 
 Link indices are zero-based positions in the phrase arrays. Every phrase on both
 sides must be covered. A link may connect several phrases on either side, or have
@@ -161,10 +159,9 @@ optional, because a breakdown is written and reviewed before its notes (the play
 "No explanation yet."), and an empty note is left out of the file. Group natural meaning
 units rather than mechanically splitting every word.
 
-With a valid graph, set `alignmentStale` to false. When wording changes without a
-replacement graph, remove the old `alignment` and set `alignmentStale` to true.
-A document cannot carry a graph marked stale. Notes-only and timing-only changes
-can preserve an existing valid graph.
+When the source or translation changes without a replacement graph, remove the old
+`alignment`: a line without one needs a breakdown, whether it never had one or lost it to an
+edit. Notes-only and timing-only changes can preserve an existing valid graph.
 
 For the teaching standard and generation instructions, use
 [translation notes](../agents/guides/translation-notes.md) and
@@ -227,7 +224,7 @@ audio checks or video cues. The selected body determines the media type.
   "notesLanguage": "en",
   "comic": {
     "volume": 1,
-    "readingDirection": "READING_DIRECTION_RTL",
+    "readingDirection": "rtl",
     "pages": [
       {
         "id": "cover",
@@ -246,7 +243,7 @@ audio checks or video cues. The selected body determines the media type.
         "pageId": "page-one"
       }
     ],
-    "cues": []
+    "boxes": []
   }
 }
 ```
@@ -261,7 +258,7 @@ library sorts and labels a series' volumes by it ("Tome 3"); keep the full name 
 ("Demon Slayer — Tome 3") for the reader header. Add/Refresh indexes it.
 
 Manifest order is reading order, independent of ZIP entry order and filename sorting.
-`comic.readingDirection` is `READING_DIRECTION_LTR` (default) or `READING_DIRECTION_RTL`; it controls the arrow keys, not manifest order.
+`comic.readingDirection` is `ltr` (the default) or `rtl`; it controls the arrow keys, not manifest order.
 Page IDs must be unique and use letters, numbers, underscores or hyphens. Keep them stable
 when replacing images or reordering pages so saved positions remain meaningful. Entries
 must be distinct, exact relative archive names ending in `.jpg`, `.jpeg`, `.png` or `.webp`;
@@ -290,18 +287,18 @@ chapter and jump to a chapter's first page. `prepare/comic_text.py` fills the li
 finds the text, or an agent reads it from the volume's table of contents
 ([Prepare a title](PREPARE-TITLE.md#list-a-comics-chapters)).
 
-### Comic teaching cues
+### Comic boxes
 
-`StudyCue` holds shared text, translation, notes, phrase alignments, continuation and written
-checks. A `VideoCue` is one subtitle line: its timing and audio verification beside one `study`.
-A `ComicCue` is a box on a page: its own `id`, its placement, and `studies`, the one or more
-studies printed in it in reading order.
+A `Line` holds shared text, translation, notes, phrase alignments, continuation and written
+checks. A `VideoCue` is one subtitle: its timing and audio verification beside one `line`.
+A `ComicBox` is a box on a page: its own `id`, its placement, and `lines`, the one or more
+lines printed in it in reading order.
 
-A comic's optional `comic.cues` list defaults to empty. Each box has an `id` (a UUID) that
+A comic's optional `comic.boxes` list defaults to empty. Each box has an `id` (a UUID) that
 identifies the box itself and never changes with its text, a stable page ID, a positive `order`
 unique on that page, one or more rectangles in normalized coordinates relative to the entire
-original image (including margins), and at least one study. Box IDs are unique among boxes and
-study IDs unique across the comic; the two are separate namespaces. Explicit order determines the bubble sequence; position
+original image (including margins), and at least one line. Box IDs are unique among boxes and
+line IDs unique across the comic; the two are separate namespaces. Explicit order determines the bubble sequence; position
 alone does not determine manga reading order. Coordinates must be finite, dimensions positive,
 and every rectangle must fit within [0, 1] on both axes.
 
@@ -318,7 +315,7 @@ and every rectangle must fit within [0, 1] on both axes.
       "height": 0.15
     }
   ],
-  "studies": [
+  "lines": [
     {
       "id": "bubble-1",
       "source": "Bonjour !",
@@ -331,33 +328,33 @@ and every rectangle must fit within [0, 1] on both axes.
 }
 ```
 
-A speech bubble usually has one study. A printed text block too long for one card (a recap
-paragraph, a character profile) is split into one study per sentence, each with its own ID,
-translation, notes, alignment and checks; readers show a box with several studies a sentence at
-a time or as a list. Text edits, comments and review requests address a study by its ID; moving
-or deleting a box addresses the box's ID and takes all its studies along.
-`prepare/split_block.py` splits an aligned study into its sentences at sentence-ending chunks.
+A speech bubble usually has one line. A printed text block too long for one card (a recap
+paragraph, a character profile) is split into one line per sentence, each with its own ID,
+translation, notes, alignment and checks; readers show a box with several lines a sentence at
+a time or as a list. Text edits, comments and review requests address a line by its ID; moving
+or deleting a box addresses the box's ID and takes all its lines along.
+`prepare/split_block.py` splits an aligned line into its sentences at sentence-ending chunks.
 
 `annotationMethod` records extraction provenance on the comic.
-Drawn boxes start with one study whose source may be empty while awaiting OCR or transcription,
+Drawn boxes start with one line whose source may be empty while awaiting OCR or transcription,
 so review/OCR can target it before any text is available.
-Use `textCheck` for a specific unresolved issue. Comic cues have no listening checks or timestamps.
+Use `textCheck` for a specific unresolved issue. Comic boxes have no listening checks or timestamps.
 
 The reader overlays numbered, keyboard-focusable regions. Selecting a region or using the bubble
 selector opens its text, translation and learner notes. Geometry scales with the displayed image
 in fit-page, fit-width and custom zoom modes. Highlights and the study panel can be hidden.
 
-`PUT /api/titles/{id}/comic/studies/{studyId}` accepts `expectedSource` and `source`. Stale source edits
-are rejected. Changed text resets verification, clears translation/notes/alignment, marks alignment
-stale and queues the edit. IDs, the box and the other studies are preserved.
+`PUT /api/titles/{id}/comic/lines/{lineId}` accepts `expectedSource` and `source`. Stale source edits
+are rejected. Changed text resets verification, clears translation/notes/alignment and queues the
+edit. IDs, the box and the other lines are preserved.
 Unchanged text queues nothing. The editor blocks page/bubble changes until Save or Cancel.
 Like every player edit, it is served over the file until an agent writes it there through the
 [review API](REVIEW-API.md), with the annotations.
 
 In Annotate mode, dragging on the page immediately saves a box through
-`POST /api/titles/{id}/comic/cues` with `pageId`, `region` and optional `source`; the server
-assigns UUIDs to the box and its first study. `PUT …/comic/cues/{boxId}/placement` moves or
-resizes a box and `DELETE …/comic/cues/{boxId}` removes it with its studies.
+`POST /api/titles/{id}/comic/boxes` with `pageId`, `region` and optional `source`; the server
+assigns UUIDs to the box and its first line. `PUT …/comic/boxes/{boxId}/placement` moves or
+resizes a box and `DELETE …/comic/boxes/{boxId}` removes it with its lines.
 Creating, moving/resizing or deleting a box queues an `annotate` edit in the
 same review queue as video edits. Text can be added afterward through the existing
 comic text editor. Failed box saves remain available for retry or discard.

@@ -50,8 +50,6 @@ test("German-English and Korean-French graphs retain reordered meaning links", (
     ],
   ]) {
     const alignment = {
-      sourceText: source,
-      translationText: translation,
       source: sourcePhrases,
       translation: translatedPhrases,
       links,

@@ -6,12 +6,15 @@ import {
   chapterQuizFileName,
 } from "../src/comic/quiz.js";
 
+// A box holding one line, in the reader's flat view.
 const bubble = (pageId, order, source, fields = {}) => ({
+  id: `${pageId}-${order}`,
   pageId,
   order,
-  source,
-  notes: [],
-  ...fields,
+  regions: [],
+  lines: [
+    { id: `${pageId}-${order}-line`, pageId, source, notes: [], ...fields },
+  ],
 });
 const doc = {
   title: "Demon Slayer — Tome 1",
@@ -23,7 +26,7 @@ const doc = {
     { number: 1, title: "Cruauté", pageId: "a1" },
     { number: 2, title: "Inconnu", pageId: "b1" },
   ],
-  cues: [
+  boxes: [
     bubble("a2", 2, "Je te sauverai !", { translation: "I'll save you!" }),
     bubble("a2", 1, "Nezuko…", { notes: ["A name called out."] }),
     bubble("a1", 1, "C'est un cauchemar !"),

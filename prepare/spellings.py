@@ -36,8 +36,8 @@ def pattern(spellings):
     return re.compile(rf"(?<!\w)(?:{words})(?!\w)"), variants
 
 
-def annotated(study):
-    return bool(study.get("translation") or study.get("notes") or study.get("alignment"))
+def annotated(line):
+    return bool(line.get("translation") or line.get("notes") or line.get("alignment"))
 
 
 def main():
@@ -52,15 +52,15 @@ def main():
     names, variants = pattern(load(args.spellings))
     changed, skipped = 0, []
     for cue in cues_of(document):
-        study = cue["study"]
-        corrected = names.sub(lambda m: variants[m.group()], study.get("source", ""))
-        if corrected == study.get("source", ""):
+        line = cue["line"]
+        corrected = names.sub(lambda m: variants[m.group()], line.get("source", ""))
+        if corrected == line.get("source", ""):
             continue
-        if annotated(study):
-            skipped.append(study["id"])
+        if annotated(line):
+            skipped.append(line["id"])
             continue
-        print(f"{study['id']}: {study['source']}\n{' ' * len(study['id'])}→ {corrected}")
-        study["source"] = corrected
+        print(f"{line['id']}: {line['source']}\n{' ' * len(line['id'])}→ {corrected}")
+        line["source"] = corrected
         changed += 1
     if skipped:
         print(f"Skipped {len(skipped)} annotated cues; correct them in the player: {', '.join(skipped)}")

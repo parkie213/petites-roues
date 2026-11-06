@@ -33,7 +33,7 @@ import com.petitesroues.android.study.PhraseParagraphLine
 import com.petitesroues.android.study.TranslationContext
 import com.petitesroues.android.study.phraseNotes
 import com.petitesroues.android.study.readyAlignment
-import com.petitesroues.model.document.StudyCue
+import com.petitesroues.model.document.Line
 
 private val sourceStyle = TextStyle(color = Color(0xFFE8EDF2), fontSize = 18.sp, lineHeight = 26.sp)
 private val translationStyle = TextStyle(fontSize = 15.sp, lineHeight = 22.sp)
@@ -47,7 +47,7 @@ private val noteStyle = TextStyle(color = Color(0xFFC8D4E0), fontSize = 14.sp, l
  * when one is pinned. The ask button hands [onAsk] the phrase being explored, if any, to ask a chat app about it.
  */
 @Composable
-fun BubbleCard(cue: StudyCue, readAloud: ReadAloud, onAsk: (Int?) -> Unit, modifier: Modifier = Modifier) {
+fun BubbleCard(cue: Line, readAloud: ReadAloud, onAsk: (Int?) -> Unit, modifier: Modifier = Modifier) {
   val alignment = readyAlignment(cue)
   var pinned by remember(cue.id()) { mutableStateOf<Int?>(null) }
   val explore = { index: Int -> pinned = if (pinned == index) null else index }

@@ -15,13 +15,13 @@ REPAIRS = 2
 
 
 def cues_of(document):
-    """Every study in reading order, each as a cue-like dict with a "study" key. A video cue is
-    itself; a comic box gives one view per study holding the box's pageId and order, whose
-    "study" is the study in the document, so changes write through."""
+    """Every line in reading order, each as a cue-like dict with a "line" key. A video cue is
+    itself; a comic box gives one view per line holding the box's pageId and order, whose
+    "line" is the line in the document, so changes write through."""
     if document.get("video"):
         return document["video"]["cues"]
-    return [{"study": study, "pageId": box["pageId"], "order": box["order"]}
-            for box in document["comic"]["cues"] for study in box["studies"]]
+    return [{"line": line, "pageId": box["pageId"], "order": box["order"]}
+            for box in document["comic"]["boxes"] for line in box["lines"]]
 
 
 def plan(document, wanted, size):
@@ -77,9 +77,9 @@ def check(answer, assigned, title, base, shape_errors, annotate, lint=None):
               for c in assigned}
     candidate = json.loads(json.dumps(base))
     for cue in cues_of(candidate):
-        cue_id = cue["study"]["id"]
+        cue_id = cue["line"]["id"]
         if cue_id in errors and not errors[cue_id]:
-            annotate(cue["study"], given[cue_id])
+            annotate(cue["line"], given[cue_id])
     for problem in app.problems(title, candidate):
         cue_id, _, message = problem.partition(": ")
         if cue_id in errors:
@@ -157,19 +157,19 @@ def run_all(run_dir, manifest, prompt, accept, workers):
 
 def write(document_path, run_dir, title, answers, unchanged, annotate):
     """Writes accepted ANSWERS into the document in place, skipping cues for which
-    UNCHANGED(study) is false (edited since generation). Validates the whole document first
+    UNCHANGED(line) is false (edited since generation). Validates the whole document first
     and keeps a copy in the run directory. Returns (applied ids, changed ids)."""
     document = load(document_path)
     applied, changed = [], []
     for cue in cues_of(document):
-        study = cue["study"]
-        if study["id"] not in answers:
+        line = cue["line"]
+        if line["id"] not in answers:
             continue
-        if not unchanged(study):
-            changed.append(study["id"])
+        if not unchanged(line):
+            changed.append(line["id"])
             continue
-        annotate(study, answers[study["id"]])
-        applied.append(study["id"])
+        annotate(line, answers[line["id"]])
+        applied.append(line["id"])
     problems = app.problems(title, document)
     if problems:
         raise SystemExit("The annotated document is invalid; nothing was written: " + "; ".join(problems[:5]))

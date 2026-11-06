@@ -1,5 +1,5 @@
 import { briefMarkdown, quizFileName } from "../player/quiz.js";
-import { pageCues } from "./annotations.js";
+import { boxLines, pageBoxes } from "./annotations.js";
 import { chapterName } from "./navigation.js";
 
 /**
@@ -12,7 +12,7 @@ export function chapterQuizBrief(rules, doc, index, type) {
   const chapter = doc.chapters[index];
   const { first, last } = chapterPages(doc, index);
   const items = doc.pages.slice(first, last + 1).flatMap((page, offset) =>
-    pageCues(doc, page.id)
+    boxLines(pageBoxes(doc, page.id))
       .filter((cue) => cue.source?.trim())
       .map((cue) => ({
         group: `Page ${page.label || first + offset + 1}`,

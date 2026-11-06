@@ -33,29 +33,30 @@ export function playerDocument(document) {
     ...document,
     ...body,
     type: comic ? "comic" : "video",
-    readingDirection:
-      body.readingDirection === "READING_DIRECTION_RTL" ? "rtl" : "ltr",
-    cues: (body.cues || []).map((cue) =>
-      comic ? comicBox(cue) : videoCue(cue),
-    ),
+    ...(comic
+      ? {
+          readingDirection: body.readingDirection || "ltr",
+          boxes: (body.boxes || []).map(comicBox),
+        }
+      : { cues: (body.cues || []).map(videoCue) }),
   };
 }
 
-/** A video cue in the flat view: its study's fields beside its timing. */
-function videoCue({ study, ...timing }) {
-  return { ...timing, ...study, source: study?.source || "" };
+/** A video cue in the flat view: its line's fields beside its timing. */
+function videoCue({ line, ...timing }) {
+  return { ...timing, ...line, source: line?.source || "" };
 }
 
 /**
- * A comic box in the flat view keeps its own `id` and placement; its studies are flat too, and
- * each knows its page and its box's `boxId`, so a selected study can find its box.
+ * A comic box in the flat view keeps its own `id` and placement; each of its lines knows its page
+ * and its box's `boxId`, so a selected line can find its box.
  */
-function comicBox({ studies, ...box }) {
+function comicBox({ lines, ...box }) {
   return {
     ...box,
-    studies: (studies || []).map((study) => ({
-      ...study,
-      source: study.source || "",
+    lines: (lines || []).map((line) => ({
+      ...line,
+      source: line.source || "",
       pageId: box.pageId,
       boxId: box.id,
     })),

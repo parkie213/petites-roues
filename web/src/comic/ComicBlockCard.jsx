@@ -13,7 +13,7 @@ import { useStudyLanguages } from "../player/StudyLanguages.jsx";
  * so the card keeps the size of the longest and previous/next never resize it.
  */
 export function ComicBlockCard({
-  cues,
+  lines,
   selectedId,
   onSelect,
   mode,
@@ -22,9 +22,9 @@ export function ComicBlockCard({
   onKeep,
 }) {
   const { sourceLanguage } = useStudyLanguages();
-  const found = cues.findIndex((cue) => cue.id === selectedId);
+  const found = lines.findIndex((line) => line.id === selectedId);
   const position = found < 0 ? 0 : found;
-  const cue = cues[position];
+  const current = lines[position];
   const card = (sentence) => (
     <ComicBubbleCard
       key={sentence.id}
@@ -54,8 +54,8 @@ export function ComicBlockCard({
       <>
         {toggle}
         <ol className="comic-block-lines" lang={sourceLanguage}>
-          {cues.map((sentence) =>
-            sentence === cue ? (
+          {lines.map((sentence) =>
+            sentence === current ? (
               <li key={sentence.id} className="comic-block-open">
                 {card(sentence)}
               </li>
@@ -85,7 +85,7 @@ export function ComicBlockCard({
       {toggle}
       <Group justify="space-between" wrap="nowrap" mb={6}>
         <Text size="xs" c="dimmed">
-          Sentence {position + 1} of {cues.length}
+          Sentence {position + 1} of {lines.length}
         </Text>
         <Group gap={4} wrap="nowrap">
           <ActionIcon
@@ -93,7 +93,7 @@ export function ComicBlockCard({
             size="sm"
             aria-label="Previous sentence"
             disabled={position === 0}
-            onClick={() => onSelect(cues[position - 1].id)}
+            onClick={() => onSelect(lines[position - 1].id)}
           >
             <ChevronLeft size={14} />
           </ActionIcon>
@@ -101,16 +101,16 @@ export function ComicBlockCard({
             variant="default"
             size="sm"
             aria-label="Next sentence"
-            disabled={position === cues.length - 1}
-            onClick={() => onSelect(cues[position + 1].id)}
+            disabled={position === lines.length - 1}
+            onClick={() => onSelect(lines[position + 1].id)}
           >
             <ChevronRight size={14} />
           </ActionIcon>
         </Group>
       </Group>
       <div className="comic-block-stack">
-        {cues.map((sentence) =>
-          sentence === cue ? (
+        {lines.map((sentence) =>
+          sentence === current ? (
             // Keyed by being shown too, so the shown card mounts fresh: its phrase state resets
             // and listen-on-open reads the new sentence.
             <div key={`${sentence.id}:shown`}>{card(sentence)}</div>

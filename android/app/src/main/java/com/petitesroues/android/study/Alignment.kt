@@ -2,20 +2,20 @@ package com.petitesroues.android.study
 
 import com.petitesroues.model.PhraseAlignmentValidator
 import com.petitesroues.model.document.PhraseAlignment
-import com.petitesroues.model.document.StudyCue
+import com.petitesroues.model.document.Line
 
 // Phrase-level study help shared by the video player and the comic reader, mirroring the
 // browser's `alignment.js`. Chunk indices refer to phrases, not words.
 
 /**
- * The cue's phrase breakdown while it still matches the cue's text; otherwise null, and the line
- * is shown as plain text.
+ * The line's phrase breakdown while its chunks still spell out the line's text; otherwise null, and
+ * the line is shown as plain text.
  */
-fun readyAlignment(cue: StudyCue): PhraseAlignment? {
-  val alignment = cue.alignment()
-  if (alignment == null || cue.alignmentStale()) return null
+fun readyAlignment(line: Line): PhraseAlignment? {
+  val alignment = line.alignment()
+  if (alignment == null) return null
   return try {
-    PhraseAlignmentValidator.validateFor(alignment, cue.source(), cue.translation())
+    PhraseAlignmentValidator.validateFor(alignment, line.source(), line.translation())
     alignment
   } catch (_: IllegalArgumentException) {
     null

@@ -134,11 +134,6 @@
   font-size: 11px;
   margin: 12px 0 0;
 }
-.alignment-warning {
-  color: #e8b97e;
-  font-size: 12px;
-  margin: 12px 0 0;
-}
 .player-shell .study-workspace {
   height: var(--study-height, clamp(160px, 20vh, 220px));
   max-height: none;

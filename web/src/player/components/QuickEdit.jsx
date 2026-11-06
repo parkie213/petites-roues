@@ -49,7 +49,7 @@ export function QuickEdit({
       let saved = null;
       if (comic && sourceChanged)
         saved = await request(
-          `${api}/comic/studies/${encodeURIComponent(cue.id)}`,
+          `${api}/comic/lines/${encodeURIComponent(cue.id)}`,
           json("PUT", { expectedSource: cue.source, source: source.trim() }),
         );
       else if (sourceChanged || translationChanged)

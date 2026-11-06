@@ -25,11 +25,11 @@ class ReviewApiIntegrationTest extends HttpIntegrationTest {
     byte[] original = Files.readAllBytes(file);
     String api = "/api/titles/review-api";
 
-    var cue = title.video().cues().get(0).withStudy(s -> s.withSource("Bonsoir !"));
+    var cue = title.video().cues().get(0).withLine(s -> s.withSource("Bonsoir !"));
     http.put().uri(api + "/cues/stable-cue").body(edit(cue)).retrieve().toBodilessEntity();
     assertArrayEquals(original, Files.readAllBytes(file));
     var served = http.get().uri(api).retrieve().body(StudyDocument.class);
-    assertEquals("Bonsoir !", served.video().cues().get(0).study().source());
+    assertEquals("Bonsoir !", served.video().cues().get(0).line().source());
 
     var queue = http.get().uri(api + "/review-queue").retrieve().body(JsonNode.class);
     assertEquals("pending", queue.get(0).get("state").asString());
@@ -56,7 +56,7 @@ class ReviewApiIntegrationTest extends HttpIntegrationTest {
 
     var agent =
         document.withVideo(
-            v -> v.withCue(0, c -> c.withStudy(s -> s.withTranslation("Good evening!"))));
+            v -> v.withCue(0, c -> c.withLine(s -> s.withTranslation("Good evening!"))));
     Files.write(file, new StudyDocumentCodec().encode(agent).getBytes(StandardCharsets.UTF_8));
     http.post().uri(complete).body(Map.of("outcome", "applied")).retrieve().toBodilessEntity();
 

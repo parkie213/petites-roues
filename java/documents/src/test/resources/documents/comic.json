@@ -11,7 +11,7 @@
         "entry": "001.jpg"
       }
     ],
-    "cues": [
+    "boxes": [
       {
         "id": "88a9081b-8811-43bc-8607-e5d98441edf7",
         "pageId": "page-1",
@@ -24,7 +24,7 @@
             "height": 0.2
           }
         ],
-        "studies": [
+        "lines": [
           {
             "id": "04bb8a44-555d-489e-93cc-a85cc49263b6",
             "source": "Bonjour !",

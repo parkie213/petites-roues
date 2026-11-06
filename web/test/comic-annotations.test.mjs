@@ -2,27 +2,27 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
   clampRegion,
-  pageCues,
+  pageBoxes,
   boxOf,
-  boxStudies,
+  boxLines,
   pageLayout,
   regionFromDrag,
 } from "../src/comic/annotations.js";
 
-test("cue reading order is explicit and does not mutate the source document", () => {
+test("box reading order is explicit and does not mutate the source document", () => {
   const document = {
-    cues: [
+    boxes: [
       { id: "late", pageId: "p", order: 9 },
       { id: "other", pageId: "q", order: 1 },
       { id: "early", pageId: "p", order: 1 },
     ],
   };
   assert.deepEqual(
-    pageCues(document, "p").map((c) => c.id),
+    pageBoxes(document, "p").map((b) => b.id),
     ["early", "late"],
   );
-  assert.equal(document.cues[0].id, "late");
-  assert.deepEqual(pageCues({}, "p"), []);
+  assert.equal(document.boxes[0].id, "late");
+  assert.deepEqual(pageBoxes({}, "p"), []);
 });
 test("image and normalized regions share the same fitted dimensions at every zoom", () => {
   assert.deepEqual(pageLayout(1000, 600, 750, 1000, "page", 100), {
@@ -66,7 +66,7 @@ test("drag rectangles are orientation-independent", () => {
   assert.deepEqual(down, { x: 0.2, y: 0.5, width: 0.3, height: 0.2 });
 });
 
-test("studies are listed in reading order and each finds its box", () => {
+test("lines are listed in reading order and each finds its box", () => {
   const box = [{ x: 0.1, y: 0.6, width: 0.8, height: 0.3 }];
   const title = { id: "t", source: "Introduction" };
   const s1 = { id: "s1", source: "Une phrase." };
@@ -76,19 +76,19 @@ test("studies are listed in reading order and each finds its box", () => {
     pageId: "p",
     order: 1,
     regions: [],
-    studies: [title],
+    lines: [title],
   };
   const block = {
     id: "b2",
     pageId: "p",
     order: 2,
     regions: box,
-    studies: [s1, s2],
+    lines: [s1, s2],
   };
-  const cues = [label, block];
-  assert.deepEqual(boxStudies(cues), [title, s1, s2]);
-  assert.equal(boxOf(cues, "s2"), block);
-  assert.equal(boxOf(cues, "t"), label);
-  // Box ids are not study ids.
-  assert.equal(boxOf(cues, "b2"), undefined);
+  const boxes = [label, block];
+  assert.deepEqual(boxLines(boxes), [title, s1, s2]);
+  assert.equal(boxOf(boxes, "s2"), block);
+  assert.equal(boxOf(boxes, "t"), label);
+  // Box ids are not line ids.
+  assert.equal(boxOf(boxes, "b2"), undefined);
 });

@@ -114,7 +114,7 @@ def main():
     if done:
         document["video"].setdefault("cues", []).extend(
             {"start": round(s["start"], 3), "end": round(s["end"], 3),
-             "study": {"id": s["id"], "source": s["text"].strip()}} for s in segments)
+             "line": {"id": s["id"], "source": s["text"].strip()}} for s in segments)
         document["video"]["cues"].sort(key=lambda c: c["start"])
         document["video"]["transcriptionMethod"] = f"ASR: {args.model} via OpenRouter"
         temporary = args.document.with_name(args.document.name + ".tmp")
@@ -122,7 +122,7 @@ def main():
         temporary.replace(args.document)
         save(written_path, sorted(written + done))
         (args.run_dir / "transcript.srt").write_text("\n\n".join(
-            f"{i}\n{stamp(c['start'])} --> {stamp(c['end'])}\n{c['study']['source']}"
+            f"{i}\n{stamp(c['start'])} --> {stamp(c['end'])}\n{c['line']['source']}"
             for i, c in enumerate(document["video"]["cues"], 1)) + "\n", encoding="utf-8")
     missing = [k + 1 for k in range(count) if k not in written + done]
     print(f"Added {len(segments)} cues from {len(done)} chunks to {args.document}; "

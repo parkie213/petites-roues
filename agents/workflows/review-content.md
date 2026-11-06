@@ -29,9 +29,8 @@ file with their annotations, commit and push, then complete the batch. The API i
    stands. A `suggestion` is a proposal: adopt it by correcting the source text, or
    keep the transcript with a specific `listeningCheck`. A `conflict` no longer applies to the file.
    Decide it by hand: edit the file to match the player's intent, or leave the file as it is and
-   mark the edit `not_adopted`. Preserve IDs, timings and unrelated text. Regenerate stale phrase
-   links against the exact source and translation, clearing `alignmentStale` only for a valid
-   replacement.
+   mark the edit `not_adopted`. Preserve IDs, timings and unrelated text. Regenerate phrase links
+   that an edit cleared, against the exact source and translation.
 4. Before writing, `POST /api/titles/{id}/validate` with the candidate document: it returns
    `{"problems":[...]}`, every structural problem with its cue ID, and writes nothing. Fix them
    all, then write the file and GET `/api/titles/{id}` to confirm it loads.

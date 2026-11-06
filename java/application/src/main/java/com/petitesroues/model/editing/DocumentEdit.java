@@ -24,9 +24,9 @@ import java.util.List;
   @JsonSubTypes.Type(value = DocumentEdit.MergeVideoCues.class, name = "merge-video-cues"),
   @JsonSubTypes.Type(value = DocumentEdit.DeleteVideoCue.class, name = "delete-video-cue"),
   @JsonSubTypes.Type(value = DocumentEdit.EditComicText.class, name = "edit-comic-text"),
-  @JsonSubTypes.Type(value = DocumentEdit.CreateComicCue.class, name = "create-comic-cue"),
-  @JsonSubTypes.Type(value = DocumentEdit.PlaceComicCue.class, name = "place-comic-cue"),
-  @JsonSubTypes.Type(value = DocumentEdit.DeleteComicCue.class, name = "delete-comic-cue")
+  @JsonSubTypes.Type(value = DocumentEdit.CreateComicBox.class, name = "create-comic-box"),
+  @JsonSubTypes.Type(value = DocumentEdit.PlaceComicBox.class, name = "place-comic-box"),
+  @JsonSubTypes.Type(value = DocumentEdit.DeleteComicBox.class, name = "delete-comic-box")
 })
 public sealed interface DocumentEdit {
   /**
@@ -175,51 +175,51 @@ public sealed interface DocumentEdit {
     }
   }
 
-  /** Replaces the source text of the comic study {@code studyId}, in whichever box holds it. */
-  record EditComicText(String studyId, ComicTextEdit edit) implements DocumentEdit {
+  /** Replaces the source text of the comic line {@code lineId}, in whichever box holds it. */
+  record EditComicText(String lineId, ComicTextEdit edit) implements DocumentEdit {
     public String kind() {
       return "edit";
     }
 
     public List<String> cueIds() {
-      return List.of(studyId);
+      return List.of(lineId);
     }
   }
 
   /**
-   * Adds a box. {@code cueId} and {@code studyId} are the server-assigned identities of the new box
-   * and of the one study it starts with.
+   * Adds a box. {@code boxId} and {@code lineId} are the server-assigned identities of the new box
+   * and of the one line it starts with.
    */
-  record CreateComicCue(String cueId, String studyId, ComicCueCreate create)
+  record CreateComicBox(String boxId, String lineId, ComicBoxCreate create)
       implements DocumentEdit {
     public String kind() {
       return "annotate";
     }
 
     public List<String> cueIds() {
-      return List.of(cueId, studyId);
+      return List.of(boxId, lineId);
     }
   }
 
-  /** Moves or reorders the box {@code cueId}, with all its studies. */
-  record PlaceComicCue(String cueId, ComicCueUpdate update) implements DocumentEdit {
+  /** Moves or reorders the box {@code boxId}, with all its lines. */
+  record PlaceComicBox(String boxId, ComicBoxUpdate update) implements DocumentEdit {
     public String kind() {
       return "annotate";
     }
 
     public List<String> cueIds() {
-      return List.of(cueId);
+      return List.of(boxId);
     }
   }
 
-  /** Removes the box {@code cueId} and all its studies. */
-  record DeleteComicCue(String cueId) implements DocumentEdit {
+  /** Removes the box {@code boxId} and all its lines. */
+  record DeleteComicBox(String boxId) implements DocumentEdit {
     public String kind() {
       return "annotate";
     }
 
     public List<String> cueIds() {
-      return List.of(cueId);
+      return List.of(boxId);
     }
   }
 }

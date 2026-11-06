@@ -63,10 +63,7 @@ export function Transcript({
         if (
           (query && !hay.includes(query.toLocaleLowerCase())) ||
           (notesOnly && !teaching.length) ||
-          (checksOnly &&
-            !line.listeningCheck &&
-            !line.textCheck &&
-            alignmentState(line) !== "stale")
+          (checksOnly && !line.listeningCheck && !line.textCheck)
         )
           return null;
         return (
@@ -129,8 +126,7 @@ export function Transcript({
               )}
               {(line.continuesPrevious ||
                 (showReviewChecks && line.listeningCheck) ||
-                line.textCheck ||
-                alignmentState(line) === "stale") && (
+                line.textCheck) && (
                 <Group component="span" gap={4}>
                   {" "}
                   {line.continuesPrevious && (
@@ -146,11 +142,6 @@ export function Transcript({
                   {line.textCheck && (
                     <Badge size="xs" variant="light" color="yellow">
                       Text check
-                    </Badge>
-                  )}
-                  {alignmentState(line) === "stale" && (
-                    <Badge size="xs" variant="light" color="yellow">
-                      Regenerate phrase links
                     </Badge>
                   )}
                 </Group>

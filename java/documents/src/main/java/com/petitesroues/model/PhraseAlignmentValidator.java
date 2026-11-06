@@ -3,36 +3,33 @@ package com.petitesroues.model;
 import com.petitesroues.model.document.PhraseAlignment;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Objects;
 import java.util.Set;
 
 /**
- * Checks an alignment's intrinsic graph rules and its binding to the current cue text. Document
- * loading uses this before exposing an alignment to the player. Validation is read-only and
- * requires no persistence, application services or framework configuration.
+ * Checks an alignment's intrinsic graph rules and its binding to the current line text: the chunks
+ * on each side, joined with single spaces, must reproduce that side exactly. Document loading uses
+ * this before exposing an alignment to the player. Validation is read-only and requires no
+ * persistence, application services or framework configuration.
  */
 public final class PhraseAlignmentValidator {
   private PhraseAlignmentValidator() {}
 
   /**
-   * Rejects malformed, incomplete or stale graphs without changing the alignment or cue text.
+   * Rejects malformed, incomplete or stale graphs without changing the alignment or line text.
    * Crossing links, many-to-many links and phrases without a separate counterpart are allowed, but
    * each phrase belongs to exactly one link. Link notes are optional: a breakdown is complete
    * before the notes stage explains it. Structural validity does not establish the linguistic
    * accuracy of a translation or explanation.
    *
    * @param alignment graph to validate; required
-   * @param source current source cue text; required and matched exactly
+   * @param source current source line text; required and matched exactly
    * @param target current translation; required and matched exactly
    * @throws IllegalArgumentException if the graph is absent, malformed or does not match the text
    */
   public static void validateFor(PhraseAlignment alignment, String source, String target) {
     if (alignment == null) throw new IllegalArgumentException("Alignment is required");
-    if (source == null
-        || target == null
-        || !Objects.equals(alignment.sourceText(), source)
-        || !Objects.equals(alignment.translationText(), target))
-      throw new IllegalArgumentException("Alignment sentences must match the current cue text");
+    if (source == null || target == null)
+      throw new IllegalArgumentException("An alignment needs a source and a translation");
     validatePhrases(alignment.source(), source, "Source");
     validatePhrases(alignment.translation(), target, "Translation");
     validateLinks(alignment);

@@ -39,17 +39,17 @@ TEACHING GUIDE:
 
 
 def slim(cue):
-    study = cue["study"]
-    return {k: v for k, v in {"id": study["id"], "pageId": cue.get("pageId"), "source": study["source"],
-                              "continuesPrevious": study.get("continuesPrevious", False),
+    line = cue["line"]
+    return {k: v for k, v in {"id": line["id"], "pageId": cue.get("pageId"), "source": line["source"],
+                              "continuesPrevious": line.get("continuesPrevious", False),
                               "listeningCheck": cue.get("listeningCheck"),
-                              "textCheck": study.get("textCheck")}.items() if v is not None}
+                              "textCheck": line.get("textCheck")}.items() if v is not None}
 
 
-def annotate(study, answer):
+def annotate(line, answer):
     """Writes the translation, dropping any alignment bound to the old one."""
-    study.pop("alignment", None)
-    study.update(translation=answer["translation"], alignmentStale=False)
+    line.pop("alignment", None)
+    line["translation"] = answer["translation"]
 
 
 def shape_errors(c):
@@ -81,8 +81,8 @@ def main():
             raise SystemExit("The document is invalid; fix it first: "
                              + "; ".join(app.problems(title, document)[:5]))
         listed = set(args.cues.read_text(encoding="utf-8").split()) if args.cues else None
-        wanted = [i for i, c in enumerate(batches.cues_of(document)) if c["study"]["source"].strip() and (
-            c["study"]["id"] in listed if listed is not None else args.all or not c["study"].get("translation"))]
+        wanted = [i for i, c in enumerate(batches.cues_of(document)) if c["line"]["source"].strip() and (
+            c["line"]["id"] in listed if listed is not None else args.all or not c["line"].get("translation"))]
         batches.create(args.run_dir, document, raw, GUIDE.read_text(encoding="utf-8"), args.model, title,
                        wanted, args.batch, slim)
     manifest = load(args.run_dir / "manifest.json")
@@ -103,7 +103,7 @@ def main():
         print(f"Not written: answers are in {args.run_dir}/batch-*/accepted.json")
         return
     applied, changed = batches.write(args.document, args.run_dir, title, answers,
-                                     lambda study: study["source"] == sent[study["id"]]["source"], annotate)
+                                     lambda line: line["source"] == sent[line["id"]]["source"], annotate)
     print(f"Applied {len(applied)} cues; updated {args.document}")
     if changed:
         print(f"Skipped {len(changed)} cues whose source changed since generation: {', '.join(changed[:10])}")

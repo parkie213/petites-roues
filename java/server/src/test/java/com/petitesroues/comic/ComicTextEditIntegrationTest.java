@@ -4,8 +4,8 @@ import static com.petitesroues.support.SpecFixtures.*;
 import static org.junit.jupiter.api.Assertions.*;
 
 import com.petitesroues.documents.StudyDocumentCodec;
+import com.petitesroues.model.document.Line;
 import com.petitesroues.model.document.ReadingDirection;
-import com.petitesroues.model.document.StudyCue;
 import com.petitesroues.model.document.StudyDocument;
 import com.petitesroues.support.DocumentFixtures;
 import com.petitesroues.support.HttpIntegrationTest;
@@ -19,18 +19,16 @@ import tools.jackson.databind.JsonNode;
 /**
  * Exercises persisted source corrections, stale-editor protection and annotation review queueing.
  */
-class ComicCueIntegrationTest extends HttpIntegrationTest {
+class ComicTextEditIntegrationTest extends HttpIntegrationTest {
   @Test
   void editsOnlySelectedBubbleAndInvalidatesItsTeachingMaterial() throws Exception {
     var cue =
         newBubble(
-            StudyCue.of("bubble", "Salut !")
+            Line.of("bubble", "Salut !")
                 .withTranslation("Hi!")
                 .withNotes(List.of("A greeting."))
                 .withAlignment(
                     newAlignment(
-                        "Salut !",
-                        "Hi!",
                         List.of("Salut !"),
                         List.of("Hi!"),
                         List.of(newLink(List.of(0), List.of(0), "A greeting.")))),
@@ -39,7 +37,7 @@ class ComicCueIntegrationTest extends HttpIntegrationTest {
             List.of(newRegion(.1, .2, .3, .4)));
     var other =
         newBubble(
-            StudyCue.of("other", "Merci !").withTranslation("Thanks!"),
+            Line.of("other", "Merci !").withTranslation("Thanks!"),
             "page",
             2,
             List.of(newRegion(.5, .5, .2, .2)));
@@ -47,7 +45,7 @@ class ComicCueIntegrationTest extends HttpIntegrationTest {
         DocumentFixtures.comic(
             "comic",
             "Comic",
-            ReadingDirection.UNSPECIFIED,
+            ReadingDirection.LTR,
             List.of(newPage("page", "001.jpg", null)),
             cue,
             other);
@@ -64,22 +62,21 @@ class ComicCueIntegrationTest extends HttpIntegrationTest {
     String api = "/api/titles/comic";
     var result =
         http.put()
-            .uri(api + "/comic/studies/bubble")
+            .uri(api + "/comic/lines/bubble")
             .body(Map.of("expectedSource", "Salut !", "source", "Bonjour !"))
             .retrieve()
             .body(StudyDocument.class);
-    var edited = result.comic().cues().get(0);
-    assertEquals("Bonjour !", edited.studies().getFirst().source());
+    var edited = result.comic().boxes().get(0);
+    assertEquals("Bonjour !", edited.lines().getFirst().source());
     assertEquals(cue.regions(), edited.regions());
-    assertEquals(cue.studies().getFirst().id(), edited.studies().getFirst().id());
+    assertEquals(cue.lines().getFirst().id(), edited.lines().getFirst().id());
     assertEquals(cue.order(), edited.order());
-    assertFalse(edited.studies().getFirst().translation() != null);
-    assertTrue(edited.studies().getFirst().notes().isEmpty());
-    assertFalse(edited.studies().getFirst().alignment() != null);
-    assertTrue(edited.studies().getFirst().alignmentStale());
-    assertEquals(other, result.comic().cues().getLast());
+    assertFalse(edited.lines().getFirst().translation() != null);
+    assertTrue(edited.lines().getFirst().notes().isEmpty());
+    assertFalse(edited.lines().getFirst().alignment() != null);
+    assertEquals(other, result.comic().boxes().getLast());
     var json = mapper.readTree(new StudyDocumentCodec().encode(result));
-    assertFalse(json.path("comic").path("cues").get(0).has("start"));
+    assertFalse(json.path("comic").path("boxes").get(0).has("start"));
     assertEquals(
         "Bonjour !",
         http.get()
@@ -87,9 +84,9 @@ class ComicCueIntegrationTest extends HttpIntegrationTest {
             .retrieve()
             .body(StudyDocument.class)
             .comic()
-            .cues()
+            .boxes()
             .getFirst()
-            .studies()
+            .lines()
             .getFirst()
             .source());
     var queue = http.get().uri(api + "/review-queue").retrieve().body(JsonNode.class);
@@ -98,26 +95,26 @@ class ComicCueIntegrationTest extends HttpIntegrationTest {
     assertEquals(
         400,
         http.put()
-            .uri(api + "/comic/studies/bubble")
+            .uri(api + "/comic/lines/bubble")
             .body(Map.of("expectedSource", "Salut !", "source", "Stale edit"))
             .<Integer>exchange((req, res) -> res.getStatusCode().value())
             .intValue());
     assertEquals(
         404,
         http.put()
-            .uri(api + "/comic/studies/missing")
+            .uri(api + "/comic/lines/missing")
             .body(Map.of("expectedSource", "x", "source", "y"))
             .<Integer>exchange((req, res) -> res.getStatusCode().value())
             .intValue());
     assertEquals(
         400,
         http.put()
-            .uri(api + "/comic/studies/bubble")
+            .uri(api + "/comic/lines/bubble")
             .body(Map.of("expectedSource", "Bonjour !", "source", " "))
             .<Integer>exchange((req, res) -> res.getStatusCode().value())
             .intValue());
     http.put()
-        .uri(api + "/comic/studies/bubble")
+        .uri(api + "/comic/lines/bubble")
         .body(Map.of("expectedSource", "Bonjour !", "source", "Bonjour !"))
         .retrieve()
         .toBodilessEntity();

@@ -213,10 +213,7 @@ export function Player({ id }) {
     previousCue &&
     previousCue.end > cue.start &&
     cue.start > previousCue.start;
-  const reviewCount = useMemo(
-    () => pendingReviewCount(changes, cues),
-    [changes, cues],
-  );
+  const reviewCount = useMemo(() => pendingReviewCount(changes), [changes]);
 
   useEffect(() => {
     if (follow && active >= 0 && performance.now() > manualScroll.current)

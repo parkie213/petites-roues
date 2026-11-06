@@ -1,6 +1,6 @@
 import { alignmentState } from "../player/alignment.js";
 import { languageName } from "../player/languages.js";
-import { pageCues } from "./annotations.js";
+import { boxLines, pageBoxes } from "./annotations.js";
 
 /**
  * A short, self-contained message asking a chat app (ChatGPT, Claude) about one speech bubble,
@@ -49,7 +49,7 @@ export function askMessage(document, cue, phrase, question) {
     lines.push("", "Phrase notes from my reader:", ...phrases);
   if (cue.notes?.length)
     lines.push("", "Sentence notes:", ...cue.notes.map((note) => `- ${note}`));
-  const others = pageCues(document, cue.pageId).filter((other) =>
+  const others = boxLines(pageBoxes(document, cue.pageId)).filter((other) =>
     other.source?.trim(),
   );
   if (others.length > 1)

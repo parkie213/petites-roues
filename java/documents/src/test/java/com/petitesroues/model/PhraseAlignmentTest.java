@@ -16,12 +16,7 @@ class PhraseAlignmentTest {
   void reusingAPhraseListCannotChangeAnExistingAlignment() {
     var phrases = new ArrayList<>(List.of("Salut"));
     var alignment =
-        newAlignment(
-            "Salut",
-            "Hi",
-            phrases,
-            List.of("Hi"),
-            List.of(newLink(List.of(0), List.of(0), "Greeting")));
+        newAlignment(phrases, List.of("Hi"), List.of(newLink(List.of(0), List.of(0), "Greeting")));
 
     // A caller reuses its input list while preparing a different sentence.
     phrases.set(0, "Bonsoir");
@@ -43,7 +38,7 @@ class PhraseAlignmentTest {
     var targetIndices = new ArrayList<>(List.of(0));
     var link = newLink(sourceIndices, targetIndices, "Greeting");
     var links = new ArrayList<>(List.of(link));
-    var alignment = newAlignment("Salut", "Hi", source, translation, links);
+    var alignment = newAlignment(source, translation, links);
     source.clear();
     translation.clear();
     sourceIndices.clear();
@@ -66,11 +61,10 @@ class PhraseAlignmentTest {
     List<String> nullText = Arrays.asList((String) null);
     List<Integer> nullIndex = Arrays.asList((Integer) null);
     assertThrows(
-        NullPointerException.class,
-        () -> new PhraseAlignment("", "", nullText, List.of(), List.of()));
+        NullPointerException.class, () -> new PhraseAlignment(nullText, List.of(), List.of()));
     assertThrows(
         NullPointerException.class,
-        () -> new PhraseAlignment("", "", List.of(), List.of(), Arrays.asList((PhraseLink) null)));
+        () -> new PhraseAlignment(List.of(), List.of(), Arrays.asList((PhraseLink) null)));
     assertThrows(NullPointerException.class, () -> new PhraseLink(nullIndex, List.of(), ""));
   }
 }

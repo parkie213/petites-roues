@@ -48,10 +48,10 @@ class ApplicationSmokeTest extends HttpIntegrationTest {
 
     var wire = http.get().uri(titleApi).accept(MediaType.ALL).retrieve().toEntity(String.class);
     assertTrue(MediaType.APPLICATION_JSON.isCompatibleWith(wire.getHeaders().getContentType()));
-    assertTrue(mapper.readTree(wire.getBody()).path("video").path("cues").get(0).has("study"));
+    assertTrue(mapper.readTree(wire.getBody()).path("video").path("cues").get(0).has("line"));
     var loaded = http.get().uri(titleApi).retrieve().body(StudyDocument.class);
     assertEquals(title.id(), loaded.id());
-    assertEquals("Bonjour !", loaded.video().cues().getFirst().study().source());
+    assertEquals("Bonjour !", loaded.video().cues().getFirst().line().source());
     // The media URL redirects to one carrying the file's version; old versions redirect onward.
     var redirect = http.get().uri(titleApi + "/media").retrieve().toBodilessEntity();
     assertEquals(302, redirect.getStatusCode().value());
@@ -107,9 +107,8 @@ class ApplicationSmokeTest extends HttpIntegrationTest {
             .retrieve()
             .body(StudyDocument.class);
     var cue = edited.video().cues().get(0);
-    assertEquals("stable-cue", cue.study().id());
-    assertFalse(cue.study().alignment() != null);
-    assertTrue(cue.study().alignmentStale());
+    assertEquals("stable-cue", cue.line().id());
+    assertFalse(cue.line().alignment() != null);
     assertEquals(
         400,
         http.put()

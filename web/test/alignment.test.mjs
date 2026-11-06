@@ -12,8 +12,6 @@ const cue = {
   translation: "They can't wait to meet us.",
 };
 const alignment = {
-  sourceText: cue.source,
-  translationText: cue.translation,
   source: ["Ils", "ont hâte de", "nous", "rencontrer."],
   translation: ["They", "can't wait to", "meet", "us."],
   links: [
@@ -23,21 +21,17 @@ const alignment = {
     { source: [3], translation: [2], note: "Meet." },
   ],
 };
-test("missing and stale alignment have distinct states and stale work stays queued", () => {
+test("a line has a ready breakdown or is missing one; only queued edits are pending", () => {
   assert.equal(alignmentState(cue), "missing");
   assert.equal(alignmentState({ ...cue, alignment }), "ready");
+  // A breakdown that no longer spells out the line is never shown.
   assert.equal(
-    alignmentState({ ...cue, alignment, alignmentStale: true }),
-    "stale",
+    alignmentState({ ...cue, source: "Autre chose.", alignment }),
+    "missing",
   );
-  const stale = { ...cue, id: "one", alignmentStale: true };
-  assert.equal(pendingReviewCount([], [stale]), 1);
   const changes = [{ sequence: 1, cueIds: ["one"], reviewedAt: null }];
-  assert.equal(pendingReviewCount(changes, [stale]), 1);
-  assert.equal(
-    pendingReviewCount([{ ...changes[0], reviewedAt: "done" }], [stale]),
-    1,
-  );
+  assert.equal(pendingReviewCount(changes), 1);
+  assert.equal(pendingReviewCount([{ ...changes[0], reviewedAt: "done" }]), 0);
 });
 test("crossing phrase links preserve the complete two sentences", () => {
   assert.equal(validAlignment(cue, alignment), alignment);
@@ -85,8 +79,6 @@ test("many-to-many links and grammatical words without a separate counterpart ar
   const c = { source: "Il dort.", translation: "Sleeping." };
   assert(
     validAlignment(c, {
-      sourceText: c.source,
-      translationText: c.translation,
       source: ["Il", "dort."],
       translation: ["Sleeping."],
       links: [

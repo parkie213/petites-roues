@@ -1,14 +1,14 @@
 #!/usr/bin/env python3
-"""Split one aligned comic study holding a paragraph into one study per sentence.
+"""Split one aligned comic line holding a paragraph into one line per sentence.
 
-  split_block.py --document path/to/document.json --study STUDY_ID
+  split_block.py --document path/to/document.json --line LINE_ID
 
-The study's phrase breakdown decides the sentences: a sentence ends after a source chunk ending
+The line's phrase breakdown decides the sentences: a sentence ends after a source chunk ending
 in `.`, `!`, `?` or `…` (closing quotes allowed). Each link must stay inside one sentence on
-both sides, or nothing is written. The sentences replace the study in its box, in place, each
+both sides, or nothing is written. The sentences replace the line in its box, in place, each
 with its own translation, chunks and link notes; the box, its id and its reading order are
-unchanged, and readers show a box with several studies a sentence at a time. The first sentence
-keeps the study's id; the rest get new UUIDs. Sentence notes of the paragraph go to the first
+unchanged, and readers show a box with several lines a sentence at a time. The first sentence
+keeps the line's id; the rest get new UUIDs. Sentence notes of the paragraph go to the first
 sentence, with a reminder to move them where they belong.
 
 Writes the document in place; the app's validator checks it on the next load or review.
@@ -35,9 +35,9 @@ def sentence_spans(chunks):
     return spans
 
 
-def split(study):
-    """Sentence studies from one aligned paragraph study; raises if a link crosses sentences."""
-    alignment = study.get("alignment")
+def split(line):
+    """Sentence lines from one aligned paragraph line; raises if a link crosses sentences."""
+    alignment = line.get("alignment")
     if not alignment:
         raise SystemExit("The cue needs a phrase breakdown to split by sentence.")
     source_spans = sentence_spans(alignment["source"])
@@ -64,7 +64,7 @@ def split(study):
 
     kept = {
         k: v
-        for k, v in study.items()
+        for k, v in line.items()
         if k not in ("id", "source", "translation", "notes", "alignment")
     }
     sentences = []
@@ -80,13 +80,11 @@ def split(study):
                 links.append(moved)
         sentences.append(
             {
-                "id": study["id"] if s == 0 else str(uuid.uuid4()),
+                "id": line["id"] if s == 0 else str(uuid.uuid4()),
                 "source": " ".join(source),
                 "translation": " ".join(translation),
-                "notes": list(study.get("notes") or []) if s == 0 else [],
+                "notes": list(line.get("notes") or []) if s == 0 else [],
                 "alignment": {
-                    "sourceText": " ".join(source),
-                    "translationText": " ".join(translation),
                     "source": source,
                     "translation": translation,
                     "links": links,
@@ -100,27 +98,27 @@ def split(study):
 def main():
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--document", required=True, type=Path)
-    parser.add_argument("--study", required=True)
+    parser.add_argument("--line", required=True)
     args = parser.parse_args()
 
     document = json.loads(args.document.read_text(encoding="utf-8"))
-    found = [(box, i) for box in document["comic"]["cues"]
-             for i, study in enumerate(box["studies"]) if study["id"] == args.study]
+    found = [(box, i) for box in document["comic"]["boxes"]
+             for i, line in enumerate(box["lines"]) if line["id"] == args.line]
     if not found:
-        raise SystemExit(f"No comic study {args.study}.")
+        raise SystemExit(f"No comic line {args.line}.")
     box, index = found[0]
-    study = box["studies"][index]
-    sentences = split(study)
+    line = box["lines"][index]
+    sentences = split(line)
     if len(sentences) < 2:
-        raise SystemExit("The study is a single sentence; nothing to split.")
-    box["studies"][index : index + 1] = sentences
+        raise SystemExit("The line is a single sentence; nothing to split.")
+    box["lines"][index : index + 1] = sentences
     args.document.write_text(
         json.dumps(document, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
     )
     print(f"{box['pageId']}: {len(sentences)} sentences in box {box['id']}")
     for sentence in sentences:
         print(f"  {sentence['source']}")
-    if study.get("notes"):
+    if line.get("notes"):
         print("Moved the paragraph's sentence notes to the first sentence: place them.")
 
 

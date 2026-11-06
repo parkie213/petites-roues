@@ -9,7 +9,7 @@ import java.util.function.UnaryOperator;
 
 /**
  * A comic body: optional volume number, reading direction, pages in manifest order, optional
- * chapters and the text regions on the pages.
+ * chapters and the text boxes on the pages.
  *
  * @param volume optional positive volume (tome) number within its series; the library sorts and
  *     labels a series' volumes by it
@@ -23,22 +23,22 @@ public record ComicDocument(
     String annotationMethod,
     List<ComicPage> pages,
     List<ComicChapter> chapters,
-    List<ComicCue> cues) {
+    List<ComicBox> boxes) {
   public ComicDocument {
-    if (readingDirection == null) readingDirection = ReadingDirection.UNSPECIFIED;
+    if (readingDirection == null) readingDirection = ReadingDirection.LTR;
     pages = list(pages);
     chapters = list(chapters);
-    cues = list(cues);
+    boxes = list(boxes);
   }
 
-  public ComicDocument withCues(List<ComicCue> cues) {
-    return new ComicDocument(volume, readingDirection, annotationMethod, pages, chapters, cues);
+  public ComicDocument withBoxes(List<ComicBox> boxes) {
+    return new ComicDocument(volume, readingDirection, annotationMethod, pages, chapters, boxes);
   }
 
-  /** Replaces the cue at {@code index} with {@code change} applied to it. */
-  public ComicDocument withCue(int index, UnaryOperator<ComicCue> change) {
-    var changed = new ArrayList<>(cues);
-    changed.set(index, change.apply(cues.get(index)));
-    return withCues(changed);
+  /** Replaces the box at {@code index} with {@code change} applied to it. */
+  public ComicDocument withBox(int index, UnaryOperator<ComicBox> change) {
+    var changed = new ArrayList<>(boxes);
+    changed.set(index, change.apply(boxes.get(index)));
+    return withBoxes(changed);
   }
 }

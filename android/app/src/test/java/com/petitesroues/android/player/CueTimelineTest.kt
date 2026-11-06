@@ -17,14 +17,14 @@ class CueTimelineTest {
 
   @Test
   fun overlappingLinesShowTogether() {
-    assertEquals(listOf("b", "c"), timeline.showing(4.6).map { it.study().id() })
-    assertEquals(listOf<String>(), timeline.showing(8.0).map { it.study().id() })
+    assertEquals(listOf("b", "c"), timeline.showing(4.6).map { it.line().id() })
+    assertEquals(listOf<String>(), timeline.showing(8.0).map { it.line().id() })
   }
 
   @Test
   fun heldTimeStaysInsideAFinishedLineSoATouchingLineDoesNotShow() {
     val held = CueTimeline.heldTime(timeline.cues[0])
-    assertEquals(listOf("a"), timeline.showing(held).map { it.study().id() })
+    assertEquals(listOf("a"), timeline.showing(held).map { it.line().id() })
   }
 
   @Test

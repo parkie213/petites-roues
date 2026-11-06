@@ -1,10 +1,10 @@
 package com.petitesroues.support;
 
-import com.petitesroues.model.document.ComicCue;
+import com.petitesroues.model.document.ComicBox;
 import com.petitesroues.model.document.ComicDocument;
 import com.petitesroues.model.document.ComicPage;
+import com.petitesroues.model.document.Line;
 import com.petitesroues.model.document.ReadingDirection;
-import com.petitesroues.model.document.StudyCue;
 import com.petitesroues.model.document.StudyDocument;
 import com.petitesroues.model.document.VideoCue;
 import com.petitesroues.model.document.VideoDocument;
@@ -18,7 +18,7 @@ public final class DocumentFixtures {
   public static StudyDocument document(String id) {
     var cue =
         new VideoCue(
-            StudyCue.of("stable-cue", "Bonjour !")
+            Line.of("stable-cue", "Bonjour !")
                 .withTranslation("Hello!")
                 .withNotes(List.of("A greeting.")),
             .1,
@@ -43,7 +43,7 @@ public final class DocumentFixtures {
       String title,
       ReadingDirection direction,
       List<ComicPage> pages,
-      ComicCue... cues) {
+      ComicBox... cues) {
     return new StudyDocument(
         id,
         title,

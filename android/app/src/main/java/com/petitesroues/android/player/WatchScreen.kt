@@ -193,8 +193,8 @@ fun WatchScreen(
   val time = playback.time
   val showing = timeline.showing(time)
   val current = timeline.cues.getOrNull(maxOf(0, timeline.current(time)))
-  val sentenceNotes = current?.study()?.notes().orEmpty()
-  val exploredCue = showing.firstOrNull { it.study().id() == explored?.cueId }
+  val sentenceNotes = current?.line()?.notes().orEmpty()
+  val exploredCue = showing.firstOrNull { it.line().id() == explored?.cueId }
 
   Box(Modifier.fillMaxSize().background(Color.Black)) {
     ContentFrame(player = playback.player, modifier = Modifier.fillMaxSize())
@@ -233,7 +233,7 @@ fun WatchScreen(
       horizontalAlignment = Alignment.CenterHorizontally,
       verticalArrangement = Arrangement.spacedBy(6.dp),
     ) {
-      val exploredAlignment = exploredCue?.let { readyAlignment(it.study()) }
+      val exploredAlignment = exploredCue?.let { readyAlignment(it.line()) }
       if (exploredAlignment != null) {
         val phrase = explored!!.phrase
         Panel {
@@ -256,7 +256,7 @@ fun WatchScreen(
           sentenceNotes.forEach { LearnerNote("• $it", panelStyle) }
         }
       } else if (help == Help.TRANSLATION) {
-        val translation = showing.mapNotNull { it.study().translation().orEmpty().ifBlank { null } }
+        val translation = showing.mapNotNull { it.line().translation().orEmpty().ifBlank { null } }
         if (translation.isNotEmpty())
           Text(
             translation.joinToString("\n"),
@@ -268,24 +268,24 @@ fun WatchScreen(
           )
       }
       if (subtitles) for (cue in showing) {
-        val study = cue.study()
-        val alignment = readyAlignment(study)
+        val line = cue.line()
+        val alignment = readyAlignment(line)
         if (alignment != null)
           PhraseLine(
             alignment,
-            active = explored?.takeIf { it.cueId == study.id() }?.phrase,
+            active = explored?.takeIf { it.cueId == line.id() }?.phrase,
             style = subtitleStyle,
             look = SubtitleLook,
             centred = true,
             onTap = { index ->
               playback.pause()
               explored =
-                Explored(study.id(), index).takeUnless { it == explored }
+                Explored(line.id(), index).takeUnless { it == explored }
             },
           )
         else
           Text(
-            study.source(),
+            line.source(),
             style = subtitleStyle,
             textAlign = TextAlign.Center,
             modifier =

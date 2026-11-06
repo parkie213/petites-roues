@@ -8,14 +8,12 @@ export const alignmentColors = [
   "#91cbd2",
 ];
 
-// An annotation is usable only while its complete source and translation still match.
-// Span indices refer to phrases, not words: idioms and split expressions stay together.
+// An annotation is usable only while its chunks still spell out the line's complete source and
+// translation. Span indices refer to phrases, not words: idioms and split expressions stay together.
 export function validAlignment(cue, candidate) {
   if (
     !cue ||
     !candidate ||
-    candidate.sourceText !== cue.source ||
-    candidate.translationText !== cue.translation ||
     !Array.isArray(candidate.source) ||
     !Array.isArray(candidate.translation) ||
     !Array.isArray(candidate.links) ||
@@ -62,21 +60,19 @@ export function validAlignment(cue, candidate) {
   return candidate;
 }
 
+/**
+ * "ready" when the line has a usable phrase breakdown, else "missing": never made, or cleared by
+ * an edit of its wording. The server only serves valid breakdowns; the check guards the display.
+ */
 export function alignmentState(cue) {
-  if (cue?.alignmentStale) return "stale";
-  if (!cue?.alignment) return "missing";
-  return validAlignment(cue, cue.alignment) ? "ready" : "stale";
+  return cue?.alignment && validAlignment(cue, cue.alignment)
+    ? "ready"
+    : "missing";
 }
 
-// A notes review may be complete while phrase regeneration is still outstanding.
-export function pendingReviewCount(changes, cues) {
-  const pending = changes.filter((change) => !change.reviewedAt);
-  const queued = new Set(pending.flatMap((change) => change.cueIds));
-  return (
-    pending.length +
-    cues.filter((cue) => alignmentState(cue) === "stale" && !queued.has(cue.id))
-      .length
-  );
+/** Player and reader edits still waiting for the reviewing agent. */
+export function pendingReviewCount(changes) {
+  return changes.filter((change) => !change.reviewedAt).length;
 }
 
 // Shared links may map several source phrases onto the same translated words.

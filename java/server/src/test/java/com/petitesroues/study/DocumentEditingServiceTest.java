@@ -10,8 +10,8 @@ import static org.mockito.Mockito.*;
 import com.petitesroues.documents.StudyDocumentCodec;
 import com.petitesroues.documents.StudyDocumentReader;
 import com.petitesroues.library.persistence.CatalogueStore;
+import com.petitesroues.model.document.Line;
 import com.petitesroues.model.document.PhraseAlignment;
-import com.petitesroues.model.document.StudyCue;
 import com.petitesroues.model.document.StudyDocument;
 import com.petitesroues.model.document.VideoCue;
 import com.petitesroues.model.editing.MergeCues;
@@ -83,14 +83,14 @@ class DocumentEditingServiceTest {
   @Test
   void editsAreQueuedAndNeverWriteTheFile() throws Exception {
     byte[] original = Files.readAllBytes(entry.documentFile());
-    var cue = readVideo().video().cues().get(0).withStudy(s -> s.withSource("Bonsoir !"));
+    var cue = readVideo().video().cues().get(0).withLine(s -> s.withSource("Bonsoir !"));
     editing.editCue(entry.id(), "stable-cue", edit(cue));
     editing.saveCueTiming(entry.id(), List.of(new UpdateCueTiming("stable-cue", .2, .8)));
     editing.suggestCorrection(entry.id(), "stable-cue", "Bonne soirée ?");
 
     assertArrayEquals(original, Files.readAllBytes(entry.documentFile()));
     var saved = readVideo().video().cues().get(0);
-    assertEquals("Bonsoir !", saved.study().source());
+    assertEquals("Bonsoir !", saved.line().source());
     assertEquals(.2, saved.start());
     assertTrue(saved.listeningCheck().contains("Bonne soirée ?"));
     assertEquals(
@@ -100,7 +100,7 @@ class DocumentEditingServiceTest {
 
   @Test
   void overlappingTimingEditsAreQueuedAsTimingEdits() throws Exception {
-    write(withCue(readVideo(), new VideoCue(StudyCue.of("second", "Bonsoir"), 2.0, 3.0, null)));
+    write(withCue(readVideo(), new VideoCue(Line.of("second", "Bonsoir"), 2.0, 3.0, null)));
     editing.saveCueTiming(entry.id(), List.of(new UpdateCueTiming("stable-cue", 0.0, 2.5)));
     assertEquals(2.5, readVideo().video().cues().getFirst().end());
     assertEquals("timing", history().getFirst().kind());
@@ -110,16 +110,16 @@ class DocumentEditingServiceTest {
   @Test
   void suggestedHearingPreservesDialogueAndQueuesReview() throws Exception {
     var original = readVideo().video().cues().getFirst();
-    var result = editing.suggestCorrection(entry.id(), original.study().id(), "Might be Où est…");
+    var result = editing.suggestCorrection(entry.id(), original.line().id(), "Might be Où est…");
     var saved = result.video().cues().get(0);
-    assertEquals(original.study().source(), saved.study().source());
+    assertEquals(original.line().source(), saved.line().source());
     assertEquals(original.start(), saved.start());
     assertEquals(original.end(), saved.end());
-    assertEquals(original.study().translation(), saved.study().translation());
-    assertEquals(original.study().alignment(), saved.study().alignment());
+    assertEquals(original.line().translation(), saved.line().translation());
+    assertEquals(original.line().alignment(), saved.line().alignment());
     assertTrue(saved.listeningCheck().contains("Might be Où est…"));
     assertEquals("suggestion", history().getFirst().kind());
-    assertEquals(List.of(saved.study().id()), history().getFirst().cueIds());
+    assertEquals(List.of(saved.line().id()), history().getFirst().cueIds());
     assertEquals("Might be Où est…", history().getFirst().suggestion());
     assertEquals(1, history().size());
   }
@@ -133,10 +133,8 @@ class DocumentEditingServiceTest {
 
   private PhraseAlignment alignment(VideoCue cue) {
     return newAlignment(
-        cue.study().source(),
-        cue.study().translation(),
-        List.of(cue.study().source()),
-        List.of(cue.study().translation()),
+        List.of(cue.line().source()),
+        List.of(cue.line().translation()),
         List.of(newLink(List.of(0), List.of(0), "A complete greeting.")));
   }
 
@@ -144,42 +142,37 @@ class DocumentEditingServiceTest {
     write(
         readVideo()
             .withVideo(
-                v -> v.withCue(0, cue -> cue.withStudy(s -> s.withAlignment(alignment(cue))))));
+                v -> v.withCue(0, cue -> cue.withLine(s -> s.withAlignment(alignment(cue))))));
     return readVideo().video().cues().getFirst();
   }
 
   @Test
   void directFileAlignmentIsLoadedAndSurvivesTimingUpdates() throws Exception {
     VideoCue cue = installAlignment();
-    assertNotNull(cue.study().alignment());
-    assertFalse(cue.study().alignmentStale());
+    assertNotNull(cue.line().alignment());
     assertTrue(history().isEmpty());
-    var originalAlignment = cue.study().alignment();
-    editing.saveCueTiming(entry.id(), List.of(new UpdateCueTiming(cue.study().id(), .2, 1.0)));
-    assertEquals(originalAlignment, readVideo().video().cues().getFirst().study().alignment());
-    assertFalse(readVideo().video().cues().getFirst().study().alignmentStale());
+    var originalAlignment = cue.line().alignment();
+    editing.saveCueTiming(entry.id(), List.of(new UpdateCueTiming(cue.line().id(), .2, 1.0)));
+    assertEquals(originalAlignment, readVideo().video().cues().getFirst().line().alignment());
   }
 
   @Test
   void textAndEnglishEditsInvalidateLinksAndQueueTheCueId() throws Exception {
-    var cue = installAlignment().withStudy(s -> s.withTranslation("Hi!"));
-    var edited = editing.editCue(entry.id(), cue.study().id(), edit(cue)).video().cues().getFirst();
-    assertFalse(edited.study().alignment() != null);
-    assertTrue(edited.study().alignmentStale());
-    assertEquals(List.of(cue.study().id()), history().getFirst().cueIds());
+    var cue = installAlignment().withLine(s -> s.withTranslation("Hi!"));
+    var edited = editing.editCue(entry.id(), cue.line().id(), edit(cue)).video().cues().getFirst();
+    assertFalse(edited.line().alignment() != null);
+    assertEquals(List.of(cue.line().id()), history().getFirst().cueIds());
     assertEquals("edit", history().getFirst().kind());
-    var resaid = edited.withStudy(s -> s.withSource("Salut !"));
-    editing.editCue(entry.id(), resaid.study().id(), edit(resaid));
+    var resaid = edited.withLine(s -> s.withSource("Salut !"));
+    editing.editCue(entry.id(), resaid.line().id(), edit(resaid));
   }
 
   @Test
   void splitAndMergeInvalidateAllResultingLinksAndPreserveChecks() throws Exception {
     var cue = installAlignment().withListeningCheck("Audio still uncertain");
-    editing.editCue(entry.id(), cue.study().id(), edit(cue));
-    var split = editing.splitCue(entry.id(), cue.study().id(), new SplitCue(.5, "Bonjour", "!"));
-    assertTrue(
-        split.video().cues().stream()
-            .allMatch(c -> c.study().alignmentStale() && c.study().alignment() == null));
+    editing.editCue(entry.id(), cue.line().id(), edit(cue));
+    var split = editing.splitCue(entry.id(), cue.line().id(), new SplitCue(.5, "Bonjour", "!"));
+    assertTrue(split.video().cues().stream().allMatch(c -> c.line().alignment() == null));
     assertTrue(
         split.video().cues().stream()
             .allMatch(c -> "Audio still uncertain".equals(c.listeningCheck())));
@@ -187,15 +180,14 @@ class DocumentEditingServiceTest {
         editing
             .mergeCues(
                 entry.id(),
-                new MergeCues(split.video().cues().stream().map(c -> c.study().id()).toList()))
+                new MergeCues(split.video().cues().stream().map(c -> c.line().id()).toList()))
             .video()
             .cues()
             .getFirst();
-    assertTrue(merged.study().alignmentStale());
-    assertFalse(merged.study().alignment() != null);
+    assertFalse(merged.line().alignment() != null);
     assertEquals("Audio still uncertain", merged.listeningCheck());
     assertEquals(
-        split.video().cues().stream().map(c -> c.study().id()).toList(),
+        split.video().cues().stream().map(c -> c.line().id()).toList(),
         history().stream()
             .filter(e -> "split".equals(e.kind()))
             .findFirst()
@@ -206,9 +198,9 @@ class DocumentEditingServiceTest {
   @Test
   void deletionQueuesOnlyTheRemovedCueId() throws Exception {
     var cue = installAlignment();
-    editing.deleteCue(entry.id(), cue.study().id());
+    editing.deleteCue(entry.id(), cue.line().id());
     var deletion = history().getFirst();
-    assertEquals(List.of(cue.study().id()), deletion.cueIds());
+    assertEquals(List.of(cue.line().id()), deletion.cueIds());
     assertEquals("delete", deletion.kind());
     assertTrue(readVideo().video().cues().isEmpty());
     assertNull(deletion.suggestion());
@@ -220,17 +212,17 @@ class DocumentEditingServiceTest {
     var first = split.video().cues().get(0);
     var second = split.video().cues().get(1);
 
-    editing.mergeCues(entry.id(), new MergeCues(List.of(second.study().id(), first.study().id())));
+    editing.mergeCues(entry.id(), new MergeCues(List.of(second.line().id(), first.line().id())));
 
     var saved = readVideo().video().cues();
     assertEquals(1, saved.size());
-    assertEquals(first.study().id(), saved.getFirst().study().id());
-    assertEquals("Bonjour George !", saved.getFirst().study().source());
+    assertEquals(first.line().id(), saved.getFirst().line().id());
+    assertEquals("Bonjour George !", saved.getFirst().line().source());
     assertEquals(.1, saved.getFirst().start());
     assertEquals(.9, saved.getFirst().end());
     var event = history().getLast();
     assertEquals("merge", event.kind());
-    assertEquals(List.of(first.study().id(), second.study().id()), event.cueIds());
+    assertEquals(List.of(first.line().id(), second.line().id()), event.cueIds());
   }
 
   @Test
@@ -246,8 +238,8 @@ class DocumentEditingServiceTest {
                 entry.id(),
                 new MergeCues(
                     List.of(
-                        split.video().cues().getFirst().study().id(),
-                        current.video().cues().get(2).study().id()))));
+                        split.video().cues().getFirst().line().id(),
+                        current.video().cues().get(2).line().id()))));
 
     assertEquals(3, readVideo().video().cues().size());
     assertEquals(2, history().size());
@@ -256,11 +248,10 @@ class DocumentEditingServiceTest {
   @Test
   void failedQueueAppendLeavesTheServedDocumentUnchanged() throws Exception {
     doThrow(new IllegalStateException("Disk full")).when(log).append(any(), any());
-    VideoCue cue = readVideo().video().cues().getFirst().withStudy(s -> s.withSource("Bonsoir"));
+    VideoCue cue = readVideo().video().cues().getFirst().withLine(s -> s.withSource("Bonsoir"));
     assertThrows(
-        IllegalStateException.class,
-        () -> editing.editCue(entry.id(), cue.study().id(), edit(cue)));
-    assertEquals("Bonjour !", readVideo().video().cues().getFirst().study().source());
+        IllegalStateException.class, () -> editing.editCue(entry.id(), cue.line().id(), edit(cue)));
+    assertEquals("Bonjour !", readVideo().video().cues().getFirst().line().source());
     assertTrue(history().isEmpty());
   }
 
@@ -281,7 +272,7 @@ class DocumentEditingServiceTest {
     assertEquals(.5, split.video().cues().get(1).start());
     assertEquals(1, split.video().cues().get(1).end());
     assertEquals(
-        split.video().cues().stream().map(c -> c.study().id()).toList(),
+        split.video().cues().stream().map(c -> c.line().id()).toList(),
         history().getFirst().cueIds());
     assertEquals(split, readVideo());
   }
@@ -294,11 +285,11 @@ class DocumentEditingServiceTest {
             .video()
             .cues()
             .getFirst()
-            .withStudy(s -> s.withNotes(List.of("Updated teaching point")));
+            .withLine(s -> s.withNotes(List.of("Updated teaching point")));
 
-    editing.editCue(entry.id(), cue.study().id(), edit(cue));
+    editing.editCue(entry.id(), cue.line().id(), edit(cue));
 
-    var saved = readVideo().video().cues().getFirst().study();
+    var saved = readVideo().video().cues().getFirst().line();
     assertEquals(List.of("Updated teaching point"), saved.notes());
     assertTrue(saved.alignment() != null);
     assertEquals("edit", history().getFirst().kind());
@@ -307,7 +298,7 @@ class DocumentEditingServiceTest {
   @Test
   void unchangedEditsAreNotQueued() throws Exception {
     var cue = readVideo().video().cues().getFirst();
-    editing.editCue(entry.id(), cue.study().id(), edit(cue));
+    editing.editCue(entry.id(), cue.line().id(), edit(cue));
     editing.saveCueTiming(
         entry.id(), List.of(new UpdateCueTiming("stable-cue", cue.start(), cue.end())));
     assertTrue(history().isEmpty());
@@ -315,10 +306,10 @@ class DocumentEditingServiceTest {
 
   @Test
   void timingEditsKeepCuesInChronologicalOrder() throws Exception {
-    write(withCue(readVideo(), new VideoCue(StudyCue.of("second-cue", "Salut"), 2.0, 3.0, null)));
+    write(withCue(readVideo(), new VideoCue(Line.of("second-cue", "Salut"), 2.0, 3.0, null)));
     editing.saveCueTiming(entry.id(), List.of(new UpdateCueTiming("stable-cue", 4.0, 5.0)));
 
-    assertEquals("second-cue", readVideo().video().cues().getFirst().study().id());
+    assertEquals("second-cue", readVideo().video().cues().getFirst().line().id());
     assertEquals(4.0, readVideo().video().cues().getLast().start());
   }
 
@@ -328,14 +319,14 @@ class DocumentEditingServiceTest {
 
     var cues = readVideo().video().cues();
     assertEquals(2, cues.size());
-    assertEquals("stable-cue", cues.getFirst().study().id());
-    assertNotEquals("stable-cue", cues.get(1).study().id());
-    assertEquals("Hello!", cues.getFirst().study().translation());
-    assertFalse(cues.get(1).study().translation() != null);
-    assertTrue(cues.get(1).study().notes().isEmpty());
+    assertEquals("stable-cue", cues.getFirst().line().id());
+    assertNotEquals("stable-cue", cues.get(1).line().id());
+    assertEquals("Hello!", cues.getFirst().line().translation());
+    assertFalse(cues.get(1).line().translation() != null);
+    assertTrue(cues.get(1).line().notes().isEmpty());
     var event = history().getFirst();
     assertEquals("split", event.kind());
-    assertEquals(cues.stream().map(c -> c.study().id()).toList(), event.cueIds());
+    assertEquals(cues.stream().map(c -> c.line().id()).toList(), event.cueIds());
   }
 
   @Test
@@ -347,10 +338,10 @@ class DocumentEditingServiceTest {
     var added = readVideo().video().cues().get(1);
     assertEquals(returned, added);
     assertEquals(added, readVideo().video().cues().get(1));
-    assertNotEquals("stable-cue", added.study().id());
+    assertNotEquals("stable-cue", added.line().id());
     var event = history().getFirst();
     assertEquals("add", event.kind());
-    assertEquals(List.of(added.study().id()), event.cueIds());
+    assertEquals(List.of(added.line().id()), event.cueIds());
   }
 
   @Test
@@ -359,9 +350,9 @@ class DocumentEditingServiceTest {
         document(entry.id())
             .withVideo(v -> v.withCue(0, c -> c.withListeningCheck("Check the greeting."))));
     VideoCue correction =
-        readVideo().video().cues().getFirst().withStudy(s -> s.withSource("Bonsoir !"));
+        readVideo().video().cues().getFirst().withLine(s -> s.withSource("Bonsoir !"));
 
-    editing.editCue(entry.id(), correction.study().id(), edit(correction));
+    editing.editCue(entry.id(), correction.line().id(), edit(correction));
 
     assertEquals("Check the greeting.", readVideo().video().cues().getFirst().listeningCheck());
   }
@@ -381,7 +372,7 @@ class DocumentEditingServiceTest {
 
   @Test
   void batchEditsStopReplayingOnceTheAgentWritesTheFile() throws Exception {
-    var cue = readVideo().video().cues().get(0).withStudy(s -> s.withSource("Bonsoir !"));
+    var cue = readVideo().video().cues().get(0).withLine(s -> s.withSource("Bonsoir !"));
     editing.editCue(entry.id(), "stable-cue", edit(cue));
     var batch = served.claim(entry.id(), 50).orElseThrow();
     assertEquals(1, batch.changes().size());
@@ -391,10 +382,10 @@ class DocumentEditingServiceTest {
         batch
             .document()
             .withVideo(
-                v -> v.withCue(0, c -> c.withStudy(st -> st.withTranslation("Good evening!"))));
+                v -> v.withCue(0, c -> c.withLine(st -> st.withTranslation("Good evening!"))));
     write(agent);
 
-    var saved = readVideo().video().cues().get(0).study();
+    var saved = readVideo().video().cues().get(0).line();
     assertEquals("Bonsoir !", saved.source());
     assertEquals("Good evening!", saved.translation());
     assertEquals("written", history().getFirst().state());
@@ -456,10 +447,10 @@ class DocumentEditingServiceTest {
     editing.deleteCue(entry.id(), "stable-cue");
     write(
         document(entry.id())
-            .withVideo(v -> v.withCue(0, c -> c.withStudy(s -> s.withId("renamed")))));
+            .withVideo(v -> v.withCue(0, c -> c.withLine(s -> s.withId("renamed")))));
 
     assertEquals("conflict", history().getFirst().state());
-    assertEquals("renamed", readVideo().video().cues().get(0).study().id());
+    assertEquals("renamed", readVideo().video().cues().get(0).line().id());
   }
 
   @Test
