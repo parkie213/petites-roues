@@ -9,6 +9,8 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Chat
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.automirrored.filled.VolumeUp
 import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material3.HorizontalDivider
@@ -87,6 +89,26 @@ fun BubbleCard(cue: StudyCue, readAloud: ReadAloud, onAsk: (Int?) -> Unit, modif
           modifier = Modifier.size(20.dp),
         )
       }
+    }
+  }
+}
+
+/**
+ * The header of a text block's card: which of [count] sentences is shown ([index], from 0), with
+ * previous and next handing [onStep] the sentence to show.
+ */
+@Composable
+fun SentenceSteps(index: Int, count: Int, onStep: (Int) -> Unit) {
+  Row(
+    Modifier.padding(start = 14.dp, end = 4.dp, top = 4.dp),
+    verticalAlignment = Alignment.CenterVertically,
+  ) {
+    Text("Sentence ${index + 1} of $count", fontSize = 13.sp, modifier = Modifier.weight(1f))
+    IconButton(onClick = { onStep(index - 1) }, enabled = index > 0, modifier = Modifier.size(40.dp)) {
+      Icon(Icons.AutoMirrored.Filled.KeyboardArrowLeft, contentDescription = "Previous sentence")
+    }
+    IconButton(onClick = { onStep(index + 1) }, enabled = index < count - 1, modifier = Modifier.size(40.dp)) {
+      Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = "Next sentence")
     }
   }
 }

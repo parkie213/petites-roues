@@ -175,27 +175,33 @@ public sealed interface DocumentEdit {
     }
   }
 
-  record EditComicText(String cueId, ComicTextEdit edit) implements DocumentEdit {
+  /** Replaces the source text of the comic study {@code studyId}, in whichever box holds it. */
+  record EditComicText(String studyId, ComicTextEdit edit) implements DocumentEdit {
     public String kind() {
       return "edit";
     }
 
     public List<String> cueIds() {
-      return List.of(cueId);
+      return List.of(studyId);
     }
   }
 
-  /** {@code cueId} is the server-assigned identity of the new bubble. */
-  record CreateComicCue(String cueId, ComicCueCreate create) implements DocumentEdit {
+  /**
+   * Adds a box. {@code cueId} and {@code studyId} are the server-assigned identities of the new box
+   * and of the one study it starts with.
+   */
+  record CreateComicCue(String cueId, String studyId, ComicCueCreate create)
+      implements DocumentEdit {
     public String kind() {
       return "annotate";
     }
 
     public List<String> cueIds() {
-      return List.of(cueId);
+      return List.of(cueId, studyId);
     }
   }
 
+  /** Moves or reorders the box {@code cueId}, with all its studies. */
   record PlaceComicCue(String cueId, ComicCueUpdate update) implements DocumentEdit {
     public String kind() {
       return "annotate";
@@ -206,6 +212,7 @@ public sealed interface DocumentEdit {
     }
   }
 
+  /** Removes the box {@code cueId} and all its studies. */
   record DeleteComicCue(String cueId) implements DocumentEdit {
     public String kind() {
       return "annotate";

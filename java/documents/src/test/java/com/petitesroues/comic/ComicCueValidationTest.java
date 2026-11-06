@@ -45,10 +45,9 @@ class ComicCueValidationTest {
   @Test
   void validatesPageReferencesReadingOrderAndNormalizedGeometry() {
     var cue =
-        new ComicCue(
-            StudyCue.of("bubble", "Salut !"), "page", 1, List.of(newRegion(.1, .2, .3, .4)));
+        newBubble(StudyCue.of("bubble", "Salut !"), "page", 1, List.of(newRegion(.1, .2, .3, .4)));
     valid(comic(cue));
-    invalid(comic(new ComicCue(cue.study(), "missing", 1, cue.regions())));
+    invalid(comic(newBubble(cue.studies().getFirst(), "missing", 1, cue.regions())));
     invalid(comic(cue.withOrder(0)));
     for (var region :
         List.of(
@@ -60,25 +59,48 @@ class ComicCueValidationTest {
       invalid(comic(cue.withRegions(List.of(region))));
 
     cue = cue.withRegions(List.of(newRegion(0, 0, 1, 1)));
-    var other = new ComicCue(StudyCue.of("other", "Oui"), "page", 1, cue.regions());
+    var other = newBubble(StudyCue.of("other", "Oui"), "page", 1, cue.regions());
     invalid(comic(cue, other));
     other = other.withOrder(2);
     valid(comic(cue, other));
-    valid(comic(cue, other.withStudy(other.study().withSource(""))));
-    invalid(comic(cue, other.withStudy(other.study().withId(cue.study().id()))));
+    valid(comic(cue, other.withStudy("other", s -> s.withSource(""))));
+    invalid(comic(cue, other.withStudy("other", s -> s.withId("bubble"))));
   }
 
   @Test
-  void textBlockSentencesShareRegionsAndContiguousOrders() {
+  void aBoxHasItsOwnUniqueIdAndOneOrMoreUniquelyIdentifiedStudies() {
     var box = List.of(newRegion(.1, .6, .8, .3));
-    var first = new ComicCue(StudyCue.of("s1", "Une phrase."), "page", 1, box, "intro");
-    var second = new ComicCue(StudyCue.of("s2", "Une autre."), "page", 2, box, "intro");
-    var label = new ComicCue(StudyCue.of("label", "Introduction"), "page", 3, box);
-    valid(comic(first, second, label));
-    invalid(comic(first, second.withOrder(3), label.withOrder(2)));
-    invalid(comic(first, second.withRegions(List.of(newRegion(.1, .6, .8, .2)))));
-    invalid(comic(first.withBlock("in tro"), second.withBlock("in tro")));
-    valid(comic(first, second.withBlock("other")));
+    var first = StudyCue.of("s1", "Une phrase.");
+    var second = StudyCue.of("s2", "Une autre.");
+    var block = new ComicCue("intro", "page", 1, box, List.of(first, second));
+    var label = newBubble(StudyCue.of("label", "Introduction"), "page", 2, box);
+    valid(comic(block, label));
+
+    invalid(comic(block.withStudies(List.of())));
+    invalid(comic(block.withStudies(List.of(first, first))));
+    invalid(comic(block.withStudies(List.of(first, second.withId(" ")))));
+    invalid(comic(block, newBubble(StudyCue.of("s2", "Encore"), "page", 2, box)));
+    invalid(comic(new ComicCue(" ", "page", 1, box, List.of(first))));
+    invalid(comic(block, new ComicCue("intro", "page", 2, box, List.of(StudyCue.of("x", "X")))));
+    // Box and study IDs are separate namespaces.
+    valid(comic(block, new ComicCue("s1", "page", 2, box, List.of(StudyCue.of("x", "X")))));
+  }
+
+  @Test
+  void aStudyIsReplacedInPlaceByItsOwnId() {
+    var block =
+        new ComicCue(
+            "intro",
+            "page",
+            1,
+            List.of(newRegion(.1, .6, .8, .3)),
+            List.of(StudyCue.of("s1", "Une phrase."), StudyCue.of("s2", "Une autre.")));
+    var changed = block.withStudy("s2", s -> s.withTranslation("Another."));
+    assertEquals("Another.", changed.studies().get(1).translation());
+    assertEquals(block.studies().get(0), changed.studies().get(0));
+    assertEquals("intro", changed.id());
+    assertTrue(changed.holds("s2"));
+    assertThrows(IllegalArgumentException.class, () -> block.withStudy("nope", s -> s));
   }
 
   @Test

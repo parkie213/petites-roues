@@ -79,7 +79,7 @@ object QuizPack {
     )
   }
 
-  /** The chapter brief: every bubble of chapter [index] of [comic], in reading order. */
+  /** The chapter brief: every bubble and text block sentence of chapter [index] of [comic], in reading order. */
   fun chapter(rules: String, document: StudyDocument, comic: ComicDocument, index: Int, type: Chosen? = null): String {
     val chapter = comic.chapters()[index]
     val pages = comic.pages()
@@ -91,7 +91,7 @@ object QuizPack {
       (first..last).flatMap { position ->
         val page = pages[position]
         val name = "Page ${page.label().orEmpty().ifBlank { "${position + 1}" }}"
-        byPage[page.id()].orEmpty().sortedBy { it.order() }.filter { it.study().source().isNotBlank() }.map { Item(it.study(), group = name) }
+        byPage[page.id()].orEmpty().sortedBy { it.order() }.flatMap { it.studies() }.filter { it.source().isNotBlank() }.map { Item(it, group = name) }
       }
     val name = Chapters.name(chapter)
     return brief(

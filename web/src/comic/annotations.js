@@ -6,26 +6,16 @@ export function pageCues(document, pageId) {
 }
 
 /**
- * Groups ordered page cues into what the page shows: one unit per ordinary bubble, and one per
- * text block holding its sentences in order. A unit's key is stable for hover and pinning; its
- * regions are the block's shared box.
+ * Every study in these boxes, in reading order. Selection, navigation and text editing work on
+ * studies; a box with more than one is a text block read a sentence at a time.
  */
-export function pageUnits(cues) {
-  const units = [];
-  for (const cue of cues) {
-    const last = units[units.length - 1];
-    if (cue.block && last?.block === cue.block && last.pageId === cue.pageId)
-      last.cues.push(cue);
-    else
-      units.push({
-        key: cue.block ? `block:${cue.pageId}:${cue.block}` : cue.id,
-        block: cue.block || null,
-        pageId: cue.pageId,
-        regions: cue.regions,
-        cues: [cue],
-      });
-  }
-  return units;
+export function boxStudies(cues) {
+  return cues.flatMap((cue) => cue.studies);
+}
+
+/** The box holding the study `studyId`. */
+export function boxOf(cues, studyId) {
+  return cues.find((cue) => cue.studies.some((study) => study.id === studyId));
 }
 
 /** Clamps a drawn or dragged region into valid normalized bounds with a minimum size. */

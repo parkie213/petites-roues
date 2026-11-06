@@ -4,7 +4,6 @@ import static com.petitesroues.support.SpecFixtures.*;
 import static org.junit.jupiter.api.Assertions.*;
 
 import com.petitesroues.documents.StudyDocumentCodec;
-import com.petitesroues.model.document.ComicCue;
 import com.petitesroues.model.document.ReadingDirection;
 import com.petitesroues.model.document.StudyCue;
 import com.petitesroues.model.document.StudyDocument;
@@ -24,7 +23,7 @@ class ComicCueIntegrationTest extends HttpIntegrationTest {
   @Test
   void editsOnlySelectedBubbleAndInvalidatesItsTeachingMaterial() throws Exception {
     var cue =
-        new ComicCue(
+        newBubble(
             StudyCue.of("bubble", "Salut !")
                 .withTranslation("Hi!")
                 .withNotes(List.of("A greeting."))
@@ -39,7 +38,7 @@ class ComicCueIntegrationTest extends HttpIntegrationTest {
             1,
             List.of(newRegion(.1, .2, .3, .4)));
     var other =
-        new ComicCue(
+        newBubble(
             StudyCue.of("other", "Merci !").withTranslation("Thanks!"),
             "page",
             2,
@@ -65,19 +64,19 @@ class ComicCueIntegrationTest extends HttpIntegrationTest {
     String api = "/api/titles/comic";
     var result =
         http.put()
-            .uri(api + "/comic/cues/bubble")
+            .uri(api + "/comic/studies/bubble")
             .body(Map.of("expectedSource", "Salut !", "source", "Bonjour !"))
             .retrieve()
             .body(StudyDocument.class);
     var edited = result.comic().cues().get(0);
-    assertEquals("Bonjour !", edited.study().source());
+    assertEquals("Bonjour !", edited.studies().getFirst().source());
     assertEquals(cue.regions(), edited.regions());
-    assertEquals(cue.study().id(), edited.study().id());
+    assertEquals(cue.studies().getFirst().id(), edited.studies().getFirst().id());
     assertEquals(cue.order(), edited.order());
-    assertFalse(edited.study().translation() != null);
-    assertTrue(edited.study().notes().isEmpty());
-    assertFalse(edited.study().alignment() != null);
-    assertTrue(edited.study().alignmentStale());
+    assertFalse(edited.studies().getFirst().translation() != null);
+    assertTrue(edited.studies().getFirst().notes().isEmpty());
+    assertFalse(edited.studies().getFirst().alignment() != null);
+    assertTrue(edited.studies().getFirst().alignmentStale());
     assertEquals(other, result.comic().cues().getLast());
     var json = mapper.readTree(new StudyDocumentCodec().encode(result));
     assertFalse(json.path("comic").path("cues").get(0).has("start"));
@@ -90,7 +89,8 @@ class ComicCueIntegrationTest extends HttpIntegrationTest {
             .comic()
             .cues()
             .getFirst()
-            .study()
+            .studies()
+            .getFirst()
             .source());
     var queue = http.get().uri(api + "/review-queue").retrieve().body(JsonNode.class);
     assertEquals(1, queue.size());
@@ -98,26 +98,26 @@ class ComicCueIntegrationTest extends HttpIntegrationTest {
     assertEquals(
         400,
         http.put()
-            .uri(api + "/comic/cues/bubble")
+            .uri(api + "/comic/studies/bubble")
             .body(Map.of("expectedSource", "Salut !", "source", "Stale edit"))
             .<Integer>exchange((req, res) -> res.getStatusCode().value())
             .intValue());
     assertEquals(
         404,
         http.put()
-            .uri(api + "/comic/cues/missing")
+            .uri(api + "/comic/studies/missing")
             .body(Map.of("expectedSource", "x", "source", "y"))
             .<Integer>exchange((req, res) -> res.getStatusCode().value())
             .intValue());
     assertEquals(
         400,
         http.put()
-            .uri(api + "/comic/cues/bubble")
+            .uri(api + "/comic/studies/bubble")
             .body(Map.of("expectedSource", "Bonjour !", "source", " "))
             .<Integer>exchange((req, res) -> res.getStatusCode().value())
             .intValue());
     http.put()
-        .uri(api + "/comic/cues/bubble")
+        .uri(api + "/comic/studies/bubble")
         .body(Map.of("expectedSource", "Bonjour !", "source", "Bonjour !"))
         .retrieve()
         .toBodilessEntity();

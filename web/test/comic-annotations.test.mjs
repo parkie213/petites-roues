@@ -3,7 +3,8 @@ import assert from "node:assert/strict";
 import {
   clampRegion,
   pageCues,
-  pageUnits,
+  boxOf,
+  boxStudies,
   pageLayout,
   regionFromDrag,
 } from "../src/comic/annotations.js";
@@ -65,22 +66,29 @@ test("drag rectangles are orientation-independent", () => {
   assert.deepEqual(down, { x: 0.2, y: 0.5, width: 0.3, height: 0.2 });
 });
 
-test("a text block's sentences form one unit with the block's box", () => {
+test("studies are listed in reading order and each finds its box", () => {
   const box = [{ x: 0.1, y: 0.6, width: 0.8, height: 0.3 }];
-  const cues = [
-    { id: "title", pageId: "p", order: 1, regions: [] },
-    { id: "s1", pageId: "p", order: 2, regions: box, block: "intro" },
-    { id: "s2", pageId: "p", order: 3, regions: box, block: "intro" },
-    { id: "s3", pageId: "q", order: 1, regions: box, block: "intro" },
-  ];
-  const units = pageUnits(cues);
-  assert.deepEqual(
-    units.map((u) => [u.key, u.cues.map((c) => c.id)]),
-    [
-      ["title", ["title"]],
-      ["block:p:intro", ["s1", "s2"]],
-      ["block:q:intro", ["s3"]],
-    ],
-  );
-  assert.equal(units[1].regions, box);
+  const title = { id: "t", source: "Introduction" };
+  const s1 = { id: "s1", source: "Une phrase." };
+  const s2 = { id: "s2", source: "Une autre." };
+  const label = {
+    id: "b1",
+    pageId: "p",
+    order: 1,
+    regions: [],
+    studies: [title],
+  };
+  const block = {
+    id: "b2",
+    pageId: "p",
+    order: 2,
+    regions: box,
+    studies: [s1, s2],
+  };
+  const cues = [label, block];
+  assert.deepEqual(boxStudies(cues), [title, s1, s2]);
+  assert.equal(boxOf(cues, "s2"), block);
+  assert.equal(boxOf(cues, "t"), label);
+  // Box ids are not study ids.
+  assert.equal(boxOf(cues, "b2"), undefined);
 });

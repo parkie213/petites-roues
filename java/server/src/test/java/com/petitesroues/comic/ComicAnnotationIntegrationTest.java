@@ -15,6 +15,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
 import org.springframework.web.client.RestClientResponseException;
@@ -27,7 +28,7 @@ import tools.jackson.databind.JsonNode;
 class ComicAnnotationIntegrationTest extends HttpIntegrationTest {
   private String register(ComicCue... others) throws Exception {
     var existing =
-        new ComicCue(
+        newBubble(
             StudyCue.of("page-001-bubble-01", "Salut !"),
             "page-001",
             1,
@@ -66,10 +67,14 @@ class ComicAnnotationIntegrationTest extends HttpIntegrationTest {
             .retrieve()
             .body(StudyDocument.class);
     var created = result.comic().cues().getLast();
-    assertEquals("page-002-bubble-01", created.study().id());
+    var study = created.studies().getFirst();
+    // Box and study get their own fresh UUIDs.
+    assertDoesNotThrow(() -> UUID.fromString(created.id()));
+    assertDoesNotThrow(() -> UUID.fromString(study.id()));
+    assertNotEquals(created.id(), study.id());
     assertEquals("page-002", created.pageId());
     assertEquals(1, created.order());
-    assertEquals("MERCI.", created.study().source());
+    assertEquals("MERCI.", study.source());
     var queued = http.get().uri(api + "/review-queue").retrieve().body(JsonNode.class);
     assertTrue(queued.toString().contains("annotate"));
   }
@@ -89,19 +94,19 @@ class ComicAnnotationIntegrationTest extends HttpIntegrationTest {
             .retrieve()
             .body(StudyDocument.class);
     var box = result.comic().cues().get(1);
-    assertEquals("", box.study().source());
+    assertEquals("", box.studies().getFirst().source());
     var loaded = http.get().uri(api).retrieve().body(StudyDocument.class);
     assertEquals(box, loaded.comic().cues().get(1));
     var queued = http.get().uri(api + "/review-queue").retrieve().body(JsonNode.class);
-    assertTrue(queued.toString().contains(box.study().id()));
+    assertTrue(queued.toString().contains(box.studies().getFirst().id()));
     var transcribed =
         http.put()
-            .uri(api + "/comic/cues/" + box.study().id())
+            .uri(api + "/comic/studies/" + box.studies().getFirst().id())
             .body(Map.of("expectedSource", "", "source", "BONJOUR !"))
             .retrieve()
             .body(StudyDocument.class);
     var cue = transcribed.comic().cues().get(1);
-    assertEquals("BONJOUR !", cue.study().source());
+    assertEquals("BONJOUR !", cue.studies().getFirst().source());
     assertEquals(box.regions(), cue.regions());
   }
 
@@ -143,7 +148,7 @@ class ComicAnnotationIntegrationTest extends HttpIntegrationTest {
     String api = register();
     var moved =
         http.put()
-            .uri(api + "/comic/cues/page-001-bubble-01/placement")
+            .uri(api + "/comic/cues/box-page-001-bubble-01/placement")
             .body(
                 Map.of(
                     "expectedRegions", List.of(Map.of("x", .1, "y", .2, "width", .3, "height", .4)),
@@ -151,14 +156,14 @@ class ComicAnnotationIntegrationTest extends HttpIntegrationTest {
             .retrieve()
             .body(StudyDocument.class);
     assertEquals(.15, moved.comic().cues().get(0).regions().get(0).x());
-    assertEquals("Salut !", moved.comic().cues().get(0).study().source());
+    assertEquals("Salut !", moved.comic().cues().get(0).studies().getFirst().source());
     assertEquals(1, moved.comic().cues().get(0).order());
     var stale =
         assertThrows(
             RestClientResponseException.class,
             () ->
                 http.put()
-                    .uri(api + "/comic/cues/page-001-bubble-01/placement")
+                    .uri(api + "/comic/cues/box-page-001-bubble-01/placement")
                     .body(
                         Map.of(
                             "expectedRegions",
@@ -175,7 +180,7 @@ class ComicAnnotationIntegrationTest extends HttpIntegrationTest {
     String api = register();
     var result =
         http.delete()
-            .uri(api + "/comic/cues/page-001-bubble-01")
+            .uri(api + "/comic/cues/box-page-001-bubble-01")
             .retrieve()
             .body(StudyDocument.class);
     assertEquals(0, result.comic().cues().size());
@@ -185,31 +190,50 @@ class ComicAnnotationIntegrationTest extends HttpIntegrationTest {
   }
 
   @Test
-  void keepsTextBlockBoxesInPlace() throws Exception {
+  void editsOneStudyOfATextBlockAndMovesOrDeletesItsBoxWhole() throws Exception {
     var box = List.of(newRegion(.1, .6, .8, .3));
     String api =
         register(
-            new ComicCue(StudyCue.of("intro-1", "Une phrase."), "page-002", 1, box, "intro"),
-            new ComicCue(StudyCue.of("intro-2", "Une autre."), "page-002", 2, box, "intro"));
-    var move =
+            new ComicCue(
+                "intro",
+                "page-002",
+                1,
+                box,
+                List.of(
+                    StudyCue.of("intro-1", "Une phrase."), StudyCue.of("intro-2", "Une autre."))));
+    var edited =
+        http.put()
+            .uri(api + "/comic/studies/intro-2")
+            .body(Map.of("expectedSource", "Une autre.", "source", "Une seconde."))
+            .retrieve()
+            .body(StudyDocument.class);
+    var block = edited.comic().cues().get(1);
+    assertEquals(
+        List.of("Une phrase.", "Une seconde."),
+        block.studies().stream().map(StudyCue::source).toList());
+
+    var moved =
+        http.put()
+            .uri(api + "/comic/cues/intro/placement")
+            .body(
+                Map.of(
+                    "expectedRegions", List.of(Map.of("x", .1, "y", .6, "width", .8, "height", .3)),
+                    "regions", List.of(Map.of("x", .2, "y", .6, "width", .7, "height", .3))))
+            .retrieve()
+            .body(StudyDocument.class);
+    block = moved.comic().cues().get(1);
+    assertEquals(.2, block.regions().get(0).x());
+    assertEquals(2, block.studies().size());
+
+    // A study ID is not a box ID: box routes reject it.
+    var byStudy =
         assertThrows(
             RestClientResponseException.class,
-            () ->
-                http.put()
-                    .uri(api + "/comic/cues/intro-1/placement")
-                    .body(
-                        Map.of(
-                            "expectedRegions",
-                                List.of(Map.of("x", .1, "y", .6, "width", .8, "height", .3)),
-                            "regions",
-                                List.of(Map.of("x", .2, "y", .6, "width", .7, "height", .3))))
-                    .retrieve()
-                    .toBodilessEntity());
-    assertEquals(BAD_REQUEST.value(), move.getStatusCode().value());
-    var delete =
-        assertThrows(
-            RestClientResponseException.class,
-            () -> http.delete().uri(api + "/comic/cues/intro-2").retrieve().toBodilessEntity());
-    assertEquals(BAD_REQUEST.value(), delete.getStatusCode().value());
+            () -> http.delete().uri(api + "/comic/cues/intro-1").retrieve().toBodilessEntity());
+    assertEquals(NOT_FOUND.value(), byStudy.getStatusCode().value());
+    var deleted = http.delete().uri(api + "/comic/cues/intro").retrieve().body(StudyDocument.class);
+    assertEquals(
+        List.of("box-page-001-bubble-01"),
+        deleted.comic().cues().stream().map(ComicCue::id).toList());
   }
 }

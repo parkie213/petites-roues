@@ -35,10 +35,29 @@ export function playerDocument(document) {
     type: comic ? "comic" : "video",
     readingDirection:
       body.readingDirection === "READING_DIRECTION_RTL" ? "rtl" : "ltr",
-    cues: (body.cues || []).map(({ study, ...placement }) => ({
-      ...placement,
+    cues: (body.cues || []).map((cue) =>
+      comic ? comicBox(cue) : videoCue(cue),
+    ),
+  };
+}
+
+/** A video cue in the flat view: its study's fields beside its timing. */
+function videoCue({ study, ...timing }) {
+  return { ...timing, ...study, source: study?.source || "" };
+}
+
+/**
+ * A comic box in the flat view keeps its own `id` and placement; its studies are flat too, and
+ * each knows its page and its box's `boxId`, so a selected study can find its box.
+ */
+function comicBox({ studies, ...box }) {
+  return {
+    ...box,
+    studies: (studies || []).map((study) => ({
       ...study,
-      source: study?.source || "",
+      source: study.source || "",
+      pageId: box.pageId,
+      boxId: box.id,
     })),
   };
 }

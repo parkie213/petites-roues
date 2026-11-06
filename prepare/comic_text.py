@@ -16,6 +16,7 @@ the document's chapters are left alone; existing chapters are never replaced.
 """
 import argparse
 import base64
+import uuid
 import zipfile
 from pathlib import Path
 
@@ -42,11 +43,12 @@ def to_cue(page_id, n, region):
     left, top, right, bottom = (min(max(v / 1000, 0.0), 1.0) for v in region["box"])
     if right <= left or bottom <= top:
         raise ValueError("empty box")
-    study = {"id": f"{page_id}-{n:02}", "source": region.get("text", "").strip()}
+    study = {"id": str(uuid.uuid4()), "source": region.get("text", "").strip()}
     if region.get("uncertain") or "[?]" in study["source"]:
         study["textCheck"] = "Model marked this text uncertain; check the printed page."
-    return {"pageId": page_id, "order": n, "study": study,
-            "regions": [{"x": left, "y": top, "width": right - left, "height": bottom - top}]}
+    return {"id": str(uuid.uuid4()), "pageId": page_id, "order": n,
+            "regions": [{"x": left, "y": top, "width": right - left, "height": bottom - top}],
+            "studies": [study]}
 
 
 def chapters_from(pages, answers):

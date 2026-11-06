@@ -15,7 +15,13 @@ REPAIRS = 2
 
 
 def cues_of(document):
-    return (document.get("video") or document.get("comic"))["cues"]
+    """Every study in reading order, each as a cue-like dict with a "study" key. A video cue is
+    itself; a comic box gives one view per study holding the box's pageId and order, whose
+    "study" is the study in the document, so changes write through."""
+    if document.get("video"):
+        return document["video"]["cues"]
+    return [{"study": study, "pageId": box["pageId"], "order": box["order"]}
+            for box in document["comic"]["cues"] for study in box["studies"]]
 
 
 def plan(document, wanted, size):

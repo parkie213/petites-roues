@@ -12,7 +12,6 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.IllformedLocaleException;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -104,41 +103,22 @@ public final class StudyDocumentValidator {
         throw new IllegalArgumentException("Comic pages require distinct relative image entries");
     }
     validateChapters(document);
-    Set<String> cueIds = new HashSet<>();
+    Set<String> boxIds = new HashSet<>();
+    Set<String> studyIds = new HashSet<>();
     Set<String> orders = new HashSet<>();
     for (var cue : document.cues()) {
-      checkCue(problems, cueId(cue.study()), () -> validateComicCue(cue, ids, cueIds, orders));
-    }
-    validateBlocks(document, problems);
-  }
-
-  /**
-   * Sentences of one text block share a page, identical regions and contiguous page orders, so
-   * readers can draw the block once and move through its sentences in order.
-   */
-  private static void validateBlocks(ComicDocument document, List<String> problems) {
-    Map<String, List<ComicCue>> blocks = new LinkedHashMap<>();
-    for (var cue : document.cues())
-      if (cue.inBlock())
-        blocks.computeIfAbsent(cue.pageId() + ":" + cue.block(), key -> new ArrayList<>()).add(cue);
-    for (var sentences : blocks.values()) {
-      var first = sentences.get(0);
-      checkCue(
-          problems,
-          cueId(first.study()),
-          () -> {
-            if (!first.block().matches("[A-Za-z0-9_-]+"))
-              throw new IllegalArgumentException(
-                  "Text block names use letters, numbers, underscores or hyphens");
-            var orders = sentences.stream().mapToInt(ComicCue::order).sorted().toArray();
-            // Page orders are unique, so a span equal to the count leaves no room for other cues.
-            if (orders[orders.length - 1] - orders[0] != orders.length - 1)
-              throw new IllegalArgumentException(
-                  "Sentences of text block " + first.block() + " need contiguous page orders");
-            if (sentences.stream().anyMatch(cue -> !cue.regions().equals(first.regions())))
-              throw new IllegalArgumentException(
-                  "Sentences of text block " + first.block() + " need identical regions");
-          });
+      checkCue(problems, cue.id(), () -> validateComicBox(cue, ids, boxIds, orders));
+      // Text problems are reported under the study's own ID, which is what review and
+      // preparation address.
+      for (var study : cue.studies())
+        checkCue(
+            problems,
+            study.id(),
+            () -> {
+              if (study.id().isBlank() || !studyIds.add(study.id()))
+                throw new IllegalArgumentException("Cue IDs must be unique and nonempty");
+              validateStudyCue(study);
+            });
     }
   }
 
@@ -161,10 +141,13 @@ public final class StudyDocumentValidator {
     }
   }
 
-  private static void validateComicCue(
-      ComicCue cue, Set<String> pageIds, Set<String> cueIds, Set<String> orders) {
-    if (!cue.hasStudy() || cue.study().id().isBlank() || !cueIds.add(cue.study().id()))
-      throw new IllegalArgumentException("Cue IDs must be unique and nonempty");
+  /** A box: its own unique ID, at least one study, a known page and order, and valid regions. */
+  private static void validateComicBox(
+      ComicCue cue, Set<String> pageIds, Set<String> boxIds, Set<String> orders) {
+    if (cue.id().isBlank() || !boxIds.add(cue.id()))
+      throw new IllegalArgumentException("Comic box IDs must be unique and nonempty");
+    if (cue.studies().isEmpty())
+      throw new IllegalArgumentException("A comic box needs at least one study");
     if (!pageIds.contains(cue.pageId())
         || cue.order() <= 0
         || !orders.add(cue.pageId() + ":" + cue.order()))
@@ -185,7 +168,6 @@ public final class StudyDocumentValidator {
           || region.y() + region.height() > 1)
         throw new IllegalArgumentException("Comic regions must fit inside normalized page bounds");
     }
-    validateStudyCue(cue.study());
   }
 
   private static void validateVideo(VideoDocument document, List<String> problems) {

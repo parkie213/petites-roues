@@ -1,14 +1,15 @@
 #!/usr/bin/env python3
-"""Split one aligned comic cue holding a paragraph into a text block of sentence cues.
+"""Split one aligned comic study holding a paragraph into one study per sentence.
 
-  split_block.py --document path/to/document.json --cue CUE_ID --block NAME
+  split_block.py --document path/to/document.json --study STUDY_ID
 
-The cue's phrase breakdown decides the sentences: a sentence ends after a source chunk ending
+The study's phrase breakdown decides the sentences: a sentence ends after a source chunk ending
 in `.`, `!`, `?` or `…` (closing quotes allowed). Each link must stay inside one sentence on
-both sides, or nothing is written. Every sentence becomes a cue with the block's box, the
-next page orders and its own translation, chunks and link notes; the first keeps the original
-id, the rest get new ones. Later cues on the page move down to make room. Sentence notes of the
-paragraph go to the first sentence, with a reminder to move them where they belong.
+both sides, or nothing is written. The sentences replace the study in its box, in place, each
+with its own translation, chunks and link notes; the box, its id and its reading order are
+unchanged, and readers show a box with several studies a sentence at a time. The first sentence
+keeps the study's id; the rest get new UUIDs. Sentence notes of the paragraph go to the first
+sentence, with a reminder to move them where they belong.
 
 Writes the document in place; the app's validator checks it on the next load or review.
 """
@@ -99,47 +100,27 @@ def split(study):
 def main():
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--document", required=True, type=Path)
-    parser.add_argument("--cue", required=True)
-    parser.add_argument("--block", required=True)
+    parser.add_argument("--study", required=True)
     args = parser.parse_args()
-    if not re.fullmatch(r"[A-Za-z0-9_-]+", args.block):
-        raise SystemExit("Block names use letters, numbers, underscores or hyphens.")
 
     document = json.loads(args.document.read_text(encoding="utf-8"))
-    cues = document["comic"]["cues"]
-    index = next((i for i, c in enumerate(cues) if c["study"]["id"] == args.cue), None)
-    if index is None:
-        raise SystemExit(f"No cue {args.cue}.")
-    cue = cues[index]
-    if cue.get("block"):
-        raise SystemExit(f"The cue is already in block {cue['block']}.")
-    if any(
-        c.get("block") == args.block and c["pageId"] == cue["pageId"] for c in cues
-    ):
-        raise SystemExit(f"Page {cue['pageId']} already has a block {args.block}.")
-
-    sentences = split(cue["study"])
-    extra = len(sentences) - 1
-    for other in cues:
-        if other["pageId"] == cue["pageId"] and other["order"] > cue["order"]:
-            other["order"] += extra
-    replacement = [
-        {
-            **{k: v for k, v in cue.items() if k not in ("study", "order", "block")},
-            "study": study,
-            "order": cue["order"] + n,
-            "block": args.block,
-        }
-        for n, study in enumerate(sentences)
-    ]
-    cues[index : index + 1] = replacement
+    found = [(box, i) for box in document["comic"]["cues"]
+             for i, study in enumerate(box["studies"]) if study["id"] == args.study]
+    if not found:
+        raise SystemExit(f"No comic study {args.study}.")
+    box, index = found[0]
+    study = box["studies"][index]
+    sentences = split(study)
+    if len(sentences) < 2:
+        raise SystemExit("The study is a single sentence; nothing to split.")
+    box["studies"][index : index + 1] = sentences
     args.document.write_text(
         json.dumps(document, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
     )
-    print(f"{cue['pageId']}: block {args.block}, {len(sentences)} sentences")
-    for study in sentences:
-        print(f"  {study['source']}")
-    if cue["study"].get("notes"):
+    print(f"{box['pageId']}: {len(sentences)} sentences in box {box['id']}")
+    for sentence in sentences:
+        print(f"  {sentence['source']}")
+    if study.get("notes"):
         print("Moved the paragraph's sentence notes to the first sentence: place them.")
 
 

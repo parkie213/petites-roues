@@ -2,7 +2,6 @@ package com.petitesroues.study;
 
 import com.petitesroues.library.LibraryUpdateService;
 import com.petitesroues.library.persistence.CatalogueStore;
-import com.petitesroues.model.document.ComicCue;
 import com.petitesroues.model.document.StudyDocument;
 import com.petitesroues.model.editing.ComicCueCreate;
 import com.petitesroues.model.editing.ComicCueUpdate;
@@ -88,31 +87,17 @@ public class DocumentEditingService {
     return record(id, new DocumentEdit.DeleteVideoCue(cueId));
   }
 
-  public StudyDocument editComicText(String id, String cueId, ComicTextEdit edit)
+  public StudyDocument editComicText(String id, String studyId, ComicTextEdit edit)
       throws IOException {
-    return record(id, new DocumentEdit.EditComicText(cueId, edit));
+    return record(id, new DocumentEdit.EditComicText(studyId, edit));
   }
 
-  /** New bubbles get page-NNN-bubble-MM IDs from their page position and next reading order. */
+  /** Adds a box with fresh UUIDs for the box and the one study it starts with. */
   public StudyDocument createComicCue(String id, ComicCueCreate create) throws IOException {
-    if (create == null || create.pageId() == null)
-      throw new IllegalArgumentException("Page and one region are required");
-    var document = served.document(entry(id));
-    if (!document.hasComic())
-      throw new IllegalArgumentException("This operation requires a comic document");
-    int position = DocumentEdits.pagePosition(document, create.pageId());
-    int order =
-        document.comic().cues().stream()
-                .filter(cue -> cue.pageId().equals(create.pageId()))
-                .mapToInt(ComicCue::order)
-                .max()
-                .orElse(0)
-            + 1;
-    var used = document.comic().cues().stream().map(c -> c.study().id()).toList();
-    String base = "page-%03d-bubble-%02d".formatted(position, order);
-    String cueId = base;
-    for (int suffix = 2; used.contains(cueId); suffix++) cueId = base + "-" + suffix;
-    return record(id, new DocumentEdit.CreateComicCue(cueId, create));
+    return record(
+        id,
+        new DocumentEdit.CreateComicCue(
+            UUID.randomUUID().toString(), UUID.randomUUID().toString(), create));
   }
 
   public StudyDocument placeComicCue(String id, String cueId, ComicCueUpdate update)

@@ -18,6 +18,7 @@ import argparse
 import re
 from pathlib import Path
 
+from batches import cues_of
 from openrouter import load, save
 
 
@@ -46,12 +47,11 @@ def main():
     parser.add_argument("--dry-run", action="store_true", help="print the changes without writing")
     args = parser.parse_args()
     document = load(args.document)
-    body = document.get("video") or document.get("comic")
-    if body is None:
+    if not (document.get("video") or document.get("comic")):
         raise SystemExit("Not a video or comic document")
     names, variants = pattern(load(args.spellings))
     changed, skipped = 0, []
-    for cue in body.get("cues") or []:
+    for cue in cues_of(document):
         study = cue["study"]
         corrected = names.sub(lambda m: variants[m.group()], study.get("source", ""))
         if corrected == study.get("source", ""):

@@ -1,9 +1,11 @@
 package com.petitesroues.support;
 
+import com.petitesroues.model.document.ComicCue;
 import com.petitesroues.model.document.ComicPage;
 import com.petitesroues.model.document.ComicRegion;
 import com.petitesroues.model.document.PhraseAlignment;
 import com.petitesroues.model.document.PhraseLink;
+import com.petitesroues.model.document.StudyCue;
 import java.util.List;
 
 /** Short constructors for document fixture values. */
@@ -25,6 +27,12 @@ public final class SpecFixtures {
 
   public static ComicPage newPage(String id, String entry, String label) {
     return new ComicPage(id, entry, label);
+  }
+
+  /** A box holding one study, identified as {@code box-} plus the study's ID. */
+  public static ComicCue newBubble(
+      StudyCue study, String pageId, int order, List<ComicRegion> regions) {
+    return new ComicCue("box-" + study.id(), pageId, order, regions, List.of(study));
   }
 
   public static ComicRegion newRegion(double x, double y, double width, double height) {

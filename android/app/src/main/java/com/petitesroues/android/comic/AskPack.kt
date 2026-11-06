@@ -15,19 +15,19 @@ import java.util.Locale
  */
 object AskPack {
   /**
-   * The message for [cue] on [pageName] of [document]. [pageCues] are the page's bubbles in
-   * reading order (including [cue]); [phrase] is the source phrase the learner was exploring, if
-   * any; a blank [question] asks for a deeper explanation.
+   * The message for [study] on [pageName] of [document]: a bubble's study, or the sentence of a
+   * text block being read. [pageCues] are the page's boxes in reading order (including the one
+   * holding [study]), whose bubbles and sentences give the context; [phrase] is the source phrase
+   * the learner was exploring, if any; a blank [question] asks for a deeper explanation.
    */
   fun build(
     document: StudyDocument,
     pageName: String,
-    cue: ComicCue,
+    study: StudyCue,
     pageCues: List<ComicCue>,
     phrase: Int?,
     question: String,
   ): String {
-    val study = cue.study()
     val alignment = readyAlignment(study)
     val source = language(document.sourceLanguage())
     val notes = language(document.notesLanguage())
@@ -65,13 +65,13 @@ object AskPack {
         appendLine("Sentence notes:")
         study.notes().forEach { appendLine("- $it") }
       }
-      val others = pageCues.filter { it.hasStudy() && it.study().source().isNotBlank() }
+      val others = pageCues.flatMap { it.studies() }.filter { it.source().isNotBlank() }
       if (others.size > 1) {
         appendLine()
         appendLine("The page's bubbles in reading order, for context (→ marks this one):")
         for (other in others) {
-          val line = other.study().line()
-          appendLine(if (other.study().id() == study.id()) "→ $line" else "- $line")
+          val line = other.line()
+          appendLine(if (other.id() == study.id()) "→ $line" else "- $line")
         }
       }
       appendLine()

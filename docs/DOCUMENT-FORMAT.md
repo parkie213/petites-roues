@@ -293,17 +293,21 @@ finds the text, or an agent reads it from the volume's table of contents
 ### Comic teaching cues
 
 `StudyCue` holds shared text, translation, notes, phrase alignments, continuation and written
-checks. `VideoCue` adds timing and audio verification; `ComicCue` adds page placement and
-printed-text verification. Both cue types nest their shared fields under `study`.
+checks. A `VideoCue` is one subtitle line: its timing and audio verification beside one `study`.
+A `ComicCue` is a box on a page: its own `id`, its placement, and `studies`, the one or more
+studies printed in it in reading order.
 
-A comic's optional `comic.cues` list defaults to empty. Each cue references a stable page ID, a positive
-`order` unique on that page, and one or more rectangles in normalized coordinates relative to the
-entire original image (including margins). Explicit order determines the bubble sequence; position
+A comic's optional `comic.cues` list defaults to empty. Each box has an `id` (a UUID) that
+identifies the box itself and never changes with its text, a stable page ID, a positive `order`
+unique on that page, one or more rectangles in normalized coordinates relative to the entire
+original image (including margins), and at least one study. Box IDs are unique among boxes and
+study IDs unique across the comic; the two are separate namespaces. Explicit order determines the bubble sequence; position
 alone does not determine manga reading order. Coordinates must be finite, dimensions positive,
 and every rectangle must fit within [0, 1] on both axes.
 
 ```json
 {
+  "id": "6f1c2a9e-4b7d-4e0a-9c3f-2d8b5e7a1c40",
   "pageId": "page-one",
   "order": 1,
   "regions": [
@@ -314,30 +318,28 @@ and every rectangle must fit within [0, 1] on both axes.
       "height": 0.15
     }
   ],
-  "study": {
-    "id": "bubble-1",
-    "source": "Bonjour !",
-    "translation": "Hello!",
-    "notes": [
-      "A greeting."
-    ]
-  }
+  "studies": [
+    {
+      "id": "bubble-1",
+      "source": "Bonjour !",
+      "translation": "Hello!",
+      "notes": [
+        "A greeting."
+      ]
+    }
+  ]
 }
 ```
 
-A printed text block of several sentences (a recap paragraph, a character profile) is split
-into one cue per sentence that share an optional `block` name. Cues on one page with the same
-`block` must carry identical `regions` (the block's box) and contiguous `order` values; each keeps
-its own translation, notes and checks. Readers draw the block once and open it either one sentence
-at a time or as a list of its sentences. `prepare/split_block.py` splits an aligned paragraph cue
-at its sentence-ending chunks. A block's box can't be moved or deleted in Annotate mode.
-
-```json
-{ "pageId": "page-004", "order": 10, "block": "intro", "regions": [...], "study": { ... } }
-```
+A speech bubble usually has one study. A printed text block too long for one card (a recap
+paragraph, a character profile) is split into one study per sentence, each with its own ID,
+translation, notes, alignment and checks; readers show a box with several studies a sentence at
+a time or as a list. Text edits, comments and review requests address a study by its ID; moving
+or deleting a box addresses the box's ID and takes all its studies along.
+`prepare/split_block.py` splits an aligned study into its sentences at sentence-ending chunks.
 
 `annotationMethod` records extraction provenance on the comic.
-Drawn boxes may have empty source text while awaiting OCR or transcription. Each saved box is a cue with stable identity and page regions,
+Drawn boxes start with one study whose source may be empty while awaiting OCR or transcription,
 so review/OCR can target it before any text is available.
 Use `textCheck` for a specific unresolved issue. Comic cues have no listening checks or timestamps.
 
@@ -345,15 +347,17 @@ The reader overlays numbered, keyboard-focusable regions. Selecting a region or 
 selector opens its text, translation and learner notes. Geometry scales with the displayed image
 in fit-page, fit-width and custom zoom modes. Highlights and the study panel can be hidden.
 
-`PUT /api/titles/{id}/comic/cues/{cueId}` accepts `expectedSource` and `source`. Stale source edits
+`PUT /api/titles/{id}/comic/studies/{studyId}` accepts `expectedSource` and `source`. Stale source edits
 are rejected. Changed text resets verification, clears translation/notes/alignment, marks alignment
-stale and queues the edit. IDs, page, order, regions and unrelated cues are preserved.
+stale and queues the edit. IDs, the box and the other studies are preserved.
 Unchanged text queues nothing. The editor blocks page/bubble changes until Save or Cancel.
 Like every player edit, it is served over the file until an agent writes it there through the
 [review API](REVIEW-API.md), with the annotations.
 
 In Annotate mode, dragging on the page immediately saves a box through
-`POST /api/titles/{id}/comic/cues` with `pageId`, `region` and optional `source`.
+`POST /api/titles/{id}/comic/cues` with `pageId`, `region` and optional `source`; the server
+assigns UUIDs to the box and its first study. `PUT …/comic/cues/{boxId}/placement` moves or
+resizes a box and `DELETE …/comic/cues/{boxId}` removes it with its studies.
 Creating, moving/resizing or deleting a box queues an `annotate` edit in the
 same review queue as video edits. Text can be added afterward through the existing
 comic text editor. Failed box saves remain available for retry or discard.

@@ -57,7 +57,7 @@ class QuizPackTest {
   @Test
   fun aChapterBriefCarriesItsBubblesInReadingOrder() {
     val pages = listOf("cover", "a1", "a2", "b1").map { ComicPage(it, "$it.png", null) }
-    val bubble = { page: String, order: Int, study: StudyCue -> ComicCue(study, page, order, listOf(ComicRegion(0.1, 0.1, 0.2, 0.2))) }
+    val bubble = { page: String, order: Int, study: StudyCue -> ComicCue("box-${study.id()}", page, order, listOf(ComicRegion(0.1, 0.1, 0.2, 0.2)), listOf(study)) }
     val comic =
       ComicDocument(
         null,

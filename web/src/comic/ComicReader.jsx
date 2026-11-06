@@ -30,7 +30,7 @@ import { ComicPageView } from "./ComicPageView.jsx";
 import { ComicStudyPanel } from "./ComicStudyPanel.jsx";
 import { StudyLanguagesProvider } from "../player/StudyLanguages.jsx";
 import { QuickEdit } from "../player/components/QuickEdit.jsx";
-import { pageCues } from "./annotations.js";
+import { boxOf, boxStudies, pageCues } from "./annotations.js";
 import { chapterQuizBrief, chapterQuizFileName } from "./quiz.js";
 import { QuizShare } from "../player/components/QuizShare.jsx";
 import {
@@ -103,7 +103,11 @@ export function ComicReader({ id }) {
   );
   const page = visible[0];
   const cues = visible.flatMap((p) => pageCues(document, p.id));
-  const selected = cues.find((cue) => cue.id === selectedId) || cues[0];
+  // The selection is a study (a bubble, or one sentence of a text block); its box is for annotating.
+  const studies = boxStudies(cues);
+  const selected =
+    studies.find((study) => study.id === selectedId) || studies[0];
+  const selectedBox = selected && boxOf(cues, selected.id);
   const rtl = document?.readingDirection === "rtl";
   const locked = editing || savingBox || !!draftRegion;
   const previous = document ? adjacentView(index, count, spread, -1) : null;
@@ -216,7 +220,7 @@ export function ComicReader({ id }) {
         const created = (saved.cues || []).find(
           (cue) => !previousIds.has(cue.id),
         );
-        if (created) setSelectedId(created.id);
+        if (created) setSelectedId(created.studies[0].id);
         setDraftRegion(null);
       })
       .catch(() => {})
@@ -234,16 +238,18 @@ export function ComicReader({ id }) {
   }
 
   function deleteSelected() {
-    if (!selected || !annotate) return;
+    if (!selectedBox || !annotate) return;
     if (
       !window.confirm(
-        selected.source
-          ? `Delete the bubble "${selected.source}"?`
-          : "Delete this box?",
+        selectedBox.studies.length > 1
+          ? `Delete this text block and its ${selectedBox.studies.length} sentences?`
+          : selected.source
+            ? `Delete the bubble "${selected.source}"?`
+            : "Delete this box?",
       )
     )
       return;
-    annotateRequest(`/cues/${encodeURIComponent(selected.id)}`, {
+    annotateRequest(`/cues/${encodeURIComponent(selectedBox.id)}`, {
       method: "DELETE",
     })
       .then(() => setSelectedId(null))
@@ -490,7 +496,7 @@ export function ComicReader({ id }) {
                   </Button>
                 </Group>
               )}
-              {selected && !selected.block && (
+              {selectedBox && (
                 <Button
                   size="compact-xs"
                   variant="subtle"
@@ -498,14 +504,10 @@ export function ComicReader({ id }) {
                   mt="xs"
                   onClick={deleteSelected}
                 >
-                  Delete selected bubble
+                  {selectedBox.studies.length > 1
+                    ? "Delete selected text block"
+                    : "Delete selected bubble"}
                 </Button>
-              )}
-              {selected?.block && (
-                <Text size="sm" mt="xs" c="dimmed">
-                  The selected box is a text block split into sentences. It
-                  can't be moved or deleted here yet.
-                </Text>
               )}
             </Alert>
           )}
@@ -539,6 +541,7 @@ export function ComicReader({ id }) {
               <ComicStudyPanel
                 key={selected?.id || page.id}
                 cues={cues}
+                studies={studies}
                 cue={selected}
                 api={api}
                 onSelect={setSelectedId}

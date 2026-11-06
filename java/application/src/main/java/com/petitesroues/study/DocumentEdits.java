@@ -47,7 +47,7 @@ public final class DocumentEdits {
           case PlaceComicCue place -> placeComicCue(comic(document), place);
           case DeleteComicCue cue ->
               document.withComic(
-                  c -> c.withCues(remove(c.cues(), unblockedIndex(document, cue.cueId()))));
+                  c -> c.withCues(remove(c.cues(), boxIndex(document, cue.cueId()))));
         };
     if (result.hasVideo())
       result =
@@ -105,7 +105,7 @@ public final class DocumentEdits {
     if (text == null || text.isBlank() || text.length() > 2000)
       throw new IllegalArgumentException("Write " + what + " (up to 2000 characters)");
     if (document.hasVideo()) index(document, cueId);
-    else comicIndex(comic(document), cueId);
+    else studyBoxIndex(comic(document), cueId);
     return document;
   }
 
@@ -231,8 +231,9 @@ public final class DocumentEdits {
   }
 
   /**
-   * Rejects stale edits, and clears teaching material tied to changed wording. Geometry, IDs and
-   * outstanding written checks are retained.
+   * Rejects stale edits, and clears teaching material tied to changed wording. The study may be a
+   * bubble's or one sentence of a text block. Geometry, IDs and outstanding written checks are
+   * retained.
    */
   private static StudyDocument editComicText(StudyDocument document, EditComicText command) {
     var edit = command.edit();
@@ -241,18 +242,26 @@ public final class DocumentEdits {
         || edit.source().isBlank()
         || edit.expectedSource() == null)
       throw new IllegalArgumentException("Current and replacement source text are required");
-    int index = comicIndex(document, command.cueId());
-    var study = document.comic().cues().get(index).study();
+    int index = studyBoxIndex(document, command.studyId());
+    var study =
+        document.comic().cues().get(index).studies().stream()
+            .filter(s -> s.id().equals(command.studyId()))
+            .findFirst()
+            .orElseThrow();
     if (!Objects.equals(study.source(), edit.expectedSource()))
       throw new IllegalArgumentException(
           "This bubble changed since you opened it. Reload before editing.");
     if (study.source().equals(edit.source())) return document;
     var replaced =
         study.withSource(edit.source()).withTranslation(null).withNotes(List.of()).invalidated();
-    return document.withComic(c -> c.withCue(index, cue -> cue.withStudy(replaced)));
+    return document.withComic(
+        c -> c.withCue(index, cue -> cue.withStudy(command.studyId(), old -> replaced)));
   }
 
-  /** Adds one bubble with the queued identity at the next free reading position on its page. */
+  /**
+   * Adds one box, with the queued box and study identities, at the next free reading position on
+   * its page.
+   */
   private static StudyDocument createComicCue(StudyDocument document, CreateComicCue command) {
     var create = command.create();
     if (create == null
@@ -262,8 +271,10 @@ public final class DocumentEdits {
       throw new IllegalArgumentException("Page and one region are required");
     pagePosition(document, create.pageId());
     var cues = document.comic().cues();
-    if (cues.stream().anyMatch(c -> c.study().id().equals(command.cueId())))
-      throw new IllegalArgumentException("Bubble already exists: " + command.cueId());
+    if (cues.stream().anyMatch(c -> c.id().equals(command.cueId())))
+      throw new IllegalArgumentException("Box already exists: " + command.cueId());
+    if (cues.stream().anyMatch(c -> c.holds(command.studyId())))
+      throw new IllegalArgumentException("Study already exists: " + command.studyId());
     int order =
         cues.stream()
                 .filter(cue -> cue.pageId().equals(create.pageId()))
@@ -273,18 +284,21 @@ public final class DocumentEdits {
             + 1;
     var added =
         new ComicCue(
-            StudyCue.of(command.cueId(), create.source() == null ? "" : create.source().trim()),
+            command.cueId(),
             create.pageId(),
             order,
-            List.of(region(create.region())));
+            List.of(region(create.region())),
+            List.of(
+                StudyCue.of(
+                    command.studyId(), create.source() == null ? "" : create.source().trim())));
     var updated = new ArrayList<>(cues);
     updated.add(added);
     return document.withComic(c -> c.withCues(updated));
   }
 
   /**
-   * Replaces one bubble's regions and optional reading order. Stale expectations are rejected;
-   * text, translations, notes and alignments are preserved.
+   * Replaces one box's regions and optional reading order, with all its studies. Stale expectations
+   * are rejected; text, translations, notes and alignments are preserved.
    */
   private static StudyDocument placeComicCue(StudyDocument document, PlaceComicCue command) {
     var update = command.update();
@@ -293,7 +307,7 @@ public final class DocumentEdits {
         || update.regions() == null
         || update.regions().isEmpty())
       throw new IllegalArgumentException("Current and replacement regions are required");
-    int index = unblockedIndex(document, command.cueId());
+    int index = boxIndex(document, command.cueId());
     var cue = document.comic().cues().get(index);
     if (!matches(cue.regions(), update.expectedRegions()))
       throw new IllegalArgumentException(
@@ -302,18 +316,6 @@ public final class DocumentEdits {
     if (update.order() != null) placed = placed.withOrder(update.order());
     var result = placed;
     return document.withComic(c -> c.withCue(index, old -> result));
-  }
-
-  /**
-   * Position of a bubble whose box may be moved or deleted. A text block's sentences share one box,
-   * so they are rearranged by an agent in the document rather than one sentence at a time.
-   */
-  private static int unblockedIndex(StudyDocument document, String cueId) {
-    int index = comicIndex(document, cueId);
-    if (document.comic().cues().get(index).inBlock())
-      throw new IllegalArgumentException(
-          "This box holds a text block split into sentences; it can't be moved or deleted here.");
-    return index;
   }
 
   /** One-based manifest position of a page; unknown pages are rejected. */
@@ -355,10 +357,18 @@ public final class DocumentEdits {
     throw new NoSuchElementException("Unknown cue: " + cueId);
   }
 
-  private static int comicIndex(StudyDocument document, String cueId) {
+  /** Position of the comic box {@code boxId}. */
+  private static int boxIndex(StudyDocument document, String boxId) {
     var cues = document.comic().cues();
-    for (int i = 0; i < cues.size(); i++) if (cues.get(i).study().id().equals(cueId)) return i;
-    throw new NoSuchElementException("Unknown comic cue: " + cueId);
+    for (int i = 0; i < cues.size(); i++) if (cues.get(i).id().equals(boxId)) return i;
+    throw new NoSuchElementException("Unknown comic box: " + boxId);
+  }
+
+  /** Position of the comic box holding the study {@code studyId}. */
+  private static int studyBoxIndex(StudyDocument document, String studyId) {
+    var cues = document.comic().cues();
+    for (int i = 0; i < cues.size(); i++) if (cues.get(i).holds(studyId)) return i;
+    throw new NoSuchElementException("Unknown comic study: " + studyId);
   }
 
   private static void validateTiming(Double start, Double end) {

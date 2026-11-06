@@ -1,21 +1,20 @@
 import { useEffect, useRef, useState } from "react";
 import { Alert, Button, Loader } from "@mantine/core";
-import {
-  pageLayout,
-  pageUnits,
-  regionFromDrag,
-  clampRegion,
-} from "./annotations.js";
+import { pageLayout, regionFromDrag, clampRegion } from "./annotations.js";
 import { ComicBubblePopover } from "./ComicBubblePopover.jsx";
 
 const HOVER_CLOSE_DELAY = 180;
+// While a card is open, another box must be rested on this long to take over, so the pointer
+// can cross neighbouring boxes on its way into the open card.
+const HOVER_SWITCH_DELAY = 250;
 
 /**
  * Shows one page or a two-page spread in a shared scrolling viewport. Bubble regions are
  * invisible hit areas unless debug or annotate mode outlines them; hovering opens a bubble's
  * study card (when cards are enabled) and selects it for the study panel; clicking pins the
- * bubble until it is dismissed. A text block split into sentences is one region whose card steps
- * through or lists its sentences, as `blockMode` chooses; its box can't be moved here.
+ * bubble until it is dismissed. Hovering another box while a card is open switches only after a
+ * short rest, and reaching the open card cancels the switch. A text block's card steps through or
+ * lists its studies, as `blockMode` chooses. `selectedId` is a study; boxes are keyed by their own id.
  */
 export function ComicPageView({
   document,
@@ -40,6 +39,7 @@ export function ComicPageView({
   const viewport = useRef(null);
   const [area, setArea] = useState({ width: 0, height: 0 });
   const [bubble, setBubble] = useState(null);
+  // The pending hover change: closing the open card, or switching it to another box.
   const closeTimer = useRef(null);
   useEffect(() => {
     const observer = new ResizeObserver(([entry]) =>
@@ -69,15 +69,19 @@ export function ComicPageView({
   }, [bubble]);
 
   const interactive = !annotate && !editing;
-  const units = pageUnits(cues);
   const bubbles = {
     current: bubble,
     hover(id, cueId) {
       clearTimeout(closeTimer.current);
       // A pinned bubble keeps the study panel too, so crossing the page doesn't change it.
       if (bubble?.pinned) return;
-      setBubble({ id, pinned: false });
-      onSelect(cueId);
+      const open = () => {
+        setBubble({ id, pinned: false });
+        onSelect(cueId);
+      };
+      if (cards && bubble && bubble.id !== id)
+        closeTimer.current = setTimeout(open, HOVER_SWITCH_DELAY);
+      else open();
     },
     leave() {
       clearTimeout(closeTimer.current);
@@ -133,8 +137,8 @@ export function ComicPageView({
             height={area.height}
             zoom={zoom}
             scale={scale}
-            units={units.filter((unit) => unit.pageId === page.id)}
-            numbers={units}
+            cues={cues.filter((cue) => cue.pageId === page.id)}
+            numbers={cues}
             selectedId={selectedId}
             onLoaded={slot === 0 ? onLoaded : undefined}
             outlined={debug || annotate}
@@ -163,7 +167,7 @@ function ComicPage({
   height,
   zoom,
   scale,
-  units,
+  cues,
   numbers,
   selectedId,
   onLoaded,
@@ -270,19 +274,18 @@ function ComicPage({
     window.addEventListener("pointerup", up);
   }
 
-  function region(unit, region, r) {
-    const number = numbers.indexOf(unit) + 1;
-    const isSelected = unit.cues.some((c) => c.id === selectedId);
-    // A block keeps its current sentence; arriving fresh starts at the first.
-    const cue = isSelected
-      ? unit.cues.find((c) => c.id === selectedId)
-      : unit.cues[0];
-    const isOpen = bubbles?.current?.id === unit.key;
-    const dragging = !draft && dragBox && isSelected && !unit.block;
+  function region(cue, region, r) {
+    const number = numbers.indexOf(cue) + 1;
+    const selectedStudy = cue.studies.find((study) => study.id === selectedId);
+    const isSelected = Boolean(selectedStudy);
+    // The study the box selects: a block keeps its current sentence, arriving fresh at the first.
+    const studyId = (selectedStudy || cue.studies[0]).id;
+    const isOpen = bubbles?.current?.id === cue.id;
+    const dragging = !draft && dragBox && isSelected;
     const box = dragging ? dragBox : region;
     const button = (
       <button
-        key={unit.key + ":" + r}
+        key={cue.id + ":" + r}
         className={
           "comic-region" +
           (outlined ? " is-outlined" : "") +
@@ -291,9 +294,9 @@ function ComicPage({
           (annotate ? " is-annotate" : "")
         }
         aria-label={
-          unit.block
-            ? `Text block ${number}: ${unit.cues.length} sentences`
-            : `Bubble ${number}: ${cue.source || "text pending"}`
+          cue.studies.length > 1
+            ? `Text block ${number}: ${cue.studies.length} sentences`
+            : `Bubble ${number}: ${cue.studies[0].source || "text pending"}`
         }
         aria-expanded={bubbles ? isOpen : undefined}
         aria-pressed={annotate ? isSelected : undefined}
@@ -306,22 +309,21 @@ function ComicPage({
         }}
         onClick={() => {
           if (draft) return;
-          if (bubbles) bubbles.pin(unit.key, cue.id);
-          else onSelect(cue.id);
+          if (bubbles) bubbles.pin(cue.id, studyId);
+          else onSelect(studyId);
         }}
         onPointerEnter={(event) =>
-          event.pointerType === "mouse" && bubbles?.hover(unit.key, cue.id)
+          event.pointerType === "mouse" && bubbles?.hover(cue.id, studyId)
         }
         onPointerLeave={(event) =>
           event.pointerType === "mouse" && bubbles?.leave()
         }
-        onPointerDown={(event) => !unit.block && startMove(event, cue, region)}
+        onPointerDown={(event) => startMove(event, cue, region)}
       >
         {outlined && <span aria-hidden="true">{number}</span>}
         {annotate &&
           isSelected &&
           !editing &&
-          !unit.block &&
           ["nw", "ne", "sw", "se"].map((corner) => (
             <span
               key={corner}
@@ -340,9 +342,9 @@ function ComicPage({
     if (!bubbles || !cards || r > 0) return button;
     return (
       <ComicBubblePopover
-        key={unit.key + ":" + r}
-        unit={unit}
+        key={cue.id + ":" + r}
         cue={cue}
+        selectedId={selectedId}
         blockMode={blockMode}
         onBlockMode={onBlockMode}
         onSelect={onSelect}
@@ -350,8 +352,8 @@ function ComicPage({
         number={number}
         opened={isOpen}
         onDismiss={bubbles.dismiss}
-        onKeep={() => bubbles.keep(unit.key)}
-        onPointerEnter={() => bubbles.hover(unit.key, cue.id)}
+        onKeep={() => bubbles.keep(cue.id)}
+        onPointerEnter={() => bubbles.hover(cue.id, studyId)}
         onPointerLeave={(event) =>
           event.pointerType === "mouse" && bubbles.leave()
         }
@@ -416,9 +418,7 @@ function ComicPage({
           }}
         />
         {loaded &&
-          units.flatMap((unit) =>
-            unit.regions.map((r, i) => region(unit, r, i)),
-          )}
+          cues.flatMap((cue) => cue.regions.map((r, i) => region(cue, r, i)))}
         {dragBox && draft && (
           <div
             className="comic-region comic-draft-box"

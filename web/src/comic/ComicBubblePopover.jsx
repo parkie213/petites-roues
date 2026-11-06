@@ -7,12 +7,13 @@ import { useStudyLanguages } from "../player/StudyLanguages.jsx";
 /**
  * Anchors a bubble's study card to its page region. The reader owns whether it is open and
  * pinned; this component only reports pointer movement across the card so hover can persist
- * while the learner explores phrases inside it. A text block's card shows the reader's selected
- * sentence (`cue`) within the block, stepping or listing as `blockMode` chooses.
+ * while the learner explores phrases inside it. A text block's card opens on the reader's selected
+ * sentence (`selectedId`) when it is one of the block's, else on the first, stepping or listing as
+ * `blockMode` chooses.
  */
 export function ComicBubblePopover({
-  unit,
   cue,
+  selectedId,
   blockMode,
   onBlockMode,
   onSelect,
@@ -26,6 +27,8 @@ export function ComicBubblePopover({
   children,
 }) {
   const { sourceLanguage } = useStudyLanguages();
+  const block = cue.studies.length > 1;
+  const study = cue.studies[0];
   // The card only fits beside the bubble on wide screens.
   const wide = useMediaQuery("(min-width: 900px)");
   return (
@@ -44,16 +47,16 @@ export function ComicBubblePopover({
       <Popover.Dropdown
         className={
           "comic-bubble-popover comic-phrases" +
-          (unit.block && blockMode === "text" ? " is-block-text" : "")
+          (block && blockMode === "text" ? " is-block-text" : "")
         }
-        aria-label={unit.block ? `Text block ${number}` : `Bubble ${number}`}
+        aria-label={block ? `Text block ${number}` : `Bubble ${number}`}
         onPointerEnter={onPointerEnter}
         onPointerLeave={onPointerLeave}
       >
-        {unit.block ? (
+        {block ? (
           <ComicBlockCard
-            cues={unit.cues}
-            selectedId={cue.id}
+            cues={cue.studies}
+            selectedId={selectedId}
             onSelect={(id) => {
               onKeep();
               onSelect(id);
@@ -63,10 +66,10 @@ export function ComicBubblePopover({
             document={document}
             onKeep={onKeep}
           />
-        ) : cue.source ? (
+        ) : study.source ? (
           <ComicBubbleCard
-            key={cue.id}
-            cue={cue}
+            key={study.id}
+            cue={study}
             document={document}
             onKeep={onKeep}
           />

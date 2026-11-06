@@ -62,9 +62,9 @@ public class LibraryUpdateService {
     return editing.deleteCue(titleId, cueId);
   }
 
-  public synchronized StudyDocument editComicText(String id, String cueId, ComicTextEdit edit)
+  public synchronized StudyDocument editComicText(String id, String studyId, ComicTextEdit edit)
       throws IOException {
-    return editing.editComicText(id, cueId, edit);
+    return editing.editComicText(id, studyId, edit);
   }
 
   public synchronized StudyDocument createComicCue(String id, ComicCueCreate create)

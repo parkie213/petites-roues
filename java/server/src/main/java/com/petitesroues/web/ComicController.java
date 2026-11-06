@@ -47,22 +47,25 @@ public class ComicController {
         .body(image.bytes());
   }
 
-  /** Saves a bubble correction without accepting geometry or annotations from the text editor. */
-  @PutMapping("/cues/{cueId}")
+  /**
+   * Saves a text correction to one study, in whichever box holds it, without accepting geometry or
+   * annotations from the text editor.
+   */
+  @PutMapping("/studies/{studyId}")
   public StudyDocument edit(
-      @PathVariable String id, @PathVariable String cueId, @RequestBody ComicTextEdit edit)
+      @PathVariable String id, @PathVariable String studyId, @RequestBody ComicTextEdit edit)
       throws IOException {
-    return updates.editComicText(id, cueId, edit);
+    return updates.editComicText(id, studyId, edit);
   }
 
-  /** Adds one drawn bubble annotation; ids and reading order are assigned server-side. */
+  /** Adds one drawn box with one study; ids and reading order are assigned server-side. */
   @PostMapping("/cues")
   public StudyDocument create(@PathVariable String id, @RequestBody ComicCueCreate create)
       throws IOException {
     return updates.createComicCue(id, create);
   }
 
-  /** Replaces one bubble's regions and optional order; text and teaching material stay. */
+  /** Replaces one box's regions and optional order; its studies stay as they are. */
   @PutMapping("/cues/{cueId}/placement")
   public StudyDocument updatePlacement(
       @PathVariable String id, @PathVariable String cueId, @RequestBody ComicCueUpdate update)
@@ -70,7 +73,7 @@ public class ComicController {
     return updates.placeComicCue(id, cueId, update);
   }
 
-  /** Removes one annotated bubble from the document. */
+  /** Removes one box, with all its studies, from the document. */
   @DeleteMapping("/cues/{cueId}")
   public StudyDocument delete(@PathVariable String id, @PathVariable String cueId)
       throws IOException {
