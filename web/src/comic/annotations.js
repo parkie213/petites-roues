@@ -5,6 +5,29 @@ export function pageCues(document, pageId) {
     .sort((a, b) => a.order - b.order);
 }
 
+/**
+ * Groups ordered page cues into what the page shows: one unit per ordinary bubble, and one per
+ * text block holding its sentences in order. A unit's key is stable for hover and pinning; its
+ * regions are the block's shared box.
+ */
+export function pageUnits(cues) {
+  const units = [];
+  for (const cue of cues) {
+    const last = units[units.length - 1];
+    if (cue.block && last?.block === cue.block && last.pageId === cue.pageId)
+      last.cues.push(cue);
+    else
+      units.push({
+        key: cue.block ? `block:${cue.pageId}:${cue.block}` : cue.id,
+        block: cue.block || null,
+        pageId: cue.pageId,
+        regions: cue.regions,
+        cues: [cue],
+      });
+  }
+  return units;
+}
+
 /** Clamps a drawn or dragged region into valid normalized bounds with a minimum size. */
 export function clampRegion(region) {
   const x = Math.min(Math.max(region.x, 0), 1);

@@ -325,6 +325,17 @@ and every rectangle must fit within [0, 1] on both axes.
 }
 ```
 
+A printed text block of several sentences (a recap paragraph, a character profile) is split
+into one cue per sentence that share an optional `block` name. Cues on one page with the same
+`block` must carry identical `regions` (the block's box) and contiguous `order` values; each keeps
+its own translation, notes and checks. Readers draw the block once and open it either one sentence
+at a time or as a list of its sentences. `prepare/split_block.py` splits an aligned paragraph cue
+at its sentence-ending chunks. A block's box can't be moved or deleted in Annotate mode.
+
+```json
+{ "pageId": "page-004", "order": 10, "block": "intro", "regions": [...], "study": { ... } }
+```
+
 `annotationMethod` records extraction provenance on the comic.
 Drawn boxes may have empty source text while awaiting OCR or transcription. Each saved box is a cue with stable identity and page regions,
 so review/OCR can target it before any text is available.

@@ -47,7 +47,7 @@ public final class DocumentEdits {
           case PlaceComicCue place -> placeComicCue(comic(document), place);
           case DeleteComicCue cue ->
               document.withComic(
-                  c -> c.withCues(remove(c.cues(), comicIndex(document, cue.cueId()))));
+                  c -> c.withCues(remove(c.cues(), unblockedIndex(document, cue.cueId()))));
         };
     if (result.hasVideo())
       result =
@@ -293,7 +293,7 @@ public final class DocumentEdits {
         || update.regions() == null
         || update.regions().isEmpty())
       throw new IllegalArgumentException("Current and replacement regions are required");
-    int index = comicIndex(document, command.cueId());
+    int index = unblockedIndex(document, command.cueId());
     var cue = document.comic().cues().get(index);
     if (!matches(cue.regions(), update.expectedRegions()))
       throw new IllegalArgumentException(
@@ -302,6 +302,18 @@ public final class DocumentEdits {
     if (update.order() != null) placed = placed.withOrder(update.order());
     var result = placed;
     return document.withComic(c -> c.withCue(index, old -> result));
+  }
+
+  /**
+   * Position of a bubble whose box may be moved or deleted. A text block's sentences share one box,
+   * so they are rearranged by an agent in the document rather than one sentence at a time.
+   */
+  private static int unblockedIndex(StudyDocument document, String cueId) {
+    int index = comicIndex(document, cueId);
+    if (document.comic().cues().get(index).inBlock())
+      throw new IllegalArgumentException(
+          "This box holds a text block split into sentences; it can't be moved or deleted here.");
+    return index;
   }
 
   /** One-based manifest position of a page; unknown pages are rejected. */

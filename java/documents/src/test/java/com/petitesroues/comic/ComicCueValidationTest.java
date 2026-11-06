@@ -69,6 +69,19 @@ class ComicCueValidationTest {
   }
 
   @Test
+  void textBlockSentencesShareRegionsAndContiguousOrders() {
+    var box = List.of(newRegion(.1, .6, .8, .3));
+    var first = new ComicCue(StudyCue.of("s1", "Une phrase."), "page", 1, box, "intro");
+    var second = new ComicCue(StudyCue.of("s2", "Une autre."), "page", 2, box, "intro");
+    var label = new ComicCue(StudyCue.of("label", "Introduction"), "page", 3, box);
+    valid(comic(first, second, label));
+    invalid(comic(first, second.withOrder(3), label.withOrder(2)));
+    invalid(comic(first, second.withRegions(List.of(newRegion(.1, .6, .8, .2)))));
+    invalid(comic(first.withBlock("in tro"), second.withBlock("in tro")));
+    valid(comic(first, second.withBlock("other")));
+  }
+
+  @Test
   void volumeIsOptionalButPositive() {
     for (Integer volume : new Integer[] {null, 1, 12}) valid(comic().withComic(volume(volume)));
     for (int volume : new int[] {0, -1}) invalid(comic().withComic(volume(volume)));

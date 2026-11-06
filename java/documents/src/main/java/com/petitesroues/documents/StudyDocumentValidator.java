@@ -12,6 +12,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.IllformedLocaleException;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -107,6 +108,37 @@ public final class StudyDocumentValidator {
     Set<String> orders = new HashSet<>();
     for (var cue : document.cues()) {
       checkCue(problems, cueId(cue.study()), () -> validateComicCue(cue, ids, cueIds, orders));
+    }
+    validateBlocks(document, problems);
+  }
+
+  /**
+   * Sentences of one text block share a page, identical regions and contiguous page orders, so
+   * readers can draw the block once and move through its sentences in order.
+   */
+  private static void validateBlocks(ComicDocument document, List<String> problems) {
+    Map<String, List<ComicCue>> blocks = new LinkedHashMap<>();
+    for (var cue : document.cues())
+      if (cue.inBlock())
+        blocks.computeIfAbsent(cue.pageId() + ":" + cue.block(), key -> new ArrayList<>()).add(cue);
+    for (var sentences : blocks.values()) {
+      var first = sentences.get(0);
+      checkCue(
+          problems,
+          cueId(first.study()),
+          () -> {
+            if (!first.block().matches("[A-Za-z0-9_-]+"))
+              throw new IllegalArgumentException(
+                  "Text block names use letters, numbers, underscores or hyphens");
+            var orders = sentences.stream().mapToInt(ComicCue::order).sorted().toArray();
+            // Page orders are unique, so a span equal to the count leaves no room for other cues.
+            if (orders[orders.length - 1] - orders[0] != orders.length - 1)
+              throw new IllegalArgumentException(
+                  "Sentences of text block " + first.block() + " need contiguous page orders");
+            if (sentences.stream().anyMatch(cue -> !cue.regions().equals(first.regions())))
+              throw new IllegalArgumentException(
+                  "Sentences of text block " + first.block() + " need identical regions");
+          });
     }
   }
 

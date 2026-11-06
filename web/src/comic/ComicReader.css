@@ -438,3 +438,56 @@ ul.comic-card-help {
   margin: 0;
   color: var(--dim);
 }
+/* Text blocks split into sentences: a list in the card, running text in the study panel. */
+.comic-bubble-popover.is-block-text {
+  max-height: min(80dvh, 720px);
+}
+.comic-block-stack {
+  display: grid;
+}
+.comic-block-stack > * {
+  grid-area: 1 / 1;
+  min-width: 0;
+}
+.comic-block-ghost {
+  visibility: hidden;
+}
+.comic-block-lines {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 6px;
+}
+.comic-block-line {
+  display: block;
+  padding: 4px 6px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+.comic-block-line:hover,
+.comic-block-line:focus-visible {
+  background: var(--mantine-color-default-hover);
+}
+.comic-block-open {
+  padding: 8px;
+  border-radius: 6px;
+  border: 1px solid var(--mantine-color-default-border);
+}
+.comic-block-context {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--mantine-color-dimmed);
+}
+.comic-block-context [role="button"] {
+  cursor: pointer;
+  border-radius: 3px;
+}
+.comic-block-context [role="button"]:hover {
+  color: var(--mantine-color-text);
+}
+.comic-block-context [data-active] {
+  color: var(--mantine-color-text);
+  background: var(--mantine-color-default-hover);
+}

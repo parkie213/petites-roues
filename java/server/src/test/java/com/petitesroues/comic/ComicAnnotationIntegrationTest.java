@@ -15,6 +15,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
 import org.springframework.web.client.RestClientResponseException;
 import tools.jackson.databind.JsonNode;
@@ -24,7 +25,7 @@ import tools.jackson.databind.JsonNode;
  * teaching material, stale-state protection, deletion and review rows.
  */
 class ComicAnnotationIntegrationTest extends HttpIntegrationTest {
-  private String register() throws Exception {
+  private String register(ComicCue... others) throws Exception {
     var existing =
         new ComicCue(
             StudyCue.of("page-001-bubble-01", "Salut !"),
@@ -37,7 +38,7 @@ class ComicAnnotationIntegrationTest extends HttpIntegrationTest {
             "Comic",
             ReadingDirection.UNSPECIFIED,
             List.of(newPage("page-001", "001.jpg", null), newPage("page-002", "002.jpg", null)),
-            existing);
+            Stream.concat(Stream.of(existing), Stream.of(others)).toArray(ComicCue[]::new));
     var folder = root.resolve("comic");
     Files.createDirectories(folder);
     Files.write(
@@ -181,5 +182,34 @@ class ComicAnnotationIntegrationTest extends HttpIntegrationTest {
     assertThrows(
         RestClientResponseException.class,
         () -> http.delete().uri(api + "/comic/cues/missing").retrieve().toBodilessEntity());
+  }
+
+  @Test
+  void keepsTextBlockBoxesInPlace() throws Exception {
+    var box = List.of(newRegion(.1, .6, .8, .3));
+    String api =
+        register(
+            new ComicCue(StudyCue.of("intro-1", "Une phrase."), "page-002", 1, box, "intro"),
+            new ComicCue(StudyCue.of("intro-2", "Une autre."), "page-002", 2, box, "intro"));
+    var move =
+        assertThrows(
+            RestClientResponseException.class,
+            () ->
+                http.put()
+                    .uri(api + "/comic/cues/intro-1/placement")
+                    .body(
+                        Map.of(
+                            "expectedRegions",
+                                List.of(Map.of("x", .1, "y", .6, "width", .8, "height", .3)),
+                            "regions",
+                                List.of(Map.of("x", .2, "y", .6, "width", .7, "height", .3))))
+                    .retrieve()
+                    .toBodilessEntity());
+    assertEquals(BAD_REQUEST.value(), move.getStatusCode().value());
+    var delete =
+        assertThrows(
+            RestClientResponseException.class,
+            () -> http.delete().uri(api + "/comic/cues/intro-2").retrieve().toBodilessEntity());
+    assertEquals(BAD_REQUEST.value(), delete.getStatusCode().value());
   }
 }

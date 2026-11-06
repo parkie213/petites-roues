@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import {
   clampRegion,
   pageCues,
+  pageUnits,
   pageLayout,
   regionFromDrag,
 } from "../src/comic/annotations.js";
@@ -62,4 +63,24 @@ test("drag rectangles are orientation-independent", () => {
   const up = regionFromDrag({ x: 0.2, y: 0.7 }, { x: 0.5, y: 0.5 });
   assert.deepEqual(down, up);
   assert.deepEqual(down, { x: 0.2, y: 0.5, width: 0.3, height: 0.2 });
+});
+
+test("a text block's sentences form one unit with the block's box", () => {
+  const box = [{ x: 0.1, y: 0.6, width: 0.8, height: 0.3 }];
+  const cues = [
+    { id: "title", pageId: "p", order: 1, regions: [] },
+    { id: "s1", pageId: "p", order: 2, regions: box, block: "intro" },
+    { id: "s2", pageId: "p", order: 3, regions: box, block: "intro" },
+    { id: "s3", pageId: "q", order: 1, regions: box, block: "intro" },
+  ];
+  const units = pageUnits(cues);
+  assert.deepEqual(
+    units.map((u) => [u.key, u.cues.map((c) => c.id)]),
+    [
+      ["title", ["title"]],
+      ["block:p:intro", ["s1", "s2"]],
+      ["block:q:intro", ["s3"]],
+    ],
+  );
+  assert.equal(units[1].regions, box);
 });

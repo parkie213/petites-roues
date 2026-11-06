@@ -16,7 +16,11 @@ import { ComicPhrasePairs } from "./ComicPhrasePairs.jsx";
 import { useStudyLanguages } from "../player/StudyLanguages.jsx";
 import { ListenButton } from "./ListenButton.jsx";
 
-/** Inspect an agent's proposed transcription and safely correct its text without changing regions. */
+/**
+ * Inspect an agent's proposed transcription and safely correct its text without changing regions.
+ * A sentence from a text block is shown inside its block's running text so its context stays in
+ * view; the other sentences are one click away.
+ */
 export function ComicStudyPanel({
   cues,
   cue,
@@ -62,6 +66,11 @@ export function ComicStudyPanel({
     }
   }
   const position = cues.findIndex((item) => item.id === cue?.id);
+  const block = cue?.block
+    ? cues.filter(
+        (item) => item.block === cue.block && item.pageId === cue.pageId,
+      )
+    : [];
   return (
     <aside
       className="comic-study-panel comic-phrases"
@@ -71,7 +80,11 @@ export function ComicStudyPanel({
         <Group justify="space-between" wrap="nowrap">
           <div>
             <Title order={2} size="h5">
-              {cue ? `Bubble ${position + 1} of ${cues.length}` : "This page"}
+              {!cue
+                ? "This page"
+                : block.length
+                  ? `Sentence ${block.indexOf(cue) + 1} of ${block.length}`
+                  : `Bubble ${position + 1} of ${cues.length}`}
             </Title>
             <Text size="xs" c="dimmed">
               Hover a bubble on the page to study it here.
@@ -105,6 +118,27 @@ export function ComicStudyPanel({
           </Text>
         ) : (
           <>
+            {block.length > 0 && !editing && (
+              <p className="comic-block-context" lang={sourceLanguage}>
+                {block.map((sentence, i) => [
+                  i > 0 && " ",
+                  <span
+                    key={sentence.id}
+                    role="button"
+                    tabIndex={0}
+                    data-active={sentence === cue || undefined}
+                    onClick={() => onSelect(sentence.id)}
+                    onKeyDown={(event) => {
+                      if (event.key !== "Enter" && event.key !== " ") return;
+                      event.preventDefault();
+                      onSelect(sentence.id);
+                    }}
+                  >
+                    {sentence.source}
+                  </span>,
+                ])}
+              </p>
+            )}
             {!cue.source && (
               <Text size="xs" c="dimmed">
                 Box saved · awaiting OCR or transcription

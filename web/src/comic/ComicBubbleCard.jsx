@@ -30,9 +30,10 @@ const AUTO_LISTEN_DELAY = 250;
  * a question box that sends the bubble to a chat app (see {@link AskBox}); it and the listen button
  * sit at the card's foot so the source line has the full width. Highlighting never changes the card's size, so it never moves under the
  * pointer. The bubble is read aloud with R, or on opening when listen-on-open is enabled; the
- * listen button reads the pinned phrase alone when one is pinned.
+ * listen button reads the pinned phrase alone when one is pinned. A quiet card never reads on
+ opening: it is a hidden copy that only reserves space (see {@link ComicBlockCard}).
  */
-export function ComicBubbleCard({ cue, document, onKeep }) {
+export function ComicBubbleCard({ cue, document, onKeep, quiet = false }) {
   const [asking, setAsking] = useState(false);
   const { sourceLanguage, translationLanguage } = useStudyLanguages();
   const { speak, autoListen } = useReadAloud();
@@ -58,7 +59,7 @@ export function ComicBubbleCard({ cue, document, onKeep }) {
     onClick: () => setPinned(pinned === index ? null : index),
   });
   useEffect(() => {
-    if (!autoListen || !cue.source) return;
+    if (quiet || !autoListen || !cue.source) return;
     const timer = setTimeout(() => speak(cue.source), AUTO_LISTEN_DELAY);
     return () => clearTimeout(timer);
   }, []);

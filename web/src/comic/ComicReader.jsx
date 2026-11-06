@@ -60,6 +60,8 @@ export function ComicReader({ id }) {
   const [studyOpen, setStudyOpen] = useStoredState("comic:study", false);
   const [debug, setDebug] = useStoredState("comic:debug", false);
   const [spread, setSpread] = useStoredState("comic:spread", false);
+  // How a text block split into sentences opens: one sentence at a time, or as a list.
+  const [blockMode, setBlockMode] = useStoredState("comic:block-mode", "step");
   const [autoListen, setAutoListen] = useStoredState(
     "comic:auto-listen",
     false,
@@ -488,7 +490,7 @@ export function ComicReader({ id }) {
                   </Button>
                 </Group>
               )}
-              {selected && (
+              {selected && !selected.block && (
                 <Button
                   size="compact-xs"
                   variant="subtle"
@@ -498,6 +500,12 @@ export function ComicReader({ id }) {
                 >
                   Delete selected bubble
                 </Button>
+              )}
+              {selected?.block && (
+                <Text size="sm" mt="xs" c="dimmed">
+                  The selected box is a text block split into sentences. It
+                  can't be moved or deleted here yet.
+                </Text>
               )}
             </Alert>
           )}
@@ -518,6 +526,8 @@ export function ComicReader({ id }) {
                 onLoaded={() => save(page.id)}
                 debug={debug}
                 cards={!studyOpen}
+                blockMode={blockMode}
+                onBlockMode={setBlockMode}
                 editing={locked}
                 annotate={annotate}
                 onDraw={addBubble}

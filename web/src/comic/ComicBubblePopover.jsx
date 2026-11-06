@@ -1,15 +1,21 @@
 import { Popover, Text } from "@mantine/core";
 import { useMediaQuery } from "@mantine/hooks";
 import { ComicBubbleCard } from "./ComicBubbleCard.jsx";
+import { ComicBlockCard } from "./ComicBlockCard.jsx";
 import { useStudyLanguages } from "../player/StudyLanguages.jsx";
 
 /**
  * Anchors a bubble's study card to its page region. The reader owns whether it is open and
  * pinned; this component only reports pointer movement across the card so hover can persist
- * while the learner explores phrases inside it.
+ * while the learner explores phrases inside it. A text block's card shows the reader's selected
+ * sentence (`cue`) within the block, stepping or listing as `blockMode` chooses.
  */
 export function ComicBubblePopover({
+  unit,
   cue,
+  blockMode,
+  onBlockMode,
+  onSelect,
   document,
   number,
   opened,
@@ -36,12 +42,28 @@ export function ComicBubblePopover({
     >
       <Popover.Target>{children}</Popover.Target>
       <Popover.Dropdown
-        className="comic-bubble-popover comic-phrases"
-        aria-label={`Bubble ${number}`}
+        className={
+          "comic-bubble-popover comic-phrases" +
+          (unit.block && blockMode === "text" ? " is-block-text" : "")
+        }
+        aria-label={unit.block ? `Text block ${number}` : `Bubble ${number}`}
         onPointerEnter={onPointerEnter}
         onPointerLeave={onPointerLeave}
       >
-        {cue.source ? (
+        {unit.block ? (
+          <ComicBlockCard
+            cues={unit.cues}
+            selectedId={cue.id}
+            onSelect={(id) => {
+              onKeep();
+              onSelect(id);
+            }}
+            mode={blockMode}
+            onMode={onBlockMode}
+            document={document}
+            onKeep={onKeep}
+          />
+        ) : cue.source ? (
           <ComicBubbleCard
             key={cue.id}
             cue={cue}
