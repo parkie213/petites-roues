@@ -56,23 +56,17 @@ class QuizPackTest {
 
   @Test
   fun aChapterBriefCarriesItsBubblesInReadingOrder() {
-    val pages = listOf("cover", "a1", "a2", "b1").map { ComicPage(it, "$it.png", null) }
-    val bubble = { page: String, order: Int, line: Line -> ComicBox("box-${line.id()}", page, order, listOf(ComicRegion(0.1, 0.1, 0.2, 0.2)), listOf(line)) }
-    val comic =
-      ComicDocument(
-        null,
-        ReadingDirection.RTL,
-        null,
-        pages,
-        listOf(ComicChapter(1, "Cruauté", "a1"), ComicChapter(2, "Inconnu", "b1")),
-        listOf(
-          bubble("a2", 2, cue("w", "Je te sauverai !", "I'll save you!")),
-          bubble("a2", 1, Line("n", "Nezuko…", "", listOf("A name called out."), null, false, null)),
-          bubble("a1", 1, cue("c", "C'est un cauchemar !")),
-          bubble("cover", 1, cue("t", "Demon Slayer")),
-          bubble("b1", 1, cue("e", "Excusez-moi…")),
-        ),
+    val bubble = { line: Line -> ComicBox("box-${line.id()}", listOf(ComicRegion(0.1, 0.1, 0.2, 0.2)), listOf(line)) }
+    val page = { id: String, lines: List<Line> -> ComicPage(id, "$id.png", null, lines.map(bubble)) }
+    val pages =
+      listOf(
+        page("cover", listOf(cue("t", "Demon Slayer"))),
+        page("a1", listOf(cue("c", "C'est un cauchemar !"))),
+        page("a2", listOf(Line("n", "Nezuko…", "", listOf("A name called out."), null, false, null), cue("w", "Je te sauverai !", "I'll save you!"))),
+        page("b1", listOf(cue("e", "Excusez-moi…"))),
       )
+    val comic =
+      ComicDocument(null, ReadingDirection.RTL, null, pages, listOf(ComicChapter(1, "Cruauté", "a1"), ComicChapter(2, "Inconnu", "b1")))
     val document = StudyDocument("t1", "Demon Slayer — Tome 1", "fr", "en", "en", null, null, null, null, comic)
     val pack = QuizPack.chapter("# Subtitle quiz agent\n\nRules.", document, comic, 0)
     assertTrue(pack.startsWith("# Chapter quiz: Demon Slayer — Tome 1, chapter 1 · Cruauté\n"))

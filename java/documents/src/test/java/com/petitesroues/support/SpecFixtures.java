@@ -21,13 +21,13 @@ public final class SpecFixtures {
     return new PhraseLink(source, translation, note);
   }
 
-  public static ComicPage newPage(String id, String entry, String label) {
-    return new ComicPage(id, entry, label);
+  public static ComicPage newPage(String id, String entry, String label, ComicBox... boxes) {
+    return new ComicPage(id, entry, label, List.of(boxes));
   }
 
   /** A box holding one line, identified as {@code box-} plus the line's ID. */
-  public static ComicBox newBubble(Line line, String pageId, int order, List<ComicRegion> regions) {
-    return new ComicBox("box-" + line.id(), pageId, order, regions, List.of(line));
+  public static ComicBox newBubble(Line line, List<ComicRegion> regions) {
+    return new ComicBox("box-" + line.id(), regions, List.of(line));
   }
 
   public static ComicRegion newRegion(double x, double y, double width, double height) {

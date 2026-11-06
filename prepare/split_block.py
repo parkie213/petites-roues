@@ -102,11 +102,11 @@ def main():
     args = parser.parse_args()
 
     document = json.loads(args.document.read_text(encoding="utf-8"))
-    found = [(box, i) for box in document["comic"]["boxes"]
+    found = [(page, box, i) for page in document["comic"]["pages"] for box in page.get("boxes", [])
              for i, line in enumerate(box["lines"]) if line["id"] == args.line]
     if not found:
         raise SystemExit(f"No comic line {args.line}.")
-    box, index = found[0]
+    page, box, index = found[0]
     line = box["lines"][index]
     sentences = split(line)
     if len(sentences) < 2:
@@ -115,7 +115,7 @@ def main():
     args.document.write_text(
         json.dumps(document, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
     )
-    print(f"{box['pageId']}: {len(sentences)} sentences in box {box['id']}")
+    print(f"{page['id']}: {len(sentences)} sentences in box {box['id']}")
     for sentence in sentences:
         print(f"  {sentence['source']}")
     if line.get("notes"):

@@ -31,8 +31,11 @@ records in `com.petitesroues.model.document` and checked by `StudyDocumentValida
 - A **line** is the unit of study: source text with its translation, notes and an optional
   phrase breakdown. A video cue holds one line. A comic box holds one or more lines in reading
   order; a box with several lines is a text block read a sentence at a time.
-- **Identity:** line IDs are unique within a document. Comic box IDs are UUIDs, unique among
-  boxes, in a namespace separate from line IDs. Box operations (place, delete) address the box;
+- A comic **page** holds its boxes in reading order: a box's page and order are where it sits,
+  not fields of its own. **Chapters** are an index over the page sequence: each names its first
+  page, so chapters can be added or corrected without moving pages.
+- **Identity:** line IDs are unique within a document. Comic box IDs are UUIDs, unique across
+  the comic, in a namespace separate from line IDs. Box operations (place, delete) address the box;
   text operations, comments and review requests address a line.
 - A `PhraseAlignment` is bound to its line's wording only through its chunks, which must spell
   out the line's source and translation exactly. A line with no alignment needs a breakdown.

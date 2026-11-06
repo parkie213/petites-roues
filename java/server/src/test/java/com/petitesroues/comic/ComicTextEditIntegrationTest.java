@@ -32,23 +32,17 @@ class ComicTextEditIntegrationTest extends HttpIntegrationTest {
                         List.of("Salut !"),
                         List.of("Hi!"),
                         List.of(newLink(List.of(0), List.of(0), "A greeting.")))),
-            "page",
-            1,
             List.of(newRegion(.1, .2, .3, .4)));
     var other =
         newBubble(
             Line.of("other", "Merci !").withTranslation("Thanks!"),
-            "page",
-            2,
             List.of(newRegion(.5, .5, .2, .2)));
     var doc =
         DocumentFixtures.comic(
             "comic",
             "Comic",
             ReadingDirection.LTR,
-            List.of(newPage("page", "001.jpg", null)),
-            cue,
-            other);
+            List.of(newPage("page", "001.jpg", null, cue, other)));
     var folder = root.resolve("comic");
     Files.createDirectories(folder);
     Files.write(
@@ -70,13 +64,14 @@ class ComicTextEditIntegrationTest extends HttpIntegrationTest {
     assertEquals("Bonjour !", edited.lines().getFirst().source());
     assertEquals(cue.regions(), edited.regions());
     assertEquals(cue.lines().getFirst().id(), edited.lines().getFirst().id());
-    assertEquals(cue.order(), edited.order());
     assertFalse(edited.lines().getFirst().translation() != null);
     assertTrue(edited.lines().getFirst().notes().isEmpty());
     assertFalse(edited.lines().getFirst().alignment() != null);
     assertEquals(other, result.comic().boxes().getLast());
     var json = mapper.readTree(new StudyDocumentCodec().encode(result));
-    assertFalse(json.path("comic").path("boxes").get(0).has("start"));
+    assertFalse(json.path("comic").has("boxes"), "boxes live in their pages");
+    var written = json.path("comic").path("pages").get(0).path("boxes").get(0);
+    assertFalse(written.has("pageId") || written.has("order") || written.has("start"));
     assertEquals(
         "Bonjour !",
         http.get()

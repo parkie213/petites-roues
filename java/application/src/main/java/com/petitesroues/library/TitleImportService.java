@@ -299,7 +299,7 @@ public class TitleImportService {
           new ComicPage("page-%03d".formatted(i + 1), entries.get(i), Integer.toString(i + 1)));
     var direction =
         Boolean.FALSE.equals(request.rightToLeft()) ? ReadingDirection.LTR : ReadingDirection.RTL;
-    return new ComicDocument(null, direction, null, pages, List.of(), List.of());
+    return new ComicDocument(null, direction, null, pages, List.of());
   }
 
   /** Image entries in natural order, so page-2 comes before page-10. */

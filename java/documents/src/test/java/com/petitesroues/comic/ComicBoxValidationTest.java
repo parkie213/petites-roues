@@ -7,6 +7,7 @@ import com.petitesroues.documents.StudyDocumentValidator;
 import com.petitesroues.model.document.ComicBox;
 import com.petitesroues.model.document.ComicChapter;
 import com.petitesroues.model.document.ComicDocument;
+import com.petitesroues.model.document.ComicPage;
 import com.petitesroues.model.document.Line;
 import com.petitesroues.model.document.ReadingDirection;
 import com.petitesroues.model.document.StudyDocument;
@@ -14,7 +15,12 @@ import java.util.List;
 import org.junit.jupiter.api.Test;
 
 class ComicBoxValidationTest {
-  private static StudyDocument comic(ComicBox... cues) {
+  /** A comic whose one page holds {@code boxes}. */
+  private static StudyDocument comic(ComicBox... boxes) {
+    return comic(List.of(newPage("page", "001.jpg", null, boxes)));
+  }
+
+  private static StudyDocument comic(List<ComicPage> pages) {
     return new StudyDocument(
         "comic",
         "Comic",
@@ -25,13 +31,7 @@ class ComicBoxValidationTest {
         null,
         null,
         null,
-        new ComicDocument(
-            null,
-            ReadingDirection.RTL,
-            null,
-            List.of(newPage("page", "001.jpg", null)),
-            List.of(),
-            List.of(cues)));
+        new ComicDocument(null, ReadingDirection.RTL, null, pages, List.of()));
   }
 
   private static void valid(StudyDocument document) {
@@ -43,12 +43,10 @@ class ComicBoxValidationTest {
   }
 
   @Test
-  void validatesPageReferencesReadingOrderAndNormalizedGeometry() {
-    var cue =
-        newBubble(Line.of("bubble", "Salut !"), "page", 1, List.of(newRegion(.1, .2, .3, .4)));
-    valid(comic(cue));
-    invalid(comic(newBubble(cue.lines().getFirst(), "missing", 1, cue.regions())));
-    invalid(comic(cue.withOrder(0)));
+  void validatesNormalizedGeometry() {
+    var box = newBubble(Line.of("bubble", "Salut !"), List.of(newRegion(.1, .2, .3, .4)));
+    valid(comic(box));
+    invalid(comic(box.withRegions(List.of())));
     for (var region :
         List.of(
             newRegion(-.1, 0, .1, .1),
@@ -56,34 +54,43 @@ class ComicBoxValidationTest {
             newRegion(0, 0, 0, .1),
             newRegion(0, 0, Double.NaN, .1),
             newRegion(0, 0, .1, Double.POSITIVE_INFINITY)))
-      invalid(comic(cue.withRegions(List.of(region))));
-
-    cue = cue.withRegions(List.of(newRegion(0, 0, 1, 1)));
-    var other = newBubble(Line.of("other", "Oui"), "page", 1, cue.regions());
-    invalid(comic(cue, other));
-    other = other.withOrder(2);
-    valid(comic(cue, other));
-    valid(comic(cue, other.withLine("other", s -> s.withSource(""))));
-    invalid(comic(cue, other.withLine("other", s -> s.withId("bubble"))));
+      invalid(comic(box.withRegions(List.of(region))));
+    // Two boxes may overlap; their order is their position on the page.
+    var other = newBubble(Line.of("other", "Oui"), box.regions());
+    valid(comic(box, other));
+    valid(comic(box, other.withLine("other", s -> s.withSource(""))));
+    invalid(comic(box, other.withLine("other", s -> s.withId("bubble"))));
   }
 
   @Test
   void aBoxHasItsOwnUniqueIdAndOneOrMoreUniquelyIdentifiedLines() {
-    var box = List.of(newRegion(.1, .6, .8, .3));
+    var region = List.of(newRegion(.1, .6, .8, .3));
     var first = Line.of("s1", "Une phrase.");
     var second = Line.of("s2", "Une autre.");
-    var block = new ComicBox("intro", "page", 1, box, List.of(first, second));
-    var label = newBubble(Line.of("label", "Introduction"), "page", 2, box);
+    var block = new ComicBox("intro", region, List.of(first, second));
+    var label = newBubble(Line.of("label", "Introduction"), region);
     valid(comic(block, label));
 
     invalid(comic(block.withLines(List.of())));
     invalid(comic(block.withLines(List.of(first, first))));
     invalid(comic(block.withLines(List.of(first, second.withId(" ")))));
-    invalid(comic(block, newBubble(Line.of("s2", "Encore"), "page", 2, box)));
-    invalid(comic(new ComicBox(" ", "page", 1, box, List.of(first))));
-    invalid(comic(block, new ComicBox("intro", "page", 2, box, List.of(Line.of("x", "X")))));
+    invalid(comic(block, newBubble(Line.of("s2", "Encore"), region)));
+    invalid(comic(new ComicBox(" ", region, List.of(first))));
+    invalid(comic(block, new ComicBox("intro", region, List.of(Line.of("x", "X")))));
     // Box and line IDs are separate namespaces.
-    valid(comic(block, new ComicBox("s1", "page", 2, box, List.of(Line.of("x", "X")))));
+    valid(comic(block, new ComicBox("s1", region, List.of(Line.of("x", "X")))));
+    // Box and line IDs are unique across the whole comic, not per page.
+    var elsewhere = new ComicBox("intro", region, List.of(Line.of("y", "Y")));
+    invalid(
+        comic(
+            List.of(
+                newPage("page", "001.jpg", null, block),
+                newPage("next", "002.jpg", null, elsewhere))));
+    invalid(
+        comic(
+            List.of(
+                newPage("page", "001.jpg", null, block),
+                newPage("next", "002.jpg", null, newBubble(first, region)))));
   }
 
   @Test
@@ -91,8 +98,6 @@ class ComicBoxValidationTest {
     var block =
         new ComicBox(
             "intro",
-            "page",
-            1,
             List.of(newRegion(.1, .6, .8, .3)),
             List.of(Line.of("s1", "Une phrase."), Line.of("s2", "Une autre.")));
     var changed = block.withLine("s2", s -> s.withTranslation("Another."));
@@ -112,12 +117,7 @@ class ComicBoxValidationTest {
   private static ComicDocument volume(Integer volume) {
     var base = comic().comic();
     return new ComicDocument(
-        volume,
-        base.readingDirection(),
-        base.annotationMethod(),
-        base.pages(),
-        base.chapters(),
-        base.boxes());
+        volume, base.readingDirection(), base.annotationMethod(), base.pages(), base.chapters());
   }
 
   @Test
@@ -144,7 +144,6 @@ class ComicBoxValidationTest {
             newPage("a", "001.jpg", null),
             newPage("b", "002.jpg", null),
             newPage("c", "003.jpg", null)),
-        List.of(chapters),
-        base.boxes());
+        List.of(chapters));
   }
 }

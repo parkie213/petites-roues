@@ -129,7 +129,7 @@ reads the pages instead:
    opens, minus its printed page.
 3. Look at every predicted first page (printed page + offset) and confirm it shows that
    chapter's heading; scans can add or drop pages, so re-measure the offset where one doesn't.
-4. Write the list between `pages` and `boxes`, check it with `POST /api/titles/{id}/validate`,
+4. Write the list after `pages`, check it with `POST /api/titles/{id}/validate`,
    and commit the documents.
 
 ## Annotate in three stages

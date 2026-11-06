@@ -14,17 +14,15 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class AskPackTest {
-  private val page = ComicPage("p1", "001.png", "12")
-
-  private fun bubble(line: Line, order: Int) = ComicBox("box-${line.id()}", "p1", order, listOf(), listOf(line))
+  private fun bubble(line: Line) = ComicBox("box-${line.id()}", listOf(), listOf(line))
 
   private val beau =
-    bubble(Line("a", "Il fait beau", "The weather is nice", listOf("Weather uses faire."), weather(), false, null), 1)
-  private val other = bubble(cue("b", "On sort ?", "Shall we go out?"), 2)
-  private val pending = bubble(cue("c"), 3)
+    bubble(Line("a", "Il fait beau", "The weather is nice", listOf("Weather uses faire."), weather(), false, null))
+  private val other = bubble(cue("b", "On sort ?", "Shall we go out?"))
+  private val pending = bubble(cue("c"))
 
-  private fun document(cues: List<ComicBox>) =
-    StudyDocument("comic", "Le Livre", "fr", "en", "en", null, null, null, null, ComicDocument(null, ReadingDirection.RTL, null, listOf(page), listOf(), cues))
+  private fun document(boxes: List<ComicBox>) =
+    StudyDocument("comic", "Le Livre", "fr", "en", "en", null, null, null, null, ComicDocument(null, ReadingDirection.RTL, null, listOf(ComicPage("p1", "001.png", "12", boxes)), listOf()))
 
   @Test
   fun carriesTheQuestionBubbleNotesAndPageContext() {
@@ -59,7 +57,7 @@ class AskPackTest {
   fun aTextBlockSentenceIsAskedAboutWithItsSentencesAsContext() {
     val first = cue("s1", "Jeune sœur de Tanjiro.", "Tanjiro's younger sister.")
     val second = cue("s2", "Elle a été transformée en démon.", "She was turned into a demon.")
-    val block = ComicBox("intro", "p1", 2, listOf(), listOf(first, second))
+    val block = ComicBox("intro", listOf(), listOf(first, second))
     val cues = listOf(other, block)
     val message = AskPack.build(document(cues), "4", second, cues, phrase = null, question = "")
     assertTrue("Bubble: Elle a été transformée en démon." in message)

@@ -8,19 +8,18 @@ import java.util.List;
 import java.util.function.UnaryOperator;
 
 /**
- * A box on a comic page at a reading position, holding the lines printed in it in reading order. A
- * speech bubble or caption usually has one line; a printed text block too long for one card (a
- * recap paragraph, a character profile) is split into one line per sentence, which readers show one
- * at a time or as a list.
+ * A box on a comic page, holding the lines printed in it in reading order. Its page and reading
+ * order are where it sits: the page whose {@code boxes} hold it, at that position. A speech bubble
+ * or caption usually has one line; a printed text block too long for one card (a recap paragraph, a
+ * character profile) is split into one line per sentence, which readers show one at a time or as a
+ * list.
  *
  * <p>{@code id} identifies the box itself and never changes with its text; box operations (moving,
  * reordering, deleting) address it. Text operations address a line by the line's own ID.
  */
-public record ComicBox(
-    String id, String pageId, int order, List<ComicRegion> regions, List<Line> lines) {
+public record ComicBox(String id, List<ComicRegion> regions, List<Line> lines) {
   public ComicBox {
     id = text(id);
-    pageId = text(pageId);
     regions = list(regions);
     lines = list(lines);
   }
@@ -42,14 +41,10 @@ public record ComicBox(
   }
 
   public ComicBox withLines(List<Line> lines) {
-    return new ComicBox(id, pageId, order, regions, lines);
-  }
-
-  public ComicBox withOrder(int order) {
-    return new ComicBox(id, pageId, order, regions, lines);
+    return new ComicBox(id, regions, lines);
   }
 
   public ComicBox withRegions(List<ComicRegion> regions) {
-    return new ComicBox(id, pageId, order, regions, lines);
+    return new ComicBox(id, regions, lines);
   }
 }

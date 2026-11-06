@@ -30,39 +30,49 @@ test("nested video responses retain zero timing, annotations and optional transl
   assert.deepEqual(wire, before);
 });
 
-test("comic boxes keep their own id and placement, and their lines know their box", () => {
+test("comic boxes come out of their pages, each knowing its page, order and lines", () => {
+  const box = (id, lineId) => ({
+    id,
+    regions: [{ x: 0, y: 0, width: 1, height: 1 }],
+    lines: [{ id: lineId, source: "Salut", translation: "Hi" }],
+  });
   const wire = {
     id: "book",
     comic: {
       readingDirection: "rtl",
-      pages: [{ id: "p1", entry: "001.jpg" }],
-      boxes: [
-        {
-          id: "box",
-          pageId: "p1",
-          order: 1,
-          regions: [{ x: 0, y: 0, width: 1, height: 1 }],
-          lines: [{ id: "bubble", source: "Salut", translation: "Hi" }],
-        },
+      pages: [
+        { id: "p1", entry: "001.jpg", boxes: [box("a", "la"), box("b", "lb")] },
+        { id: "p2", entry: "002.jpg", boxes: [box("c", "lc")] },
       ],
     },
   };
+  const before = structuredClone(wire);
   const view = playerDocument(wire);
-  const [box] = view.boxes;
   assert.equal(view.cues, undefined);
   assert.equal(view.readingDirection, "rtl");
-  assert.equal(box.id, "box");
-  assert.equal(box.pageId, "p1");
-  assert.equal(box.regions[0].width, 1);
-  assert.deepEqual(box.lines, [
+  assert.deepEqual(view.pages, [
+    { id: "p1", entry: "001.jpg" },
+    { id: "p2", entry: "002.jpg" },
+  ]);
+  assert.deepEqual(
+    view.boxes.map((b) => [b.id, b.pageId, b.order]),
+    [
+      ["a", "p1", 1],
+      ["b", "p1", 2],
+      ["c", "p2", 1],
+    ],
+  );
+  assert.equal(view.boxes[0].regions[0].width, 1);
+  assert.deepEqual(view.boxes[1].lines, [
     {
-      id: "bubble",
+      id: "lb",
       source: "Salut",
       translation: "Hi",
       pageId: "p1",
-      boxId: "box",
+      boxId: "b",
     },
   ]);
+  assert.deepEqual(wire, before);
 });
 
 test("request leaves local catalogue and review records outside the portable document model", async (t) => {
@@ -77,13 +87,17 @@ test("request leaves local catalogue and review records outside the portable doc
 test("a line of a box awaiting text has an empty source for later text edits", () => {
   const document = playerDocument({
     comic: {
-      boxes: [
+      pages: [
         {
-          id: "box",
-          pageId: "page",
-          order: 1,
-          regions: [{ x: 0.1, y: 0.2, width: 0.3, height: 0.4 }],
-          lines: [{ id: "pending" }],
+          id: "page",
+          entry: "001.jpg",
+          boxes: [
+            {
+              id: "box",
+              regions: [{ x: 0.1, y: 0.2, width: 0.3, height: 0.4 }],
+              lines: [{ id: "pending" }],
+            },
+          ],
         },
       ],
     },

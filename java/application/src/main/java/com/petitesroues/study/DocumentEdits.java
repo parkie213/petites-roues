@@ -12,6 +12,8 @@ import com.petitesroues.model.editing.DocumentEdit.*;
 import com.petitesroues.model.editing.UpdateCueTiming;
 import com.petitesroues.model.editing.VideoCueEdit;
 import java.util.*;
+import java.util.function.Predicate;
+import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
 
 /**
@@ -45,9 +47,7 @@ public final class DocumentEdits {
           case EditComicText text -> editComicText(comic(document), text);
           case CreateComicBox create -> createComicBox(comic(document), create);
           case PlaceComicBox place -> placeComicBox(comic(document), place);
-          case DeleteComicBox box ->
-              document.withComic(
-                  c -> c.withBoxes(remove(c.boxes(), boxIndex(document, box.boxId()))));
+          case DeleteComicBox box -> deleteComicBox(comic(document), box);
         };
     if (result.hasVideo())
       result =
@@ -105,7 +105,7 @@ public final class DocumentEdits {
     if (text == null || text.isBlank() || text.length() > 2000)
       throw new IllegalArgumentException("Write " + what + " (up to 2000 characters)");
     if (document.hasVideo()) index(document, cueId);
-    else lineBoxIndex(comic(document), cueId);
+    else lineBox(comic(document), cueId);
     return document;
   }
 
@@ -242,9 +242,9 @@ public final class DocumentEdits {
         || edit.source().isBlank()
         || edit.expectedSource() == null)
       throw new IllegalArgumentException("Current and replacement source text are required");
-    int index = lineBoxIndex(document, command.lineId());
+    var at = lineBox(document, command.lineId());
     var line =
-        document.comic().boxes().get(index).lines().stream()
+        at.box(document).lines().stream()
             .filter(l -> l.id().equals(command.lineId()))
             .findFirst()
             .orElseThrow();
@@ -257,14 +257,10 @@ public final class DocumentEdits {
             .withTranslation(null)
             .withNotes(List.of())
             .withAlignment(null);
-    return document.withComic(
-        c -> c.withBox(index, box -> box.withLine(command.lineId(), old -> replaced)));
+    return at.change(document, box -> box.withLine(command.lineId(), old -> replaced));
   }
 
-  /**
-   * Adds one box, with the queued box and line identities, at the next free reading position on its
-   * page.
-   */
+  /** Adds one box, with the queued box and line identities, after the last box on its page. */
   private static StudyDocument createComicBox(StudyDocument document, CreateComicBox command) {
     var create = command.create();
     if (create == null
@@ -272,35 +268,33 @@ public final class DocumentEdits {
         || create.pageId().isBlank()
         || create.region() == null)
       throw new IllegalArgumentException("Page and one region are required");
-    pagePosition(document, create.pageId());
+    int page = pagePosition(document, create.pageId()) - 1;
     var boxes = document.comic().boxes();
     if (boxes.stream().anyMatch(b -> b.id().equals(command.boxId())))
       throw new IllegalArgumentException("Box already exists: " + command.boxId());
     if (boxes.stream().anyMatch(b -> b.holds(command.lineId())))
       throw new IllegalArgumentException("Line already exists: " + command.lineId());
-    int order =
-        boxes.stream()
-                .filter(box -> box.pageId().equals(create.pageId()))
-                .mapToInt(ComicBox::order)
-                .max()
-                .orElse(0)
-            + 1;
     var added =
         new ComicBox(
             command.boxId(),
-            create.pageId(),
-            order,
             List.of(region(create.region())),
             List.of(
                 Line.of(command.lineId(), create.source() == null ? "" : create.source().trim())));
-    var updated = new ArrayList<>(boxes);
-    updated.add(added);
-    return document.withComic(c -> c.withBoxes(updated));
+    return document.withComic(
+        c ->
+            c.withPage(
+                page,
+                p -> {
+                  var updated = new ArrayList<>(p.boxes());
+                  updated.add(added);
+                  return p.withBoxes(updated);
+                }));
   }
 
   /**
-   * Replaces one box's regions and optional reading order, with all its lines. Stale expectations
-   * are rejected; text, translations, notes and alignments are preserved.
+   * Replaces one box's regions and, when {@code order} is given, moves it to that one-based
+   * position on its page, with all its lines. Stale expectations are rejected; text, translations,
+   * notes and alignments are preserved.
    */
   private static StudyDocument placeComicBox(StudyDocument document, PlaceComicBox command) {
     var update = command.update();
@@ -309,15 +303,26 @@ public final class DocumentEdits {
         || update.regions() == null
         || update.regions().isEmpty())
       throw new IllegalArgumentException("Current and replacement regions are required");
-    int index = boxIndex(document, command.boxId());
-    var box = document.comic().boxes().get(index);
+    var at = box(document, command.boxId());
+    var box = at.box(document);
     if (!matches(box.regions(), update.expectedRegions()))
       throw new IllegalArgumentException(
           "This bubble moved since you opened it. Reload before editing.");
     var placed = box.withRegions(update.regions().stream().map(DocumentEdits::region).toList());
-    if (update.order() != null) placed = placed.withOrder(update.order());
-    var result = placed;
-    return document.withComic(c -> c.withBox(index, old -> result));
+    var boxes = new ArrayList<>(document.comic().pages().get(at.page()).boxes());
+    boxes.remove(at.box());
+    int position = update.order() == null ? at.box() : update.order() - 1;
+    if (position < 0 || position > boxes.size())
+      throw new IllegalArgumentException("Reading order must be a position on the page");
+    boxes.add(position, placed);
+    return document.withComic(c -> c.withPage(at.page(), p -> p.withBoxes(boxes)));
+  }
+
+  /** Removes one box, with all its lines. */
+  private static StudyDocument deleteComicBox(StudyDocument document, DeleteComicBox command) {
+    var at = box(document, command.boxId());
+    return document.withComic(
+        c -> c.withPage(at.page(), p -> p.withBoxes(remove(p.boxes(), at.box()))));
   }
 
   /** One-based manifest position of a page; unknown pages are rejected. */
@@ -359,18 +364,34 @@ public final class DocumentEdits {
     throw new NoSuchElementException("Unknown cue: " + cueId);
   }
 
-  /** Position of the comic box {@code boxId}. */
-  private static int boxIndex(StudyDocument document, String boxId) {
-    var boxes = document.comic().boxes();
-    for (int i = 0; i < boxes.size(); i++) if (boxes.get(i).id().equals(boxId)) return i;
-    throw new NoSuchElementException("Unknown comic box: " + boxId);
+  /** Where a box sits: the index of its page, and its index among that page's boxes. */
+  private record BoxAt(int page, int box) {
+    ComicBox box(StudyDocument document) {
+      return document.comic().pages().get(page).boxes().get(box);
+    }
+
+    StudyDocument change(StudyDocument document, UnaryOperator<ComicBox> change) {
+      return document.withComic(c -> c.withPage(page, p -> p.withBox(box, change)));
+    }
   }
 
-  /** Position of the comic box holding the line {@code lineId}. */
-  private static int lineBoxIndex(StudyDocument document, String lineId) {
-    var boxes = document.comic().boxes();
-    for (int i = 0; i < boxes.size(); i++) if (boxes.get(i).holds(lineId)) return i;
-    throw new NoSuchElementException("Unknown comic line: " + lineId);
+  /** The first box matching {@code test}; {@code what} names it when there is none. */
+  private static BoxAt find(StudyDocument document, Predicate<ComicBox> test, String what) {
+    var pages = document.comic().pages();
+    for (int p = 0; p < pages.size(); p++)
+      for (int b = 0; b < pages.get(p).boxes().size(); b++)
+        if (test.test(pages.get(p).boxes().get(b))) return new BoxAt(p, b);
+    throw new NoSuchElementException("Unknown comic " + what);
+  }
+
+  /** The comic box {@code boxId}. */
+  private static BoxAt box(StudyDocument document, String boxId) {
+    return find(document, box -> box.id().equals(boxId), "box: " + boxId);
+  }
+
+  /** The comic box holding the line {@code lineId}. */
+  private static BoxAt lineBox(StudyDocument document, String lineId) {
+    return find(document, box -> box.holds(lineId), "line: " + lineId);
   }
 
   private static void validateTiming(Double start, Double end) {

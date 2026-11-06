@@ -37,6 +37,7 @@ class ComicPage {
   entry
   label?
 }
+note bottom of ComicPage : boxes in reading order
 class ComicChapter {
   number?
   title
@@ -44,8 +45,6 @@ class ComicChapter {
 }
 class ComicBox {
   id: UUID
-  pageId
-  order
 }
 class ComicRegion {
   x
@@ -77,7 +76,7 @@ VideoDocument *-- "0..*" VideoCue : cues
 VideoCue *-- "1" Line : line
 ComicDocument *-- "1..*" ComicPage : pages
 ComicDocument *-- "0..*" ComicChapter : chapters
-ComicDocument *-- "0..*" ComicBox : boxes
+ComicPage *-- "0..*" ComicBox : boxes
 ComicBox *-- "1..*" ComicRegion : regions
 ComicBox *-- "1..*" Line : lines
 Line *-- "0..1" PhraseAlignment : alignment

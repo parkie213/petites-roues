@@ -140,7 +140,6 @@ fun ReadScreen(
   val comic = document.comic()
   val pages = comic.pages()
   val rtl = comic.readingDirection() == ReadingDirection.RTL
-  val boxesByPage = remember(comic) { comic.boxes().sortedBy { it.order() }.groupBy { it.pageId() } }
   val reader = remember(title) { CbzReader(context.contentResolver, title.mediaUri!!) }
   val readAloud = remember(document) { ReadAloud(context, document.sourceLanguage()) }
   DisposableEffect(reader, readAloud) {
@@ -267,7 +266,7 @@ fun ReadScreen(
                   reader,
                   gutter,
                   pages[pageIndex],
-                  boxesByPage[pages[pageIndex].id()].orEmpty(),
+                  pages[pageIndex].boxes(),
                   selected ?: heard,
                   outlines,
                   onSelect = tap,
@@ -444,10 +443,10 @@ fun ReadScreen(
         onDismiss = { asking = null },
         onAsk = { question ->
           asking = null
-          val index = pages.indexOfFirst { it.id() == box.pageId() }.coerceAtLeast(0)
+          val index = pages.indexOfFirst { box in it.boxes() }.coerceAtLeast(0)
           AskShare.share(
             context,
-            AskPack.build(document, pageLabel(index), line, boxesByPage[box.pageId()].orEmpty(), phrase, question),
+            AskPack.build(document, pageLabel(index), line, pages[index].boxes(), phrase, question),
           )
         },
       )

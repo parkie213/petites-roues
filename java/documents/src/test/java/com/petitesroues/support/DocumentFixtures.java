@@ -1,6 +1,5 @@
 package com.petitesroues.support;
 
-import com.petitesroues.model.document.ComicBox;
 import com.petitesroues.model.document.ComicDocument;
 import com.petitesroues.model.document.ComicPage;
 import com.petitesroues.model.document.Line;
@@ -39,11 +38,7 @@ public final class DocumentFixtures {
 
   /** A French–English comic with the given pages and cues. */
   public static StudyDocument comic(
-      String id,
-      String title,
-      ReadingDirection direction,
-      List<ComicPage> pages,
-      ComicBox... cues) {
+      String id, String title, ReadingDirection direction, List<ComicPage> pages) {
     return new StudyDocument(
         id,
         title,
@@ -54,6 +49,6 @@ public final class DocumentFixtures {
         null,
         null,
         null,
-        new ComicDocument(null, direction, null, pages, List.of(), List.of(cues)));
+        new ComicDocument(null, direction, null, pages, List.of()));
   }
 }

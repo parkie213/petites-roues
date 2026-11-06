@@ -228,12 +228,14 @@ audio checks or video cues. The selected body determines the media type.
     "pages": [
       {
         "id": "cover",
-        "entry": "001.jpg"
+        "entry": "001.jpg",
+        "boxes": []
       },
       {
         "id": "page-one",
         "entry": "002.jpg",
-        "label": "1"
+        "label": "1",
+        "boxes": []
       }
     ],
     "chapters": [
@@ -242,8 +244,7 @@ audio checks or video cues. The selected body determines the media type.
         "title": "Cruauté",
         "pageId": "page-one"
       }
-    ],
-    "boxes": []
+    ]
   }
 }
 ```
@@ -294,19 +295,19 @@ checks. A `VideoCue` is one subtitle: its timing and audio verification beside o
 A `ComicBox` is a box on a page: its own `id`, its placement, and `lines`, the one or more
 lines printed in it in reading order.
 
-A comic's optional `comic.boxes` list defaults to empty. Each box has an `id` (a UUID) that
-identifies the box itself and never changes with its text, a stable page ID, a positive `order`
-unique on that page, one or more rectangles in normalized coordinates relative to the entire
-original image (including margins), and at least one line. Box IDs are unique among boxes and
-line IDs unique across the comic; the two are separate namespaces. Explicit order determines the bubble sequence; position
-alone does not determine manga reading order. Coordinates must be finite, dimensions positive,
-and every rectangle must fit within [0, 1] on both axes.
+Each page's `boxes` list (default empty) holds the boxes printed on it, in reading order: a
+box's page is the page that holds it, and its position in the list is its reading order. The
+list order is explicit because position on the page alone does not determine manga reading
+order. Each box has an `id` (a UUID) that identifies the box itself and never changes with its
+text, one or more rectangles in normalized coordinates relative to the entire original image
+(including margins), and at least one line. Box IDs and line IDs are each unique across the
+whole comic, and the two are separate namespaces. Coordinates must be finite, dimensions
+positive, and every rectangle must fit within [0, 1] on both axes. Chapters stay a separate
+list that names each chapter's first page, rather than holding pages.
 
 ```json
 {
   "id": "6f1c2a9e-4b7d-4e0a-9c3f-2d8b5e7a1c40",
-  "pageId": "page-one",
-  "order": 1,
   "regions": [
     {
       "x": 0.6,
@@ -353,8 +354,10 @@ Like every player edit, it is served over the file until an agent writes it ther
 
 In Annotate mode, dragging on the page immediately saves a box through
 `POST /api/titles/{id}/comic/boxes` with `pageId`, `region` and optional `source`; the server
-assigns UUIDs to the box and its first line. `PUT …/comic/boxes/{boxId}/placement` moves or
-resizes a box and `DELETE …/comic/boxes/{boxId}` removes it with its lines.
+assigns UUIDs to the box and its first line and adds it after the page's last box.
+`PUT …/comic/boxes/{boxId}/placement` moves or resizes a box, and with an optional `order`
+moves it to that one-based position on its page. `DELETE …/comic/boxes/{boxId}` removes it with
+its lines.
 Creating, moving/resizing or deleting a box queues an `annotate` edit in the
 same review queue as video edits. Text can be added afterward through the existing
 comic text editor. Failed box saves remain available for retry or discard.

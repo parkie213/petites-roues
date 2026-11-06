@@ -8,27 +8,25 @@
     "pages": [
       {
         "id": "page-1",
-        "entry": "001.jpg"
-      }
-    ],
-    "boxes": [
-      {
-        "id": "88a9081b-8811-43bc-8607-e5d98441edf7",
-        "pageId": "page-1",
-        "order": 1,
-        "regions": [
+        "entry": "001.jpg",
+        "boxes": [
           {
-            "x": 0.1,
-            "y": 0.1,
-            "width": 0.3,
-            "height": 0.2
-          }
-        ],
-        "lines": [
-          {
-            "id": "04bb8a44-555d-489e-93cc-a85cc49263b6",
-            "source": "Bonjour !",
-            "notes": []
+            "id": "88a9081b-8811-43bc-8607-e5d98441edf7",
+            "regions": [
+              {
+                "x": 0.1,
+                "y": 0.1,
+                "width": 0.3,
+                "height": 0.2
+              }
+            ],
+            "lines": [
+              {
+                "id": "04bb8a44-555d-489e-93cc-a85cc49263b6",
+                "source": "Bonjour !",
+                "notes": []
+              }
+            ]
           }
         ]
       }

@@ -16,7 +16,6 @@ import java.nio.file.Files;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
 import org.springframework.web.client.RestClientResponseException;
 import tools.jackson.databind.JsonNode;
@@ -26,20 +25,18 @@ import tools.jackson.databind.JsonNode;
  * teaching material, stale-state protection, deletion and review rows.
  */
 class ComicAnnotationIntegrationTest extends HttpIntegrationTest {
-  private String register(ComicBox... others) throws Exception {
+  /** One bubble on page-001, and {@code onPage2} on page-002. */
+  private String register(ComicBox... onPage2) throws Exception {
     var existing =
-        newBubble(
-            Line.of("page-001-bubble-01", "Salut !"),
-            "page-001",
-            1,
-            List.of(newRegion(.1, .2, .3, .4)));
+        newBubble(Line.of("page-001-bubble-01", "Salut !"), List.of(newRegion(.1, .2, .3, .4)));
     var doc =
         DocumentFixtures.comic(
             "comic",
             "Comic",
             ReadingDirection.LTR,
-            List.of(newPage("page-001", "001.jpg", null), newPage("page-002", "002.jpg", null)),
-            Stream.concat(Stream.of(existing), Stream.of(others)).toArray(ComicBox[]::new));
+            List.of(
+                newPage("page-001", "001.jpg", null, existing),
+                newPage("page-002", "002.jpg", null, onPage2)));
     var folder = root.resolve("comic");
     Files.createDirectories(folder);
     Files.write(
@@ -66,14 +63,14 @@ class ComicAnnotationIntegrationTest extends HttpIntegrationTest {
                     "region", Map.of("x", .2, "y", .3, "width", .1, "height", .05)))
             .retrieve()
             .body(StudyDocument.class);
-    var created = result.comic().boxes().getLast();
+    var page = result.comic().pages().get(1);
+    var created = page.boxes().getLast();
     var line = created.lines().getFirst();
     // Box and line get their own fresh UUIDs.
     assertDoesNotThrow(() -> UUID.fromString(created.id()));
     assertDoesNotThrow(() -> UUID.fromString(line.id()));
     assertNotEquals(created.id(), line.id());
-    assertEquals("page-002", created.pageId());
-    assertEquals(1, created.order());
+    assertEquals(List.of(created), page.boxes());
     assertEquals("MERCI.", line.source());
     var queued = http.get().uri(api + "/review-queue").retrieve().body(JsonNode.class);
     assertTrue(queued.toString().contains("annotate"));
@@ -157,7 +154,7 @@ class ComicAnnotationIntegrationTest extends HttpIntegrationTest {
             .body(StudyDocument.class);
     assertEquals(.15, moved.comic().boxes().get(0).regions().get(0).x());
     assertEquals("Salut !", moved.comic().boxes().get(0).lines().getFirst().source());
-    assertEquals(1, moved.comic().boxes().get(0).order());
+    assertEquals("box-page-001-bubble-01", moved.comic().pages().get(0).boxes().getFirst().id());
     var stale =
         assertThrows(
             RestClientResponseException.class,
@@ -190,14 +187,56 @@ class ComicAnnotationIntegrationTest extends HttpIntegrationTest {
   }
 
   @Test
+  void reordersABoxOnItsPage() throws Exception {
+    var region = List.of(newRegion(.1, .1, .2, .2));
+    String api =
+        register(
+            newBubble(Line.of("a", "A"), region),
+            newBubble(Line.of("b", "B"), region),
+            newBubble(Line.of("c", "C"), region));
+    var placement = Map.of("x", .1, "y", .1, "width", .2, "height", .2);
+    var reordered =
+        http.put()
+            .uri(api + "/comic/boxes/box-c/placement")
+            .body(
+                Map.of(
+                    "expectedRegions",
+                    List.of(placement),
+                    "regions",
+                    List.of(placement),
+                    "order",
+                    1))
+            .retrieve()
+            .body(StudyDocument.class);
+    assertEquals(
+        List.of("box-c", "box-a", "box-b"),
+        reordered.comic().pages().get(1).boxes().stream().map(ComicBox::id).toList());
+    var beyond =
+        assertThrows(
+            RestClientResponseException.class,
+            () ->
+                http.put()
+                    .uri(api + "/comic/boxes/box-c/placement")
+                    .body(
+                        Map.of(
+                            "expectedRegions",
+                            List.of(placement),
+                            "regions",
+                            List.of(placement),
+                            "order",
+                            4))
+                    .retrieve()
+                    .toBodilessEntity());
+    assertEquals(BAD_REQUEST.value(), beyond.getStatusCode().value());
+  }
+
+  @Test
   void editsOneLineOfATextBlockAndMovesOrDeletesItsBoxWhole() throws Exception {
     var box = List.of(newRegion(.1, .6, .8, .3));
     String api =
         register(
             new ComicBox(
                 "intro",
-                "page-002",
-                1,
                 box,
                 List.of(Line.of("intro-1", "Une phrase."), Line.of("intro-2", "Une autre."))));
     var edited =

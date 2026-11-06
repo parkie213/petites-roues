@@ -64,7 +64,7 @@ class ComicIntegrationTest extends HttpIntegrationTest {
     assertEquals(comic.comic().pages(), loaded.comic().pages());
     var exported = http.get().uri(api + "/export").retrieve().body(JsonNode.class);
     assertTrue(exported.has("comic"));
-    assertTrue(exported.path("comic").path("boxes").isEmpty());
+    assertTrue(exported.path("comic").path("pages").get(0).path("boxes").isEmpty());
     assertFalse(exported.has("durationSeconds"));
     assertInstanceOf(
         StudyDocument.class, new StudyDocumentReader().decode(mapper.writeValueAsBytes(exported)));

@@ -86,12 +86,11 @@ object QuizPack {
     val start = { i: Int -> pages.indexOfFirst { it.id() == comic.chapters()[i].pageId() } }
     val first = start(index)
     val last = if (index + 1 < comic.chapters().size) start(index + 1) - 1 else pages.size - 1
-    val byPage = comic.boxes().groupBy { it.pageId() }
     val items =
       (first..last).flatMap { position ->
         val page = pages[position]
         val name = "Page ${page.label().orEmpty().ifBlank { "${position + 1}" }}"
-        byPage[page.id()].orEmpty().sortedBy { it.order() }.flatMap { it.lines() }.filter { it.source().isNotBlank() }.map { Item(it, group = name) }
+        page.boxes().flatMap { it.lines() }.filter { it.source().isNotBlank() }.map { Item(it, group = name) }
       }
     val name = Chapters.name(chapter)
     return brief(

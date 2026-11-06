@@ -16,12 +16,13 @@ REPAIRS = 2
 
 def cues_of(document):
     """Every line in reading order, each as a cue-like dict with a "line" key. A video cue is
-    itself; a comic box gives one view per line holding the box's pageId and order, whose
-    "line" is the line in the document, so changes write through."""
+    itself; a comic line gives a view holding its page's id and its box's one-based order on the
+    page, whose "line" is the line in the document, so changes write through."""
     if document.get("video"):
         return document["video"]["cues"]
-    return [{"line": line, "pageId": box["pageId"], "order": box["order"]}
-            for box in document["comic"]["boxes"] for line in box["lines"]]
+    return [{"line": line, "pageId": page["id"], "order": order}
+            for page in document["comic"]["pages"]
+            for order, box in enumerate(page.get("boxes", []), 1) for line in box["lines"]]
 
 
 def plan(document, wanted, size):

@@ -105,9 +105,8 @@ public final class StudyDocumentValidator {
     validateChapters(document);
     Set<String> boxIds = new HashSet<>();
     Set<String> lineIds = new HashSet<>();
-    Set<String> orders = new HashSet<>();
     for (var box : document.boxes()) {
-      check(problems, box.id(), () -> validateComicBox(box, ids, boxIds, orders));
+      check(problems, box.id(), () -> validateComicBox(box, boxIds));
       // Text problems are reported under the line's own ID, which is what review and preparation
       // address.
       for (var line : box.lines())
@@ -141,18 +140,12 @@ public final class StudyDocumentValidator {
     }
   }
 
-  /** A box: its own unique ID, at least one line, a known page and order, and valid regions. */
-  private static void validateComicBox(
-      ComicBox box, Set<String> pageIds, Set<String> boxIds, Set<String> orders) {
+  /** A box: its own ID, unique across the comic, at least one line, and valid regions. */
+  private static void validateComicBox(ComicBox box, Set<String> boxIds) {
     if (box.id().isBlank() || !boxIds.add(box.id()))
       throw new IllegalArgumentException("Comic box IDs must be unique and nonempty");
     if (box.lines().isEmpty())
       throw new IllegalArgumentException("A comic box needs at least one line");
-    if (!pageIds.contains(box.pageId())
-        || box.order() <= 0
-        || !orders.add(box.pageId() + ":" + box.order()))
-      throw new IllegalArgumentException(
-          "Comic boxes need a known page and unique positive page order");
     if (box.regions().isEmpty())
       throw new IllegalArgumentException("Comic boxes require at least one region");
     for (var region : box.regions()) {

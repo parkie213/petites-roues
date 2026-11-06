@@ -50,12 +50,7 @@ class CardIntegrationTest extends HttpIntegrationTest {
     comic =
         comic.withComic(
             new ComicDocument(
-                1,
-                comic.comic().readingDirection(),
-                null,
-                comic.comic().pages(),
-                List.of(),
-                List.of()));
+                1, comic.comic().readingDirection(), null, comic.comic().pages(), List.of()));
     Files.writeString(
         tome.resolve("document.json"),
         new StudyDocumentCodec().encode(comic),
