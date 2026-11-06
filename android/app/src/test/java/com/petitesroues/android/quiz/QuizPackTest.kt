@@ -22,7 +22,7 @@ class QuizPackTest {
   private fun at(start: Double, line: Line) = VideoCue(line, start, start + 2, null)
 
   private fun document(cues: List<VideoCue>) =
-    StudyDocument("film", "Le Film", "fr", "en", "en", null, null, null, VideoDocument(null, null, null, null, cues), null)
+    StudyDocument("film", "Le Film", "fr", "en", "en", null, null, null, VideoDocument(null, null, null, null, cues))
 
   private fun build(cues: List<VideoCue>, current: Int) =
     QuizPack.build("# Subtitle quiz agent\n\nRules.", document(cues), cues, current)
@@ -67,7 +67,7 @@ class QuizPackTest {
       )
     val comic =
       ComicDocument(null, ReadingDirection.RTL, null, pages, listOf(ComicChapter(1, "Cruauté", "a1"), ComicChapter(2, "Inconnu", "b1")))
-    val document = StudyDocument("t1", "Demon Slayer — Tome 1", "fr", "en", "en", null, null, null, null, comic)
+    val document = StudyDocument("t1", "Demon Slayer — Tome 1", "fr", "en", "en", null, null, null, comic)
     val pack = QuizPack.chapter("# Subtitle quiz agent\n\nRules.", document, comic, 0)
     assertTrue(pack.startsWith("# Chapter quiz: Demon Slayer — Tome 1, chapter 1 · Cruauté\n"))
     assertTrue("## Bubbles in chapter 1 · Cruauté (pages 2–3)\n\nPick items from all over these lines, in a mixed order" in pack)

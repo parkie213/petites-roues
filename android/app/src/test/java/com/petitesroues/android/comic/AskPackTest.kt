@@ -22,7 +22,7 @@ class AskPackTest {
   private val pending = bubble(cue("c"))
 
   private fun document(boxes: List<ComicBox>) =
-    StudyDocument("comic", "Le Livre", "fr", "en", "en", null, null, null, null, ComicDocument(null, ReadingDirection.RTL, null, listOf(ComicPage("p1", "001.png", "12", boxes)), listOf()))
+    StudyDocument("comic", "Le Livre", "fr", "en", "en", null, null, null, ComicDocument(null, ReadingDirection.RTL, null, listOf(ComicPage("p1", "001.png", "12", boxes)), listOf()))
 
   @Test
   fun carriesTheQuestionBubbleNotesAndPageContext() {

@@ -14,7 +14,7 @@ class StudyDocumentValidatorTest {
   private static final VideoCue CUE = new VideoCue(Line.of("cue-a", "Bonjour"), 0.0, 1.0, null);
 
   private static StudyDocument document(VideoDocument video) {
-    return new StudyDocument("example", "Example", "fr", "en", "en", null, null, null, video, null);
+    return new StudyDocument("example", "Example", "fr", "en", "en", null, null, null, video);
   }
 
   private static StudyDocument document(VideoCue... cues) {
@@ -23,6 +23,26 @@ class StudyDocumentValidatorTest {
 
   private static void invalid(StudyDocument document) {
     assertThrows(IllegalArgumentException.class, () -> StudyDocumentValidator.validate(document));
+  }
+
+  @Test
+  void aDocumentHasExactlyOneBodyUnderItsKind() {
+    var codec = new StudyDocumentCodec();
+    String metadata =
+        "\"id\": \"x\", \"title\": \"X\", \"sourceLanguage\": \"fr\","
+            + " \"translationLanguage\": \"en\", \"notesLanguage\": \"en\"";
+    String video = "\"video\": {\"cues\": []}";
+    String comic = "\"comic\": {\"pages\": [{\"id\": \"p\", \"entry\": \"001.jpg\"}]}";
+    for (String body : new String[] {"", ", " + video + ", " + comic})
+      assertEquals(
+          List.of("Invalid study document: Exactly one video or comic body is required"),
+          codec.problems(("{" + metadata + body + "}").getBytes()));
+    for (String body : new String[] {video, comic}) {
+      String encoded = codec.encode(codec.decode(("{" + metadata + ", " + body + "}").getBytes()));
+      assertTrue(encoded.contains("\"" + body.substring(1, 6) + "\": {"), encoded);
+      assertFalse(encoded.contains("\"body\""), encoded);
+    }
+    assertThrows(IllegalArgumentException.class, () -> document((VideoDocument) null));
   }
 
   @Test

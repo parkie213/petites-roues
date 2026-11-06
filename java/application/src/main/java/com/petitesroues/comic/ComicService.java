@@ -26,8 +26,8 @@ public class ComicService {
   /** Requires a comic document; video titles cannot acquire comic reading progress. */
   public StudyDocument document(String id) throws IOException {
     var document = library.document(id);
-    if (document.hasComic()) return document;
-    throw new IllegalArgumentException("This operation requires a comic document");
+    document.comic();
+    return document;
   }
 
   /**

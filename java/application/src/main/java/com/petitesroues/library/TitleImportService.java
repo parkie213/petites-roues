@@ -223,8 +223,9 @@ public class TitleImportService {
             null,
             null,
             null,
-            comic ? null : new VideoDocument(null, null, null, null, List.of()),
-            comic ? comicBody(file, request) : null);
+            comic
+                ? comicBody(file, request)
+                : new VideoDocument(null, null, null, null, List.of()));
     int audioTrack = 0;
     if (!comic) {
       var tracks = ffmpeg.audioTracks(file);

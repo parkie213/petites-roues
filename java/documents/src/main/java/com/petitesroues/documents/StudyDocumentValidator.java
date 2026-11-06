@@ -53,7 +53,7 @@ public final class StudyDocumentValidator {
   }
 
   private static void validateDocument(StudyDocument document, List<String> problems) {
-    if (document == null || (!document.hasVideo() && !document.hasComic()))
+    if (document == null)
       throw new IllegalArgumentException("Exactly one video or comic body is required");
     if (document.id().isBlank()) {
       throw new IllegalArgumentException("A nonblank document id is required");
@@ -64,11 +64,8 @@ public final class StudyDocumentValidator {
     validateLanguage(document.sourceLanguage(), "Source");
     validateLanguage(document.translationLanguage(), "Translation");
     validateLanguage(document.notesLanguage(), "Notes");
-    if (document.hasComic()) {
-      validateComic(document.comic(), problems);
-      return;
-    }
-    validateVideo(document.video(), problems);
+    if (document.body() instanceof ComicDocument comic) validateComic(comic, problems);
+    else validateVideo(document.video(), problems);
   }
 
   private static String lineId(Line line) {

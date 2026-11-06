@@ -32,8 +32,7 @@ public final class DocumentFixtures {
         null,
         null,
         null,
-        new VideoDocument(null, null, null, null, List.of(cue)),
-        null);
+        new VideoDocument(null, null, null, null, List.of(cue)));
   }
 
   /** A French–English comic with the given pages and cues. */
@@ -45,7 +44,6 @@ public final class DocumentFixtures {
         "fr",
         "en",
         "en",
-        null,
         null,
         null,
         null,

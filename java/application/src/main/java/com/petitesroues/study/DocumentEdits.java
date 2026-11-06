@@ -2,10 +2,12 @@ package com.petitesroues.study;
 
 import com.petitesroues.documents.StudyDocumentValidator;
 import com.petitesroues.model.document.ComicBox;
+import com.petitesroues.model.document.ComicDocument;
 import com.petitesroues.model.document.ComicRegion;
 import com.petitesroues.model.document.Line;
 import com.petitesroues.model.document.StudyDocument;
 import com.petitesroues.model.document.VideoCue;
+import com.petitesroues.model.document.VideoDocument;
 import com.petitesroues.model.editing.ComicRegionInput;
 import com.petitesroues.model.editing.DocumentEdit;
 import com.petitesroues.model.editing.DocumentEdit.*;
@@ -49,7 +51,7 @@ public final class DocumentEdits {
           case PlaceComicBox place -> placeComicBox(comic(document), place);
           case DeleteComicBox box -> deleteComicBox(comic(document), box);
         };
-    if (result.hasVideo())
+    if (result.body() instanceof VideoDocument)
       result =
           withVideoCues(
               result,
@@ -104,8 +106,10 @@ public final class DocumentEdits {
       StudyDocument document, String cueId, String text, String what) {
     if (text == null || text.isBlank() || text.length() > 2000)
       throw new IllegalArgumentException("Write " + what + " (up to 2000 characters)");
-    if (document.hasVideo()) index(document, cueId);
-    else lineBox(comic(document), cueId);
+    switch (document.body()) {
+      case VideoDocument video -> index(document, cueId);
+      case ComicDocument comic -> lineBox(document, cueId);
+    }
     return document;
   }
 
@@ -332,15 +336,15 @@ public final class DocumentEdits {
     throw new NoSuchElementException("Unknown comic page: " + pageId);
   }
 
+  /** The document, once it is known to be a video; see {@link StudyDocument#video()}. */
   private static StudyDocument video(StudyDocument document) {
-    if (!document.hasVideo())
-      throw new IllegalArgumentException("This operation requires a video document");
+    document.video();
     return document;
   }
 
+  /** The document, once it is known to be a comic; see {@link StudyDocument#comic()}. */
   private static StudyDocument comic(StudyDocument document) {
-    if (!document.hasComic())
-      throw new IllegalArgumentException("This operation requires a comic document");
+    document.comic();
     return document;
   }
 

@@ -27,7 +27,10 @@ records in `com.petitesroues.model.document` and checked by `StudyDocumentValida
 
 ![Study document model](diagrams/document-model.svg)
 
-- A `StudyDocument` has exactly one body: `video` or `comic`.
+- A `StudyDocument` is shared metadata plus exactly one body, a sealed `StudyBody` that is
+  either a `VideoDocument` or a `ComicDocument`. The body is never null, so a document can't
+  have both or neither, and code that depends on the kind switches over `body()`. In JSON the
+  body sits under its kind, `"video"` or `"comic"`.
 - A **line** is the unit of study: source text with its translation, notes and an optional
   phrase breakdown. A video cue holds one line. A comic box holds one or more lines in reading
   order; a box with several lines is a text block read a sentence at a time.

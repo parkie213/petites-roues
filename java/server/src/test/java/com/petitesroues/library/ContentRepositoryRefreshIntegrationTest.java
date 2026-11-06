@@ -212,8 +212,7 @@ class ContentRepositoryRefreshIntegrationTest {
             null,
             null,
             "French edition",
-            new VideoDocument(null, null, null, 120.0, original.video().cues()),
-            null);
+            new VideoDocument(null, null, null, 120.0, original.video().cues()));
     write("a", changed);
     write("b", document("new-title"));
     byte[] expected = Files.readAllBytes(file);

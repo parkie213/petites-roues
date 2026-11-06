@@ -151,8 +151,7 @@ class ContentRepositoryServiceTest {
             null,
             null,
             "French edition",
-            new VideoDocument(null, null, null, 120.0, video.cues()),
-            null);
+            new VideoDocument(null, null, null, 120.0, video.cues()));
     when(reader.read(second)).thenReturn(added);
     when(registration.register(
             new RepositoryContentService.Registration(first.toString(), true), ID))

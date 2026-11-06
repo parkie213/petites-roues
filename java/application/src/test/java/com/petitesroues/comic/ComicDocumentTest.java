@@ -27,7 +27,6 @@ class ComicDocumentTest {
         null,
         null,
         null,
-        null,
         new ComicDocument(null, ReadingDirection.RTL, null, pages, List.of()));
   }
 

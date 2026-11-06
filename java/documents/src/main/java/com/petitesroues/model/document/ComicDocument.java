@@ -23,7 +23,8 @@ public record ComicDocument(
     ReadingDirection readingDirection,
     String annotationMethod,
     List<ComicPage> pages,
-    List<ComicChapter> chapters) {
+    List<ComicChapter> chapters)
+    implements StudyBody {
   public ComicDocument {
     if (readingDirection == null) readingDirection = ReadingDirection.LTR;
     pages = list(pages);

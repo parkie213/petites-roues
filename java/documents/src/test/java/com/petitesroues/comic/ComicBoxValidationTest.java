@@ -30,7 +30,6 @@ class ComicBoxValidationTest {
         null,
         null,
         null,
-        null,
         new ComicDocument(null, ReadingDirection.RTL, null, pages, List.of()));
   }
 
@@ -110,8 +109,8 @@ class ComicBoxValidationTest {
 
   @Test
   void volumeIsOptionalButPositive() {
-    for (Integer volume : new Integer[] {null, 1, 12}) valid(comic().withComic(volume(volume)));
-    for (int volume : new int[] {0, -1}) invalid(comic().withComic(volume(volume)));
+    for (Integer volume : new Integer[] {null, 1, 12}) valid(comic().withBody(volume(volume)));
+    for (int volume : new int[] {0, -1}) invalid(comic().withBody(volume(volume)));
   }
 
   private static ComicDocument volume(Integer volume) {
@@ -122,16 +121,16 @@ class ComicBoxValidationTest {
 
   @Test
   void chaptersStartOnKnownPagesInReadingOrder() {
-    valid(comic().withComic(chapters()));
+    valid(comic().withBody(chapters()));
     var one = new ComicChapter(1, "Cruauté", "b");
     var two = new ComicChapter(2, "Inconnu", "c");
-    valid(comic().withComic(chapters(one, two)));
-    valid(comic().withComic(chapters(new ComicChapter(null, "Bonus", "a"), one)));
-    invalid(comic().withComic(chapters(two, one)));
-    invalid(comic().withComic(chapters(one, new ComicChapter(2, "Inconnu", "b"))));
-    invalid(comic().withComic(chapters(new ComicChapter(1, "Cruauté", "missing"))));
-    invalid(comic().withComic(chapters(new ComicChapter(1, " ", "b"))));
-    invalid(comic().withComic(chapters(new ComicChapter(0, "Cruauté", "b"))));
+    valid(comic().withBody(chapters(one, two)));
+    valid(comic().withBody(chapters(new ComicChapter(null, "Bonus", "a"), one)));
+    invalid(comic().withBody(chapters(two, one)));
+    invalid(comic().withBody(chapters(one, new ComicChapter(2, "Inconnu", "b"))));
+    invalid(comic().withBody(chapters(new ComicChapter(1, "Cruauté", "missing"))));
+    invalid(comic().withBody(chapters(new ComicChapter(1, " ", "b"))));
+    invalid(comic().withBody(chapters(new ComicChapter(0, "Cruauté", "b"))));
   }
 
   private static ComicDocument chapters(ComicChapter... chapters) {

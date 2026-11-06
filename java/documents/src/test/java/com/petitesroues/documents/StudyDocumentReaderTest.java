@@ -4,6 +4,7 @@ import static com.petitesroues.support.DocumentFixtures.document;
 import static com.petitesroues.support.SpecFixtures.*;
 import static org.junit.jupiter.api.Assertions.*;
 
+import com.petitesroues.model.document.ComicDocument;
 import com.petitesroues.model.document.StudyDocument;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
@@ -26,7 +27,7 @@ class StudyDocumentReaderTest {
       try (var input = getClass().getResourceAsStream("/documents/" + type + ".json")) {
         var loaded = reader.decode(input.readAllBytes());
         assertEquals(loaded, roundTrip(loaded));
-        assertEquals(type.equals("comic"), loaded.hasComic());
+        assertEquals(type.equals("comic"), loaded.body() instanceof ComicDocument);
       }
     }
   }
