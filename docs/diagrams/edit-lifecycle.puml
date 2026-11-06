@@ -1,0 +1,20 @@
+@startuml
+skinparam shadowing false
+skinparam defaultFontName sans-serif
+hide empty description
+
+[*] --> Pending : player or reader edit,\nwith any new IDs fixed
+Pending : replayed over the file\nwhenever the document is served
+Pending --> Conflict : no longer applies\nto the file
+Conflict : not replayed;\ndecided by hand
+Pending --> Claimed : agent claims a batch\n(records the file's SHA-256)
+Claimed : still replayed while the\nfile has the claimed hash
+Claimed --> Written : agent writes\ndocument.json
+Written : the file has changed;\nnot replayed again
+Written --> Completed : agent completes\nthe batch
+Conflict --> Completed : agent completes\nthe batch
+Claimed --> Completed : complete unchanged, only if\nnot_adopted, comment or review-request
+Pending --> [*] : discarded by\nthe player
+Completed : outcome: applied, already_correct,\nnot_adopted or reviewed
+Completed --> [*]
+@enduml

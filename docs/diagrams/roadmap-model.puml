@@ -1,0 +1,45 @@
+@startuml
+hide methods
+hide circle
+skinparam shadowing false
+skinparam classAttributeIconSize 0
+skinparam defaultFontName sans-serif
+skinparam class {
+  BackgroundColor<<planned>> #FFF8E6
+  BorderColor<<planned>> #C08A1E
+}
+
+package "Portable" {
+  class StudyDocument
+  class MediaFingerprint <<planned>> {
+    partial hash
+    durationSeconds
+  }
+}
+package "Local" {
+  class Title
+  class MediaFolder <<planned>> {
+    path
+  }
+  class MediaLink <<planned>> {
+    path
+    how: beside | located | matched
+  }
+  class Device <<planned>> {
+    paired phone
+  }
+  class OfflineSet <<planned>> {
+    titles kept on the phone
+  }
+  class QueuedEdit
+}
+
+StudyDocument *-- "0..1" MediaFingerprint : made for
+Title ..> StudyDocument
+Title "1" *-- "0..1" MediaLink
+MediaLink ..> MediaFolder : inside
+MediaLink ..> MediaFingerprint : checked against
+Device "1" *-- "1" OfflineSet
+OfflineSet o-- "0..*" Title
+Device ..> QueuedEdit : sends edits
+@enduml

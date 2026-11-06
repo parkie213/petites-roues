@@ -1,0 +1,85 @@
+@startuml
+hide methods
+hide circle
+skinparam shadowing false
+skinparam classAttributeIconSize 0
+skinparam defaultFontName sans-serif
+left to right direction
+
+class StudyDocument {
+  id
+  title
+  sourceLanguage
+  translationLanguage
+  notesLanguage
+  series?
+  sourceUrl?
+  edition?
+}
+class VideoDocument {
+  season?
+  episode?
+  transcriptionMethod?
+  durationSeconds?
+}
+class VideoCue {
+  start
+  end
+  listeningCheck?
+}
+class ComicDocument {
+  volume?
+  readingDirection: ltr | rtl
+  annotationMethod?
+}
+class ComicPage {
+  id
+  entry
+  label?
+}
+class ComicChapter {
+  number?
+  title
+  pageId
+}
+class ComicBox {
+  id: UUID
+  pageId
+  order
+}
+class ComicRegion {
+  x
+  y
+  width
+  height
+}
+class Line {
+  id
+  source
+  translation?
+  notes
+  continuesPrevious
+  textCheck?
+}
+class PhraseAlignment {
+  source chunks
+  translation chunks
+}
+class PhraseLink {
+  source indices
+  translation indices
+  note?
+}
+
+StudyDocument --> "0..1" VideoDocument : video
+StudyDocument --> "0..1" ComicDocument : comic
+VideoDocument *-- "0..*" VideoCue : cues
+VideoCue *-- "1" Line : line
+ComicDocument *-- "1..*" ComicPage : pages
+ComicDocument *-- "0..*" ComicChapter : chapters
+ComicDocument *-- "0..*" ComicBox : boxes
+ComicBox *-- "1..*" ComicRegion : regions
+ComicBox *-- "1..*" Line : lines
+Line *-- "0..1" PhraseAlignment : alignment
+PhraseAlignment *-- "1..*" PhraseLink : links
+@enduml

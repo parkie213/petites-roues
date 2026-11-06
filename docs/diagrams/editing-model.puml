@@ -1,0 +1,53 @@
+@startuml
+hide methods
+hide circle
+skinparam shadowing false
+skinparam classAttributeIconSize 0
+skinparam defaultFontName sans-serif
+
+class Title <<library>>
+
+class ReviewBatch {
+  baseSha256
+  createdAt
+  completedAt?
+}
+class QueuedEdit {
+  sequence
+  timestamp
+  kind
+  cueIds
+  outcome?
+}
+interface DocumentEdit <<command>>
+
+class "Video edits" as VideoEdits {
+  Timing
+  EditVideoCue
+  AddVideoCue
+  SplitVideoCue
+  MergeVideoCues
+  DeleteVideoCue
+  Suggestion
+  -- address a cue by its line id --
+}
+class "Comic edits" as ComicEdits {
+  EditComicText: lineId
+  CreateComicBox: boxId, lineId
+  PlaceComicBox: boxId
+  DeleteComicBox: boxId
+}
+class "Feedback" as Feedback {
+  Comment
+  ReviewRequest
+  -- changes nothing in the document --
+}
+
+Title "1" *-- "0..*" QueuedEdit
+Title "1" *-- "0..*" ReviewBatch
+ReviewBatch "0..1" o-- "0..*" QueuedEdit : claims
+QueuedEdit *-- "1" DocumentEdit : command
+DocumentEdit <|.. VideoEdits
+DocumentEdit <|.. ComicEdits
+DocumentEdit <|.. Feedback
+@enduml
