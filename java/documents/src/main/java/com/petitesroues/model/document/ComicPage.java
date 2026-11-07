@@ -3,6 +3,7 @@ package com.petitesroues.model.document;
 import static com.petitesroues.model.document.Defaults.list;
 import static com.petitesroues.model.document.Defaults.text;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import java.util.ArrayList;
 import java.util.List;
@@ -15,6 +16,9 @@ import java.util.function.UnaryOperator;
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public record ComicPage(String id, String entry, String label, List<ComicBox> boxes) {
+  // Named as the JSON creator: on Android records are compiled to plain classes, and with two
+  // constructors Jackson would not know which one to use.
+  @JsonCreator
   public ComicPage {
     id = text(id);
     entry = text(entry);
