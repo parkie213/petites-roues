@@ -20,6 +20,7 @@ import java.util.Map;
  * @param episode optional episode number
  * @param volume optional comic volume (tome) number
  * @param shelf the library shelf the document names, or null for the default for its type
+ * @param sourceLanguage the document's source language (BCP 47), or null
  * @param sourceUrl optional reference to the source material
  * @param repositoryId owning repository identity, or {@code null} for a standalone registration
  * @param repositoryName owning repository display name, or {@code null} for a standalone entry
@@ -55,6 +56,7 @@ public record CatalogueItem(
     Integer episode,
     Integer volume,
     String shelf,
+    String sourceLanguage,
     String sourceUrl,
     String repositoryId,
     String repositoryName,

@@ -201,7 +201,9 @@ documents/
 
 The library's Posters view shows a card per title or series, for media with or without a study
 document. A study document whose media was not found has no card; the Documents view lists every
-document with the media it links to, or why it has none. Posters live with the media, as in a Plex library, not with study documents, so they
+document with the media it links to, or why it has none. When the library holds documents in more than
+one `sourceLanguage`, chips above Posters show one language at a time (Documents always lists every document); media without
+a study document has no declared language and shows only under All languages. Posters live with the media, as in a Plex library, not with study documents, so they
 show before any document exists. Images are `.jpg`, `.jpeg`, `.png` or `.webp`:
 
 - A video or CBZ alone in its folder (a film or tome folder) uses that folder's `poster.*`.

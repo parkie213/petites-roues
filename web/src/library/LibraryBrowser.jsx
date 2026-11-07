@@ -246,7 +246,7 @@ export function LibraryBrowser({
         <Box
           component="nav"
           className="library-browser-column"
-          aria-label="Folders"
+          aria-label="Repositories"
           p="sm"
         >
           <Text
@@ -258,7 +258,7 @@ export function LibraryBrowser({
             py="xs"
             mb="xs"
           >
-            Folders
+            Repositories
           </Text>
           {data.repos.map((item) => (
             <NavLink

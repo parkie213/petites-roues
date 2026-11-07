@@ -22,6 +22,8 @@ CREATE TABLE titles (
   volume INTEGER,
   -- The library shelf the document names; null means the default for its kind.
   shelf TEXT,
+  -- The document's source language (BCP 47), for filtering the library by language.
+  source_language TEXT,
   source_url TEXT,
   document_path TEXT NOT NULL,
   missing INTEGER NOT NULL DEFAULT 0,

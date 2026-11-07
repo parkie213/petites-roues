@@ -19,6 +19,7 @@ import java.nio.file.Path;
  * @param episode optional episode number
  * @param volume optional comic volume (tome) number
  * @param shelf the library shelf the document names, or null for the default
+ * @param sourceLanguage the document's source language (BCP 47), or null when not indexed
  * @param sourceUrl optional reference to the source material
  * @param documentPath document path relative to the owning repository, or absolute for a standalone
  *     registration
@@ -33,10 +34,11 @@ public record CatalogueEntry(
     Integer episode,
     Integer volume,
     String shelf,
+    String sourceLanguage,
     String sourceUrl,
     String documentPath,
     CatalogueLocation location) {
-  /** Creates an entry on the default shelf. */
+  /** Creates an entry on the default shelf, without an indexed language. */
   public CatalogueEntry(
       String id,
       String documentId,
@@ -56,6 +58,7 @@ public record CatalogueEntry(
         season,
         episode,
         volume,
+        null,
         null,
         sourceUrl,
         documentPath,

@@ -33,6 +33,7 @@ public class CatalogueStore {
         (Integer) row.getObject("episode"),
         (Integer) row.getObject("volume"),
         row.getString("shelf"),
+        row.getString("source_language"),
         row.getString("source_url"),
         row.getString("document_path"),
         new CatalogueLocation(
@@ -76,10 +77,10 @@ public class CatalogueStore {
     jdbc.update(
         """
         INSERT INTO titles (
-          id, document_id, title, series, season, episode, volume, shelf, source_url,
-          document_path, repository_id, missing, duration_seconds, document_type,
+          id, document_id, title, series, season, episode, volume, shelf, source_language,
+          source_url, document_path, repository_id, missing, duration_seconds, document_type,
           reference_fingerprint
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ON CONFLICT(id) DO UPDATE SET
           document_id = excluded.document_id,
           title = excluded.title,
@@ -88,6 +89,7 @@ public class CatalogueStore {
           episode = excluded.episode,
           volume = excluded.volume,
           shelf = excluded.shelf,
+          source_language = excluded.source_language,
           source_url = excluded.source_url,
           document_path = excluded.document_path,
           repository_id = excluded.repository_id,
@@ -104,6 +106,7 @@ public class CatalogueStore {
         title.episode(),
         title.volume(),
         title.shelf(),
+        title.sourceLanguage(),
         title.sourceUrl(),
         title.documentPath(),
         title.location().repositoryId(),

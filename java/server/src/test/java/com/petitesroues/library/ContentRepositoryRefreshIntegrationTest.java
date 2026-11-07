@@ -237,6 +237,7 @@ class ContentRepositoryRefreshIntegrationTest {
     var entry = catalogue.find("existing").orElseThrow();
     assertEquals("Updated", entry.title());
     assertEquals("Cartoons", entry.shelf(), "the document's shelf is indexed");
+    assertEquals(changed.sourceLanguage(), entry.sourceLanguage(), "and its source language");
     assertNull(catalogue.find("new-title").orElseThrow().shelf(), "no shelf means the default");
     assertEquals(120.0, entry.location().durationSeconds());
     assertTrue(catalogue.contains("new-title"));

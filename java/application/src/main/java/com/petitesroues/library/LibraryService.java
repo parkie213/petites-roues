@@ -256,6 +256,7 @@ public class LibraryService {
               entry.episode(),
               entry.volume(),
               entry.shelf(),
+              entry.sourceLanguage(),
               entry.sourceUrl(),
               details == null ? null : details.repositoryId(),
               details == null ? null : details.repositoryName(),

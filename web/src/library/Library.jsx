@@ -9,6 +9,7 @@ import {
   Loader,
   Modal,
   Paper,
+  Chip,
   SegmentedControl,
   Stack,
   Text,
@@ -39,6 +40,12 @@ import {
 } from "./navigation.js";
 import "./Library.css";
 import { librarySummary } from "./summary.js";
+import {
+  inLanguage,
+  languagesIn,
+  rememberLanguage,
+  storedLanguage,
+} from "./language.js";
 import { rememberLibraryPage } from "../shared/library-return.js";
 import { Documents } from "./Documents.jsx";
 
@@ -151,6 +158,15 @@ export function Library() {
     );
   }
 
+  const [language, setLanguage] = useState(storedLanguage);
+  const languages = data ? languagesIn(data.repos) : [];
+  // A remembered language no longer in the library shows everything.
+  const chosen = languages.some((item) => item.tag === language)
+    ? language
+    : null;
+  // Only Posters follow the language. Documents is the master list and Repositories shows folders
+  // as they are, so neither hides anything; the summary describes the whole library.
+  const shown = data && { ...data, repos: inLanguage(data.repos, chosen) };
   const summary = data && librarySummary(data.repos);
   return (
     <Box component="main" className="mantine-library">
@@ -252,7 +268,7 @@ export function Library() {
                     value={selection.view}
                     onChange={switchView}
                     data={[
-                      { value: "columns", label: "Columns" },
+                      { value: "columns", label: "Repositories" },
                       { value: "posters", label: "Posters" },
                       { value: "documents", label: "Documents" },
                     ]}
@@ -262,6 +278,32 @@ export function Library() {
               </Group>
             )}
           </Group>
+          {languages.length > 1 && selection.view === "posters" && (
+            <Chip.Group
+              value={chosen ?? ""}
+              onChange={(value) => {
+                rememberLanguage(value || null);
+                setLanguage(value || null);
+              }}
+            >
+              <Group gap="xs" role="group" aria-label="Language">
+                <Chip value="" size="sm" variant="light">
+                  All languages
+                </Chip>
+                {languages.map((item) => (
+                  <Chip
+                    key={item.tag}
+                    value={item.tag}
+                    size="sm"
+                    variant="light"
+                    lang={item.tag}
+                  >
+                    {item.label}
+                  </Chip>
+                ))}
+              </Group>
+            </Chip.Group>
+          )}
           {error && (
             <Alert
               color="red"
@@ -300,7 +342,7 @@ export function Library() {
             <Documents data={data} />
           ) : data && selection.view === "posters" ? (
             <Posters
-              data={data}
+              data={shown}
               selection={selection}
               go={go}
               onChanged={(failure) => {
@@ -327,7 +369,8 @@ export function Library() {
           )}
           {data?.repos.length > 0 && selection.view === "columns" && (
             <Text size="xs" c="dimmed">
-              Browse folders to find your titles and study notes.
+              Browse each repository's folders to find your titles and study
+              notes.
             </Text>
           )}
         </Stack>
