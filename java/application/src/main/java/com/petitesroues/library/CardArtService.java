@@ -2,7 +2,6 @@ package com.petitesroues.library;
 
 import com.petitesroues.comic.CbzReader;
 import com.petitesroues.comic.ComicService;
-import com.petitesroues.library.discovery.TitleMediaResolver;
 import com.petitesroues.library.persistence.CatalogueStore;
 import com.petitesroues.media.Ffmpeg;
 import java.io.IOException;
@@ -23,10 +22,11 @@ import org.springframework.stereotype.Service;
 
 /**
  * Chooses and caches the images on library cards. Card images live with media, not with study
- * documents ({@link TitleMediaResolver}): a title card shows its linked media's own poster, else a
- * comic's first manifest page; a series card shows the series poster for that media. A media file
- * no document references has the same cards, keyed by its fingerprint, with a CBZ's first entry by
- * name as its cover. Without one, the library draws a placeholder.
+ * documents (found by Refresh, see {@link com.petitesroues.library.discovery.ContentScanner}): a
+ * title card shows its linked media's own poster, else a comic's first manifest page; a series card
+ * shows the series poster for that media. A media file no document references has the same cards,
+ * keyed by its fingerprint, with a CBZ's first entry by name as its cover. Without one, the library
+ * draws a placeholder.
  *
  * <p>Images are downscaled once to card size and kept in a local cache directory, never in content
  * folders. A card's version is derived from its source files' paths, sizes and modification times,

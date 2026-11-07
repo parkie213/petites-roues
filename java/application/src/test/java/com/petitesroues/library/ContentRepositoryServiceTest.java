@@ -7,6 +7,8 @@ import static org.mockito.Mockito.*;
 
 import com.petitesroues.documents.StudyDocumentReader;
 import com.petitesroues.library.discovery.ContentRepositoryScanner;
+import com.petitesroues.library.discovery.ContentScanner;
+import com.petitesroues.library.discovery.PathContentTree;
 import com.petitesroues.library.persistence.CatalogueStore;
 import com.petitesroues.library.persistence.ContentRepositoryStore;
 import com.petitesroues.library.persistence.MediaStore;
@@ -24,6 +26,7 @@ import java.nio.file.Path;
 import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.function.Consumer;
+import java.util.stream.Stream;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -62,8 +65,14 @@ class ContentRepositoryServiceTest {
     lenient().when(reader.isStudyDocument(any())).thenReturn(true);
   }
 
-  private static ContentRepositoryScanner.Discovery found(Path... documents) {
-    return new ContentRepositoryScanner.Discovery(List.of(documents), List.of(), List.of());
+  private static ContentScanner.Discovery<Path> found(Path... documents) {
+    return new ContentScanner.Discovery<>(
+        Stream.of(documents)
+            .map(
+                document -> new ContentScanner.Found<>(document.getFileName().toString(), document))
+            .toList(),
+        List.of(),
+        0);
   }
 
   private void knownRepository() {
@@ -223,9 +232,7 @@ class ContentRepositoryServiceTest {
             new IndexedMedia(
                 ID, folder.toString(), "gone.mp4", "video", 1, 0, "v1:gone", 60.0, "aac", true));
     when(media.inRepository(ID)).thenReturn(previous);
-    when(scanner.scan(folder))
-        .thenReturn(
-            new ContentRepositoryScanner.Discovery(List.of(), List.of(changed, kept), List.of()));
+    when(scanner.scan(folder)).thenReturn(ContentScanner.scan(new PathContentTree(folder)));
     when(probe.video(changed)).thenReturn(new MediaProbe.Probe("v1:new", 30.0, "ac3", false));
 
     service.refresh(ID);
@@ -246,6 +253,16 @@ class ContentRepositoryServiceTest {
                     30.0,
                     "ac3",
                     false),
-                previous.getFirst()));
+                new IndexedMedia(
+                    null,
+                    folder.toString(),
+                    "kept.mp4",
+                    "video",
+                    1,
+                    keptTime,
+                    "v1:kept",
+                    60.0,
+                    "aac",
+                    true)));
   }
 }

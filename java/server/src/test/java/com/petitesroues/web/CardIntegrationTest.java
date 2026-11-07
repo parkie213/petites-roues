@@ -95,8 +95,10 @@ class CardIntegrationTest extends HttpIntegrationTest {
     assertEquals(720, cover.getHeight());
     assertEquals(404, status(api + "/series-card"));
 
-    // A poster in the CBZ's own folder replaces the cover under a new URL; small images stay small.
+    // A poster in the CBZ's own folder, found by Refresh, replaces the cover under a new URL; small
+    // images stay small.
     Files.write(tome.resolve("poster.png"), image(100, 150));
+    http.post().uri("/api/repositories/refresh").retrieve().toBodilessEntity();
     assertTrue(onlyTitle().posterAvailable());
     assertEquals(100, image(api + "/card").getWidth());
     assertNotEquals(coverUrl, location(api + "/card"), "replaced source must change the URL");
@@ -113,9 +115,11 @@ class CardIntegrationTest extends HttpIntegrationTest {
     // The nearest poster above the CBZ's own folder is the series card, the registered folder
     // included (it may be the series folder itself).
     Files.write(root.resolve("manga/poster.jpg"), image(10, 10));
+    http.post().uri("/api/repositories/refresh").retrieve().toBodilessEntity();
     assertTrue(onlyTitle().seriesPosterAvailable());
     assertEquals(10, image(api + "/series-card").getWidth());
     Files.write(series.resolve("poster.png"), image(300, 450));
+    http.post().uri("/api/repositories/refresh").retrieve().toBodilessEntity();
     assertEquals(300, image(api + "/series-card").getWidth());
 
     // A CBZ no document references has the same cards by fingerprint: its first page by name.
@@ -147,6 +151,7 @@ class CardIntegrationTest extends HttpIntegrationTest {
     assertEquals(60, image(mediaApi + "/card").getWidth());
     assertEquals(10, image(mediaApi + "/series-card").getWidth());
     Files.write(loose.resolve("extra.webp"), image(50, 75));
+    http.post().uri("/api/repositories/refresh").retrieve().toBodilessEntity();
     assertEquals(50, image(mediaApi + "/card").getWidth());
 
     // Without a poster or CBZ there is no card image: the library draws a placeholder.

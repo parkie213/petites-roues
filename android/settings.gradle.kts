@@ -29,7 +29,7 @@ if (!providers.gradleProperty("prebuiltLibrary").isPresent) {
   providers
     .exec {
       workingDir = settingsDir.resolve("../java")
-      commandLine("./mvnw", "-q", "-B", "-pl", "documents", "-am", "install", "-DskipTests")
+      commandLine("./mvnw", "-q", "-B", "-pl", "documents,library", "-am", "install", "-DskipTests")
     }
     .result
     .get()

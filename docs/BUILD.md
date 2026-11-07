@@ -30,10 +30,15 @@ and the validation and phrase alignment rules. It depends only on Jackson, with 
 JDBC or HTTP dependencies, so the Android app uses the same jar. Its main code
 is pinned to Java 17 (`maven.compiler.release`) because Android's library and D8 need it;
 its tests stay on Java 25.
-`java/application` depends on documents and owns services, stores, content discovery,
-media readers and local application models. `java/server` depends on application
+`java/library` holds the library's rules shared with the Android app: one walk of a
+registered folder through a small `ContentTree` interface (java.nio on the desktop, the
+Storage Access Framework on Android), what counts as a document, video or comic, where
+posters are, and the v1 media fingerprint. Like documents it has no Spring and targets
+Java 17, and the Android app uses its jar.
+`java/application` depends on documents and library, and owns services, stores, media
+readers and local application models. `java/server` depends on application
 and supplies HTTP controllers, framework wiring, database migrations and startup.
-The dependency direction is `server → application → documents`.
+The dependency direction is `server → application → documents, library`.
 
 Unit tests live beside their owning module. Documents tests load examples from
 `java/documents/src/test/resources/documents/` and publish a test-only fixtures JAR for application/server tests. HTTP

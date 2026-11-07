@@ -1,7 +1,6 @@
 package com.petitesroues.library;
 
 import com.petitesroues.comic.ReadingProgressStore;
-import com.petitesroues.library.discovery.TitleMediaResolver;
 import com.petitesroues.library.persistence.CatalogueStore;
 import com.petitesroues.library.persistence.ContentRepositoryStore;
 import com.petitesroues.model.document.StudyDocument;
@@ -98,49 +97,33 @@ public class LibraryService {
   }
 
   /**
-   * Returns the title's own poster, which lives with its linked media ({@link
-   * TitleMediaResolver#poster}); empty if the title is unknown, has no media or has no poster.
-   *
-   * @throws IllegalArgumentException if several posters are present
+   * Returns the title's own poster, which lives with its linked media and was found by Refresh
+   * ({@link com.petitesroues.library.discovery.ContentScanner}); empty if the title is unknown, has
+   * no media or has no poster.
    */
   public Optional<Path> poster(String id) throws IOException {
     var item = repository.find(id).flatMap(media::media);
     return item.isEmpty() ? Optional.empty() : Optional.ofNullable(poster(item.get()));
   }
 
-  /**
-   * Returns the series poster for the title's linked media ({@link
-   * TitleMediaResolver#seriesPoster}), or empty.
-   *
-   * @throws IllegalArgumentException if a folder has several posters
-   */
+  /** Returns the series poster for the title's linked media, as Refresh found it, or empty. */
   public Optional<Path> seriesPoster(String id) throws IOException {
     var item = repository.find(id).flatMap(media::media);
     return item.isEmpty() ? Optional.empty() : Optional.ofNullable(seriesPoster(item.get()));
   }
 
-  /** The media file's own poster, or null. */
-  public static Path poster(IndexedMedia item) throws IOException {
-    return TitleMediaResolver.poster(item.file());
+  /** The media file's own poster as Refresh found it, or null when none or since removed. */
+  public static Path poster(IndexedMedia item) {
+    return present(item.poster());
   }
 
-  /** The media file's series poster within its registered folder, or null. */
-  public static Path seriesPoster(IndexedMedia item) throws IOException {
-    return TitleMediaResolver.seriesPoster(item.file(), Path.of(item.repositoryPath()));
+  /** The media file's series poster as Refresh found it, or null when none or since removed. */
+  public static Path seriesPoster(IndexedMedia item) {
+    return present(item.seriesPoster());
   }
 
-  /** Which posters a media file has, for browsing. */
-  private record Posters(boolean own, boolean series) {
-    static final Posters NONE = new Posters(false, false);
-
-    /** An ambiguous folder counts as none here; requesting the card reports the problem. */
-    static Posters of(IndexedMedia item) {
-      try {
-        return new Posters(poster(item) != null, seriesPoster(item) != null);
-      } catch (IllegalArgumentException | IOException ambiguous) {
-        return NONE;
-      }
-    }
+  private static Path present(Path file) {
+    return file != null && Files.isRegularFile(file) ? file : null;
   }
 
   /**
@@ -185,7 +168,7 @@ public class LibraryService {
     var warnings = new ArrayList<String>();
     if (titleId == null) warnings.add("No study document");
     if (item.unplayableAudio()) warnings.add(item.audioWarning());
-    var posters = Posters.of(item);
+    if (item.posterProblem() != null) warnings.add(item.posterProblem());
     return new MediaItem(
         item.repositoryId(),
         item.relativePath(),
@@ -193,8 +176,8 @@ public class LibraryService {
         item.fingerprint(),
         titleId,
         item.durationSeconds(),
-        posters.own(),
-        posters.series(),
+        item.posterPath() != null,
+        item.seriesPosterPath() != null,
         warnings);
   }
 
@@ -237,7 +220,11 @@ public class LibraryService {
       matched
           .filter(IndexedMedia::unplayableAudio)
           .ifPresent(item -> problems.put("audio", item.audioWarning()));
-      var posters = matched.map(Posters::of).orElse(Posters.NONE);
+      matched
+          .map(IndexedMedia::posterProblem)
+          .ifPresent(problem -> problems.put("poster", problem));
+      boolean poster = matched.map(item -> item.posterPath() != null).orElse(false);
+      boolean seriesPoster = matched.map(item -> item.seriesPosterPath() != null).orElse(false);
       Double duration = details == null ? null : details.durationSeconds();
       Double position = positions.get(entry.id());
       Double progress =
@@ -267,8 +254,8 @@ public class LibraryService {
               Collections.unmodifiableMap(problems),
               comic ? "comic" : "video",
               mediaAvailable,
-              posters.own(),
-              posters.series(),
+              poster,
+              seriesPoster,
               progress,
               matched.map(IndexedMedia::repositoryId).orElse(null),
               matched.map(IndexedMedia::relativePath).orElse(null)));

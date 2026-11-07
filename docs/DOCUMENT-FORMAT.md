@@ -214,7 +214,7 @@ show before any document exists. Images are `.jpg`, `.jpeg`, `.png` or `.webp`:
   including the registered folder. A film without its own poster uses that card too.
 
 Without an image, a comic uses its first page and a video gets a placeholder. Keep at most one
-poster per folder. Posters are checked when the library is browsed, so no Refresh is needed. Card-sized copies are cached locally in `content/.cache/cards/`
+poster per folder: when a folder has several, the media it affects shows a (!) and no poster. Refresh finds posters, so click **Refresh library** after adding one; replacing an existing poster's image needs no Refresh. Card-sized copies are cached locally in `content/.cache/cards/`
 (`petitesroues.cards.cache`) and can be deleted at any time.
 
 Posters group titles from document metadata onto shelves (see `shelf` above), ordered by name:

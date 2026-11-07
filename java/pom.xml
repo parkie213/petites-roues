@@ -13,6 +13,7 @@
   <packaging>pom</packaging>
   <modules>
     <module>documents</module>
+    <module>library</module>
     <module>application</module>
     <module>server</module>
   </modules>

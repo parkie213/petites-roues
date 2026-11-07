@@ -2,7 +2,7 @@ package com.petitesroues.library;
 
 import com.petitesroues.comic.CbzReader;
 import com.petitesroues.documents.StudyDocumentValidator;
-import com.petitesroues.library.discovery.TitleMediaResolver;
+import com.petitesroues.library.discovery.MediaKind;
 import com.petitesroues.library.persistence.CatalogueStore;
 import com.petitesroues.library.persistence.ContentRepositoryStore;
 import com.petitesroues.media.Ffmpeg;
@@ -211,7 +211,7 @@ public class TitleImportService {
       throw new IllegalArgumentException("That folder already has a document.json");
     if (Files.isDirectory(folder))
       try (var existing = Files.list(folder)) {
-        if (existing.anyMatch(f -> comic(f) || TitleMediaResolver.isVideo(f)))
+        if (existing.anyMatch(f -> MediaKind.of(f.getFileName().toString()) != null))
           throw new IllegalArgumentException("That folder already has a video or comic");
       }
 
@@ -278,7 +278,7 @@ public class TitleImportService {
     if (path == null || path.isBlank()) throw new IllegalArgumentException("Choose a file");
     Path file = Path.of(path);
     if (!Files.isRegularFile(file)) throw new IllegalArgumentException("File not found: " + path);
-    if (!comic(file) && !TitleMediaResolver.isVideo(file))
+    if (MediaKind.of(file.getFileName().toString()) == null)
       throw new IllegalArgumentException("Choose a video or a .cbz comic");
     return file.toRealPath();
   }

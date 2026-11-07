@@ -2,6 +2,8 @@ package com.petitesroues.library;
 
 import com.petitesroues.documents.StudyDocumentReader;
 import com.petitesroues.library.discovery.ContentRepositoryScanner;
+import com.petitesroues.library.discovery.ContentScanner;
+import com.petitesroues.library.discovery.MediaKind;
 import com.petitesroues.library.persistence.CatalogueStore;
 import com.petitesroues.library.persistence.ContentRepositoryStore;
 import com.petitesroues.library.persistence.MediaStore;
@@ -34,9 +36,9 @@ import org.springframework.transaction.support.TransactionTemplate;
  * study documents, media, or both. A {@code .json} file is a study document when {@link
  * StudyDocumentReader#isStudyDocument} says it claims to be one, whatever its name; each supplies
  * its portable document ID and metadata, and its path determines where the title appears in the
- * library. Every video and CBZ is indexed with its fingerprint, which links it to a document whose
- * reference fingerprint matches, in any folder (see {@link TitleMediaService}). A folder need not
- * be a Git checkout. This service does not run Git commands or copy content files.
+ * library. Every video and CBZ is indexed with its fingerprint and posters, which links it to a
+ * document whose reference fingerprint matches, in any folder (see {@link TitleMediaService}). A
+ * folder need not be a Git checkout. This service does not run Git commands or copy content files.
  *
  * <p>This service reads and validates discovered documents, and probes new or changed media, before
  * starting a database transaction. SQL and database mapping belong to {@link
@@ -177,34 +179,39 @@ public class ContentRepositoryService {
         previous.stream()
             .collect(Collectors.toMap(IndexedMedia::relativePath, Function.identity()));
     List<IndexedMedia> probed = new ArrayList<>();
-    for (var kind : List.of("video", "comic"))
-      for (Path file : kind.equals("video") ? found.videos() : found.comics()) {
-        String relative = root.relativize(file).toString().replace('\\', '/');
-        long size = Files.size(file);
-        long modified = Files.getLastModifiedTime(file).toMillis();
-        var old = known.get(relative);
-        if (old != null
-            && old.kind().equals(kind)
-            && old.sizeBytes() == size
-            && old.modifiedMillis() == modified) {
-          probed.add(old);
-          continue;
-        }
-        var result = kind.equals("video") ? probe.video(file) : probe.comic(file);
-        probed.add(
-            new IndexedMedia(
-                null,
-                root.toString(),
-                relative,
-                kind,
-                size,
-                modified,
-                result.fingerprint(),
-                result.durationSeconds(),
-                result.audioCodecs(),
-                result.audioPlayable()));
-      }
-    return new Discovered(readDocuments(root, found.documents()), probed);
+    for (var file : found.media()) {
+      String kind = file.kind().id();
+      var old = known.get(file.relativePath());
+      MediaProbe.Probe result =
+          old != null
+                  && old.kind().equals(kind)
+                  && old.sizeBytes() == file.size()
+                  && old.modifiedMillis() == file.modifiedMillis()
+              ? new MediaProbe.Probe(
+                  old.fingerprint(), old.durationSeconds(), old.audioCodecs(), old.audioPlayable())
+              : file.kind() == MediaKind.VIDEO
+                  ? probe.video(file.handle())
+                  : probe.comic(file.handle());
+      // Posters come from this walk even when the probe is reused: they change independently.
+      probed.add(
+          new IndexedMedia(
+              null,
+              root.toString(),
+              file.relativePath(),
+              kind,
+              file.size(),
+              file.modifiedMillis(),
+              result.fingerprint(),
+              result.durationSeconds(),
+              result.audioCodecs(),
+              result.audioPlayable(),
+              file.poster() == null ? null : file.poster().relativePath(),
+              file.seriesPoster() == null ? null : file.seriesPoster().relativePath(),
+              file.posterProblem()));
+    }
+    return new Discovered(
+        readDocuments(root, found.documents().stream().map(ContentScanner.Found::handle).toList()),
+        probed);
   }
 
   /** Reads the files that claim to be study documents and rejects duplicate IDs. */

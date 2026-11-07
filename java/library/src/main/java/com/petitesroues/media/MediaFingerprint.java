@@ -2,7 +2,8 @@ package com.petitesroues.media;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
-import java.nio.channels.FileChannel;
+import java.nio.channels.SeekableByteChannel;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.security.MessageDigest;
@@ -23,30 +24,41 @@ public final class MediaFingerprint {
 
   private MediaFingerprint() {}
 
+  /** Fingerprints a file on a real file system. */
   public static String of(Path file) throws IOException {
+    try (var channel = Files.newByteChannel(file, StandardOpenOption.READ)) {
+      return of(channel);
+    }
+  }
+
+  /**
+   * Fingerprints whatever the channel reads, from any platform: a file, or an Android content URI.
+   * The caller owns and closes the channel.
+   */
+  public static String of(SeekableByteChannel channel) throws IOException {
     MessageDigest digest;
     try {
       digest = MessageDigest.getInstance("SHA-256");
     } catch (NoSuchAlgorithmException impossible) {
       throw new IllegalStateException("Every Java runtime provides SHA-256", impossible);
     }
-    try (var channel = FileChannel.open(file, StandardOpenOption.READ)) {
-      long size = channel.size();
-      digest.update(ByteBuffer.allocate(Long.BYTES).putLong(size).flip());
-      if (size <= 2L * END) read(channel, 0, size, digest);
-      else {
-        read(channel, 0, END, digest);
-        read(channel, size - END, END, digest);
-      }
+    long size = channel.size();
+    digest.update(ByteBuffer.allocate(Long.BYTES).putLong(size).flip());
+    if (size <= 2L * END) read(channel, 0, size, digest);
+    else {
+      read(channel, 0, END, digest);
+      read(channel, size - END, END, digest);
     }
     return "v1:" + HexFormat.of().formatHex(digest.digest());
   }
 
-  private static void read(FileChannel channel, long from, long length, MessageDigest digest)
+  private static void read(
+      SeekableByteChannel channel, long from, long length, MessageDigest digest)
       throws IOException {
     var buffer = ByteBuffer.allocate((int) length);
+    channel.position(from);
     while (buffer.hasRemaining())
-      if (channel.read(buffer, from + buffer.position()) < 0)
+      if (channel.read(buffer) < 0)
         throw new IOException("File shrank while it was being fingerprinted");
     digest.update(buffer.flip());
   }
