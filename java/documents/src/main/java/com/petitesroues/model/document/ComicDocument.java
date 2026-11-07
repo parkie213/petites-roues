@@ -9,8 +9,8 @@ import java.util.List;
 import java.util.function.UnaryOperator;
 
 /**
- * A comic body: optional volume number, reading direction, pages in manifest order (each holding
- * its text boxes) and optional chapters.
+ * A comic body: optional volume number, reading direction, the reference CBZ the boxes were drawn
+ * against, pages in manifest order (each holding its text boxes) and optional chapters.
  *
  * @param volume optional positive volume (tome) number within its series; the library sorts and
  *     labels a series' volumes by it
@@ -21,7 +21,7 @@ import java.util.function.UnaryOperator;
 public record ComicDocument(
     Integer volume,
     ReadingDirection readingDirection,
-    String annotationMethod,
+    ComicReference reference,
     List<ComicPage> pages,
     List<ComicChapter> chapters)
     implements StudyBody {
@@ -32,7 +32,11 @@ public record ComicDocument(
   }
 
   public ComicDocument withPages(List<ComicPage> pages) {
-    return new ComicDocument(volume, readingDirection, annotationMethod, pages, chapters);
+    return new ComicDocument(volume, readingDirection, reference, pages, chapters);
+  }
+
+  public ComicDocument withReference(ComicReference reference) {
+    return new ComicDocument(volume, readingDirection, reference, pages, chapters);
   }
 
   /** Replaces the page at {@code index} with {@code change} applied to it. */

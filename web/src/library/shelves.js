@@ -8,7 +8,7 @@
  *   no numbers at all (a channel such as Le Parisien) is a series too, ordered by title.
  * - Films: other videos, one card each, even when they name a series that has episodes.
  *
- * A slot is one tome/episode/film; copies of it from several repositories or editions share
+ * A slot is one tome/episode/film; copies of it from several repositories or folders share
  * the slot, and the preferred copy is the one whose document and media are present.
  */
 

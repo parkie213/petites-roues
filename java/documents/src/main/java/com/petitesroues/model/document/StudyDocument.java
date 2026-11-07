@@ -12,8 +12,7 @@ import java.util.function.UnaryOperator;
 
 /**
  * One title's study document: metadata, languages and exactly one body, a video or a comic.
- * Optional metadata ({@code series}, {@code sourceUrl}, {@code edition}) is {@code null} when
- * absent.
+ * Optional metadata ({@code series}, {@code sourceUrl}) is {@code null} when absent.
  *
  * <p>The body is never {@code null}, so a document cannot have both kinds of body or neither. In
  * JSON the body sits under its kind, {@code "video"} or {@code "comic"}, after the metadata.
@@ -27,7 +26,6 @@ public record StudyDocument(
     String notesLanguage,
     String series,
     String sourceUrl,
-    String edition,
     @JsonIgnore StudyBody body) {
   public StudyDocument {
     id = text(id);
@@ -49,7 +47,6 @@ public record StudyDocument(
       @JsonProperty("notesLanguage") String notesLanguage,
       @JsonProperty("series") String series,
       @JsonProperty("sourceUrl") String sourceUrl,
-      @JsonProperty("edition") String edition,
       @JsonProperty("video") VideoDocument video,
       @JsonProperty("comic") ComicDocument comic) {
     if (video != null && comic != null)
@@ -62,7 +59,6 @@ public record StudyDocument(
         notesLanguage,
         series,
         sourceUrl,
-        edition,
         video != null ? video : comic);
   }
 
@@ -96,46 +92,21 @@ public record StudyDocument(
 
   public StudyDocument withId(String id) {
     return new StudyDocument(
-        id,
-        title,
-        sourceLanguage,
-        translationLanguage,
-        notesLanguage,
-        series,
-        sourceUrl,
-        edition,
-        body);
+        id, title, sourceLanguage, translationLanguage, notesLanguage, series, sourceUrl, body);
   }
 
   public StudyDocument withTitle(String title) {
     return new StudyDocument(
-        id,
-        title,
-        sourceLanguage,
-        translationLanguage,
-        notesLanguage,
-        series,
-        sourceUrl,
-        edition,
-        body);
+        id, title, sourceLanguage, translationLanguage, notesLanguage, series, sourceUrl, body);
   }
 
   public StudyDocument withLanguages(String source, String translation, String notes) {
-    return new StudyDocument(
-        id, title, source, translation, notes, series, sourceUrl, edition, body);
+    return new StudyDocument(id, title, source, translation, notes, series, sourceUrl, body);
   }
 
   public StudyDocument withBody(StudyBody body) {
     return new StudyDocument(
-        id,
-        title,
-        sourceLanguage,
-        translationLanguage,
-        notesLanguage,
-        series,
-        sourceUrl,
-        edition,
-        body);
+        id, title, sourceLanguage, translationLanguage, notesLanguage, series, sourceUrl, body);
   }
 
   /** Changes the video body; {@link IllegalArgumentException} if this is a comic. */

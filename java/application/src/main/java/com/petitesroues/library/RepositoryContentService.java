@@ -26,8 +26,8 @@ import org.springframework.transaction.annotation.Transactional;
  *
  * <p>Called by {@link ContentRepositoryService} during Add/Refresh, which owns discovery,
  * repository reconciliation and its transaction boundary. This service saves the title row,
- * including its ownership and reference-edition metadata. Repository-scoped replacements retain the
- * local entry ID and must remain inside that repository. Portable IDs may recur in different
+ * including its ownership and reference metadata. Repository-scoped replacements retain the local
+ * entry ID and must remain inside that repository. Portable IDs may recur in different
  * repositories; local IDs identify independent copies.
  */
 @Service
@@ -96,8 +96,7 @@ public class RepositoryContentService {
             owningRepository.name(),
             root.toString(),
             false,
-            document.edition(),
-            video == null ? null : video.durationSeconds(),
+            video == null || video.reference() == null ? null : video.reference().durationSeconds(),
             video == null ? "comic" : "video");
     var entry =
         new CatalogueEntry(

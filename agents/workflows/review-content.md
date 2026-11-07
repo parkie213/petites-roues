@@ -59,8 +59,8 @@ differently from neighbouring cues, a word that makes no sense in the scene. For
 
 Keep uncertainty out of teaching notes:
 
-- Record transcription provenance once, in the document's `transcriptionMethod` (engine and
-  model); do not repeat ASR warnings on every cue.
+- Name the transcription engine and model in the commit message, not the document; do not
+  repeat ASR warnings on every cue.
 - `listeningCheck` holds one specific, actionable listening question; absent means no open
   question. Keep it through edits, consider both halves after a split, and
   clear it only when a user-verified correction resolves it.

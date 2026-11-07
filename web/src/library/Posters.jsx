@@ -12,6 +12,7 @@ import {
   Title,
 } from "@mantine/core";
 import { BookOpen, Copy, Ellipsis, Film, TriangleAlert } from "lucide-react";
+import { clock } from "../player/quiz.js";
 import { responseError, titlePath } from "../shared/api.js";
 import { openHref, shelves } from "./shelves.js";
 import { postersHref } from "./navigation.js";
@@ -52,7 +53,10 @@ function Art({ art, name, type }) {
   );
 }
 
-/** Lists every copy of a slot (repository · edition) so a specific one can be opened. */
+/**
+ * Lists every copy of a slot (repository · reference duration) so a specific one can be opened.
+ * Different cuts of a video have different durations.
+ */
 function Copies({ slot, repositoryNames }) {
   if (slot.copies.length < 2) return null;
   return (
@@ -83,7 +87,10 @@ function Copies({ slot, repositoryNames }) {
                 {repositoryNames.get(copy.repositoryId) ?? "Standalone"}
               </Text>
               <Text size="xs" c="dimmed">
-                {[copy.edition, copy.unavailable?.title]
+                {[
+                  copy.durationSeconds != null && clock(copy.durationSeconds),
+                  copy.unavailable?.title,
+                ]
                   .filter(Boolean)
                   .join(" · ") || "Available"}
               </Text>

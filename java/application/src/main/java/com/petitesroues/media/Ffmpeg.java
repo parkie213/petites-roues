@@ -69,6 +69,15 @@ public class Ffmpeg {
     return tracks;
   }
 
+  /** The container's duration in seconds as ffprobe reports it, to the millisecond. */
+  public double duration(Path video) throws IOException {
+    var output =
+        run(List.of("ffprobe", "-v", "error", "-show_format", "-of", "json", video.toString()));
+    double duration = mapper.readTree(output).path("format").path("duration").asDouble(0);
+    if (!(duration > 0)) throw new IOException("ffprobe reports no duration for " + video);
+    return Math.round(duration * 1000) / 1000.0;
+  }
+
   private JsonNode streams(Path video) throws IOException {
     var output =
         run(List.of("ffprobe", "-v", "error", "-show_streams", "-of", "json", video.toString()));

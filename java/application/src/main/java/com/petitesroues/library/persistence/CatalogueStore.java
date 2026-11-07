@@ -39,7 +39,6 @@ public class CatalogueStore {
             row.getString("repository_name"),
             row.getString("repository_path"),
             row.getBoolean("missing"),
-            row.getString("edition"),
             (Double) row.getObject("duration_seconds"),
             row.getString("document_type")));
   }
@@ -76,8 +75,8 @@ public class CatalogueStore {
         """
         INSERT INTO titles (
           id, document_id, title, series, season, episode, volume, source_url,
-          document_path, repository_id, missing, edition, duration_seconds, document_type
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          document_path, repository_id, missing, duration_seconds, document_type
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ON CONFLICT(id) DO UPDATE SET
           document_id = excluded.document_id,
           title = excluded.title,
@@ -89,7 +88,6 @@ public class CatalogueStore {
           document_path = excluded.document_path,
           repository_id = excluded.repository_id,
           missing = excluded.missing,
-          edition = excluded.edition,
           duration_seconds = excluded.duration_seconds,
           document_type = excluded.document_type
         """,
@@ -104,7 +102,6 @@ public class CatalogueStore {
         title.documentPath(),
         title.location().repositoryId(),
         title.location().missing(),
-        title.location().edition(),
         title.location().durationSeconds(),
         title.location().documentType());
   }

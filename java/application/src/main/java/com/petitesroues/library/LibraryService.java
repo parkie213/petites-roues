@@ -192,7 +192,6 @@ public class LibraryService {
               details == null ? null : details.repositoryId(),
               details == null ? null : details.repositoryName(),
               relativePath,
-              details == null ? null : details.edition(),
               duration,
               documentAvailable,
               videoAvailable,

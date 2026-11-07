@@ -116,7 +116,6 @@ def main():
             {"start": round(s["start"], 3), "end": round(s["end"], 3),
              "line": {"id": s["id"], "source": s["text"].strip()}} for s in segments)
         document["video"]["cues"].sort(key=lambda c: c["start"])
-        document["video"]["transcriptionMethod"] = f"ASR: {args.model} via OpenRouter"
         temporary = args.document.with_name(args.document.name + ".tmp")
         save(temporary, document)
         temporary.replace(args.document)

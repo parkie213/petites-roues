@@ -12,7 +12,7 @@ import androidx.core.net.toUri
  * keyed by title folder path, so it survives refreshes, and is never synced to the desktop.
  */
 class LibraryStore(context: Context) :
-  SQLiteOpenHelper(context, "library.sqlite", null, 3) {
+  SQLiteOpenHelper(context, "library.sqlite", null, 4) {
   override fun onCreate(db: SQLiteDatabase) {
     createTitles(db)
     db.execSQL(
@@ -24,7 +24,8 @@ class LibraryStore(context: Context) :
 
   /**
    * The title table is only an index of the content folders, so an upgrade empties it until the
-   * next refresh. Progress is kept; version 3 adds how far through each title it is.
+   * next refresh. Progress is kept; version 3 adds how far through each title it is, and version 4
+   * indexes the reference duration in place of the edition.
    */
   override fun onUpgrade(db: SQLiteDatabase, oldVersion: Int, newVersion: Int) {
     db.execSQL("DROP TABLE IF EXISTS title")
@@ -36,7 +37,7 @@ class LibraryStore(context: Context) :
     db.execSQL(
       """CREATE TABLE title (
            path TEXT PRIMARY KEY, name TEXT NOT NULL, series TEXT, kind TEXT NOT NULL,
-           document_uri TEXT NOT NULL, media_uri TEXT, document_id TEXT NOT NULL, edition TEXT,
+           document_uri TEXT NOT NULL, media_uri TEXT, document_id TEXT NOT NULL, duration_seconds REAL,
            season INTEGER, episode INTEGER, volume INTEGER, poster_uri TEXT,
            series_poster_uri TEXT, first_page TEXT)"""
     )
@@ -45,7 +46,7 @@ class LibraryStore(context: Context) :
   fun titles(): List<Title> =
     readableDatabase
       .rawQuery(
-        """SELECT path, name, series, kind, document_uri, media_uri, document_id, edition, season,
+        """SELECT path, name, series, kind, document_uri, media_uri, document_id, duration_seconds, season,
              episode, volume, poster_uri, series_poster_uri, first_page
            FROM title ORDER BY path""",
         null,
@@ -62,7 +63,7 @@ class LibraryStore(context: Context) :
                 documentUri = cursor.getString(4).toUri(),
                 mediaUri = cursor.getString(5)?.toUri(),
                 documentId = cursor.getString(6),
-                edition = cursor.getString(7),
+                durationSeconds = if (cursor.isNull(7)) null else cursor.getDouble(7),
                 season = cursor.int(8),
                 episode = cursor.int(9),
                 volume = cursor.int(10),
@@ -92,7 +93,7 @@ class LibraryStore(context: Context) :
             put("document_uri", title.documentUri.toString())
             put("media_uri", title.mediaUri?.toString())
             put("document_id", title.documentId)
-            put("edition", title.edition)
+            put("duration_seconds", title.durationSeconds)
             put("season", title.season)
             put("episode", title.episode)
             put("volume", title.volume)

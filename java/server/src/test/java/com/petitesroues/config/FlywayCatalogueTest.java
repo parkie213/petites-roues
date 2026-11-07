@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import com.petitesroues.support.DatabaseFixtures;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import org.junit.jupiter.api.Test;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.dao.DataAccessException;
@@ -36,7 +37,7 @@ class FlywayCatalogueTest {
       var progress = jdbc.queryForList("SELECT * FROM playback_progress");
       var membership = jdbc.queryForList("SELECT repository_id FROM titles");
       var migration = DatabaseFixtures.flyway(source);
-      assertEquals(5, migration.migrate().migrationsExecuted);
+      assertEquals(6, migration.migrate().migrationsExecuted);
       assertEquals(0, migration.migrate().migrationsExecuted);
       assertEquals(
           "old-id",
@@ -62,7 +63,7 @@ class FlywayCatalogueTest {
       var jdbc = new JdbcTemplate(source);
       jdbc.execute("PRAGMA foreign_keys=ON");
       var flyway = DatabaseFixtures.flyway(source);
-      assertEquals(5, flyway.migrate().migrationsExecuted);
+      assertEquals(6, flyway.migrate().migrationsExecuted);
       assertEquals(0, flyway.migrate().migrationsExecuted);
       flyway.validate();
       assertEquals(
@@ -71,7 +72,7 @@ class FlywayCatalogueTest {
               "SELECT count(*) FROM sqlite_master WHERE type='table' AND name IN ('repositories','titles','review_queue','playback_progress','reading_progress')",
               Integer.class));
       assertEquals(
-          5,
+          6,
           jdbc.queryForObject(
               "SELECT count(*) FROM flyway_schema_history WHERE success=1", Integer.class));
       assertTrue(jdbc.queryForList("PRAGMA foreign_key_check").isEmpty());
@@ -111,10 +112,10 @@ class FlywayCatalogueTest {
               "playback_progress",
               "reading_progress",
               "sqlite_sequence");
-      var before = new LinkedHashMap<String, Object>();
+      var before = new LinkedHashMap<String, List<Map<String, Object>>>();
       for (var table : tables) before.put(table, jdbc.queryForList("SELECT * FROM " + table));
       var flyway = DatabaseFixtures.flyway(source);
-      assertEquals(5, flyway.migrate().migrationsExecuted);
+      assertEquals(6, flyway.migrate().migrationsExecuted);
       assertEquals(0, flyway.migrate().migrationsExecuted);
       for (var table : tables) {
         var after = jdbc.queryForList("SELECT * FROM " + table);
@@ -126,6 +127,10 @@ class FlywayCatalogueTest {
           }
         // V4 adds the comic volume; Refresh fills it from the documents.
         if (table.equals("titles")) for (var row : after) assertNull(row.remove("volume"));
+        // V6 drops the edition, which documents no longer carry.
+        if (table.equals("titles"))
+          for (var row : before.get(table))
+            assertTrue(row.containsKey("edition") && row.remove("edition") == null);
         // V5 adds the comic reading fraction; the next save fills it.
         if (table.equals("reading_progress"))
           for (var row : after) assertNull(row.remove("fraction"));

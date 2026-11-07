@@ -89,7 +89,7 @@ class LibraryServiceTest {
   void libraryGroupsIndexedEntriesAndRetainsEmptyRepositories() throws Exception {
     var populated = new ContentRepository("repo", "Collection", root.toString(), null, 1, 1);
     var empty = new ContentRepository("empty", "Empty", root.toString(), null, 0, 0);
-    var location = new CatalogueLocation("repo", "Collection", root.toString(), true, null, null);
+    var location = new CatalogueLocation("repo", "Collection", root.toString(), true, null);
     var owned =
         new CatalogueEntry("owned", "Owned", null, null, null, null, "document.json", location);
     var standalone =
@@ -115,9 +115,9 @@ class LibraryServiceTest {
 
   @Test
   void progressIsThePositionOverTheDurationOrTheStoredComicFraction() throws Exception {
-    var video = new CatalogueLocation("repo", "Repo", root.toString(), false, null, 100.0);
-    var unknownLength = new CatalogueLocation("repo", "Repo", root.toString(), false, null, null);
-    var comic = new CatalogueLocation("repo", "Repo", root.toString(), false, null, null, "comic");
+    var video = new CatalogueLocation("repo", "Repo", root.toString(), false, 100.0);
+    var unknownLength = new CatalogueLocation("repo", "Repo", root.toString(), false, null);
+    var comic = new CatalogueLocation("repo", "Repo", root.toString(), false, null, "comic");
     when(repository.all())
         .thenReturn(
             List.of(

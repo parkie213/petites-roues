@@ -33,9 +33,9 @@ import org.springframework.transaction.support.TransactionTemplate;
  * <p>This service reads and validates discovered documents before starting a database transaction.
  * SQL and database mapping belong to {@link ContentRepositoryStore} and {@link CatalogueStore}.
  * This service owns workflow rules and transaction boundaries. Index updates then register the
- * titles, record repository membership and reference-edition metadata, mark absent titles as
- * missing, and update the refresh timestamp together. Missing titles retain their catalogue entries
- * and pending reviews until the repository is removed.
+ * titles, record repository membership and reference metadata, mark absent titles as missing, and
+ * update the refresh timestamp together. Missing titles retain their catalogue entries and pending
+ * reviews until the repository is removed.
  *
  * <p>Ordinary browsing reads the SQLite index. Video availability is checked separately in indexed
  * title folders by {@link LibraryService}; media does not participate in discovery. Application

@@ -23,7 +23,6 @@ import java.util.Map;
  * @param repositoryId owning repository identity, or {@code null} for a standalone registration
  * @param repositoryName owning repository display name, or {@code null} for a standalone entry
  * @param relativePath repository-relative document path, or {@code null} for a standalone entry
- * @param edition optional reference-edition description
  * @param durationSeconds optional reference-video duration in seconds
  * @param documentAvailable whether the document is marked present and currently exists as a file
  * @param videoAvailable whether the title folder currently has one supported video; this does not
@@ -53,7 +52,6 @@ public record CatalogueItem(
     String repositoryId,
     String repositoryName,
     String relativePath,
-    String edition,
     Double durationSeconds,
     boolean documentAvailable,
     boolean videoAvailable,

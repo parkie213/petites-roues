@@ -23,7 +23,6 @@ class Title {
   season?
   episode?
   volume?
-  edition?
   sourceUrl?
   durationSeconds?
 }

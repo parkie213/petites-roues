@@ -346,7 +346,7 @@ export function ComicReader({ id }) {
                   {document.title}
                 </Title>
                 <Text size="xs" c="dimmed" truncate>
-                  {document.edition || document.series}
+                  {document.series}
                 </Text>
               </div>
             </div>

@@ -14,14 +14,16 @@ class StudyDocument {
   notesLanguage
   series?
   sourceUrl?
-  edition?
 }
 interface StudyBody <<sealed>>
 
 class VideoDocument {
   season?
   episode?
-  transcriptionMethod?
+}
+class VideoReference {
+  fingerprint?
+  sizeBytes?
   durationSeconds?
 }
 class VideoCue {
@@ -32,7 +34,10 @@ class VideoCue {
 class ComicDocument {
   volume?
   readingDirection: ltr | rtl
-  annotationMethod?
+}
+class ComicReference {
+  fingerprint?
+  sizeBytes?
 }
 class ComicPage {
   id
@@ -75,8 +80,10 @@ class PhraseLink {
 StudyDocument *-- "1" StudyBody : body
 StudyBody <|.. VideoDocument : "JSON key video"
 StudyBody <|.. ComicDocument : "JSON key comic"
+VideoDocument *-- "0..1" VideoReference : reference
 VideoDocument *-- "0..*" VideoCue : cues
 VideoCue *-- "1" Line : line
+ComicDocument *-- "0..1" ComicReference : reference
 ComicDocument *-- "1..*" ComicPage : pages
 ComicDocument *-- "0..*" ComicChapter : chapters
 ComicPage *-- "0..*" ComicBox : boxes
