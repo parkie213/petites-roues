@@ -21,8 +21,8 @@ public record Library(List<RepositoryContents> repositories) {
    * One repository and its registered entry summaries, with a defensive copy of the entry list.
    *
    * @param repository the content collection described by these entries
-   * @param entries its browsable contents, including entries with unavailable files
-   * @param media the folder's media that no study document references, with its warnings
+   * @param entries the study documents found in it, including entries with unavailable files
+   * @param media every video and CBZ found in it, linked or not
    */
   public record RepositoryContents(
       ContentRepository repository, List<CatalogueItem> entries, List<MediaItem> media) {

@@ -56,17 +56,12 @@ class ApplicationSmokeTest extends HttpIntegrationTest {
             .retrieve()
             .body(JsonNode.class);
 
-    // The linked title is shown where its video lives; the documents folder holds no title.
+    // Each folder lists what it holds: the documents folder its title, the media folder its video,
+    // which now names that title and no longer warns.
     var library = http.get().uri("/api/library").retrieve().body(Library.class);
-    var documents =
-        library.repositories().stream()
-            .filter(folder -> folder.repository().id().equals(registered.get("id").asText()))
-            .findFirst()
-            .orElseThrow();
-    assertTrue(documents.entries().isEmpty());
     var selected =
         library.repositories().stream()
-            .filter(folder -> folder.repository().name().equals("media"))
+            .filter(folder -> folder.repository().id().equals(registered.get("id").asText()))
             .findFirst()
             .orElseThrow()
             .entries()
@@ -74,9 +69,15 @@ class ApplicationSmokeTest extends HttpIntegrationTest {
     assertEquals("series/Episode 1.mp4", selected.mediaPath());
     assertEquals("series/season-01/episode-01.json", selected.relativePath());
     assertTrue(selected.videoAvailable());
-    assertTrue(
-        library.repositories().stream().allMatch(folder -> folder.media().isEmpty()),
-        "the linked video no longer warns");
+    var indexed =
+        library.repositories().stream()
+            .filter(folder -> folder.repository().name().equals("media"))
+            .findFirst()
+            .orElseThrow()
+            .media()
+            .getFirst();
+    assertEquals(selected.id(), indexed.titleId());
+    assertTrue(indexed.warnings().isEmpty(), "the linked video no longer warns");
     String titleApi = "/api/titles/" + selected.id();
 
     var wire = http.get().uri(titleApi).accept(MediaType.ALL).retrieve().toEntity(String.class);
@@ -95,6 +96,19 @@ class ApplicationSmokeTest extends HttpIntegrationTest {
     assertEquals(
         versioned.substring(versioned.lastIndexOf('/') + 1),
         stale.getHeaders().getLocation().toString());
+    // Any indexed video plays by fingerprint, before or without a study document.
+    String byFingerprint = "/api/media/" + MediaFingerprint.of(video) + "/video";
+    var fingerprinted = http.get().uri(byFingerprint).retrieve().toBodilessEntity();
+    assertArrayEquals(
+        Files.readAllBytes(video),
+        http.get()
+            .uri(
+                "/api/media/"
+                    + MediaFingerprint.of(video)
+                    + "/"
+                    + fingerprinted.getHeaders().getLocation())
+            .retrieve()
+            .body(byte[].class));
 
     // Pausing saves the position; reopening the title reads it through a fresh client.
     http.put()

@@ -10,7 +10,7 @@ through a content repository) and what is **local** (this machine's paths, state
 | --- | --- | --- | --- |
 | Study documents | Portable | `document.json` in a content repository | Agents only |
 | Editing | Local queue of commands that refer only to portable IDs | SQLite `review_queue`, `review_batches` | The app, from player and reader edits |
-| Library | Local | SQLite `repositories`, `titles`, `media`, progress tables; posters found beside documents | The app, on Add/Refresh |
+| Library | Local | SQLite `repositories`, `titles`, `media`, progress tables; posters found beside media | The app, on Add/Refresh |
 
 Two rules hold the boundary:
 
@@ -85,8 +85,8 @@ The library is this machine's index of what it can open, and what the learner ha
   folder or an unplugged drive.
 - Media is indexed by Refresh (SQLite `media`: path, size, modification time, fingerprint,
   duration, audio codecs) and linked to a title when its fingerprint equals the document's
-  reference fingerprint, in any registered folder. Posters aren't registered: a `poster.*` is
-  found beside the document, or in a series folder above, when the library is browsed.
+  reference fingerprint, in any registered folder. Posters aren't registered: they are found
+  beside the media file, or in a series folder above, when the library is browsed.
 
 ## Roadmap changes
 

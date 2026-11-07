@@ -47,6 +47,30 @@ class StudyDocumentReaderTest {
   }
 
   @Test
+  void anOptionalShelfIsTrimmedWrittenAfterTheSeriesAndBlankMeansNone() {
+    var base = document("example");
+    var shelved =
+        new StudyDocument(
+            base.id(),
+            base.title(),
+            base.sourceLanguage(),
+            base.translationLanguage(),
+            base.notesLanguage(),
+            "Demon Slayer",
+            " Manga ",
+            null,
+            base.body());
+    assertEquals("Manga", shelved.shelf());
+    assertEquals(shelved, roundTrip(shelved));
+    String json = codec.encode(shelved);
+    assertTrue(json.indexOf("\"series\"") < json.indexOf("\"shelf\""));
+    assertEquals("Manga", shelved.withTitle("Tome 1").shelf(), "edits keep the shelf");
+    assertNull(
+        new StudyDocument(base.id(), base.title(), "fr", "en", "en", null, "  ", null, base.body())
+            .shelf());
+  }
+
+  @Test
   void preservesOptionalTranslationPresenceAndExplicitZeroStart() {
     for (String translation : new String[] {null, "", "Hello!"}) {
       var doc =

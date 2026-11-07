@@ -1,6 +1,12 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { openHref, shelves } from "../src/library/shelves.js";
+import {
+  mediaEntry,
+  namedFromPath,
+  openHref,
+  shelves,
+  warnings,
+} from "../src/library/shelves.js";
 
 let next = 0;
 function entry(fields) {
@@ -23,7 +29,7 @@ function entry(fields) {
     ...fields,
   };
 }
-const shelf = (result, key) => result.find((s) => s.key === key).groups;
+const shelf = (result, key) => result.find((s) => s.key === key)?.groups ?? [];
 const tome = (volume, fields = {}) =>
   entry({
     type: "comic",
@@ -50,7 +56,7 @@ test("manga and anime of one series are separate cards; a series film is a film"
     entry({ series: "Demon Slayer", title: "Mugen Train" }),
     entry({ title: "Princesse Mononoké" }),
   ]);
-  const [manga] = shelf(result, "manga");
+  const [manga] = shelf(result, "comics");
   assert.equal(manga.name, "Demon Slayer");
   assert.equal(manga.count, "3 tomes");
   assert.deepEqual(
@@ -155,15 +161,15 @@ test("equally available copies keep repository order", () => {
 });
 
 test("card art: series poster, else first slot with art, else placeholder", () => {
-  let [manga] = shelf(shelves([tome(2), tome(1, { id: "t1" })]), "manga");
-  assert.deepEqual(manga.art, { id: "t1", kind: "title" });
-  assert.deepEqual(manga.slots[0].art, { id: "t1", kind: "title" });
+  let [manga] = shelf(shelves([tome(2), tome(1, { id: "t1" })]), "comics");
+  assert.deepEqual(manga.art, { url: "/api/titles/t1/card" });
+  assert.deepEqual(manga.slots[0].art, { url: "/api/titles/t1/card" });
 
   [manga] = shelf(
     shelves([tome(1), tome(2, { id: "t2", seriesPosterAvailable: true })]),
-    "manga",
+    "comics",
   );
-  assert.deepEqual(manga.art, { id: "t2", kind: "series" });
+  assert.deepEqual(manga.art, { url: "/api/titles/t2/series-card" });
 
   const [peppa] = shelf(shelves([episode(1, 1), episode(1, 2)]), "series");
   assert.equal(peppa.art, null, "videos have no art without a poster");
@@ -171,7 +177,7 @@ test("card art: series poster, else first slot with art, else placeholder", () =
     shelves([entry({ id: "f", title: "Film", posterAvailable: true })]),
     "films",
   );
-  assert.deepEqual(film.art, { id: "f", kind: "title" });
+  assert.deepEqual(film.art, { url: "/api/titles/f/card" });
 });
 
 test("titles open the reader, watch view or notes; missing documents do not open", () => {
@@ -181,4 +187,112 @@ test("titles open the reader, watch view or notes; missing documents do not open
     "/player/v/",
   );
   assert.equal(openHref(entry({ documentAvailable: false })), null);
+});
+
+test("bare media is named from its path the way media servers read it", () => {
+  const named = (path) => {
+    const { series, season, episode, title } = namedFromPath(path);
+    return [series, season, episode, title];
+  };
+  assert.deepEqual(named("peppa-pig/s01e01-les-flaques-de-boue.mp4"), [
+    "Peppa pig",
+    1,
+    1,
+    "Les flaques de boue",
+  ]);
+  assert.deepEqual(named("masha-and-the-bear/083-bienenalarm.de.mp4"), [
+    "Masha and the bear",
+    null,
+    83,
+    "Bienenalarm",
+  ]);
+  assert.deepEqual(named("Show/Season 02/Show - E05.mkv"), [
+    "Show",
+    2,
+    null,
+    "Show E05",
+  ]);
+  assert.deepEqual(named("peppa-pig/s01e03-ma-meilleure-amie/video.mp4"), [
+    "Peppa pig",
+    1,
+    3,
+    "Ma meilleure amie",
+  ]);
+  assert.deepEqual(named("Le Chateau Ambulant.mkv"), [
+    null,
+    null,
+    null,
+    "Le Chateau Ambulant",
+  ]);
+  assert.deepEqual(named("films/2046.mkv"), ["Films", null, null, "2046"]);
+});
+
+const bare = (fields = {}) =>
+  mediaEntry({
+    repositoryId: "one",
+    relativePath: "peppa-pig/s01e01-les-flaques-de-boue.mp4",
+    kind: "video",
+    fingerprint: "abc",
+    durationSeconds: 62,
+    posterAvailable: false,
+    seriesPosterAvailable: true,
+    warnings: ["No study document"],
+    ...fields,
+  });
+
+test("bare media joins its series beside titles with documents, flagged", () => {
+  const linked = entry({
+    series: "Peppa Pig",
+    season: 1,
+    episode: 2,
+    title: "Mr Dinosaure",
+  });
+  const [group] = shelf(shelves([linked, bare()]), "series");
+  assert.equal(group.name, "Peppa Pig");
+  assert.equal(group.slots.length, 2);
+  const episode = group.slots[0].entry;
+  assert.equal(openHref(episode), "/video/abc/", "a bare video still plays");
+  assert.deepEqual(warnings(episode), ["No study document"]);
+  assert.deepEqual(group.art, { url: "/api/media/abc/series-card" });
+});
+
+test("a bare film uses its folder poster, and a bare comic its own card", () => {
+  const [film] = shelf(shelves([bare({ relativePath: "Ponyo.mkv" })]), "films");
+  assert.deepEqual(film.art, { url: "/api/media/abc/series-card" });
+  const [comic] = shelf(
+    shelves([bare({ relativePath: "volume.cbz", kind: "comic" })]),
+    "comics",
+  );
+  assert.deepEqual(comic.art, { url: "/api/media/abc/card" });
+  assert.equal(
+    openHref(comic.slots[0].entry),
+    null,
+    "a comic needs its document",
+  );
+});
+
+test("a document can name its shelf; a series sits where most of its titles say", () => {
+  const result = shelves([
+    tome(1, { shelf: "Manga" }),
+    tome(2, { shelf: "Manga" }),
+    tome(3),
+    entry({ type: "comic", title: "Lulu" }),
+    entry({ title: "Ponyo", shelf: " Ghibli " }),
+  ]);
+  assert.deepEqual(
+    result.map((s) => [s.label, s.groups.map((g) => g.name)]),
+    [
+      ["Comics", ["Lulu"]],
+      ["Ghibli", ["Ponyo"]],
+      ["Manga", ["Demon Slayer"]],
+    ],
+  );
+  const [series] = shelf(result, "manga");
+  assert.equal(
+    series.count,
+    "3 tomes",
+    "the unshelved tome stays with its series",
+  );
+  assert.equal(series.key, "manga:demon slayer");
+  assert.equal(series.type, "comic");
 });

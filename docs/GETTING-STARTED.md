@@ -35,34 +35,44 @@ The library should start empty. Click **Add folder** in the middle.
 
 <img src="../images/getting-started/02-locate-example-directory.png" alt="Locate the example directory" style="max-width: 100%; height: auto;">
 
-Select the `example/media` directory in the petites roues repository. Its four videos appear
-under **Needs attention** with "No study document". Click **Add folder** again and select
-`example/documents`: each video links to its study document and the warnings clear.
+Select the `example/media-fr` directory in the petites roues repository. Its two Peppa Pig
+episodes and a short comic appear as posters, each with a small **(!)**: "No study document".
+You can already watch the videos. Click **Add folder** again and select `example/documents-fr`:
+each file links to its study document and the warnings clear.
 
 A folder can hold videos, comics, study documents, or any mix, and Git is optional. The example
-keeps its study documents and its videos apart, as you might with a Plex library. Four
-one-minute titles cover three language pairs: French, German and Mandarin, each to English.
+keeps its study documents and its media apart, as you might with a Plex library, with one pair
+of folders per language: French (`-fr`), German (`-de`) and Mandarin (`-zh`), each to English.
+Add the others the same way to try them.
 
 ```text
 example/
-  documents/                  study documents, notes and quizzes
-    peppa-pig/
-      poster.jpg              optional series card, placeholder when absent
-      s01e01/document.json    subtitles, translations, phrases and notes
-      s01e02/document.json
-      s01e34-zh/document.json the Mandarin dub, a second language for one series
-    masha-and-the-bear/
-      083-de/document.json    German, a second series
+  media-fr/                   the media, linked to documents by fingerprint
+    series/
+      peppa-pig/
+        poster.jpg            optional series card, beside the videos it covers
+        s01e01-les-flaques-de-boue.mp4
+        s01e02-a-la-recherche-de-mr-dinosaure.mp4
+    comics/
+      lulu/
+        le-parapluie-de-lulu.cbz  a four-page comic made for the example
+  documents-fr/               study documents, notes and quizzes
+    series/
+      peppa-pig/
+        s01e01/document.json  subtitles, translations, phrases and notes
+        s01e02/document.json
+    comics/
+      lulu/
+        le-parapluie-de-lulu/document.json  speech balloons, translations and notes
     quizzes/
       verb-plus-infinitive.md
     notes/
       verb-plus-infinitive.md
-  media/                      the videos, linked to documents by fingerprint
-    peppa-pig/
-    masha-and-the-bear/
+  media-de/, documents-de/    Masha and the Bear, in German
+  media-zh/, documents-zh/    Peppa Pig's Lunch, in Mandarin
 ```
 
-Each study document records its video's fingerprint (`video.reference`), so the two find each
+Each study document records its media's fingerprint (`video.reference` or `comic.reference`), so the two find each
 other wherever they live. Notes and quizzes are read from `notes/` and `quizzes/` at the top of
 a registered folder. After adding or changing files, click **Refresh library**.
 

@@ -11,11 +11,16 @@ export const postersHref = ({ repository, group, season } = {}) =>
     ),
   );
 
+/** The list of every study document and what it links to. */
+export const documentsHref = () => "/?view=documents";
+
+const VIEWS = new Set(["posters", "documents"]);
+
 export function readSelection() {
   const query = new URLSearchParams(location.search);
   const season = Number(query.get("season"));
   return {
-    view: query.get("view") === "posters" ? "posters" : "columns",
+    view: VIEWS.has(query.get("view")) ? query.get("view") : "columns",
     repository: query.get("repository"),
     parts: (query.get("folder") || "").split("/").filter(Boolean),
     group: query.get("group"),
@@ -26,12 +31,13 @@ export function readSelection() {
 const VIEW_KEY = "library-view";
 
 /**
- * The view a bare library URL opens: Posters unless Columns was last chosen. Storage may be
+ * The view a bare library URL opens: Posters unless another view was last chosen. Storage may be
  * unavailable.
  */
 export function storedView() {
   try {
-    return localStorage.getItem(VIEW_KEY) === "columns" ? "columns" : "posters";
+    const view = localStorage.getItem(VIEW_KEY);
+    return view === "columns" || view === "documents" ? view : "posters";
   } catch {
     return "posters";
   }

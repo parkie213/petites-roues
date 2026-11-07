@@ -108,6 +108,7 @@ public class RepositoryContentService {
             video == null ? null : video.season(),
             video == null ? null : video.episode(),
             comic == null ? null : comic.volume(),
+            document.shelf(),
             document.sourceUrl(),
             storedPath,
             location);

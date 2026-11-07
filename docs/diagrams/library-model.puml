@@ -29,10 +29,10 @@ class Title {
 class StudyDocument <<portable>>
 class "Media file" as Media {
   one video or CBZ
-  beside the document
+  linked by fingerprint
 }
 class "Poster image" as Poster {
-  poster.* beside the document
+  beside the media file
   or in a series folder
 }
 class PlaybackProgress {
@@ -52,7 +52,7 @@ ContentRepository "1" *-- "0..*" Title : registers
 ContentRepository "1" *-- "0..*" MarkdownPage : lists
 Title ..> "1" StudyDocument : documentPath
 Title ..> "0..1" Media : found when browsed
-Title ..> "0..1" Poster : found when browsed
+Media ..> "0..1" Poster : found when browsed
 Title "1" *-- "0..1" PlaybackProgress
 Title "1" *-- "0..1" ReadingProgress
 @enduml

@@ -18,6 +18,7 @@ import java.nio.file.Path;
  * @param season optional season number
  * @param episode optional episode number
  * @param volume optional comic volume (tome) number
+ * @param shelf the library shelf the document names, or null for the default
  * @param sourceUrl optional reference to the source material
  * @param documentPath document path relative to the owning repository, or absolute for a standalone
  *     registration
@@ -31,9 +32,36 @@ public record CatalogueEntry(
     Integer season,
     Integer episode,
     Integer volume,
+    String shelf,
     String sourceUrl,
     String documentPath,
     CatalogueLocation location) {
+  /** Creates an entry on the default shelf. */
+  public CatalogueEntry(
+      String id,
+      String documentId,
+      String title,
+      String series,
+      Integer season,
+      Integer episode,
+      Integer volume,
+      String sourceUrl,
+      String documentPath,
+      CatalogueLocation location) {
+    this(
+        id,
+        documentId,
+        title,
+        series,
+        season,
+        episode,
+        volume,
+        null,
+        sourceUrl,
+        documentPath,
+        location);
+  }
+
   /** Creates an entry whose local and portable identities initially coincide. */
   public CatalogueEntry(
       String id,

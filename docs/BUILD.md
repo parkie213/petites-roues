@@ -134,8 +134,8 @@ adb install -r app/build/outputs/apk/debug/app-debug.apk
 On first launch choose the synced folder; the folder button adds more (for example a
 second content repository) or removes them. Use Refresh whenever new titles have synced.
 Titles are indexed under their content folder's name, so two folders with the same name
-cannot both be indexed. The library shows the same Manga, Series and Films shelves as the
-desktop's posters (see [card images](DOCUMENT-FORMAT.md#card-images)); unlike the desktop,
+cannot both be indexed. The library shows fixed Manga, Series and Films shelves; it doesn't read a document's
+`shelf` yet, unlike the desktop's posters (see [card images](DOCUMENT-FORMAT.md#card-images)); unlike the desktop,
 posters are only picked up on Refresh. Card images are cached in the app's cache and
 rebuilt after each Refresh. The paused player's quiz button shares a Markdown brief through
 the share sheet (pick the Claude app): `agents/workflows/subtitle-quiz.md` and

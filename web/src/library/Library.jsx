@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import {
   Alert,
-  Badge,
+  Anchor,
   Box,
   Button,
   Container,
@@ -27,23 +27,30 @@ import { chooseOnComputer, request } from "../shared/api.js";
 import { ImportTitle } from "./ImportTitle.jsx";
 import { LibraryBrowser } from "./LibraryBrowser.jsx";
 import { LibraryQuiz } from "./LibraryQuiz.jsx";
-import { MediaAttention } from "./MediaAttention.jsx";
 import { usageLine } from "./usage.js";
 import { Posters } from "./Posters.jsx";
 import {
   folderHref,
+  documentsHref,
   postersHref,
   readSelection,
   rememberView,
   storedView,
 } from "./navigation.js";
 import "./Library.css";
+import { librarySummary } from "./summary.js";
+import { rememberLibraryPage } from "../shared/library-return.js";
+import { Documents } from "./Documents.jsx";
 
 export function Library() {
   const [selection, setSelection] = useState(() => {
     // A bare library URL opens the last chosen view.
-    if (!location.search && storedView() === "posters")
-      history.replaceState(null, "", postersHref());
+    if (!location.search && storedView() !== "columns")
+      history.replaceState(
+        null,
+        "",
+        storedView() === "documents" ? documentsHref() : postersHref(),
+      );
     return readSelection();
   });
   function go(next) {
@@ -54,8 +61,18 @@ export function Library() {
   const navigate = (repository, parts) => go(folderHref(repository, parts));
   function switchView(view) {
     rememberView(view);
-    go(view === "posters" ? postersHref() : "/");
+    go(
+      view === "posters"
+        ? postersHref()
+        : view === "documents"
+          ? documentsHref()
+          : "/",
+    );
   }
+  // Players and readers return to this exact page.
+  useEffect(() => {
+    rememberLibraryPage(location.pathname + location.search);
+  }, [selection]);
   useEffect(() => {
     const update = () => setSelection(readSelection());
     window.addEventListener("popstate", update);
@@ -134,8 +151,7 @@ export function Library() {
     );
   }
 
-  const count =
-    data?.repos.reduce((sum, repo) => sum + repo.entries.length, 0) || 0;
+  const summary = data && librarySummary(data.repos);
   return (
     <Box component="main" className="mantine-library">
       <Container size="xl" py={{ base: 28, sm: 48 }}>
@@ -196,8 +212,34 @@ export function Library() {
               <Title order={2} size="h3">
                 Your library
               </Title>
+              {summary && (
+                <Text size="sm" mt={4}>
+                  {summary.counts}
+                  {summary.attention && (
+                    <Text span c="yellow.5">
+                      {summary.counts && " · "}
+                      {summary.attention}
+                    </Text>
+                  )}
+                  {summary.unlinked && (
+                    <>
+                      {(summary.counts || summary.attention) && " · "}
+                      <Anchor
+                        href={documentsHref()}
+                        c="yellow.5"
+                        onClick={(event) => {
+                          event.preventDefault();
+                          switchView("documents");
+                        }}
+                      >
+                        {summary.unlinked}
+                      </Anchor>
+                    </>
+                  )}
+                </Text>
+              )}
               {usage && (
-                <Text size="sm" c="dimmed" mt={4}>
+                <Text size="sm" c="dimmed" mt={2}>
                   {usage}
                 </Text>
               )}
@@ -212,17 +254,11 @@ export function Library() {
                     data={[
                       { value: "columns", label: "Columns" },
                       { value: "posters", label: "Posters" },
+                      { value: "documents", label: "Documents" },
                     ]}
                     aria-label="Library view"
                   />
                 )}
-                <Badge variant="light" color="gray">
-                  {data.repos.length}{" "}
-                  {data.repos.length === 1 ? "folder" : "folders"}
-                </Badge>
-                <Badge variant="light">
-                  {count} {count === 1 ? "title" : "titles"}
-                </Badge>
               </Group>
             )}
           </Group>
@@ -241,7 +277,6 @@ export function Library() {
               {message}
             </Alert>
           )}
-          {data && <MediaAttention repos={data.repos} />}
           {data?.repos.length === 0 ? (
             <Paper withBorder p={{ base: "xl", sm: 64 }} radius="lg">
               <Stack align="center" gap="md" ta="center">
@@ -261,6 +296,8 @@ export function Library() {
                 </Button>
               </Stack>
             </Paper>
+          ) : data && selection.view === "documents" ? (
+            <Documents data={data} />
           ) : data && selection.view === "posters" ? (
             <Posters
               data={data}

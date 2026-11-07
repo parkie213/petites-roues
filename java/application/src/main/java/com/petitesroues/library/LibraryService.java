@@ -87,78 +87,115 @@ public class LibraryService {
   }
 
   /**
-   * Returns the title's own {@code poster.*}, or empty if the title is unknown or has none.
+   * Returns an indexed media file with this fingerprint that is still present, preferring the first
+   * by folder and path; empty if none is.
+   */
+  public Optional<IndexedMedia> indexedMedia(String fingerprint) {
+    return media.index().all().stream()
+        .filter(item -> item.fingerprint().equals(fingerprint))
+        .filter(item -> Files.isRegularFile(item.file()))
+        .findFirst();
+  }
+
+  /**
+   * Returns the title's own poster, which lives with its linked media ({@link
+   * TitleMediaResolver#poster}); empty if the title is unknown, has no media or has no poster.
    *
    * @throws IllegalArgumentException if several posters are present
    */
   public Optional<Path> poster(String id) throws IOException {
-    var entry = repository.find(id);
-    if (entry.isEmpty()) return Optional.empty();
-    return Optional.ofNullable(TitleMediaResolver.poster(entry.get().documentFile()));
+    var item = repository.find(id).flatMap(media::media);
+    return item.isEmpty() ? Optional.empty() : Optional.ofNullable(poster(item.get()));
   }
 
   /**
-   * Returns the nearest series poster above the title's folder within its repository, or empty for
-   * unknown and standalone titles.
+   * Returns the series poster for the title's linked media ({@link
+   * TitleMediaResolver#seriesPoster}), or empty.
    *
    * @throws IllegalArgumentException if a folder has several posters
    */
   public Optional<Path> seriesPoster(String id) throws IOException {
-    var entry = repository.find(id);
-    return entry.isEmpty() ? Optional.empty() : Optional.ofNullable(seriesPoster(entry.get()));
+    var item = repository.find(id).flatMap(media::media);
+    return item.isEmpty() ? Optional.empty() : Optional.ofNullable(seriesPoster(item.get()));
   }
 
-  private static Path seriesPoster(CatalogueEntry entry) throws IOException {
-    var location = entry.location();
-    if (location == null) return null;
-    return TitleMediaResolver.seriesPoster(
-        entry.documentFile(), Path.of(location.repositoryPath()));
+  /** The media file's own poster, or null. */
+  public static Path poster(IndexedMedia item) throws IOException {
+    return TitleMediaResolver.poster(item.file());
+  }
+
+  /** The media file's series poster within its registered folder, or null. */
+  public static Path seriesPoster(IndexedMedia item) throws IOException {
+    return TitleMediaResolver.seriesPoster(item.file(), Path.of(item.repositoryPath()));
+  }
+
+  /** Which posters a media file has, for browsing. */
+  private record Posters(boolean own, boolean series) {
+    static final Posters NONE = new Posters(false, false);
+
+    /** An ambiguous folder counts as none here; requesting the card reports the problem. */
+    static Posters of(IndexedMedia item) {
+      try {
+        return new Posters(poster(item) != null, seriesPoster(item) != null);
+      } catch (IllegalArgumentException | IOException ambiguous) {
+        return NONE;
+      }
+    }
   }
 
   /**
-   * Groups indexed titles by the registered folder they are shown in, including empty folders, with
-   * each folder's media that no present document references. A title with linked media is shown in
-   * the folder holding that media (its {@link CatalogueItem#mediaPath} places it there); one
-   * without is shown where its document is. Individually registered titles remain accessible
-   * through {@link #catalogue()}. Reads registrations from the store; does not discover or refresh
-   * content.
+   * Lists each registered folder as it is on disk, including empty folders: the study documents
+   * found in it and every video and CBZ found in it. A title links to its media by fingerprint,
+   * possibly in another folder ({@link CatalogueItem#mediaRepositoryId}); a media item names the
+   * title it belongs to, or none. Individually registered titles remain accessible through {@link
+   * #catalogue()}. Reads registrations from the store; does not discover or refresh content.
    */
   public Library library() throws IOException {
     var titles = repository.all();
     var index = media.index();
     var entries = catalogue(titles, index);
-    var referenced = new HashSet<String>();
-    for (var title : titles)
-      if (title.location() != null
-          && !title.location().missing()
-          && title.location().referenceFingerprint() != null)
-        referenced.add(title.location().referenceFingerprint());
+    var owners = new HashMap<String, String>();
+    for (var title : titles) {
+      var location = title.location();
+      if (location != null && !location.missing() && location.referenceFingerprint() != null)
+        owners.putIfAbsent(
+            mediaKind(location.documentType()) + location.referenceFingerprint(), title.id());
+    }
     return new Library(
         repositories.list().stream()
             .map(
                 repo ->
                     new Library.RepositoryContents(
                         repo,
-                        entries.stream().filter(entry -> repo.id().equals(shownIn(entry))).toList(),
+                        entries.stream()
+                            .filter(entry -> repo.id().equals(entry.repositoryId()))
+                            .toList(),
                         index.all().stream()
                             .filter(item -> repo.id().equals(item.repositoryId()))
-                            .filter(item -> !referenced.contains(item.fingerprint()))
-                            .map(LibraryService::unmatched)
+                            .map(item -> item(item, owners.get(item.kind() + item.fingerprint())))
                             .toList()))
             .toList());
   }
 
-  /** A title is shown where its media lives; without linked media, where its document is. */
-  private static String shownIn(CatalogueItem entry) {
-    return entry.mediaRepositoryId() != null ? entry.mediaRepositoryId() : entry.repositoryId();
+  private static String mediaKind(String documentType) {
+    return "comic".equals(documentType) ? "comic" : "video";
   }
 
-  private static MediaItem unmatched(IndexedMedia item) {
+  private static MediaItem item(IndexedMedia item, String titleId) {
     var warnings = new ArrayList<String>();
-    warnings.add("No study document");
+    if (titleId == null) warnings.add("No study document");
     if (item.unplayableAudio()) warnings.add(item.audioWarning());
+    var posters = Posters.of(item);
     return new MediaItem(
-        item.repositoryId(), item.relativePath(), item.kind(), item.durationSeconds(), warnings);
+        item.repositoryId(),
+        item.relativePath(),
+        item.kind(),
+        item.fingerprint(),
+        titleId,
+        item.durationSeconds(),
+        posters.own(),
+        posters.series(),
+        warnings);
   }
 
   /**
@@ -200,14 +237,7 @@ public class LibraryService {
       matched
           .filter(IndexedMedia::unplayableAudio)
           .ifPresent(item -> problems.put("audio", item.audioWarning()));
-      boolean poster = false;
-      boolean seriesPoster = false;
-      try {
-        poster = TitleMediaResolver.poster(entry.documentFile()) != null;
-        seriesPoster = seriesPoster(entry) != null;
-      } catch (IllegalArgumentException | IOException ambiguous) {
-        // Browsing shows the placeholder; requesting the card reports the problem.
-      }
+      var posters = matched.map(Posters::of).orElse(Posters.NONE);
       Double duration = details == null ? null : details.durationSeconds();
       Double position = positions.get(entry.id());
       Double progress =
@@ -225,6 +255,7 @@ public class LibraryService {
               entry.season(),
               entry.episode(),
               entry.volume(),
+              entry.shelf(),
               entry.sourceUrl(),
               details == null ? null : details.repositoryId(),
               details == null ? null : details.repositoryName(),
@@ -235,8 +266,8 @@ public class LibraryService {
               Collections.unmodifiableMap(problems),
               comic ? "comic" : "video",
               mediaAvailable,
-              poster,
-              seriesPoster,
+              posters.own(),
+              posters.series(),
               progress,
               matched.map(IndexedMedia::repositoryId).orElse(null),
               matched.map(IndexedMedia::relativePath).orElse(null)));

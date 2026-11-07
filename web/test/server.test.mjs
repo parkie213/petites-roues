@@ -63,6 +63,7 @@ test("Node serves React routes and streams API requests, downloads and ranges", 
     "/repositories",
     "/player/example/",
     "/reader/example/",
+    "/video/v1%3Aabc/",
     "/notes",
     "/notes/repo-id/pass%C3%A9-compos%C3%A9",
   ]) {

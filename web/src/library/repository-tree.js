@@ -1,14 +1,7 @@
 /**
- * Where a library item sits in its folder: a title with linked media at the media's path, any
- * other title at its document's path, and unlinked media at its own path.
- */
-export function shownPath(item) {
-  return item.mediaPath ?? item.relativePath ?? "document.json";
-}
-
-/**
- * Build the displayed tree from indexed paths; discovery happens only on Add/Refresh. Unlinked
- * media (`kind: "media"`) is placed beside the titles, named after its file.
+ * Build a registered folder's tree as it is on disk, from indexed paths; discovery happens only on
+ * Add/Refresh. Study documents sit at their document's path; every video and CBZ
+ * (`kind: "media"`) at its own path, named after its file.
  */
 export function repositoryTree(entries, media = []) {
   const root = { name: "", folders: [], titles: [] };
@@ -23,7 +16,7 @@ export function repositoryTree(entries, media = []) {
     })),
   ];
   for (const entry of items) {
-    const parts = shownPath(entry)
+    const parts = (entry.relativePath ?? "document.json")
       .replaceAll("\\", "/")
       .split("/")
       .slice(0, -1);

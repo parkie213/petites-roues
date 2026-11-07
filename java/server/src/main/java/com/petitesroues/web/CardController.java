@@ -13,13 +13,14 @@ import org.springframework.http.*;
 import org.springframework.web.bind.annotation.*;
 
 /**
- * Serves library card images. Like {@link MediaController}, an unversioned URL redirects to the
- * current version, and versioned responses are cached by the browser indefinitely: a replaced
- * poster or CBZ gets a new version and therefore a new URL. A title without a card image is 404 and
- * the library draws a placeholder.
+ * Serves library card images, for titles by id and for media no document references by fingerprint.
+ * Like {@link MediaController}, an unversioned URL redirects to the current version, and versioned
+ * responses are cached by the browser indefinitely: a replaced poster or CBZ gets a new version and
+ * therefore a new URL. Without a card image the response is 404 and the library draws a
+ * placeholder.
  */
 @RestController
-@RequestMapping("/api/titles/{id}")
+@RequestMapping("/api")
 public class CardController {
   private final CardArtService cards;
 
@@ -27,32 +28,56 @@ public class CardController {
     this.cards = cards;
   }
 
-  /** The title card: its poster, else a comic's first page. */
-  @GetMapping("/card")
+  /** The title card: its media's poster, else a comic's first page. */
+  @GetMapping("/titles/{id}/card")
   public ResponseEntity<Void> titleCard(@PathVariable String id) throws IOException {
     return redirect("card/", require(cards.titleCard(id)));
   }
 
-  @GetMapping("/card/{version}")
+  @GetMapping("/titles/{id}/card/{version}")
   public ResponseEntity<Resource> titleCard(@PathVariable String id, @PathVariable String version)
       throws IOException {
     return serve(require(cards.titleCard(id)), version);
   }
 
-  /** The series card: the nearest poster above the title folder within its repository. */
-  @GetMapping("/series-card")
+  /** The series card: the series poster for the title's media. */
+  @GetMapping("/titles/{id}/series-card")
   public ResponseEntity<Void> seriesCard(@PathVariable String id) throws IOException {
     return redirect("series-card/", require(cards.seriesCard(id)));
   }
 
-  @GetMapping("/series-card/{version}")
+  @GetMapping("/titles/{id}/series-card/{version}")
   public ResponseEntity<Resource> seriesCard(@PathVariable String id, @PathVariable String version)
       throws IOException {
     return serve(require(cards.seriesCard(id)), version);
   }
 
+  /** A media file's card: its own poster, else a CBZ's first page. */
+  @GetMapping("/media/{fingerprint}/card")
+  public ResponseEntity<Void> mediaCard(@PathVariable String fingerprint) throws IOException {
+    return redirect("card/", require(cards.mediaCard(fingerprint)));
+  }
+
+  @GetMapping("/media/{fingerprint}/card/{version}")
+  public ResponseEntity<Resource> mediaCard(
+      @PathVariable String fingerprint, @PathVariable String version) throws IOException {
+    return serve(require(cards.mediaCard(fingerprint)), version);
+  }
+
+  /** A media file's series card. */
+  @GetMapping("/media/{fingerprint}/series-card")
+  public ResponseEntity<Void> mediaSeriesCard(@PathVariable String fingerprint) throws IOException {
+    return redirect("series-card/", require(cards.mediaSeriesCard(fingerprint)));
+  }
+
+  @GetMapping("/media/{fingerprint}/series-card/{version}")
+  public ResponseEntity<Resource> mediaSeriesCard(
+      @PathVariable String fingerprint, @PathVariable String version) throws IOException {
+    return serve(require(cards.mediaSeriesCard(fingerprint)), version);
+  }
+
   private static Card require(Optional<Card> card) {
-    return card.orElseThrow(() -> new NoSuchElementException("This title has no card image"));
+    return card.orElseThrow(() -> new NoSuchElementException("No card image"));
   }
 
   private static ResponseEntity<Void> redirect(String path, Card card) {

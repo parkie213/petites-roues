@@ -20,6 +20,8 @@ CREATE TABLE titles (
   episode INTEGER,
   -- Comic volume (tome) number.
   volume INTEGER,
+  -- The library shelf the document names; null means the default for its kind.
+  shelf TEXT,
   source_url TEXT,
   document_path TEXT NOT NULL,
   missing INTEGER NOT NULL DEFAULT 0,

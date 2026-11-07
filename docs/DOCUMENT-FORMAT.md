@@ -74,8 +74,10 @@ have a null translation. No language is inferred from the field names or filenam
 
 ## Metadata and review fields
 
-Optional document metadata includes `series`, `sourceUrl`, and on a video integer `season` and
-`episode`. How the material was prepared (which ASR or vision model, which pass) is not part of
+Optional document metadata includes `series`, `shelf`, `sourceUrl`, and on a video integer
+`season` and `episode`. `shelf` names the library shelf the title is shown on, any label you like
+("Manga", "BD", "YouTube"); without it a comic goes on Comics, a video with a season or episode on
+Series, and other videos on Films. Media without a study document always uses those defaults. How the material was prepared (which ASR or vision model, which pass) is not part of
 the document: it belongs in the commit message, with raw model output kept in `content-archive/`.
 Cue-specific fields carry review information:
 
@@ -197,19 +199,31 @@ documents/
 
 ### Card images
 
-The library's Posters view shows a card per title or series. A title card uses an optional
-`poster.jpg`, `poster.jpeg`, `poster.png` or `poster.webp` beside `document.json`; without one,
-a comic uses its first manifest page and a video gets a placeholder. A series card uses the
-nearest `poster.*` in a folder above the title folders (for example `peppa-pig/poster.jpg`),
-never the repository root; without one it uses its first volume's or episode's card. Keep at
-most one poster per folder. Posters are checked when the library is browsed, so no Refresh is
-needed. Card-sized copies are cached locally in `content/.cache/cards/`
+The library's Posters view shows a card per title or series, for media with or without a study
+document. A study document whose media was not found has no card; the Documents view lists every
+document with the media it links to, or why it has none. Posters live with the media, as in a Plex library, not with study documents, so they
+show before any document exists. Images are `.jpg`, `.jpeg`, `.png` or `.webp`:
+
+- A video or CBZ alone in its folder (a film or tome folder) uses that folder's `poster.*`.
+- Any video or CBZ can have an image with its own file name, such as `ponyo.jpg` beside
+  `ponyo.mkv`; it wins over `poster.*`.
+- A series card uses `poster.*` in a folder shared by several episodes or volumes (for example
+  `peppa-pig/poster.jpg` beside its videos), or the nearest one above a title folder, up to and
+  including the registered folder. A film without its own poster uses that card too.
+
+Without an image, a comic uses its first page and a video gets a placeholder. Keep at most one
+poster per folder. Posters are checked when the library is browsed, so no Refresh is needed. Card-sized copies are cached locally in `content/.cache/cards/`
 (`petitesroues.cards.cache`) and can be deleted at any time.
 
-Posters group titles from document metadata, never folder names: comics by `series` and
-`comic.volume`, videos with a season or episode by `series`, and other videos as films. Series
-names match ignoring case and spacing, across repositories; copies of the same volume or episode
-share one card.
+Posters group titles from document metadata onto shelves (see `shelf` above), ordered by name:
+comics by `series` and `comic.volume`, videos with a season or episode by `series`, and other
+videos one card each. A series card sits on the shelf most of its titles name, so one volume
+without a `shelf` doesn't split its series. Media without a document is named from
+its path instead, as media servers do: the series is its nearest folder that is not a `Season N`
+or episode folder, and `s01e02` or a leading number (`083-bienenalarm.mp4`) gives the episode.
+Those names are for display only; linking is by fingerprint alone. Series names match ignoring
+case and spacing, across folders, so a video awaiting its document sits in its series beside the
+episodes that have one. Copies of the same volume or episode share one card.
 
 Add/Refresh indexes documents, media and folder hierarchy. Refresh after adding, moving or
 changing documents or media; reopening the player reloads document contents. Removing a folder

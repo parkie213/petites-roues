@@ -40,7 +40,7 @@ class CardIntegrationTest extends HttpIntegrationTest {
   }
 
   @Test
-  void comicCoverPosterOverrideSeriesPosterAndPlaceholder() throws Exception {
+  void comicCoverPosterOverrideSeriesPosterMediaCardsAndPlaceholder() throws Exception {
     Path series = root.resolve("manga/demon-slayer");
     Path tome = Files.createDirectories(series.resolve("t01"));
     var comic =
@@ -95,7 +95,7 @@ class CardIntegrationTest extends HttpIntegrationTest {
     assertEquals(720, cover.getHeight());
     assertEquals(404, status(api + "/series-card"));
 
-    // A poster beside the document replaces the cover under a new URL; small images stay small.
+    // A poster in the CBZ's own folder replaces the cover under a new URL; small images stay small.
     Files.write(tome.resolve("poster.png"), image(100, 150));
     assertTrue(onlyTitle().posterAvailable());
     assertEquals(100, image(api + "/card").getWidth());
@@ -110,12 +110,44 @@ class CardIntegrationTest extends HttpIntegrationTest {
     assertEquals(newPosterUrl, "card/" + location(api + "/" + posterUrl));
     assertEquals(90, image(api + "/card").getWidth());
 
-    // A poster in the series folder is the series card; the repository root never is.
+    // The nearest poster above the CBZ's own folder is the series card, the registered folder
+    // included (it may be the series folder itself).
     Files.write(root.resolve("manga/poster.jpg"), image(10, 10));
-    assertFalse(onlyTitle().seriesPosterAvailable());
-    Files.write(series.resolve("poster.png"), image(300, 450));
     assertTrue(onlyTitle().seriesPosterAvailable());
+    assertEquals(10, image(api + "/series-card").getWidth());
+    Files.write(series.resolve("poster.png"), image(300, 450));
     assertEquals(300, image(api + "/series-card").getWidth());
+
+    // A CBZ no document references has the same cards by fingerprint: its first page by name.
+    Path loose = Files.createDirectories(root.resolve("manga/loose"));
+    try (var zip = new ZipOutputStream(Files.newOutputStream(loose.resolve("extra.cbz")))) {
+      for (var entry : Map.of("b.jpg", image(60, 90), "c.jpg", image(30, 90)).entrySet()) {
+        zip.putNextEntry(new ZipEntry(entry.getKey()));
+        zip.write(entry.getValue());
+        zip.closeEntry();
+      }
+    }
+    http.post().uri("/api/repositories/refresh").retrieve().toBodilessEntity();
+    var media =
+        http
+            .get()
+            .uri("/api/library")
+            .retrieve()
+            .body(Library.class)
+            .repositories()
+            .getFirst()
+            .media()
+            .stream()
+            .filter(item -> item.titleId() == null)
+            .findFirst()
+            .orElseThrow();
+    assertFalse(media.posterAvailable());
+    assertTrue(media.seriesPosterAvailable());
+    String mediaApi = "/api/media/" + media.fingerprint();
+    assertEquals(60, image(mediaApi + "/card").getWidth());
+    assertEquals(10, image(mediaApi + "/series-card").getWidth());
+    Files.write(loose.resolve("extra.webp"), image(50, 75));
+    assertEquals(50, image(mediaApi + "/card").getWidth());
 
     // Without a poster or CBZ there is no card image: the library draws a placeholder.
     Files.delete(tome.resolve("poster.png"));

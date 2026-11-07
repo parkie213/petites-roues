@@ -54,34 +54,31 @@ test("column navigation keeps ancestors and stops at an invalid folder", () => {
   assert.equal(branch.length, 2);
   assert.equal(branch.at(-1).node.titles[0].id, "b");
 });
-test("a title with linked media sits where the media lives, beside unlinked media", () => {
+test("documents and media sit at their own paths, linked or not", () => {
   const tree = repositoryTree(
     [
       {
-        id: "lunch",
-        title: "Lunch",
-        relativePath: "peppa/s01e34/document.json",
-        mediaPath: "peppa-pig/lunch.zh.mp4",
+        id: "film",
+        title: "Film",
+        relativePath: "docs/film/document.json",
+        mediaPath: "films/Film.mkv",
       },
     ],
     [
-      {
-        relativePath: "peppa-pig/stray.mkv",
-        kind: "video",
-        warnings: ["No study document"],
-      },
+      { relativePath: "films/Film.mkv", kind: "video", titleId: "film" },
+      { relativePath: "films/Other.mkv", kind: "video" },
     ],
   );
   assert.deepEqual(
     tree.folders.map((f) => f.name),
-    ["peppa-pig"],
+    ["docs", "films"],
   );
-  const [lunch, stray] = [...tree.folders[0].titles].sort((a, b) =>
-    a.id.localeCompare(b.id),
+  assert.equal(tree.folders[0].folders[0].titles[0].id, "film");
+  assert.deepEqual(
+    tree.folders[1].titles.map((item) => [item.title, item.titleId ?? null]),
+    [
+      ["Film.mkv", "film"],
+      ["Other.mkv", null],
+    ],
   );
-  assert.equal(stray.id, "media:peppa-pig/stray.mkv");
-  assert.equal(stray.kind, "media");
-  assert.equal(stray.mediaKind, "video");
-  assert.equal(stray.title, "stray.mkv");
-  assert.equal(lunch.id, "lunch");
 });

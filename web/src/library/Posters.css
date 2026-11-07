@@ -57,28 +57,30 @@ a.poster-link:focus-visible .poster-art {
 .poster-frame {
   position: relative;
 }
-.poster-problem {
+/* The (!) on a card's corner; its tooltip says what needs attention. */
+.poster-card {
+  position: relative;
+}
+.poster-attention {
   position: absolute;
-  left: 8px;
-  right: 8px;
-  bottom: 8px;
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  padding: 3px 7px;
-  border-radius: var(--mantine-radius-sm);
-  background: rgb(10 11 14 / 0.82);
-  color: var(--mantine-color-yellow-4);
-  font-size: 11px;
-  line-height: 1.4;
-  white-space: nowrap;
+  top: 6px;
+  right: 6px;
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--mantine-color-yellow-5);
+  color: var(--mantine-color-dark-9);
+  font-size: 13px;
+  font-weight: 800;
+  line-height: 1;
+  box-shadow: 0 1px 4px rgb(0 0 0 / 0.5);
+  cursor: help;
 }
-.poster-problem span {
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.poster-problem svg {
-  flex: none;
+.poster-attention:focus-visible {
+  outline: 2px solid var(--mantine-color-yellow-3);
+  outline-offset: 2px;
 }
 .poster-progress {
   position: absolute;
@@ -95,10 +97,6 @@ a.poster-link:focus-visible .poster-art {
   display: block;
   height: 100%;
   background: var(--mantine-color-sage-4);
-}
-/* The problem banner sits above the progress bar when a title has both. */
-.poster-frame:has(.poster-progress) .poster-problem {
-  bottom: 12px;
 }
 .poster-caption {
   min-width: 0;

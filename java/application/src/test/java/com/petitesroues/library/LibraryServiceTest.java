@@ -127,7 +127,7 @@ class LibraryServiceTest {
   }
 
   @Test
-  void unmatchedMediaIsListedWithItsWarningsAndUnplayableAudioWarnsOnTheTitle() throws Exception {
+  void everyMediaFileIsListedWithItsWarningsAndUnplayableAudioWarnsOnTheTitle() throws Exception {
     var folder = new ContentRepository("repo", "Folder", root.toString(), null, 1, 0, 3);
     Files.write(root.resolve("film.json"), new byte[] {0});
     Files.write(root.resolve("film.mkv"), new byte[] {0});
@@ -153,12 +153,15 @@ class LibraryServiceTest {
     assertTrue(title.videoAvailable());
     assertEquals(Map.of("audio", "No audio track this player can play (AC3)"), title.unavailable());
     assertEquals(
-        List.of("book.cbz", "stray.mkv"),
+        List.of("book.cbz", "film.mkv", "stray.mkv"),
         contents.media().stream().map(item -> item.relativePath()).toList());
     assertEquals(List.of("No study document"), contents.media().getFirst().warnings());
+    assertEquals("film", contents.media().get(1).titleId());
+    assertEquals(
+        List.of("No audio track this player can play (AC3)"), contents.media().get(1).warnings());
     assertEquals(
         List.of("No study document", "No audio track this player can play (DTS)"),
-        contents.media().get(1).warnings());
+        contents.media().get(2).warnings());
   }
 
   @Test
@@ -243,7 +246,8 @@ class LibraryServiceTest {
   }
 
   @Test
-  void aLinkedTitleIsShownInTheFolderHoldingItsMedia(@TempDir Path videosRoot) throws Exception {
+  void eachFolderListsItsOwnDocumentsAndAllItsMediaNamingTheirTitles(@TempDir Path videosRoot)
+      throws Exception {
     var documents = new ContentRepository("repo", "documents", root.toString(), null, 2, 0);
     var videos = new ContentRepository("media", "media", videosRoot.toString(), null, 0, 0, 1);
     Files.write(root.resolve("film.json"), new byte[] {0});
@@ -263,11 +267,16 @@ class LibraryServiceTest {
 
     var folders = library().library().repositories();
 
-    assertEquals(List.of("notes"), folders.getFirst().entries().stream().map(e -> e.id()).toList());
-    var shown = folders.get(1).entries();
-    assertEquals(List.of("film"), shown.stream().map(e -> e.id()).toList());
-    assertEquals("films/Film.mkv", shown.getFirst().mediaPath());
-    assertEquals("film.json", shown.getFirst().relativePath(), "the document keeps its own path");
-    assertTrue(folders.get(1).media().isEmpty());
+    assertEquals(
+        List.of("film", "notes"),
+        folders.getFirst().entries().stream().map(e -> e.id()).toList(),
+        "documents stay in the folder that holds them");
+    var linked = folders.getFirst().entries().getFirst();
+    assertEquals("media", linked.mediaRepositoryId());
+    assertEquals("films/Film.mkv", linked.mediaPath());
+    assertTrue(folders.get(1).entries().isEmpty());
+    var item = folders.get(1).media().getFirst();
+    assertEquals("film", item.titleId(), "linked media names its title");
+    assertTrue(item.warnings().isEmpty());
   }
 }

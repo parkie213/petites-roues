@@ -218,6 +218,7 @@ class ContentRepositoryRefreshIntegrationTest {
             original.translationLanguage(),
             original.notesLanguage(),
             null,
+            "Cartoons",
             null,
             new VideoDocument(
                 null, null, new VideoReference(null, null, 120.0), original.video().cues()));
@@ -235,6 +236,8 @@ class ContentRepositoryRefreshIntegrationTest {
     Instant.parse(result.lastRefreshedAt());
     var entry = catalogue.find("existing").orElseThrow();
     assertEquals("Updated", entry.title());
+    assertEquals("Cartoons", entry.shelf(), "the document's shelf is indexed");
+    assertNull(catalogue.find("new-title").orElseThrow().shelf(), "no shelf means the default");
     assertEquals(120.0, entry.location().durationSeconds());
     assertTrue(catalogue.contains("new-title"));
     assertEquals(reviews, jdbc.queryForList("SELECT * FROM review_queue"));

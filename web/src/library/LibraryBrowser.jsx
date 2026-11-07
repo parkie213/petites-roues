@@ -26,9 +26,8 @@ import {
   Pencil,
   RefreshCw,
   Trash2,
-  TriangleAlert,
 } from "lucide-react";
-import { repositoryColumns } from "./repository-tree.js";
+import { repositoryColumns, repositoryTree } from "./repository-tree.js";
 import { folderHref } from "./navigation.js";
 
 function StudyTitle({ entry }) {
@@ -46,19 +45,6 @@ function StudyTitle({ entry }) {
             </Text>
           </div>
         </Group>
-        {entry.documentAvailable &&
-          Object.values(entry.unavailable ?? {}).map((problem) => (
-            <Group key={problem} gap={5} wrap="nowrap" align="flex-start">
-              <TriangleAlert
-                size={13}
-                color="var(--mantine-color-yellow-5)"
-                style={{ flexShrink: 0, marginTop: 2 }}
-              />
-              <Text c="dimmed" size="xs">
-                {problem}
-              </Text>
-            </Group>
-          ))}
         {entry.documentAvailable ? (
           <Group gap={6} wrap="nowrap">
             <Button
@@ -99,14 +85,23 @@ function StudyTitle({ entry }) {
   );
 }
 
-/** A video or CBZ that no study document references, with what needs fixing. */
-function UnlinkedMedia({ item }) {
+/** Where a video or CBZ opens: its title, else a video plays on its own. */
+function mediaHref(item) {
   const comic = item.mediaKind === "comic";
+  if (item.titleId)
+    return `/${comic ? "reader" : "watch"}/${encodeURIComponent(item.titleId)}/`;
+  return comic ? null : `/video/${encodeURIComponent(item.fingerprint)}/`;
+}
+
+/** A video or CBZ file in the folder, named by its file. */
+function MediaFile({ item }) {
+  const comic = item.mediaKind === "comic";
+  const href = mediaHref(item);
   return (
     <Paper withBorder radius="md" p="md" my="xs">
       <Stack gap="sm">
         <Group gap="sm" wrap="nowrap" align="flex-start">
-          <ThemeIcon variant="light" color="yellow" size={34}>
+          <ThemeIcon variant="light" color="gray" size={34}>
             {comic ? <BookOpen size={18} /> : <Film size={18} />}
           </ThemeIcon>
           <Text
@@ -118,14 +113,18 @@ function UnlinkedMedia({ item }) {
             {item.title}
           </Text>
         </Group>
-        {item.warnings.map((warning) => (
-          <Group key={warning} gap={5} wrap="nowrap">
-            <TriangleAlert size={13} color="var(--mantine-color-yellow-5)" />
-            <Text c="dimmed" size="xs">
-              {warning}
-            </Text>
-          </Group>
-        ))}
+        {href && (
+          <Button
+            component="a"
+            variant="light"
+            size="xs"
+            fullWidth
+            rightSection={<ChevronRight size={14} />}
+            href={href}
+          >
+            {comic ? "Read" : "Play"}
+          </Button>
+        )}
       </Stack>
     </Paper>
   );
@@ -133,22 +132,31 @@ function UnlinkedMedia({ item }) {
 
 const isMedia = (item) => item.kind === "media";
 
-/** Titles and unlinked media below a folder, for its row description. */
+/** Study documents, videos and comics below a folder, for its row description. */
 function counts(node) {
-  const below = node.folders.map(counts);
-  const titles =
-    node.titles.filter((item) => !isMedia(item)).length +
-    below.reduce((sum, child) => sum + child.titles, 0);
-  const unlinked =
-    node.titles.filter(isMedia).length +
-    below.reduce((sum, child) => sum + child.unlinked, 0);
-  return { titles, unlinked };
+  const total = { documents: 0, videos: 0, comics: 0 };
+  for (const item of node.titles) {
+    if (!isMedia(item)) total.documents++;
+    else if (item.mediaKind === "comic") total.comics++;
+    else total.videos++;
+  }
+  for (const child of node.folders.map(counts))
+    for (const key of Object.keys(total)) total[key] += child[key];
+  return total;
 }
 
-function describe({ titles, unlinked }) {
-  const parts = [`${titles} ${titles === 1 ? "title" : "titles"}`];
-  if (unlinked) parts.push(`${unlinked} without a study document`);
-  return parts.join(" · ");
+const plural = (n, word) => `${n} ${word}${n === 1 ? "" : "s"}`;
+
+function describe({ documents, videos, comics }) {
+  return (
+    [
+      videos > 0 && plural(videos, "video"),
+      comics > 0 && plural(comics, "comic"),
+      documents > 0 && plural(documents, "study document"),
+    ]
+      .filter(Boolean)
+      .join(" · ") || "Empty"
+  );
 }
 
 /** Renders indexed folders; Mantine owns navigation-row and menu interactions. */
@@ -257,10 +265,9 @@ export function LibraryBrowser({
               key={item.id}
               href={folderHref(item.id)}
               label={item.name}
-              description={describe({
-                titles: item.entries.length,
-                unlinked: item.media?.length ?? 0,
-              })}
+              description={describe(
+                counts(repositoryTree(item.entries, item.media)),
+              )}
               active={repo?.id === item.id}
               aria-current={repo?.id === item.id ? "location" : undefined}
               leftSection={<Library size={18} />}
@@ -322,16 +329,15 @@ export function LibraryBrowser({
             })}
             {node.titles.map((entry) =>
               isMedia(entry) ? (
-                <UnlinkedMedia key={entry.id} item={entry} />
+                <MediaFile key={entry.id} item={entry} />
               ) : (
                 <StudyTitle key={entry.id} entry={entry} />
               ),
             )}
             {!node.folders.length && !node.titles.length && (
               <Text p="md" size="sm" c="dimmed">
-                {index === 0 && repo.titles > 0
-                  ? `${repo.titles} study ${repo.titles === 1 ? "document here is" : "documents here are"} shown with ${repo.titles === 1 ? "its video" : "their videos"}, in the folder that holds ${repo.titles === 1 ? "it" : "them"}.`
-                  : "Nothing found. Add videos, comics or study documents, then Refresh library."}
+                Nothing found. Add videos, comics or study documents, then
+                Refresh library.
               </Text>
             )}
           </Box>

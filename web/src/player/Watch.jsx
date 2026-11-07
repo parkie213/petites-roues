@@ -149,7 +149,7 @@ export function Watch({ id }) {
   if (error)
     return (
       <main className="page">
-        <a href="/">← Library</a>
+        <a href={returnPath}>← Library</a>
         <h1>Could not open title</h1>
         <p role="alert" className="error">
           {error}

@@ -19,6 +19,7 @@ import java.util.Map;
  * @param season optional season number
  * @param episode optional episode number
  * @param volume optional comic volume (tome) number
+ * @param shelf the library shelf the document names, or null for the default for its type
  * @param sourceUrl optional reference to the source material
  * @param repositoryId owning repository identity, or {@code null} for a standalone registration
  * @param repositoryName owning repository display name, or {@code null} for a standalone entry
@@ -42,7 +43,7 @@ import java.util.Map;
  *     {@code null} when there is no saved position, the video has no known duration, or a comic
  *     position predates stored fractions
  * @param mediaRepositoryId the folder holding the linked video or CBZ, or {@code null} when none is
- *     linked; the library shows the title there
+ *     linked
  * @param mediaPath the linked media's path within that folder, or {@code null}
  */
 public record CatalogueItem(
@@ -53,6 +54,7 @@ public record CatalogueItem(
     Integer season,
     Integer episode,
     Integer volume,
+    String shelf,
     String sourceUrl,
     String repositoryId,
     String repositoryName,

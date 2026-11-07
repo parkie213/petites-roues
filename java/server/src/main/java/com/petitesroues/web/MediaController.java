@@ -1,6 +1,7 @@
 package com.petitesroues.web;
 
 import com.petitesroues.library.LibraryService;
+import com.petitesroues.model.library.IndexedMedia;
 import java.io.IOException;
 import java.net.URI;
 import java.nio.file.Files;
@@ -12,15 +13,17 @@ import org.springframework.http.*;
 import org.springframework.web.bind.annotation.*;
 
 /**
- * Serves supplied files unchanged; Spring handles byte ranges and file streaming.
+ * Serves media files unchanged; Spring handles byte ranges and file streaming. A title's video is
+ * served by title id; any indexed video, with or without a study document, by its fingerprint, so
+ * it can be watched before it has one.
  *
- * <p>The video's URL carries its version (size and modification time): {@code /media} redirects to
- * {@code /media/{version}}. A browser keeps buffered video per URL, so when a title's video is
+ * <p>The video's URL carries its version (size and modification time): {@code .../media} redirects
+ * to {@code .../media/{version}}. A browser keeps buffered video per URL, so when a video is
  * replaced, an open or reloaded player fetches the new file instead of mixing in cached data from
  * the old one.
  */
 @RestController
-@RequestMapping("/api/titles/{id}")
+@RequestMapping("/api")
 public class MediaController {
   private final LibraryService library;
 
@@ -28,25 +31,41 @@ public class MediaController {
     this.library = library;
   }
 
-  @GetMapping("/media")
+  @GetMapping("/titles/{id}/media")
   public ResponseEntity<Void> currentVideo(@PathVariable String id) throws IOException {
+    return redirect("media/" + version(video(id)));
+  }
+
+  /** Serves the title's current video; a stale version redirects to the current one. */
+  @GetMapping("/titles/{id}/media/{version}")
+  public ResponseEntity<Resource> video(@PathVariable String id, @PathVariable String version)
+      throws IOException {
+    return serve(video(id), version);
+  }
+
+  @GetMapping("/media/{fingerprint}/video")
+  public ResponseEntity<Void> currentIndexedVideo(@PathVariable String fingerprint)
+      throws IOException {
+    return redirect("video/" + version(indexedVideo(fingerprint)));
+  }
+
+  /** Serves an indexed video by fingerprint; a stale version redirects to the current one. */
+  @GetMapping("/media/{fingerprint}/video/{version}")
+  public ResponseEntity<Resource> indexedVideo(
+      @PathVariable String fingerprint, @PathVariable String version) throws IOException {
+    return serve(indexedVideo(fingerprint), version);
+  }
+
+  private static <T> ResponseEntity<T> redirect(String location) {
     return ResponseEntity.status(HttpStatus.FOUND)
-        .location(URI.create("media/" + version(video(id))))
+        .location(URI.create(location))
         .cacheControl(CacheControl.noStore())
         .build();
   }
 
-  /** Serves the current video; a stale version redirects to the current one. */
-  @GetMapping("/media/{version}")
-  public ResponseEntity<Resource> video(@PathVariable String id, @PathVariable String version)
-      throws IOException {
-    Path file = video(id);
+  private static ResponseEntity<Resource> serve(Path file, String version) throws IOException {
     String current = version(file);
-    if (!current.equals(version))
-      return ResponseEntity.status(HttpStatus.FOUND)
-          .location(URI.create(current))
-          .cacheControl(CacheControl.noStore())
-          .build();
+    if (!current.equals(version)) return redirect(current);
     Resource video = new FileSystemResource(file);
     return ResponseEntity.ok()
         .contentType(
@@ -61,6 +80,14 @@ public class MediaController {
             () ->
                 new NoSuchElementException(
                     "Video not found — add the folder that holds it, then Refresh"));
+  }
+
+  private Path indexedVideo(String fingerprint) {
+    return library
+        .indexedMedia(fingerprint)
+        .filter(item -> "video".equals(item.kind()))
+        .map(IndexedMedia::file)
+        .orElseThrow(() -> new NoSuchElementException("Video not found — Refresh the library"));
   }
 
   private static String version(Path file) throws IOException {

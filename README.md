@@ -74,7 +74,8 @@ npm ci
 npm run dev
 ```
 
-Open <http://127.0.0.1:8875/> and use **Add repository** to select the `example` directory.
+Open <http://127.0.0.1:8875/> and use **Add folder** to add `example/media-fr`, then
+`example/documents-fr`.
 [Getting started](docs/GETTING-STARTED.md) walks through the example, its quiz and note, and
 what to try next.
 
