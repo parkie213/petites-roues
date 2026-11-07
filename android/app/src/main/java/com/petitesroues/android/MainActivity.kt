@@ -99,7 +99,11 @@ class MainActivity : ComponentActivity() {
         try {
           val started = System.nanoTime()
           val refreshed =
-            withContext(Dispatchers.IO) { library.refresh(trees).also { images.clear() } }
+            withContext(Dispatchers.IO) {
+              library
+                .refresh(trees) { progress -> scope.launch { state = state.copy(refreshProgress = progress) } }
+                .also { images.clear() }
+            }
           Log.i("Library", "Refreshed ${trees.size} folders in ${(System.nanoTime() - started) / 1_000_000} ms")
           settings.libraryBytes = refreshed.bytes
           state = state.copy(problems = refreshed.problems)
@@ -107,7 +111,7 @@ class MainActivity : ComponentActivity() {
         } catch (failure: Exception) {
           state = state.copy(message = "Refresh failed: ${failure.message}")
         } finally {
-          state = state.copy(refreshing = false)
+          state = state.copy(refreshing = false, refreshProgress = null)
         }
       }
     }
@@ -195,7 +199,7 @@ class MainActivity : ComponentActivity() {
   private fun TitleScreen(title: Title, onBack: () -> Unit) {
     var loaded by remember(title) { mutableStateOf<Result<StudyDocument>?>(null) }
     LaunchedEffect(title) {
-      loaded = withContext(Dispatchers.IO) { runCatching { library.read(title.documentUri) } }
+      loaded = withContext(Dispatchers.IO) { runCatching { library.read(checkNotNull(title.documentUri) { "it has no study document" }) } }
     }
     val document = loaded?.getOrNull()
     when {

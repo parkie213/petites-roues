@@ -1,7 +1,7 @@
 package com.petitesroues.library;
 
+import com.petitesroues.library.progress.LibraryProgress;
 import com.petitesroues.model.library.LibraryJob;
-import com.petitesroues.model.library.LibraryProgress;
 import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.Optional;

@@ -68,6 +68,13 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.petitesroues.android.ProgressColor
+import com.petitesroues.library.discovery.MediaKind
+import com.petitesroues.library.progress.LibraryProgress
+import com.petitesroues.library.shelves.Shelves
+import com.petitesroues.library.shelves.Shelves.CardArt
+import com.petitesroues.library.shelves.Shelves.Group
+import com.petitesroues.library.shelves.Shelves.Slot
+import java.util.Locale
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.material.icons.filled.MoreHoriz
@@ -82,14 +89,16 @@ data class LibraryState(
   val message: String?,
   /** The disk usage line for the shelves' header, or null when there is nothing to report. */
   val usage: String? = null,
+  /** Where a running refresh has got to, or null when none is running or it has not reported. */
+  val refreshProgress: LibraryProgress? = null,
 )
 
 /** Which series is open in the library, and which of its seasons; null shows the shelves. */
 data class Browse(val group: String? = null, val season: Int? = null)
 
 /**
- * Titles from the phone's content folders on Manga, Series and Films shelves, grouped from
- * document metadata like the desktop library's posters. A series card opens its tomes or episodes;
+ * Titles and media from the phone's content folders on shelves grouped by the rules the desktop
+ * library's posters use ([Shelves]): shelves a document names, else Comics, Series and Films. A series card opens its tomes or episodes;
  * a title card opens the title where it was left. Refresh rescans the folders; the folder button
  * lists the content folders, where more can be added or removed. A title card shows how far
  * through it the saved position is, which its menu can clear.
@@ -122,6 +131,8 @@ fun LibraryScreen(
       onDismiss = { managing = false },
     )
   val shelves = remember(state.titles) { Shelves.shelves(state.titles) }
+  // Cards name their language only when the library has more than one.
+  val multilingual = remember(state.titles) { state.titles.mapNotNull { it.sourceLanguage }.distinct().size > 1 }
   val open = browse.group?.let { key -> shelves.flatMap { it.groups }.firstOrNull { it.key == key } }
   BackHandler(enabled = open != null) { onBrowse(Browse()) }
   val cards = Cards(images, state.progress, onOpen, onClearProgress)
@@ -153,7 +164,7 @@ fun LibraryScreen(
     }
   ) { padding ->
     Column(Modifier.padding(padding).fillMaxSize()) {
-      if (state.refreshing) LinearProgressIndicator(Modifier.fillMaxWidth().padding(horizontal = 16.dp))
+      if (state.refreshing) RefreshProgress(state.refreshProgress)
       state.message?.let {
         Text(it, color = MaterialTheme.colorScheme.error, modifier = Modifier.padding(16.dp))
       }
@@ -166,7 +177,7 @@ fun LibraryScreen(
         }
         return@Column
       }
-      if (open != null) SeriesView(open, browse.season, cards) { onBrowse(browse.copy(season = it)) }
+      if (open != null) SeriesView(open, browse.season, cards, multilingual) { onBrowse(browse.copy(season = it)) }
       else
         PosterGrid(shelvesScroll) {
           state.usage?.let { usage ->
@@ -187,16 +198,18 @@ fun LibraryScreen(
               }
             }
             items(shelf.groups, key = { it.key }) { group ->
-              if (group.single) cards.Slot(group.slots.single(), group.name, null)
+              val language = group.language?.takeIf { multilingual }
+              if (group.single) cards.Slot(group.slots.single(), group.name, null, language)
               else
                 cards.Card(
                   group.name,
                   group.count,
                   group.art,
-                  group.shelf == "manga",
+                  group.kind == MediaKind.COMIC,
                   null,
                   emptyList(),
                   onClick = { onBrowse(Browse(group.key)) },
+                  language = language,
                 )
             }
           }
@@ -232,15 +245,50 @@ private fun PosterGrid(state: LazyGridState, content: LazyGridScope.() -> Unit) 
 private fun LazyGridScope.heading(content: @Composable () -> Unit) =
   item(span = { GridItemSpan(maxLineSpan) }) { Box(Modifier.padding(top = 12.dp)) { content() } }
 
+/** A language tag's name in that language, as the desktop library shows it: "fr" → "Français". */
+private fun nativeName(tag: String): String {
+  val locale = Locale.forLanguageTag(tag)
+  return locale.getDisplayName(locale).replaceFirstChar { it.titlecase(locale) }.ifEmpty { tag }
+}
+
+/**
+ * How far a refresh has got: what it is doing, a bar (determinate while a folder's media or
+ * documents are counted) and the file it is on.
+ */
+@Composable
+private fun RefreshProgress(progress: LibraryProgress?) {
+  val folder = progress?.folder
+  val label =
+    when (progress?.phase) {
+      null -> "Starting…"
+      "scanning" -> "Looking through $folder…"
+      "media" -> "Checking media in $folder · ${minOf(progress.done + 1, progress.total)} of ${progress.total}"
+      "documents" -> "Reading study documents in $folder · ${minOf(progress.done + 1, progress.total)} of ${progress.total}"
+      else -> "Saving…"
+    }
+  Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+    Text(label, style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.SemiBold)
+    if (progress != null && progress.total > 0)
+      LinearProgressIndicator(progress = { progress.done.toFloat() / progress.total }, modifier = Modifier.fillMaxWidth())
+    else LinearProgressIndicator(Modifier.fillMaxWidth())
+    progress?.current?.let {
+      Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.StartEllipsis)
+    }
+  }
+}
+
 /** The tomes or episodes of one series, with season chips when it has several. */
 @Composable
-private fun SeriesView(group: ShelfGroup<Title>, chosen: Int?, cards: Cards, onSeason: (Int) -> Unit) {
+private fun SeriesView(group: Group<Title>, chosen: Int?, cards: Cards, multilingual: Boolean, onSeason: (Int) -> Unit) {
   val season = if (group.seasons.size > 1) chosen?.takeIf { it in group.seasons } ?: group.seasons.first() else null
   val slots = if (season != null) group.slots.filter { it.entry.season == season } else group.slots
   PosterGrid(rememberLazyGridState()) {
     heading {
       Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        group.count?.let { Text(it, color = MaterialTheme.colorScheme.onSurfaceVariant) }
+        listOfNotNull(group.language?.takeIf { multilingual }?.let(::nativeName), group.count)
+          .joinToString(" · ")
+          .ifEmpty { null }
+          ?.let { Text(it, color = MaterialTheme.colorScheme.onSurfaceVariant) }
         if (season != null)
           Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             for (option in group.seasons)
@@ -261,10 +309,11 @@ private class Cards(
 ) {
   /** A tome, episode or single title: opens its preferred copy, or a chosen copy from the menu. */
   @Composable
-  fun Slot(slot: Slot<Title>, name: String, detail: String?) {
+  fun Slot(slot: Slot<Title>, name: String, detail: String?, language: String? = null) {
     val entry = slot.entry
     val problem =
       when {
+        entry.documentUri == null -> "No study document"
         entry.mediaUri != null -> null
         entry.kind == TitleKind.VIDEO -> "No video"
         else -> "No CBZ"
@@ -281,6 +330,7 @@ private class Cards(
       onClick = if (problem == null) ({ onOpen(entry) }) else null,
       progress = saved?.fraction?.takeIf { it > 0 }?.toFloat(),
       onClearProgress = if (saved != null) ({ onClearProgress(entry) }) else null,
+      language = language,
     )
   }
 
@@ -299,6 +349,7 @@ private class Cards(
     onClick: (() -> Unit)?,
     progress: Float? = null,
     onClearProgress: (() -> Unit)? = null,
+    language: String? = null,
   ) {
     Column(
       Modifier.alpha(if (problem != null) 0.55f else 1f),
@@ -311,6 +362,19 @@ private class Cards(
           .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
       ) {
         Art(CardSource.of(art), name, comic)
+        language?.let {
+          Text(
+            nativeName(it),
+            color = Color.White,
+            fontSize = 11.sp,
+            fontWeight = FontWeight.SemiBold,
+            modifier =
+              Modifier.align(Alignment.TopStart)
+                .padding(6.dp)
+                .background(Color(0xCC000000), RoundedCornerShape(4.dp))
+                .padding(horizontal = 5.dp, vertical = 2.dp),
+          )
+        }
         problem?.let {
           Row(
             Modifier.align(Alignment.BottomStart)

@@ -12,7 +12,7 @@ import androidx.core.net.toUri
  * keyed by title path ([TitlePaths]), so it survives refreshes, and is never synced to the desktop.
  */
 class LibraryStore(context: Context) :
-  SQLiteOpenHelper(context, "library.sqlite", null, 5) {
+  SQLiteOpenHelper(context, "library.sqlite", null, 6) {
   override fun onCreate(db: SQLiteDatabase) {
     createTitles(db)
     createFingerprints(db)
@@ -26,8 +26,9 @@ class LibraryStore(context: Context) :
   /**
    * The title table is only an index of the content folders, so an upgrade empties it until the
    * next refresh. Progress is kept; version 3 adds how far through each title it is, version 4
-   * indexes the reference duration in place of the edition, and version 5 caches media
-   * fingerprints, as titles link to media by fingerprint from any folder.
+   * indexes the reference duration in place of the edition, version 5 caches media
+   * fingerprints, as titles link to media by fingerprint from any folder, and version 6 indexes
+   * media without a document and the shelf, language and media path the shared shelves use.
    */
   override fun onUpgrade(db: SQLiteDatabase, oldVersion: Int, newVersion: Int) {
     db.execSQL("DROP TABLE IF EXISTS title")
@@ -40,9 +41,10 @@ class LibraryStore(context: Context) :
     db.execSQL(
       """CREATE TABLE title (
            path TEXT PRIMARY KEY, name TEXT NOT NULL, series TEXT, kind TEXT NOT NULL,
-           document_uri TEXT NOT NULL, media_uri TEXT, document_id TEXT NOT NULL, duration_seconds REAL,
+           document_uri TEXT, media_uri TEXT, document_id TEXT NOT NULL, duration_seconds REAL,
            season INTEGER, episode INTEGER, volume INTEGER, poster_uri TEXT,
-           series_poster_uri TEXT, first_page TEXT)"""
+           series_poster_uri TEXT, first_page TEXT, shelf TEXT, source_language TEXT,
+           media_path TEXT)"""
     )
 
   /** A media file's fingerprint as of a refresh, with the size and time it was taken at. */
@@ -92,7 +94,8 @@ class LibraryStore(context: Context) :
     readableDatabase
       .rawQuery(
         """SELECT path, name, series, kind, document_uri, media_uri, document_id, duration_seconds, season,
-             episode, volume, poster_uri, series_poster_uri, first_page
+             episode, volume, poster_uri, series_poster_uri, first_page, shelf, source_language,
+             media_path
            FROM title ORDER BY path""",
         null,
       )
@@ -105,7 +108,7 @@ class LibraryStore(context: Context) :
                 name = cursor.getString(1),
                 series = cursor.getString(2),
                 kind = TitleKind.valueOf(cursor.getString(3)),
-                documentUri = cursor.getString(4).toUri(),
+                documentUri = cursor.getString(4)?.toUri(),
                 mediaUri = cursor.getString(5)?.toUri(),
                 documentId = cursor.getString(6),
                 durationSeconds = if (cursor.isNull(7)) null else cursor.getDouble(7),
@@ -115,6 +118,9 @@ class LibraryStore(context: Context) :
                 poster = cursor.getString(11)?.toUri(),
                 seriesPoster = cursor.getString(12)?.toUri(),
                 firstPage = cursor.getString(13),
+                shelf = cursor.getString(14),
+                sourceLanguage = cursor.getString(15),
+                mediaPath = cursor.getString(16),
               )
             )
         }
@@ -135,7 +141,7 @@ class LibraryStore(context: Context) :
             put("name", title.name)
             put("series", title.series)
             put("kind", title.kind.name)
-            put("document_uri", title.documentUri.toString())
+            put("document_uri", title.documentUri?.toString())
             put("media_uri", title.mediaUri?.toString())
             put("document_id", title.documentId)
             put("duration_seconds", title.durationSeconds)
@@ -145,6 +151,9 @@ class LibraryStore(context: Context) :
             put("poster_uri", title.poster?.toString())
             put("series_poster_uri", title.seriesPoster?.toString())
             put("first_page", title.firstPage)
+            put("shelf", title.shelf)
+            put("source_language", title.sourceLanguage)
+            put("media_path", title.mediaPath)
           },
         )
       db.setTransactionSuccessful()

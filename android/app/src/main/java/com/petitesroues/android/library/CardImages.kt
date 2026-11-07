@@ -9,6 +9,7 @@ import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asAndroidBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import com.petitesroues.android.comic.CbzReader
+import com.petitesroues.library.shelves.Shelves.CardArt
 import java.io.File
 import java.security.MessageDigest
 import kotlinx.coroutines.Dispatchers
@@ -22,7 +23,8 @@ sealed interface CardSource {
     override val key = uri.toString()
   }
 
-  data class Page(val archive: Uri, val entry: String) : CardSource {
+  /** A comic page: [entry], or with none the CBZ's first image (media without a document). */
+  data class Page(val archive: Uri, val entry: String?) : CardSource {
     override val key = "$archive#$entry"
   }
 
@@ -33,7 +35,7 @@ sealed interface CardSource {
       if (art.series) return title.seriesPoster?.let(::Poster)
       title.poster?.let { return Poster(it) }
       val archive = title.mediaUri ?: return null
-      return title.firstPage?.let { Page(archive, it) }
+      return if (title.kind == TitleKind.COMIC) Page(archive, title.firstPage) else null
     }
   }
 }
@@ -75,7 +77,10 @@ class CardImages(private val context: Context) {
   private fun decode(source: CardSource): ImageBitmap =
     when (source) {
       is CardSource.Page ->
-        CbzReader(context.contentResolver, source.archive).use { it.page(source.entry, WIDTH, HEIGHT) }
+        CbzReader(context.contentResolver, source.archive).use { reader ->
+          val entry = source.entry ?: reader.firstPage() ?: error("${source.archive} has no page images")
+          reader.page(entry, WIDTH, HEIGHT)
+        }
       is CardSource.Poster -> {
         val resolver = context.contentResolver
         val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
