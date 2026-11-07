@@ -10,7 +10,7 @@ through a content repository) and what is **local** (this machine's paths, state
 | --- | --- | --- | --- |
 | Study documents | Portable | `document.json` in a content repository | Agents only |
 | Editing | Local queue of commands that refer only to portable IDs | SQLite `review_queue`, `review_batches` | The app, from player and reader edits |
-| Library | Local | SQLite `repositories`, `titles`, progress tables; files found beside documents | The app, on Add/Refresh |
+| Library | Local | SQLite `repositories`, `titles`, `media`, progress tables; posters found beside documents | The app, on Add/Refresh |
 
 Two rules hold the boundary:
 
@@ -83,9 +83,10 @@ The library is this machine's index of what it can open, and what the learner ha
   reference duration, type), so browsing never opens JSON. Refresh rebuilds that cache from the files.
 - A registration survives a missing file (`missing`), so progress and reviews outlive a moved
   folder or an unplugged drive.
-- Media and posters aren't registered. They're found beside the document when the library is
-  browsed: one video or CBZ in the title folder, and a `poster.*` beside it or in a series
-  folder above.
+- Media is indexed by Refresh (SQLite `media`: path, size, modification time, fingerprint,
+  duration, audio codecs) and linked to a title when its fingerprint equals the document's
+  reference fingerprint, in any registered folder. Posters aren't registered: a `poster.*` is
+  found beside the document, or in a series folder above, when the library is browsed.
 
 ## Roadmap changes
 
@@ -103,8 +104,8 @@ The reference media is built; the rest is a proposal.
   - A re-encode or a different rip has a different hash even when the cues still fit. Matching
     therefore falls back to series, season, episode and duration, and the player warns when a
     linked copy's duration differs.
-- **Media links (local).** A title links to a file in a registered media folder: beside the
-  document (as today), located by hand, or matched on Refresh. The link stays on this machine.
+- **Media links (local).** A title links to an indexed file whose fingerprint matches its
+  reference (built), or to one located by hand (planned). The link stays on this machine.
 - **Devices and offline sets (local).** A paired phone keeps a chosen set of titles offline,
   and later sends its edits to the desktop review queue.
 

@@ -1,7 +1,6 @@
 package com.petitesroues.library;
 
 import com.petitesroues.comic.ComicService;
-import com.petitesroues.library.discovery.TitleMediaResolver;
 import com.petitesroues.library.persistence.CatalogueStore;
 import com.petitesroues.media.Ffmpeg;
 import java.io.IOException;
@@ -57,7 +56,7 @@ public class CardArtService {
   /**
    * The title card's source: its poster, else a comic's first page, else empty.
    *
-   * @throws IllegalArgumentException if the title folder has several posters or CBZ files
+   * @throws IllegalArgumentException if the title folder has several posters
    */
   public Optional<Card> titleCard(String id) throws IOException {
     var poster = library.poster(id);
@@ -68,7 +67,7 @@ public class CardArtService {
         || entry.get().location() == null
         || !"comic".equals(entry.get().location().documentType())) return Optional.empty();
     Path document = entry.get().documentFile();
-    Path archive = TitleMediaResolver.comic(document);
+    var archive = library.media(id).orElse(null);
     if (archive == null) return Optional.empty();
     // The first page can change with the document, so its version covers both files.
     return Optional.of(card(id, archive, true, List.of(archive, document)));

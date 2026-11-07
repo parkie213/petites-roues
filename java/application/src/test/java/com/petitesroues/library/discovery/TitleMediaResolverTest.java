@@ -11,37 +11,11 @@ class TitleMediaResolverTest {
   @TempDir Path folder;
 
   @Test
-  void downloadedVideoAppearsAndCanBeRenamedOrRemovedWithoutAnIndexUpdate() throws Exception {
-    Path document = folder.resolve("document.json");
-    assertNull(TitleMediaResolver.video(document));
-    Path download = Files.write(folder.resolve("Youtube title.MKV"), new byte[] {1});
-    assertEquals(download, TitleMediaResolver.video(document));
-    Path renamed = Files.move(download, folder.resolve("French edition.mp4"));
-    assertEquals(renamed, TitleMediaResolver.video(document));
-    Files.delete(renamed);
-    assertNull(TitleMediaResolver.video(document));
-  }
-
-  @Test
-  void ambiguityIsExplicitAndResolvesAsSoonAsTheExtraVideoIsRemoved() throws Exception {
-    Path document = folder.resolve("document.json");
-    Path first = Files.write(folder.resolve("one.mp4"), new byte[] {1});
-    Path extra = Files.write(folder.resolve("two.webm"), new byte[] {1});
-    assertTrue(
-        assertThrows(IllegalArgumentException.class, () -> TitleMediaResolver.video(document))
-            .getMessage()
-            .contains("Multiple videos"));
-    Files.delete(extra);
-    assertEquals(first, TitleMediaResolver.video(document));
-  }
-
-  @Test
-  void mediaInAnotherTitleFolderAndPartialDownloadsAreIgnored() throws Exception {
-    Path nested = Files.createDirectory(folder.resolve("another-title"));
-    Files.write(nested.resolve("video.mp4"), new byte[] {1});
-    Files.write(folder.resolve("video.mp4.part"), new byte[] {1});
-    Files.createDirectory(folder.resolve("not-a-video.mp4"));
-    assertNull(TitleMediaResolver.video(folder.resolve("document.json")));
+  void videosAreRecognisedByExtensionWhateverTheirCase() {
+    assertTrue(TitleMediaResolver.isVideo(folder.resolve("Youtube title.MKV")));
+    assertTrue(TitleMediaResolver.isVideo(folder.resolve("episode.webm")));
+    assertFalse(TitleMediaResolver.isVideo(folder.resolve("video.mp4.part")));
+    assertFalse(TitleMediaResolver.isVideo(folder.resolve("volume.cbz")));
   }
 
   @Test

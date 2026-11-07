@@ -7,7 +7,9 @@ import com.petitesroues.library.persistence.ContentRepositoryStore;
 import com.petitesroues.model.document.StudyDocument;
 import com.petitesroues.model.library.CatalogueEntry;
 import com.petitesroues.model.library.CatalogueItem;
+import com.petitesroues.model.library.IndexedMedia;
 import com.petitesroues.model.library.Library;
+import com.petitesroues.model.library.MediaItem;
 import com.petitesroues.playback.PlaybackProgressStore;
 import com.petitesroues.study.DocumentStore;
 import com.petitesroues.study.ReviewQueueService;
@@ -18,7 +20,8 @@ import org.springframework.stereotype.Service;
 
 /**
  * Reads the SQLite catalogue and served documents (each file plus its queued player edits). Title
- * discovery belongs to explicit Add/Refresh; media is checked in each title folder.
+ * and media discovery belong to explicit Add/Refresh; a title's media is the indexed file whose
+ * fingerprint matches its document's reference ({@link TitleMediaService}).
  */
 @Service
 public class LibraryService {
@@ -28,6 +31,7 @@ public class LibraryService {
   private final DocumentStore documents;
   private final PlaybackProgressStore playback;
   private final ReadingProgressStore reading;
+  private final TitleMediaService media;
 
   public LibraryService(
       CatalogueStore repository,
@@ -35,13 +39,15 @@ public class LibraryService {
       ContentRepositoryStore repositories,
       DocumentStore documents,
       PlaybackProgressStore playback,
-      ReadingProgressStore reading) {
+      ReadingProgressStore reading,
+      TitleMediaService media) {
     this.repository = repository;
     this.served = served;
     this.repositories = repositories;
     this.documents = documents;
     this.playback = playback;
     this.reading = reading;
+    this.media = media;
   }
 
   public boolean contains(String id) throws IOException {
@@ -72,16 +78,12 @@ public class LibraryService {
   }
 
   /**
-   * Returns the title's video, or empty if the title is unknown or no video is present.
-   *
-   * @throws IllegalArgumentException if media is ambiguous or outside the title folder
-   * @throws IOException if the title folder cannot be read
+   * Returns the title's video or CBZ: the indexed file whose fingerprint matches its document's
+   * reference. Empty if the title is unknown, records no reference, or no such file was found by
+   * the last refresh.
    */
-  public Optional<Path> media(String id) throws IOException {
-    var entry = repository.find(id);
-    if (entry.isEmpty()) return Optional.empty();
-
-    return Optional.ofNullable(TitleMediaResolver.video(entry.get().documentFile()));
+  public Optional<Path> media(String id) {
+    return repository.find(id).flatMap(media::media).map(IndexedMedia::file);
   }
 
   /**
@@ -114,12 +116,21 @@ public class LibraryService {
   }
 
   /**
-   * Groups indexed titles by registered repository, including empty repositories. Individually
-   * registered titles remain accessible through {@link #catalogue()}. Reads registrations from the
-   * store; does not discover or refresh content.
+   * Groups indexed titles by registered repository, including empty repositories, with each
+   * folder's media that no present document references. Individually registered titles remain
+   * accessible through {@link #catalogue()}. Reads registrations from the store; does not discover
+   * or refresh content.
    */
   public Library library() throws IOException {
-    var entries = catalogue();
+    var titles = repository.all();
+    var index = media.index();
+    var entries = catalogue(titles, index);
+    var referenced = new HashSet<String>();
+    for (var title : titles)
+      if (title.location() != null
+          && !title.location().missing()
+          && title.location().referenceFingerprint() != null)
+        referenced.add(title.location().referenceFingerprint());
     return new Library(
         repositories.list().stream()
             .map(
@@ -128,41 +139,62 @@ public class LibraryService {
                         repo,
                         entries.stream()
                             .filter(entry -> repo.id().equals(entry.repositoryId()))
+                            .toList(),
+                        index.all().stream()
+                            .filter(item -> repo.id().equals(item.repositoryId()))
+                            .filter(item -> !referenced.contains(item.fingerprint()))
+                            .map(LibraryService::unmatched)
                             .toList()))
             .toList());
   }
 
+  private static MediaItem unmatched(IndexedMedia item) {
+    var warnings = new ArrayList<String>();
+    warnings.add("No study document");
+    if (item.unplayableAudio()) warnings.add(item.audioWarning());
+    return new MediaItem(
+        item.repositoryId(), item.relativePath(), item.kind(), item.durationSeconds(), warnings);
+  }
+
   /**
    * Returns an immutable list of all indexed title summaries, including individually registered and
-   * missing titles. Metadata comes from the index; document presence and media availability are
-   * checked only in indexed title folders. Documents are not decoded and repositories are not
-   * scanned or refreshed. Missing documents and missing, ambiguous or unreadable media are
-   * represented by availability flags and title problems rather than omitting the title.
+   * missing titles. Metadata and media come from the index; only the document and the matched media
+   * files are checked on disk. Documents are not decoded and repositories are not scanned or
+   * refreshed. Missing documents and unmatched media are represented by availability flags and
+   * title problems rather than omitting the title; a matched video whose audio no browser can play
+   * stays available, with an {@code audio} problem.
    */
   public List<CatalogueItem> catalogue() throws IOException {
+    return catalogue(repository.all(), media.index());
+  }
+
+  private List<CatalogueItem> catalogue(List<CatalogueEntry> titles, TitleMediaService.Index index)
+      throws IOException {
     List<CatalogueItem> result = new ArrayList<>();
     var positions = playback.positions();
     var fractions = reading.fractions();
-    for (var entry : repository.all()) {
+    for (var entry : titles) {
       var details = entry.location();
       String relativePath = details == null ? null : entry.documentPath();
       boolean documentAvailable =
           (details == null || !details.missing()) && Files.isRegularFile(entry.documentFile());
       boolean comic = details != null && "comic".equals(details.documentType());
-      boolean videoAvailable = false;
-      boolean mediaAvailable = false;
-      String videoProblem = comic ? "CBZ not downloaded" : "Video not downloaded";
-      try {
-        mediaAvailable =
-            (comic
-                    ? TitleMediaResolver.comic(entry.documentFile())
-                    : TitleMediaResolver.video(entry.documentFile()))
-                != null;
-        videoAvailable = !comic && mediaAvailable;
-      } catch (IllegalArgumentException | IOException failure) {
-        videoProblem = failure.getMessage();
-      }
+      var matched = index.match(entry);
+      boolean mediaAvailable = matched.isPresent();
+      boolean videoAvailable = !comic && mediaAvailable;
+      String videoProblem =
+          details == null || details.referenceFingerprint() == null
+              ? "No reference media recorded — run prepare/reference.py, then Refresh"
+              : (comic ? "CBZ" : "Video")
+                  + " not found — add the folder that holds it, then Refresh";
       boolean available = documentAvailable && mediaAvailable;
+      var problems = new LinkedHashMap<String, String>();
+      if (!available)
+        problems.put(
+            "title", !documentAvailable ? "Document missing — refresh repository" : videoProblem);
+      matched
+          .filter(IndexedMedia::unplayableAudio)
+          .ifPresent(item -> problems.put("audio", item.audioWarning()));
       boolean poster = false;
       boolean seriesPoster = false;
       try {
@@ -195,11 +227,7 @@ public class LibraryService {
               duration,
               documentAvailable,
               videoAvailable,
-              available
-                  ? Map.of()
-                  : Map.of(
-                      "title",
-                      !documentAvailable ? "Document missing — refresh repository" : videoProblem),
+              Collections.unmodifiableMap(problems),
               comic ? "comic" : "video",
               mediaAvailable,
               poster,

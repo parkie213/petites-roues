@@ -3,7 +3,10 @@ package com.petitesroues.support;
 import static com.petitesroues.support.HttpClients.client;
 
 import com.petitesroues.documents.StudyDocumentCodec;
+import com.petitesroues.media.MediaFingerprint;
 import com.petitesroues.model.document.StudyDocument;
+import com.petitesroues.model.document.VideoDocument;
+import com.petitesroues.model.document.VideoReference;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -72,7 +75,17 @@ public abstract class HttpIntegrationTest {
                 "SELECT document_path FROM titles WHERE id=?", String.class, titleId));
   }
 
+  /**
+   * Writes the title's document beside a copy of the fixture video and registers (or refreshes) its
+   * folder. A video document without a reference gets the fixture video's fingerprint, since media
+   * links to documents by fingerprint alone.
+   */
   protected void registerTitle(StudyDocument title, boolean replace) throws Exception {
+    if (title.body() instanceof VideoDocument video && video.reference() == null) {
+      var reference =
+          new VideoReference(MediaFingerprint.of(root.resolve("video.mp4")), null, null);
+      title = title.withVideo(body -> body.withReference(reference));
+    }
     Path folder = root.resolve("library").resolve(title.id());
     Files.createDirectories(folder);
     Files.write(

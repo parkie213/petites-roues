@@ -1,6 +1,6 @@
 # Study document format
 
-A `document.json` describes one video or comic. Video documents contain timed source subtitles,
+A study document is a JSON file, of any name, that describes one video or comic. Video documents contain timed source subtitles,
 translations, learner notes and optional phrase links. It contains no
 machine-specific media paths, playback progress or review queue.
 
@@ -23,8 +23,8 @@ Unknown fields and legacy formats are rejected on load.
 
 ## A complete small document
 
-This is invented example dialogue. Save it as `document.json` inside a title folder
-and add its parent content folder as a repository. It can be opened without a video.
+This is invented example dialogue. Save it as a `.json` file (for example `document.json`) in a
+folder and add that folder to the library. It can be opened without a video.
 
 ```json
 {
@@ -164,19 +164,36 @@ For the teaching standard and generation instructions, use
 [translation notes](../agents/guides/translation-notes.md) and
 [translation notes guide](../agents/guides/translation-notes.md).
 
-## Files beside the document
+## Documents and media
+
+The library reads registered folders. A folder may hold study documents, media, or both, and
+the media can live anywhere: a Plex library, a NAS, a drive or beside the documents.
 
 ```text
-content-root/
-  title-folder/
-    document.json
-    video.mp4
+media/
+  peppa-pig/
+    Les Flaques de Boue.mp4
+documents/
+  peppa-pig/
+    s01e01/document.json      its reference fingerprint matches the video above
 ```
 
-The video is optional. Keep at most one supported video in the title
-folder: `.mp4`, `.mkv`, `.webm`, `.mov`, `.m4v`, `.avi` or `.ogv`. Extension support
-does not guarantee that a browser can decode its audio/video codecs. Media must
-resolve inside the title folder.
+- **Study documents.** Refresh reads every `.json` file whose top level has `sourceLanguage` and
+  a `video` or `comic` body, whatever its name. Other JSON is ignored. A file that claims to be a
+  study document but doesn't validate fails the Refresh with its path.
+- **Media.** Refresh indexes every video (`.mp4`, `.mkv`, `.webm`, `.mov`, `.m4v`, `.avi`,
+  `.ogv`) and `.cbz`, with its [fingerprint](#reference-media), duration and audio codecs. A file
+  is probed again only when its size or modification time changes. Hidden folders,
+  `node_modules` and `content-archive` are skipped.
+- **Linking.** A video or CBZ links to a document whose `reference.fingerprint` equals its
+  fingerprint, in any registered folder. Nothing else links them: not sharing a folder, nor
+  series, episode or duration. A document without a reference fingerprint has no media until
+  one is recorded (`prepare/reference.py`, or Add title). When several copies match, one in the
+  document's own folder is preferred.
+- **Warnings.** Media that no document references is listed under *Needs attention* as "No study
+  document". A video with no browser-playable audio track (AAC, MP3, Opus, Vorbis or FLAC) warns
+  "No audio track this player can play"; remux it with your own tools. Refresh clears a warning
+  once it is fixed.
 
 ### Card images
 
@@ -194,12 +211,11 @@ Posters group titles from document metadata, never folder names: comics by `seri
 names match ignoring case and spacing, across repositories; copies of the same volume or episode
 share one card.
 
-Add/Refresh indexes documents and folder hierarchy. Refresh after adding/moving
-documents or changing indexed title metadata; reopening the player reloads document
-contents and checks for sibling media. Removing a repository unregisters local
-state without deleting its files.
+Add/Refresh indexes documents, media and folder hierarchy. Refresh after adding, moving or
+changing documents or media; reopening the player reloads document contents. Removing a folder
+unregisters local state without deleting its files.
 
-Copying a title folder transfers its material. Video stays local unless you copy it;
+Copying a document transfers its material. Video stays local unless you copy it;
 JSON export alone does not include video. A separate content Git
 repository can checkpoint documents while ignoring media. Local
 SQLite state is configured independently through `spring.datasource.url`, defaulting
@@ -282,7 +298,7 @@ audio checks or video cues. The selected body determines the media type.
 }
 ```
 
-Place one `.cbz` beside `document.json`. The archive stays local, like video. Add/Refresh
+The `.cbz` links to the document by fingerprint, like a video, and stays local. Add/Refresh
 indexes the comic type and metadata; normal library browsing does not decode documents or
 scan the archive. Opening the reader checks all manifest entries against the CBZ. Pages are
 served directly from the archive without extracting files.

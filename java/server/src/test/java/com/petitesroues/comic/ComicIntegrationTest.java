@@ -5,6 +5,8 @@ import static org.junit.jupiter.api.Assertions.*;
 
 import com.petitesroues.documents.StudyDocumentCodec;
 import com.petitesroues.documents.StudyDocumentReader;
+import com.petitesroues.media.MediaFingerprint;
+import com.petitesroues.model.document.ComicReference;
 import com.petitesroues.model.document.ReadingDirection;
 import com.petitesroues.model.document.StudyDocument;
 import com.petitesroues.model.library.CatalogueItem;
@@ -46,6 +48,18 @@ class ComicIntegrationTest extends HttpIntegrationTest {
       zip.write(first);
       zip.closeEntry();
     }
+    // The CBZ links to the document by fingerprint, not by sitting beside it.
+    Files.write(
+        folder.resolve("document.json"),
+        new StudyDocumentCodec()
+            .encode(
+                comic.withBody(
+                    comic
+                        .comic()
+                        .withReference(
+                            new ComicReference(
+                                MediaFingerprint.of(folder.resolve("book.cbz")), null))))
+            .getBytes(StandardCharsets.UTF_8));
     var repository =
         http.post()
             .uri("/api/repositories")

@@ -4,7 +4,9 @@ import static com.petitesroues.support.SpecFixtures.*;
 import static org.junit.jupiter.api.Assertions.*;
 
 import com.petitesroues.documents.StudyDocumentCodec;
+import com.petitesroues.media.MediaFingerprint;
 import com.petitesroues.model.document.ComicDocument;
+import com.petitesroues.model.document.ComicReference;
 import com.petitesroues.model.document.ReadingDirection;
 import com.petitesroues.model.library.CatalogueItem;
 import com.petitesroues.model.library.Library;
@@ -62,6 +64,18 @@ class CardIntegrationTest extends HttpIntegrationTest {
         zip.closeEntry();
       }
     }
+    // The CBZ links to the document by fingerprint, not by sitting beside it.
+    Files.writeString(
+        tome.resolve("document.json"),
+        new StudyDocumentCodec()
+            .encode(
+                comic.withBody(
+                    comic
+                        .comic()
+                        .withReference(
+                            new ComicReference(
+                                MediaFingerprint.of(tome.resolve("book.cbz")), null)))),
+        StandardCharsets.UTF_8);
     http.post()
         .uri("/api/repositories")
         .body(Map.of("localPath", root.resolve("manga").toString()))

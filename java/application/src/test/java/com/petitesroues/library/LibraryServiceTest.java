@@ -7,9 +7,11 @@ import static org.mockito.Mockito.*;
 import com.petitesroues.comic.ReadingProgressStore;
 import com.petitesroues.library.persistence.CatalogueStore;
 import com.petitesroues.library.persistence.ContentRepositoryStore;
+import com.petitesroues.library.persistence.MediaStore;
 import com.petitesroues.model.library.CatalogueEntry;
 import com.petitesroues.model.library.CatalogueLocation;
 import com.petitesroues.model.library.ContentRepository;
+import com.petitesroues.model.library.IndexedMedia;
 import com.petitesroues.playback.PlaybackProgressStore;
 import com.petitesroues.study.ReviewQueueService;
 import java.nio.file.Files;
@@ -32,12 +34,28 @@ class LibraryServiceTest {
   @Mock ContentRepositoryStore repositories;
   @Mock PlaybackProgressStore playback;
   @Mock ReadingProgressStore reading;
+  @Mock MediaStore media;
   @TempDir Path root;
+
+  private LibraryService library() {
+    return new LibraryService(
+        repository, documents, repositories, null, playback, reading, new TitleMediaService(media));
+  }
+
+  private CatalogueLocation located(String fingerprint, String type) {
+    return new CatalogueLocation("repo", "Repo", root.toString(), false, 60.0, type, fingerprint);
+  }
+
+  private IndexedMedia indexed(
+      String repositoryId, Path folder, String path, String kind, String fingerprint) {
+    return new IndexedMedia(
+        repositoryId, folder.toString(), path, kind, 1, 1, fingerprint, 60.0, "aac", true);
+  }
 
   @Test
   void unknownEntriesRejectDocumentReadsButHaveNoMedia() throws Exception {
     when(repository.find("unknown")).thenReturn(Optional.empty());
-    var library = new LibraryService(repository, documents, repositories, null, playback, reading);
+    var library = library();
     assertThrows(NoSuchElementException.class, () -> library.document("unknown"));
     assertTrue(library.media("unknown").isEmpty());
     verifyNoInteractions(documents);
@@ -56,33 +74,109 @@ class LibraryServiceTest {
             null,
             null,
             null,
-            root.resolve("document.json").toString());
+            "document.json",
+            located("v1:film", "video"));
+    var video = indexed("repo", root, "video.mp4", "video", "v1:film");
     when(repository.all()).thenReturn(List.of(entry));
+    when(media.all()).thenReturn(List.of(video));
+    when(media.withFingerprint("v1:film")).thenReturn(List.of(video));
     when(repository.find("film")).thenReturn(Optional.of(entry));
     var study = document("film");
     when(documents.document(entry)).thenReturn(study);
-    var library = new LibraryService(repository, documents, repositories, null, playback, reading);
+    var library = library();
 
     var catalogue = library.catalogue();
     assertEquals(1, catalogue.size());
     assertEquals("Example film", catalogue.getFirst().title());
+    assertTrue(catalogue.getFirst().videoAvailable());
+    assertEquals(Map.of(), catalogue.getFirst().unavailable());
     verifyNoInteractions(documents);
     assertEquals(study, library.document("film"));
     assertEquals(root.resolve("video.mp4"), library.media("film").orElseThrow());
   }
 
   @Test
-  void missingMediaIsEmptyButMalformedMediaIsRejected() throws Exception {
-    var entry =
+  void mediaLinksByFingerprintAloneNeverByFolder(@TempDir Path elsewhere) throws Exception {
+    Files.write(root.resolve("beside.mp4"), new byte[] {0});
+    Files.write(elsewhere.resolve("copy.mp4"), new byte[] {0});
+    Files.write(root.resolve("own.mp4"), new byte[] {0});
+    var unreferenced =
         new CatalogueEntry(
-            "film", "Film", null, null, null, null, root.resolve("document.json").toString());
-    when(repository.find("film")).thenReturn(Optional.of(entry));
-    var library = new LibraryService(repository, documents, repositories, null, playback, reading);
-    assertTrue(library.media("film").isEmpty());
-    Files.write(root.resolve("one.mp4"), new byte[] {0});
-    Files.write(root.resolve("two.mkv"), new byte[] {0});
-    assertThrows(IllegalArgumentException.class, () -> library.media("film"));
+            "plain", "Plain", null, null, null, null, "a.json", located(null, "video"));
+    var film =
+        new CatalogueEntry(
+            "film", "Film", null, null, null, null, "b.json", located("v1:film", "video"));
+    var book =
+        new CatalogueEntry(
+            "book", "Book", null, null, null, null, "c.json", located("v1:film", "comic"));
+    when(repository.find("plain")).thenReturn(Optional.of(unreferenced));
+    when(repository.find("film")).thenReturn(Optional.of(film));
+    when(repository.find("book")).thenReturn(Optional.of(book));
+    var other = indexed("other", elsewhere, "copy.mp4", "video", "v1:film");
+    var own = indexed("repo", root, "own.mp4", "video", "v1:film");
+    var gone = indexed("repo", root, "gone.mp4", "video", "v1:film");
+    when(media.withFingerprint("v1:film")).thenReturn(List.of(gone, other, own));
+    var library = library();
+
+    assertTrue(library.media("plain").isEmpty(), "no reference, no media, even beside it");
+    assertEquals(root.resolve("own.mp4"), library.media("film").orElseThrow());
+    assertTrue(library.media("book").isEmpty(), "a comic never links to a video");
+    when(media.withFingerprint("v1:film")).thenReturn(List.of(gone, other));
+    assertEquals(elsewhere.resolve("copy.mp4"), library.media("film").orElseThrow());
     verifyNoInteractions(documents);
+  }
+
+  @Test
+  void unmatchedMediaIsListedWithItsWarningsAndUnplayableAudioWarnsOnTheTitle() throws Exception {
+    var folder = new ContentRepository("repo", "Folder", root.toString(), null, 1, 0, 3);
+    Files.write(root.resolve("film.json"), new byte[] {0});
+    Files.write(root.resolve("film.mkv"), new byte[] {0});
+    var film =
+        new CatalogueEntry(
+            "film", "Film", null, null, null, null, "film.json", located("v1:film", "video"));
+    var dubbed =
+        new IndexedMedia(
+            "repo", root.toString(), "film.mkv", "video", 1, 1, "v1:film", 60.0, "ac3", false);
+    var stray =
+        new IndexedMedia(
+            "repo", root.toString(), "stray.mkv", "video", 1, 1, "v1:stray", 30.0, "dts", false);
+    var comic =
+        new IndexedMedia(
+            "repo", root.toString(), "book.cbz", "comic", 1, 1, "v1:book", null, null, null);
+    when(repositories.list()).thenReturn(List.of(folder));
+    when(repository.all()).thenReturn(List.of(film));
+    when(media.all()).thenReturn(List.of(comic, dubbed, stray));
+
+    var contents = library().library().repositories().getFirst();
+
+    var title = contents.entries().getFirst();
+    assertTrue(title.videoAvailable());
+    assertEquals(Map.of("audio", "No audio track this player can play (AC3)"), title.unavailable());
+    assertEquals(
+        List.of("book.cbz", "stray.mkv"),
+        contents.media().stream().map(item -> item.relativePath()).toList());
+    assertEquals(List.of("No study document"), contents.media().getFirst().warnings());
+    assertEquals(
+        List.of("No study document", "No audio track this player can play (DTS)"),
+        contents.media().get(1).warnings());
+  }
+
+  @Test
+  void unmatchedTitlesSayWhetherTheyLackAReferenceOrTheMedia() throws Exception {
+    Files.write(root.resolve("a.json"), new byte[] {0});
+    when(repository.all())
+        .thenReturn(
+            List.of(
+                new CatalogueEntry(
+                    "a", "A", null, null, null, null, "a.json", located(null, "video")),
+                new CatalogueEntry(
+                    "b", "B", null, null, null, null, "a.json", located("v1:x", "comic"))));
+    var problems = library().catalogue().stream().map(item -> item.unavailable().get("title"));
+    assertEquals(
+        List.of(
+            "No reference media recorded — run prepare/reference.py, then Refresh",
+            "CBZ not found — add the folder that holds it, then Refresh"),
+        problems.toList());
   }
 
   @Test
@@ -103,7 +197,7 @@ class LibraryServiceTest {
             root.resolve("standalone.json").toString());
     when(repositories.list()).thenReturn(List.of(populated, empty));
     when(repository.all()).thenReturn(List.of(owned, standalone));
-    var library = new LibraryService(repository, documents, repositories, null, playback, reading);
+    var library = library();
     var result = library.library().repositories();
     assertEquals(List.of(populated, empty), result.stream().map(r -> r.repository()).toList());
     assertEquals(List.of("owned"), result.getFirst().entries().stream().map(e -> e.id()).toList());
@@ -135,7 +229,7 @@ class LibraryServiceTest {
                     "old-book", "Old", null, null, null, null, "old/document.json", comic)));
     when(playback.positions()).thenReturn(Map.of("film", 25.0, "long", 250.0, "clip", 5.0));
     when(reading.fractions()).thenReturn(Map.of("book", 0.5));
-    var library = new LibraryService(repository, documents, repositories, null, playback, reading);
+    var library = library();
 
     var progress = new HashMap<String, Double>();
     for (var item : library.catalogue()) progress.put(item.id(), item.progress());

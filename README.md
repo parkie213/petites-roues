@@ -194,13 +194,11 @@ Planned, roughly in this order:
 2. **Phone sync without extra tools.** Scan a QR code shown by the desktop app to pair the
    phone, then choose titles to keep offline or stream on the same Wi-Fi. This replaces
    syncing a folder with Syncthing, and later lets phone edits reach the review queue.
-3. **Videos where they already live.** Link a title to a video anywhere in a registered media
-   folder (an existing Plex or Jellyfin library, a NAS, an external drive) instead of copying
-   it beside `document.json`. Use "Locate video…" to pick the file by hand, or let Refresh match
-   it by series, season and episode. The link stays on your machine, so shared content repos
-   keep no local paths. A video beside the document still works with no setup. Documents also
-   record the length of the video their cues were timed against, so the player can warn when
-   a linked copy is a different cut or runs at a different speed.
+3. **Videos where they already live.** Add any folder (an existing Plex or Jellyfin library, a
+   NAS, an external drive) and Refresh links each video to the study document whose reference
+   fingerprint matches it, wherever each lives; unmatched videos and unplayable audio show as
+   warnings. *Built.* Still to come: "Link to study document…" for a copy whose fingerprint
+   differs, such as your own rip.
 4. **Articles.** Read news articles, blog posts and essays sentence by sentence, with the same
    translations and notes as subtitles.
 5. **Magazines.** Laid-out magazine pages, handled like comics, with each article as a chapter.

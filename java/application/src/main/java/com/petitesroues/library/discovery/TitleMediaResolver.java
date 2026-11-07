@@ -8,14 +8,11 @@ import java.util.Set;
 import java.util.regex.Pattern;
 
 /**
- * Resolves optional media beside a given {@code document.json}: at most one supported video (any
- * filename) or CBZ, and an optional {@code poster.jpg|jpeg|png|webp} card image. A series poster is
- * the nearest poster in a folder above the title folder, below the repository root. Missing media
- * returns null; ambiguous media and media resolving outside its folder are rejected. Checks only
- * that title folder and never accesses the catalogue or scans repositories.
- *
- * <p>The title-folder contract is documented in {@code
- * docs/DOCUMENT-FORMAT.md#files-beside-the-document}.
+ * Resolves the optional card images beside a study document: its own {@code
+ * poster.jpg|jpeg|png|webp}, and a series poster, the nearest poster in a folder above the title
+ * folder, below the repository root. Also says which files are videos. Media is not resolved here:
+ * it is linked to documents by fingerprint ({@code TitleMediaService}). Checks only the folders
+ * named and never accesses the catalogue or scans repositories.
  */
 public final class TitleMediaResolver {
   private static final Set<String> VIDEO_EXTENSIONS =
@@ -66,42 +63,9 @@ public final class TitleMediaResolver {
     return VIDEO_EXTENSIONS.contains(extension(file));
   }
 
-  /** Returns the single supported sibling video, or null if none is present. */
-  public static Path video(Path document) throws IOException {
-    Path folder = document.getParent();
-    if (!Files.isDirectory(folder)) return null;
-    try (var siblings = Files.list(folder)) {
-      var videos =
-          siblings
-              .filter(Files::isRegularFile)
-              .filter(file -> VIDEO_EXTENSIONS.contains(extension(file)))
-              .toList();
-      if (videos.size() > 1)
-        throw new IllegalArgumentException(
-            "Multiple videos in title folder — keep one matching video");
-      return videos.isEmpty() ? null : requireLocalFile(folder, videos.getFirst());
-    }
-  }
-
-  /** Returns the single sibling CBZ; archive entries are validated separately by CbzReader. */
-  public static Path comic(Path document) throws IOException {
-    Path folder = document.getParent();
-    if (!Files.isDirectory(folder)) return null;
-    try (var siblings = Files.list(folder)) {
-      var archives =
-          siblings
-              .filter(Files::isRegularFile)
-              .filter(file -> extension(file).equals("cbz"))
-              .toList();
-      if (archives.size() > 1)
-        throw new IllegalArgumentException("Multiple CBZ files in title folder — keep one edition");
-      return archives.isEmpty() ? null : requireLocalFile(folder, archives.getFirst());
-    }
-  }
-
   private static Path requireLocalFile(Path folder, Path file) throws IOException {
     if (!file.toRealPath().getParent().equals(folder.toRealPath()))
-      throw new IllegalArgumentException("Media must be inside its title folder");
+      throw new IllegalArgumentException("Poster must be inside its folder");
     return file;
   }
 

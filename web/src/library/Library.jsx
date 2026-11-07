@@ -20,12 +20,14 @@ import {
   Check,
   NotebookText,
   Plus,
+  RefreshCw,
   TriangleAlert,
 } from "lucide-react";
 import { chooseOnComputer, request } from "../shared/api.js";
 import { ImportTitle } from "./ImportTitle.jsx";
 import { LibraryBrowser } from "./LibraryBrowser.jsx";
 import { LibraryQuiz } from "./LibraryQuiz.jsx";
+import { MediaAttention } from "./MediaAttention.jsx";
 import { usageLine } from "./usage.js";
 import { Posters } from "./Posters.jsx";
 import {
@@ -74,9 +76,10 @@ export function Library() {
       () => setUsage(""),
     );
     setData({
-      repos: library.repositories.map(({ repository, entries }) => ({
+      repos: library.repositories.map(({ repository, entries, media }) => ({
         ...repository,
         entries,
+        media,
       })),
     });
   }
@@ -108,7 +111,8 @@ export function Library() {
     }
   }
 
-  async function addRepository() {
+  /** Registers any folder: Refresh finds its study documents, videos and comics. */
+  async function addFolder() {
     setError("");
     try {
       const path = await chooseOnComputer("folder");
@@ -117,11 +121,17 @@ export function Library() {
           "/api/repositories",
           "POST",
           { localPath: path },
-          "Repository added.",
+          "Folder added.",
         );
     } catch (e) {
       setError(e.message);
     }
+  }
+
+  function refreshLibrary() {
+    act("/api/repositories/refresh", "POST", null, "Library refreshed.").catch(
+      () => {},
+    );
   }
 
   const count =
@@ -161,13 +171,23 @@ export function Library() {
                   Add title
                 </Button>
               )}
+              {data?.repos.length > 0 && (
+                <Button
+                  variant="default"
+                  leftSection={<RefreshCw size={16} />}
+                  loading={busy}
+                  onClick={refreshLibrary}
+                >
+                  Refresh library
+                </Button>
+              )}
               <Button
                 variant="default"
                 leftSection={<Plus size={17} />}
                 disabled={busy}
-                onClick={addRepository}
+                onClick={addFolder}
               >
-                Add repository
+                Add folder
               </Button>
             </Group>
           </Group>
@@ -198,7 +218,7 @@ export function Library() {
                 )}
                 <Badge variant="light" color="gray">
                   {data.repos.length}{" "}
-                  {data.repos.length === 1 ? "repository" : "repositories"}
+                  {data.repos.length === 1 ? "folder" : "folders"}
                 </Badge>
                 <Badge variant="light">
                   {count} {count === 1 ? "title" : "titles"}
@@ -221,17 +241,23 @@ export function Library() {
               {message}
             </Alert>
           )}
+          {data && <MediaAttention repos={data.repos} />}
           {data?.repos.length === 0 ? (
             <Paper withBorder p={{ base: "xl", sm: 64 }} radius="lg">
               <Stack align="center" gap="md" ta="center">
                 <Title order={2}>There's nothing here</Title>
+                <Text c="dimmed" maw={460}>
+                  Add a folder of videos, comics or study documents, or one
+                  holding all three. Videos link to their study documents by
+                  fingerprint, wherever each one lives.
+                </Text>
                 <Button
                   mt="sm"
                   leftSection={<Plus size={17} />}
                   disabled={busy}
-                  onClick={addRepository}
+                  onClick={addFolder}
                 >
-                  Add repository
+                  Add folder
                 </Button>
               </Stack>
             </Paper>
@@ -274,7 +300,7 @@ export function Library() {
         onClose={() => {
           if (!busy) setRemoving(null);
         }}
-        title="Remove repository?"
+        title="Remove folder?"
         centered
         closeOnEscape={!busy}
         closeOnClickOutside={!busy}
@@ -305,7 +331,7 @@ export function Library() {
                   `/api/repositories/${removing}`,
                   "DELETE",
                   null,
-                  "Repository removed. Files were left untouched.",
+                  "Folder removed. Files were left untouched.",
                 ).catch(() => {})
               }
             >

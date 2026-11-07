@@ -25,7 +25,8 @@ public class ContentRepositoryStore {
   public List<ContentRepository> list() {
     return jdbc.query(
         """
-      SELECT r.*,count(t.id) AS titles,coalesce(sum(t.missing),0) AS missing
+      SELECT r.*,count(t.id) AS titles,coalesce(sum(t.missing),0) AS missing,
+        (SELECT count(*) FROM media m WHERE m.repository_id=r.id) AS media
       FROM repositories r LEFT JOIN titles t ON r.id=t.repository_id
       GROUP BY r.id ORDER BY r.name
       """,
@@ -36,7 +37,8 @@ public class ContentRepositoryStore {
                 row.getString("local_path"),
                 row.getString("last_refreshed_at"),
                 row.getInt("titles"),
-                row.getInt("missing")));
+                row.getInt("missing"),
+                row.getInt("media")));
   }
 
   /**

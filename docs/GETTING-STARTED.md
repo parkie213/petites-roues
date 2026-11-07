@@ -31,19 +31,21 @@ npm run dev
 
 <img src="../images/getting-started/01-empty-library.png" alt="The empty library" style="max-width: 100%; height: auto;">
 
-The library should start empty. Click **Add repository** in the middle.
+The library should start empty. Click **Add folder** in the middle.
 
 <img src="../images/getting-started/02-locate-example-directory.png" alt="Locate the example directory" style="max-width: 100%; height: auto;">
 
-Select the `example/documents` directory in the petites roues repository.
+Select the `example/media` directory in the petites roues repository. Its four videos appear
+under **Needs attention** with "No study document". Click **Add folder** again and select
+`example/documents`: each video links to its study document and the warnings clear.
 
-A repository is simply a content folder; Git is optional. The example keeps its study documents
-and its videos in separate folders. Four one-minute titles cover three language pairs: French,
-German and Mandarin, each to English.
+A folder can hold videos, comics, study documents, or any mix, and Git is optional. The example
+keeps its study documents and its videos apart, as you might with a Plex library. Four
+one-minute titles cover three language pairs: French, German and Mandarin, each to English.
 
 ```text
 example/
-  documents/                  the repository: study documents, notes and quizzes
+  documents/                  study documents, notes and quizzes
     peppa-pig/
       poster.jpg              optional series card, placeholder when absent
       s01e01/document.json    subtitles, translations, phrases and notes
@@ -60,12 +62,9 @@ example/
     masha-and-the-bear/
 ```
 
-Today, add `example/documents` as the repository; the titles open without video. Once the
-folders change lands, you add `example` itself and Refresh finds both the documents and the
-videos, linking each video to its document by fingerprint.
-
-A repository can contain titles, notes, quizzes, or any combination of them. For example,
-you can keep videos in one repository, comics in another, and notes and quizzes in a third.
+Each study document records its video's fingerprint (`video.reference`), so the two find each
+other wherever they live. Notes and quizzes are read from `notes/` and `quizzes/` at the top of
+a registered folder. After adding or changing files, click **Refresh library**.
 
 <img src="../images/getting-started/03-example-added-to-library.png" alt="The example added to the library" style="max-width: 100%; height: auto;">
 

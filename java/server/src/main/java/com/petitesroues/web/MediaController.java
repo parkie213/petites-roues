@@ -60,7 +60,7 @@ public class MediaController {
         .orElseThrow(
             () ->
                 new NoSuchElementException(
-                    "Video not downloaded — place one video in the title folder"));
+                    "Video not found — add the folder that holds it, then Refresh"));
   }
 
   private static String version(Path file) throws IOException {

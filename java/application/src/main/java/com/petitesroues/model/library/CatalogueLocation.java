@@ -17,6 +17,8 @@ package com.petitesroues.model.library;
  * @param durationSeconds optional reference-video duration in seconds, independent of the final
  *     subtitle's end time
  * @param documentType indexed document discriminator; avoids opening JSON during library browsing
+ * @param referenceFingerprint the document's reference media fingerprint, which links it to indexed
+ *     media with the same fingerprint; null when the document records none
  */
 public record CatalogueLocation(
     String repositoryId,
@@ -24,7 +26,20 @@ public record CatalogueLocation(
     String repositoryPath,
     boolean missing,
     Double durationSeconds,
-    String documentType) {
+    String documentType,
+    String referenceFingerprint) {
+  /** Creates metadata for a document without a recorded reference fingerprint. */
+  public CatalogueLocation(
+      String repositoryId,
+      String repositoryName,
+      String repositoryPath,
+      boolean missing,
+      Double durationSeconds,
+      String documentType) {
+    this(
+        repositoryId, repositoryName, repositoryPath, missing, durationSeconds, documentType, null);
+  }
+
   /** Creates video metadata for callers indexing the original video-only format. */
   public CatalogueLocation(
       String repositoryId,
@@ -32,6 +47,6 @@ public record CatalogueLocation(
       String repositoryPath,
       boolean missing,
       Double durationSeconds) {
-    this(repositoryId, repositoryName, repositoryPath, missing, durationSeconds, "video");
+    this(repositoryId, repositoryName, repositoryPath, missing, durationSeconds, "video", null);
   }
 }
