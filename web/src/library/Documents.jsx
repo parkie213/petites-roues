@@ -1,6 +1,6 @@
 import { Anchor, Group, Stack, Table, Text } from "@mantine/core";
 import { TriangleAlert } from "lucide-react";
-import { openHref } from "./shelves.js";
+import { openHref } from "./cards.js";
 
 const collator = new Intl.Collator(undefined, { numeric: true });
 

@@ -5,6 +5,7 @@ import com.petitesroues.library.LibraryUsageService;
 import com.petitesroues.model.library.CatalogueItem;
 import com.petitesroues.model.library.Library;
 import com.petitesroues.model.library.LibraryUsage;
+import com.petitesroues.model.library.Posters;
 import java.io.IOException;
 import java.util.List;
 import org.springframework.http.*;
@@ -26,6 +27,20 @@ public class LibraryController {
   @GetMapping("/library")
   public ResponseEntity<Library> library() throws IOException {
     return ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(library.library());
+  }
+
+  /**
+   * The Posters view's shelves and cards, optionally narrowed to one folder and one source
+   * language.
+   */
+  @GetMapping("/library/posters")
+  public ResponseEntity<Posters> posters(
+      @RequestParam(required = false) String repository,
+      @RequestParam(required = false) String language)
+      throws IOException {
+    return ResponseEntity.ok()
+        .cacheControl(CacheControl.noStore())
+        .body(library.posters(repository, language));
   }
 
   /** Flat catalogue for title lookup, including individually registered documents. */

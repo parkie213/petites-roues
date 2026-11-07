@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import { Badge, Button, Group, Text } from "@mantine/core";
 import { responseError } from "../shared/api.js";
 import { libraryReturnPath } from "../shared/library-return.js";
-import { namedFromPath } from "../library/shelves.js";
 import "./Player.css";
 import "./Watch.css";
 
@@ -30,7 +29,6 @@ export function BareVideo({ fingerprint }) {
       setError(failure.message),
     );
   }, [fingerprint]);
-  const name = media ? namedFromPath(media.relativePath) : null;
   return (
     <main className="left watch">
       <Group className="watch-bar" gap="sm" px="md" py="xs" wrap="nowrap">
@@ -43,8 +41,8 @@ export function BareVideo({ fingerprint }) {
           <span aria-hidden="true">←</span> Library
         </Button>
         <Text fw={600} size="sm" truncate style={{ flex: 1 }}>
-          {name
-            ? [name.series, name.title].filter(Boolean).join(" · ")
+          {media
+            ? [media.series, media.title].filter(Boolean).join(" · ")
             : "Video"}
         </Text>
         {(media?.warnings ?? []).map((warning) => (

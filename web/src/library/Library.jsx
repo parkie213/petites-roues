@@ -42,12 +42,7 @@ import {
 } from "./navigation.js";
 import "./Library.css";
 import { librarySummary } from "./summary.js";
-import {
-  inLanguage,
-  languagesIn,
-  rememberLanguage,
-  storedLanguage,
-} from "./language.js";
+import { languagesIn, rememberLanguage, storedLanguage } from "./language.js";
 import { rememberLibraryPage } from "../shared/library-return.js";
 import { Documents } from "./Documents.jsx";
 
@@ -179,7 +174,6 @@ export function Library() {
     : null;
   // Only Posters follow the language. Documents is the master list and Repositories shows folders
   // as they are, so neither hides anything; the summary describes the whole library.
-  const shown = data && { ...data, repos: inLanguage(data.repos, chosen) };
   const summary = data && librarySummary(data.repos);
   return (
     <Box component="main" className="mantine-library">
@@ -347,7 +341,8 @@ export function Library() {
             <Documents data={data} />
           ) : data && selection.view === "posters" ? (
             <Posters
-              data={shown}
+              data={data}
+              language={chosen}
               selection={selection}
               go={go}
               onChanged={(failure) => {

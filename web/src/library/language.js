@@ -21,20 +21,6 @@ export function languagesIn(repos) {
     .sort((a, b) => a.label.localeCompare(b.label));
 }
 
-/**
- * The library narrowed to one source language, for Posters: only its study documents. Media without a study
- * document has no declared language, so it is shown only when no language is chosen. Null shows
- * everything.
- */
-export function inLanguage(repos, tag) {
-  if (!tag) return repos;
-  return repos.map((repo) => ({
-    ...repo,
-    entries: repo.entries.filter((entry) => entry.sourceLanguage === tag),
-    media: (repo.media ?? []).filter((item) => item.titleId),
-  }));
-}
-
 /** The language chosen in this browser, or null for all. Storage may be unavailable. */
 export function storedLanguage() {
   try {

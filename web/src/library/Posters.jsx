@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   ActionIcon,
   Anchor,
@@ -14,8 +14,8 @@ import {
 } from "@mantine/core";
 import { BookOpen, Copy, Ellipsis, Film } from "lucide-react";
 import { clock } from "../player/quiz.js";
-import { responseError, titlePath } from "../shared/api.js";
-import { mediaEntry, openHref, shelves, warnings } from "./shelves.js";
+import { request, responseError, titlePath } from "../shared/api.js";
+import { openHref, warnings } from "./cards.js";
 import { postersHref } from "./navigation.js";
 import { nativeName } from "./language.js";
 import "./Posters.css";
@@ -359,35 +359,54 @@ function SeriesView({ group, selection, follow, repositoryNames, onChanged }) {
 
 /**
  * Plex-like browsing of what can be watched or read: titles with their media and media awaiting a
- * study document; documents whose media was not found are listed in the Documents view. Shelves across all folders (named by documents, else Comics, Series and Films), grouped from
- * document metadata. The repository chips filter before grouping. [onChanged] reloads the library
- * after a card action, receiving the error when the action failed.
+ * study document; documents whose media was not found are listed in the Documents view. The
+ * server groups them into shelves and cards (GET /api/library/posters, the rules shared with the
+ * Android app), narrowed to the chosen folder chip and [language]; this only renders them. They are
+ * fetched again whenever [data], the loaded library, changes. [onChanged] reloads the library after
+ * a card action, receiving the error when the action failed.
  */
-export function Posters({ data, selection, go, onChanged }) {
+export function Posters({ data, language, selection, go, onChanged }) {
+  const [posters, setPosters] = useState(null);
+  const [error, setError] = useState("");
+  useEffect(() => {
+    const controller = new AbortController();
+    const query = new URLSearchParams(
+      Object.entries({ repository: selection.repository, language }).filter(
+        ([, value]) => value,
+      ),
+    );
+    request(`/api/library/posters?${query}`, {
+      signal: controller.signal,
+    }).then(
+      (next) => {
+        setPosters(next);
+        setError("");
+      },
+      (failure) => {
+        if (failure.name !== "AbortError") setError(failure.message);
+      },
+    );
+    return () => controller.abort();
+  }, [data, selection.repository, language]);
+  if (!posters)
+    return error ? (
+      <Text c="red" role="alert">
+        {error}
+      </Text>
+    ) : null;
   const repositoryNames = new Map(
     data.repos.map((repo) => [repo.id, repo.name]),
   );
-  // Posters show titles whose media was found, in the folder holding that media, and media
-  // awaiting a study document. Only folders that hold something to show get a chip.
-  const titles = data.repos
-    .flatMap((repo) => repo.entries)
-    .filter((entry) => entry.mediaAvailable);
-  const cards = (repo) => [
-    ...titles.filter((entry) => entry.mediaRepositoryId === repo.id),
-    ...(repo.media ?? []).filter((item) => !item.titleId).map(mediaEntry),
-  ];
-  const folders = data.repos.filter((repo) => cards(repo).length > 0);
+  // Only folders that hold something to show get a chip.
+  const folders = data.repos.filter((repo) =>
+    posters.folders.includes(repo.id),
+  );
   const filter = folders.some((repo) => repo.id === selection.repository)
     ? selection.repository
     : null;
-  const entries = data.repos
-    .filter((repo) => !filter || repo.id === filter)
-    .flatMap(cards);
-  const result = shelves(entries);
+  const result = posters.shelves;
   // Cards name their language only when the posters show more than one.
-  const tagged =
-    new Set(entries.map((entry) => entry.sourceLanguage).filter(Boolean)).size >
-    1;
+  const tagged = posters.multilingual;
   const follow = (event, href) => {
     if (
       event &&
@@ -463,7 +482,7 @@ export function Posters({ data, selection, go, onChanged }) {
             </Stack>
           ))
       )}
-      {!open && entries.length === 0 && (
+      {!open && result.length === 0 && (
         <Text c="dimmed">
           {filter
             ? "Nothing in this folder yet. Refresh after adding videos, comics or study documents."
