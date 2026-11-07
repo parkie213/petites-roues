@@ -20,10 +20,10 @@ test("titles open the reader, watch view or notes; missing documents do not open
   assert.equal(openHref(entry({ documentAvailable: false })), null);
 });
 
-test("media without a document: a video still plays, a comic needs its document", () => {
+test("media without a document plays or reads on its own", () => {
   const bare = { documentAvailable: false, fingerprint: "v1:abc" };
   assert.equal(openHref(entry({ ...bare })), "/video/v1%3Aabc/");
-  assert.equal(openHref(entry({ ...bare, type: "comic" })), null);
+  assert.equal(openHref(entry({ ...bare, type: "comic" })), "/comic/v1%3Aabc/");
   assert.deepEqual(
     warnings(entry({ unavailable: { "media-0": "No study document" } })),
     ["No study document"],

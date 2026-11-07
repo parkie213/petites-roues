@@ -37,6 +37,14 @@ class Settings(context: Context) {
     get() = prefs.getBoolean("comicOutlines", false)
     set(value) = prefs.edit { putBoolean("comicOutlines", value) }
 
+  /**
+   * Whether the comic at [path] reads right to left. Only asked of a comic without a study document,
+   * which has no reading direction of its own; left to right until the reader flips it.
+   */
+  fun comicRtl(path: String): Boolean = prefs.getBoolean("comicRtl:$path", false)
+
+  fun setComicRtl(path: String, rtl: Boolean) = prefs.edit { putBoolean("comicRtl:$path", rtl) }
+
   var showSubtitles: Boolean
     get() = prefs.getBoolean("showSubtitles", true)
     set(value) = prefs.edit { putBoolean("showSubtitles", value) }

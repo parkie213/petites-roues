@@ -11,12 +11,10 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
-import java.util.Comparator;
 import java.util.HexFormat;
 import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
-import java.util.regex.Pattern;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
@@ -25,8 +23,8 @@ import org.springframework.stereotype.Service;
  * documents (found by Refresh, see {@link com.petitesroues.library.discovery.ContentScanner}): a
  * title card shows its linked media's own poster, else a comic's first manifest page; a series card
  * shows the series poster for that media. A media file no document references has the same cards,
- * keyed by its fingerprint, with a CBZ's first entry by name as its cover. Without one, the library
- * draws a placeholder.
+ * keyed by its fingerprint, with a CBZ's first page as its cover. Without one, the library draws a
+ * placeholder.
  *
  * <p>Images are downscaled once to card size and kept in a local cache directory, never in content
  * folders. A card's version is derived from its source files' paths, sizes and modification times,
@@ -36,8 +34,6 @@ import org.springframework.stereotype.Service;
 public class CardArtService {
   /** Card width in pixels; about twice the displayed width, for high-density screens. */
   private static final int WIDTH = 480;
-
-  private static final Pattern PAGE = Pattern.compile("(?i).+\\.(jpe?g|png|webp|gif)");
 
   private final CatalogueStore titles;
   private final LibraryService library;
@@ -95,8 +91,8 @@ public class CardArtService {
   }
 
   /**
-   * The card of a media file by fingerprint: its own poster, else a CBZ's first image entry by
-   * name, else empty.
+   * The card of a media file by fingerprint: its own poster, else a CBZ's first page ({@link
+   * CbzReader#pages}), else empty.
    */
   public Optional<Card> mediaCard(String fingerprint) throws IOException {
     var item = library.indexedMedia(fingerprint);
@@ -105,11 +101,9 @@ public class CardArtService {
     if (poster != null) return Optional.of(card(poster, null, List.of(poster)));
     if (!"comic".equals(item.get().kind())) return Optional.empty();
     Path archive = item.get().file();
-    var first =
-        archives.entries(archive).stream()
-            .filter(name -> PAGE.matcher(name).matches())
-            .min(Comparator.naturalOrder());
-    return first.map(page -> card(archive, page, List.of(archive)));
+    return archives.pages(archive).stream()
+        .findFirst()
+        .map(page -> card(archive, page, List.of(archive)));
   }
 
   /** The series card of a media file by fingerprint, or empty. */

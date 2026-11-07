@@ -45,6 +45,7 @@ import androidx.compose.material.icons.filled.Headphones
 import androidx.compose.material.icons.filled.HeadsetOff
 import androidx.compose.material.icons.filled.ScreenLockLandscape
 import androidx.compose.material.icons.filled.ScreenRotation
+import androidx.compose.material.icons.filled.SwapHoriz
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -104,6 +105,7 @@ import com.petitesroues.android.library.Title
 import com.petitesroues.model.document.ComicBox
 import com.petitesroues.model.document.Line
 import com.petitesroues.model.document.ComicChapter
+import com.petitesroues.model.document.ComicDocument
 import com.petitesroues.model.document.ComicPage
 import com.petitesroues.model.document.ReadingDirection
 import com.petitesroues.model.document.StudyDocument
@@ -127,6 +129,9 @@ import kotlin.math.roundToInt
  * draws on it, and so does a finger with the top bar's pencil on. Drawings are never saved: they
  * clear, and the zoom resets, when the view changes, or with the buttons shown at the top while
  * there is something to clear or reset.
+ *
+ * A comic without a study document reads from a pages-only [document] (see [bareComic]): with
+ * [onFlipDirection], the top bar swaps the bubble toggles for one that flips the reading direction.
  */
 @Composable
 fun ReadScreen(
@@ -135,6 +140,7 @@ fun ReadScreen(
   store: LibraryStore,
   settings: Settings,
   onBack: () -> Unit,
+  onFlipDirection: (() -> Unit)? = null,
 ) {
   val context = LocalContext.current
   val comic = document.comic()
@@ -371,31 +377,43 @@ fun ReadScreen(
               tint = if (pencil) Color(0xFF89C9B3) else Color.White,
             )
           }
-          IconButton(
-            onClick = {
-              outlines = !outlines
-              settings.comicOutlines = outlines
+          // A comic without a study document has no bubbles to outline or read aloud, and no
+          // reading direction of its own: the learner picks one instead.
+          if (onFlipDirection != null)
+            IconButton(onClick = onFlipDirection) {
+              Icon(
+                Icons.Filled.SwapHoriz,
+                contentDescription = if (rtl) "Read left to right" else "Read right to left",
+                tint = if (rtl) Color(0xFF89C9B3) else Color.White,
+              )
             }
-          ) {
-            Icon(
-              Icons.Filled.CropFree,
-              contentDescription = if (outlines) "Hide bubble outlines" else "Show bubble outlines",
-              tint = if (outlines) Color(0xFF89C9B3) else Color.White,
-            )
-          }
-          // Quizzes are scoped to a chapter, so a volume without chapters offers none.
-          if (chapters.isNotEmpty()) QuizBadge(onClick = { quizzing = true }, description = "Quiz me on a chapter in another app")
-          IconButton(
-            onClick = {
-              autoListen = !autoListen
-              settings.autoListen = autoListen
+          else {
+            IconButton(
+              onClick = {
+                outlines = !outlines
+                settings.comicOutlines = outlines
+              }
+            ) {
+              Icon(
+                Icons.Filled.CropFree,
+                contentDescription = if (outlines) "Hide bubble outlines" else "Show bubble outlines",
+                tint = if (outlines) Color(0xFF89C9B3) else Color.White,
+              )
             }
-          ) {
-            Icon(
-              if (autoListen) Icons.Filled.Headphones else Icons.Filled.HeadsetOff,
-              contentDescription = if (autoListen) "Stop reading bubbles aloud" else "Read bubbles aloud",
-              tint = if (autoListen) Color(0xFF89C9B3) else Color.White,
-            )
+            // Quizzes are scoped to a chapter, so a volume without chapters offers none.
+            if (chapters.isNotEmpty()) QuizBadge(onClick = { quizzing = true }, description = "Quiz me on a chapter in another app")
+            IconButton(
+              onClick = {
+                autoListen = !autoListen
+                settings.autoListen = autoListen
+              }
+            ) {
+              Icon(
+                if (autoListen) Icons.Filled.Headphones else Icons.Filled.HeadsetOff,
+                contentDescription = if (autoListen) "Stop reading bubbles aloud" else "Read bubbles aloud",
+                tint = if (autoListen) Color(0xFF89C9B3) else Color.White,
+              )
+            }
           }
           IconButton(
             onClick = {
@@ -651,3 +669,26 @@ private fun ChapterLabel(
     }
   }
 }
+
+/**
+ * A pages-only document for a CBZ no study document references, so [ReadScreen] can show it: its
+ * images in [CbzReader.pages] order, each identified by its entry name so reading progress survives
+ * a change of direction, with no text, chapters or languages.
+ */
+fun bareComic(title: Title, pages: List<String>, rtl: Boolean): StudyDocument =
+  StudyDocument(
+    title.path,
+    title.name,
+    title.sourceLanguage,
+    null,
+    null,
+    title.series,
+    null,
+    ComicDocument(
+      null,
+      if (rtl) ReadingDirection.RTL else ReadingDirection.LTR,
+      null,
+      pages.map { ComicPage(it, it, null) },
+      emptyList(),
+    ),
+  )

@@ -37,6 +37,8 @@ class ReadAloud(context: Context, language: String) {
       problem = "Text to speech is unavailable"
       return
     }
+    // A comic without a study document has no language and nothing to read aloud.
+    if (locale.language.isEmpty()) return
     val result = tts.setLanguage(locale)
     if (result == TextToSpeech.LANG_MISSING_DATA || result == TextToSpeech.LANG_NOT_SUPPORTED) {
       problem = "No ${locale.displayLanguage} voice is installed"

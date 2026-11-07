@@ -7,12 +7,12 @@
 export const warnings = (entry) => Object.values(entry.unavailable ?? {});
 
 /**
- * Where a card leads: reader, watch view or study notes; a video without a study document plays on
- * its own. Null when there is nothing to open (a missing document, or a comic without one).
+ * Where a card leads: reader, watch view or study notes; media without a study document plays or
+ * reads on its own. Null when there is nothing to open (a title whose document is missing).
  */
 export function openHref(entry) {
-  if (entry.fingerprint && entry.type === "video")
-    return `/video/${encodeURIComponent(entry.fingerprint)}/`;
+  if (entry.fingerprint)
+    return `/${entry.type === "comic" ? "comic" : "video"}/${encodeURIComponent(entry.fingerprint)}/`;
   if (!entry.documentAvailable) return null;
   const view =
     entry.type === "comic"

@@ -29,7 +29,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.layout.padding
+import com.petitesroues.android.comic.CbzReader
 import com.petitesroues.android.comic.ReadScreen
+import com.petitesroues.android.comic.bareComic
 import com.petitesroues.android.library.Browse
 import com.petitesroues.android.library.CardImages
 import com.petitesroues.android.library.LibraryScreen
@@ -194,12 +196,25 @@ class MainActivity : ComponentActivity() {
       }
   }
 
-  /** Loads the title's document, then shows the player or reader for it. */
+  /**
+   * Loads the title's document, then shows the player or reader for it. A comic without a study
+   * document reads from a pages-only one built from its CBZ, in the direction chosen for it.
+   */
   @Composable
   private fun TitleScreen(title: Title, onBack: () -> Unit) {
+    val bare = title.documentUri == null && title.kind == TitleKind.COMIC
+    var rtl by remember(title) { mutableStateOf(bare && settings.comicRtl(title.path)) }
     var loaded by remember(title) { mutableStateOf<Result<StudyDocument>?>(null) }
-    LaunchedEffect(title) {
-      loaded = withContext(Dispatchers.IO) { runCatching { library.read(checkNotNull(title.documentUri) { "it has no study document" }) } }
+    LaunchedEffect(title, rtl) {
+      loaded = withContext(Dispatchers.IO) {
+        runCatching {
+          if (bare)
+            CbzReader(contentResolver, checkNotNull(title.mediaUri) { "its CBZ is missing" }).use {
+              bareComic(title, it.pages(), rtl)
+            }
+          else library.read(checkNotNull(title.documentUri) { "it has no study document" })
+        }
+      }
     }
     val document = loaded?.getOrNull()
     when {
@@ -214,6 +229,11 @@ class MainActivity : ComponentActivity() {
         }
       }
       title.kind == TitleKind.VIDEO -> WatchScreen(title, document, store, settings, onBack)
+      bare ->
+        ReadScreen(title, document, store, settings, onBack) {
+          rtl = !rtl
+          settings.setComicRtl(title.path, rtl)
+        }
       else -> ReadScreen(title, document, store, settings, onBack)
     }
   }

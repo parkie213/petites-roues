@@ -327,7 +327,11 @@ private class Cards(
       entry.kind == TitleKind.COMIC,
       problem,
       slot.copies,
-      onClick = if (problem == null) ({ onOpen(entry) }) else null,
+      // A comic without a study document still reads, pages only; its card keeps the warning.
+      onClick =
+        if (problem == null || (entry.documentUri == null && entry.kind == TitleKind.COMIC && entry.mediaUri != null))
+          ({ onOpen(entry) })
+        else null,
       progress = saved?.fraction?.takeIf { it > 0 }?.toFloat(),
       onClearProgress = if (saved != null) ({ onClearProgress(entry) }) else null,
       language = language,
@@ -352,7 +356,7 @@ private class Cards(
     language: String? = null,
   ) {
     Column(
-      Modifier.alpha(if (problem != null) 0.55f else 1f),
+      Modifier.alpha(if (onClick == null) 0.55f else 1f),
       verticalArrangement = Arrangement.spacedBy(6.dp),
     ) {
       Box(
