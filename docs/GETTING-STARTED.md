@@ -42,8 +42,8 @@ each file links to its study document and the warnings clear.
 
 A folder can hold videos, comics, study documents, or any mix, and Git is optional. The example
 keeps its study documents and its media apart, as you might with a Plex library, with one pair
-of folders per language: French (`-fr`), German (`-de`) and Mandarin (`-zh`), each to English.
-Add the others the same way to try them.
+of folders per language: French (`-fr`) and German (`-de`), each to English.
+Add the German pair the same way to try a second language.
 
 ```text
 example/
@@ -69,7 +69,6 @@ example/
     notes/
       verb-plus-infinitive.md
   media-de/, documents-de/    Masha and the Bear, in German
-  media-zh/, documents-zh/    Peppa Pig's Lunch, in Mandarin
 ```
 
 Each study document records its media's fingerprint (`video.reference` or `comic.reference`), so the two find each

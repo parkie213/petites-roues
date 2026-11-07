@@ -9,7 +9,7 @@
  * - Films: other videos, one card each, even when they name a series that has episodes.
  *
  * A series in several source languages is one card per language: a learner follows one language's
- * episodes, so French and Chinese Peppa Pig are separate cards. Media without a study document has
+ * episodes, so French and German Peppa Pig would be separate cards. Media without a study document has
  * no language; it joins its series' card when that series has only one language.
  *
  * A series card sits on the shelf most of its titles name, so one stray volume does not split
