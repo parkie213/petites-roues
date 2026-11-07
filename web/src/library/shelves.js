@@ -8,6 +8,10 @@
  *   no numbers at all (a channel such as Le Parisien) is a series too, ordered by title.
  * - Films: other videos, one card each, even when they name a series that has episodes.
  *
+ * A series in several source languages is one card per language: a learner follows one language's
+ * episodes, so French and Chinese Peppa Pig are separate cards. Media without a study document has
+ * no language; it joins its series' card when that series has only one language.
+ *
  * A series card sits on the shelf most of its titles name, so one stray volume does not split
  * the series. Shelves are ordered by label.
  *
@@ -143,11 +147,20 @@ export function openHref(entry) {
   return `/${view}/${encodeURIComponent(entry.id)}/`;
 }
 
+/** Copies share a slot only within one language: another language's tome 1 is not a copy. */
 function slotKey(entry) {
-  if (entry.type === "comic" && entry.volume != null) return `v${entry.volume}`;
+  const language = entry.sourceLanguage ? `${entry.sourceLanguage}:` : "";
+  if (entry.type === "comic" && entry.volume != null)
+    return `${language}v${entry.volume}`;
   if (entry.type !== "comic" && numbered(entry))
-    return `s${entry.season ?? ""}e${entry.episode ?? ""}`;
+    return `${language}s${entry.season ?? ""}e${entry.episode ?? ""}`;
   return `d:${entry.documentId}`;
+}
+
+/** The language most of the entries declare, or null when none declares one. */
+function languageOf(entries) {
+  const tags = entries.map((entry) => entry.sourceLanguage).filter(Boolean);
+  return tags.length ? mostCommon(tags) : null;
 }
 
 function compareSlots(a, b) {
@@ -223,6 +236,7 @@ function seriesGroup(type, key, entries) {
   return {
     key,
     type,
+    language: languageOf(entries),
     name: mostCommon(entries.map((entry) => entry.series.trim())),
     single: false,
     slots,
@@ -247,6 +261,7 @@ function singleGroups(type, entries) {
   return makeSlots(entries).map((slot) => ({
     key: slot.key,
     type,
+    language: languageOf(slot.copies),
     name: slot.entry.title,
     single: true,
     slots: [slot],
@@ -256,10 +271,24 @@ function singleGroups(type, entries) {
   }));
 }
 
+/**
+ * Groups entries by series and source language. Entries without a language (media awaiting a study
+ * document) join their series' only language; with several, they keep a card of their own.
+ */
 function bySeries(entries) {
-  const groups = new Map();
+  const languages = new Map();
   for (const entry of entries) {
     const key = seriesKey(entry.series);
+    if (!languages.has(key)) languages.set(key, new Set());
+    if (entry.sourceLanguage) languages.get(key).add(entry.sourceLanguage);
+  }
+  const groups = new Map();
+  for (const entry of entries) {
+    const series = seriesKey(entry.series);
+    const known = languages.get(series);
+    const language =
+      entry.sourceLanguage ?? (known.size === 1 ? [...known][0] : null);
+    const key = language ? `${series}@${language}` : series;
     if (!groups.has(key)) groups.set(key, []);
     groups.get(key).push(entry);
   }

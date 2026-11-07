@@ -17,6 +17,7 @@ import { clock } from "../player/quiz.js";
 import { responseError, titlePath } from "../shared/api.js";
 import { mediaEntry, openHref, shelves, warnings } from "./shelves.js";
 import { postersHref } from "./navigation.js";
+import { nativeName } from "./language.js";
 import "./Posters.css";
 
 const artUrl = (art) => art?.url;
@@ -173,7 +174,8 @@ function Attention({ lines }) {
  * One card: a whole series (opens its tomes/episodes), or a single title/slot (opens it).
  * Anything that needs the user shows as a (!) on the art. A card that cannot be opened (no study
  * document yet) or whose media is missing is dimmed.
- * A title's reading or viewing progress is a thin bar along the bottom of its art.
+ * A title's reading or viewing progress is a thin bar along the bottom of its art. [language], when
+ * given, is a pill on the art's top-left corner.
  */
 function Card({
   name,
@@ -185,6 +187,7 @@ function Card({
   repositoryNames,
   onChanged,
   attention = [],
+  language = null,
 }) {
   const entry = slot?.entry;
   const lines = entry ? warnings(entry) : attention;
@@ -193,6 +196,11 @@ function Card({
   const content = (
     <div className="poster-frame">
       <Art art={art} name={name} type={type} />
+      {language && (
+        <span className="poster-language" lang={language}>
+          {nativeName(language)}
+        </span>
+      )}
       {progress !== null && (
         <span
           className="poster-progress"
@@ -239,14 +247,16 @@ function Card({
   );
 }
 
-function groupCard(group, selection, repositoryNames, onChanged) {
+function groupCard(group, selection, repositoryNames, onChanged, tagged) {
   const type = group.type;
+  const language = tagged ? group.language : null;
   if (group.single) {
     const [slot] = group.slots;
     return (
       <Card
         key={group.key}
         name={group.name}
+        language={language}
         art={group.art}
         type={type}
         href={openHref(slot.entry)}
@@ -264,6 +274,7 @@ function groupCard(group, selection, repositoryNames, onChanged) {
       key={group.key}
       name={group.name}
       detail={group.count}
+      language={language}
       attention={
         needing > 0
           ? [`${needing} of ${group.slots.length} need attention`]
@@ -301,7 +312,9 @@ function SeriesView({ group, selection, follow, repositoryNames, onChanged }) {
         <div>
           <Title order={3}>{group.name}</Title>
           <Text size="sm" c="dimmed">
-            {group.count}
+            {[group.language && nativeName(group.language), group.count]
+              .filter(Boolean)
+              .join(" · ")}
           </Text>
         </div>
         {season && (
@@ -371,6 +384,10 @@ export function Posters({ data, selection, go, onChanged }) {
     .filter((repo) => !filter || repo.id === filter)
     .flatMap(cards);
   const result = shelves(entries);
+  // Cards name their language only when the posters show more than one.
+  const tagged =
+    new Set(entries.map((entry) => entry.sourceLanguage).filter(Boolean)).size >
+    1;
   const follow = (event, href) => {
     if (
       event &&
@@ -440,7 +457,7 @@ export function Posters({ data, selection, go, onChanged }) {
                 }}
               >
                 {shelf.groups.map((group) =>
-                  groupCard(group, shown, repositoryNames, onChanged),
+                  groupCard(group, shown, repositoryNames, onChanged, tagged),
                 )}
               </div>
             </Stack>

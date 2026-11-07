@@ -33,13 +33,15 @@
   box-shadow:
     0 1px 0 var(--mantine-color-dark-4) inset,
     0 6px 18px rgb(0 0 0 / 0.35);
-  transition:
-    transform 140ms ease,
-    box-shadow 140ms ease;
+  transition: box-shadow 140ms ease;
+}
+/* The whole frame lifts, so the language pill and progress bar move with the art. */
+a.poster-link:hover .poster-frame,
+a.poster-link:focus-visible .poster-frame {
+  transform: translateY(-3px);
 }
 a.poster-link:hover .poster-art,
 a.poster-link:focus-visible .poster-art {
-  transform: translateY(-3px);
   box-shadow:
     0 0 0 2px var(--mantine-color-sage-4),
     0 10px 24px rgb(0 0 0 / 0.45);
@@ -56,6 +58,7 @@ a.poster-link:focus-visible .poster-art {
 }
 .poster-frame {
   position: relative;
+  transition: transform 140ms ease;
 }
 /* The (!) on a card's corner; its tooltip says what needs attention. */
 .poster-card {
@@ -81,6 +84,26 @@ a.poster-link:focus-visible .poster-art {
 .poster-attention:focus-visible {
   outline: 2px solid var(--mantine-color-yellow-3);
   outline-offset: 2px;
+}
+/* The source language, on the art's top-left corner when the posters span several languages. */
+.poster-language {
+  position: absolute;
+  top: 6px;
+  left: 6px;
+  max-width: calc(100% - 40px);
+  padding: 2px 8px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: rgb(20 22 26 / 0.82);
+  color: var(--mantine-color-gray-0);
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 16px;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  box-shadow: 0 1px 4px rgb(0 0 0 / 0.5);
+  backdrop-filter: blur(4px);
+  pointer-events: none;
 }
 .poster-progress {
   position: absolute;

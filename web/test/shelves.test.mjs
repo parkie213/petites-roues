@@ -296,3 +296,52 @@ test("a document can name its shelf; a series sits where most of its titles say"
   assert.equal(series.key, "manga:demon slayer");
   assert.equal(series.type, "comic");
 });
+
+test("a series in two languages is one card per language", () => {
+  const peppa = (language, episode) =>
+    entry({
+      series: "Peppa Pig",
+      season: 1,
+      episode,
+      title: `Episode ${episode}`,
+      sourceLanguage: language,
+    });
+  const groups = shelf(
+    shelves([peppa("fr", 1), peppa("fr", 2), peppa("zh", 1)]),
+    "series",
+  );
+  assert.deepEqual(
+    groups.map((group) => [group.language, group.slots.length]),
+    [
+      ["fr", 2],
+      ["zh", 1],
+    ],
+  );
+  assert.equal(new Set(groups.map((group) => group.key)).size, 2);
+});
+
+test("media without a document joins its series' only language", () => {
+  const linked = entry({
+    series: "Peppa Pig",
+    season: 1,
+    episode: 34,
+    sourceLanguage: "zh",
+  });
+  const bare = mediaEntry({
+    repositoryId: "media-zh",
+    relativePath: "series/peppa-pig/s01e35-other.mp4",
+    kind: "video",
+    fingerprint: "v1:abc",
+    warnings: ["No study document"],
+  });
+  const [group] = shelf(shelves([linked, bare]), "series");
+  assert.equal(group.language, "zh");
+  assert.equal(group.slots.length, 2);
+  const french = entry({
+    series: "Peppa Pig",
+    season: 1,
+    episode: 1,
+    sourceLanguage: "fr",
+  });
+  assert.equal(shelf(shelves([linked, french, bare]), "series").length, 3);
+});
