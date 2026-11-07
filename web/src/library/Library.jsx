@@ -37,7 +37,8 @@ import {
   documentsHref,
   postersHref,
   readSelection,
-  columnsHref,
+  rememberView,
+  storedView,
 } from "./navigation.js";
 import "./Library.css";
 import { librarySummary } from "./summary.js";
@@ -51,7 +52,16 @@ import { rememberLibraryPage } from "../shared/library-return.js";
 import { Documents } from "./Documents.jsx";
 
 export function Library() {
-  const [selection, setSelection] = useState(readSelection);
+  const [selection, setSelection] = useState(() => {
+    // A bare library URL opens the last chosen view.
+    if (!location.search && storedView() !== "columns")
+      history.replaceState(
+        null,
+        "",
+        storedView() === "documents" ? documentsHref() : postersHref(),
+      );
+    return readSelection();
+  });
   function go(next) {
     if (next !== location.pathname + location.search)
       history.pushState(null, "", next);
@@ -59,12 +69,13 @@ export function Library() {
   }
   const navigate = (repository, parts) => go(folderHref(repository, parts));
   function switchView(view) {
+    rememberView(view);
     go(
       view === "posters"
         ? postersHref()
         : view === "documents"
           ? documentsHref()
-          : columnsHref(),
+          : "/",
     );
   }
   // Players and readers return to this exact page.
