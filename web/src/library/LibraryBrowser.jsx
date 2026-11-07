@@ -165,7 +165,7 @@ export function LibraryBrowser({
   selection,
   navigate,
   busy,
-  act,
+  refresh,
   onRemove,
 }) {
   const strip = useRef(null);
@@ -237,7 +237,7 @@ export function LibraryBrowser({
           <RepositoryMenu
             repo={repo}
             busy={busy}
-            act={act}
+            refresh={refresh}
             onRemove={onRemove}
           />
         )}
@@ -363,7 +363,7 @@ export function LibraryBrowser({
   );
 }
 
-function RepositoryMenu({ repo, busy, act, onRemove }) {
+function RepositoryMenu({ repo, busy, refresh, onRemove }) {
   return (
     <Menu shadow="md" width={260} position="bottom-end">
       <Menu.Target>
@@ -389,14 +389,7 @@ function RepositoryMenu({ repo, busy, act, onRemove }) {
         <Menu.Item
           disabled={busy}
           leftSection={<RefreshCw size={15} />}
-          onClick={() =>
-            act(
-              "/api/repositories/" + repo.id + "/refresh",
-              "POST",
-              null,
-              "Folder refreshed.",
-            ).catch(() => {})
-          }
+          onClick={() => refresh(repo.id)}
         >
           Refresh folder
         </Menu.Item>
