@@ -62,7 +62,7 @@ class ContentRepositoryServiceTest {
     service =
         new ContentRepositoryService(
             repositories, scanner, reader, transactions, registration, queue, media, probe);
-    lenient().when(reader.isStudyDocument(any())).thenReturn(true);
+    lenient().when(reader.isStudyDocument(any(Path.class))).thenReturn(true);
   }
 
   private static ContentScanner.Discovery<Path> found(Path... documents) {

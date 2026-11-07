@@ -126,6 +126,12 @@ Syncthing) through the Storage Access Framework, never writes documents and keep
 own index and progress in a local SQLite database. Kotlin, Jetpack Compose and Media3;
 Android 14 or newer.
 
+It finds and links content with the desktop's rules from `java/library`: every study document
+and every video or CBZ in the chosen folders, documents linked to media by fingerprint from any
+folder, and posters beside the media. Sync the media folder and the documents folder to the
+phone and choose both. Media is fingerprinted once (8 MiB read per file) and again only when it
+changes.
+
 The app uses the shared Java library (`java/documents`) as a jar from `~/.m2`, the same
 jar the server builds against. Gradle installs it with Maven whenever it configures the
 build, including an Android Studio sync, so the app never compiles against a stale jar; Maven

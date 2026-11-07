@@ -46,7 +46,16 @@ public final class ContentScanner {
       long modifiedMillis,
       Found<F> poster,
       Found<F> seriesPoster,
-      String posterProblem) {}
+      String posterProblem) {
+
+    /**
+     * Whether this is still the file an earlier refresh probed: same size and modification time.
+     * Unchanged media keeps its fingerprint; anything else is fingerprinted again.
+     */
+    public boolean unchangedSince(long probedSize, long probedModifiedMillis) {
+      return size == probedSize && modifiedMillis == probedModifiedMillis;
+    }
+  }
 
   /**
    * What one walk found, each list sorted by path.

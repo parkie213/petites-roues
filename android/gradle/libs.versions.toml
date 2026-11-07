@@ -13,6 +13,7 @@ junit = "4.13.2"
 
 [libraries]
 petites-roues-documents = { module = "com.petitesroues:petites-roues-documents", version.ref = "petitesRoues" }
+petites-roues-library = { module = "com.petitesroues:petites-roues-library", version.ref = "petitesRoues" }
 compose-bom = { module = "androidx.compose:compose-bom", version.ref = "composeBom" }
 compose-material3 = { module = "androidx.compose.material3:material3" }
 compose-icons = { module = "androidx.compose.material:material-icons-extended" }

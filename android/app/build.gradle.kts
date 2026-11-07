@@ -55,6 +55,7 @@ androidComponents {
 
 dependencies {
   implementation(libs.petites.roues.documents)
+  implementation(libs.petites.roues.library)
   implementation(platform(libs.compose.bom))
   implementation(libs.compose.material3)
   implementation(libs.compose.icons)

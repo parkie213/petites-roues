@@ -1,6 +1,7 @@
 package com.petitesroues.library;
 
 import com.petitesroues.comic.ReadingProgressStore;
+import com.petitesroues.library.linking.MediaLinks;
 import com.petitesroues.library.persistence.CatalogueStore;
 import com.petitesroues.library.persistence.ContentRepositoryStore;
 import com.petitesroues.model.document.StudyDocument;
@@ -142,7 +143,9 @@ public class LibraryService {
       var location = title.location();
       if (location != null && !location.missing() && location.referenceFingerprint() != null)
         owners.putIfAbsent(
-            mediaKind(location.documentType()) + location.referenceFingerprint(), title.id());
+            MediaLinks.key(
+                TitleMediaService.kind(location.documentType()), location.referenceFingerprint()),
+            title.id());
     }
     return new Library(
         repositories.list().stream()
@@ -155,13 +158,16 @@ public class LibraryService {
                             .toList(),
                         index.all().stream()
                             .filter(item -> repo.id().equals(item.repositoryId()))
-                            .map(item -> item(item, owners.get(item.kind() + item.fingerprint())))
+                            .map(
+                                item ->
+                                    item(
+                                        item,
+                                        owners.get(
+                                            MediaLinks.key(
+                                                TitleMediaService.kind(item.kind()),
+                                                item.fingerprint()))))
                             .toList()))
             .toList());
-  }
-
-  private static String mediaKind(String documentType) {
-    return "comic".equals(documentType) ? "comic" : "video";
   }
 
   private static MediaItem item(IndexedMedia item, String titleId) {

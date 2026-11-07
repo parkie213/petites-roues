@@ -185,8 +185,7 @@ public class ContentRepositoryService {
       MediaProbe.Probe result =
           old != null
                   && old.kind().equals(kind)
-                  && old.sizeBytes() == file.size()
-                  && old.modifiedMillis() == file.modifiedMillis()
+                  && file.unchangedSince(old.sizeBytes(), old.modifiedMillis())
               ? new MediaProbe.Probe(
                   old.fingerprint(), old.durationSeconds(), old.audioCodecs(), old.audioPlayable())
               : file.kind() == MediaKind.VIDEO
