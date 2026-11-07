@@ -1,8 +1,29 @@
-// Build the displayed tree from indexed paths; title discovery happens only on Add/Refresh.
-export function repositoryTree(entries) {
+/**
+ * Where a library item sits in its folder: a title with linked media at the media's path, any
+ * other title at its document's path, and unlinked media at its own path.
+ */
+export function shownPath(item) {
+  return item.mediaPath ?? item.relativePath ?? "document.json";
+}
+
+/**
+ * Build the displayed tree from indexed paths; discovery happens only on Add/Refresh. Unlinked
+ * media (`kind: "media"`) is placed beside the titles, named after its file.
+ */
+export function repositoryTree(entries, media = []) {
   const root = { name: "", folders: [], titles: [] };
-  for (const entry of entries) {
-    const parts = (entry.relativePath || "document.json")
+  const items = [
+    ...entries,
+    ...media.map((item) => ({
+      ...item,
+      mediaKind: item.kind,
+      kind: "media",
+      id: `media:${item.relativePath}`,
+      title: item.relativePath.split("/").pop(),
+    })),
+  ];
+  for (const entry of items) {
+    const parts = shownPath(entry)
       .replaceAll("\\", "/")
       .split("/")
       .slice(0, -1);
@@ -31,8 +52,8 @@ export function repositoryTree(entries) {
 }
 
 // Keep each ancestor visible. Invalid or stale URL segments stop at the last indexed folder.
-export function repositoryColumns(entries, requested = []) {
-  let node = repositoryTree(entries);
+export function repositoryColumns(entries, requested = [], media = []) {
+  let node = repositoryTree(entries, media);
   const columns = [{ node, parts: [] }];
   for (const part of requested) {
     const folder = node.folders.find((child) => child.name === part);

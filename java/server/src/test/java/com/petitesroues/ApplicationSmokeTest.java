@@ -56,14 +56,22 @@ class ApplicationSmokeTest extends HttpIntegrationTest {
             .retrieve()
             .body(JsonNode.class);
 
-    // The folder browser uses these indexed paths to construct its hierarchy.
+    // The linked title is shown where its video lives; the documents folder holds no title.
     var library = http.get().uri("/api/library").retrieve().body(Library.class);
-    var content =
+    var documents =
         library.repositories().stream()
             .filter(folder -> folder.repository().id().equals(registered.get("id").asText()))
             .findFirst()
             .orElseThrow();
-    var selected = content.entries().getFirst();
+    assertTrue(documents.entries().isEmpty());
+    var selected =
+        library.repositories().stream()
+            .filter(folder -> folder.repository().name().equals("media"))
+            .findFirst()
+            .orElseThrow()
+            .entries()
+            .getFirst();
+    assertEquals("series/Episode 1.mp4", selected.mediaPath());
     assertEquals("series/season-01/episode-01.json", selected.relativePath());
     assertTrue(selected.videoAvailable());
     assertTrue(

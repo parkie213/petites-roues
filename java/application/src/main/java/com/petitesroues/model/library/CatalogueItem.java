@@ -41,6 +41,9 @@ import java.util.Map;
  *     position over its reference duration, or a comic's (page index + 1) over its page count;
  *     {@code null} when there is no saved position, the video has no known duration, or a comic
  *     position predates stored fractions
+ * @param mediaRepositoryId the folder holding the linked video or CBZ, or {@code null} when none is
+ *     linked; the library shows the title there
+ * @param mediaPath the linked media's path within that folder, or {@code null}
  */
 public record CatalogueItem(
     String id,
@@ -62,4 +65,6 @@ public record CatalogueItem(
     boolean mediaAvailable,
     boolean posterAvailable,
     boolean seriesPosterAvailable,
-    Double progress) {}
+    Double progress,
+    String mediaRepositoryId,
+    String mediaPath) {}

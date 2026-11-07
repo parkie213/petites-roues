@@ -54,3 +54,34 @@ test("column navigation keeps ancestors and stops at an invalid folder", () => {
   assert.equal(branch.length, 2);
   assert.equal(branch.at(-1).node.titles[0].id, "b");
 });
+test("a title with linked media sits where the media lives, beside unlinked media", () => {
+  const tree = repositoryTree(
+    [
+      {
+        id: "lunch",
+        title: "Lunch",
+        relativePath: "peppa/s01e34/document.json",
+        mediaPath: "peppa-pig/lunch.zh.mp4",
+      },
+    ],
+    [
+      {
+        relativePath: "peppa-pig/stray.mkv",
+        kind: "video",
+        warnings: ["No study document"],
+      },
+    ],
+  );
+  assert.deepEqual(
+    tree.folders.map((f) => f.name),
+    ["peppa-pig"],
+  );
+  const [lunch, stray] = [...tree.folders[0].titles].sort((a, b) =>
+    a.id.localeCompare(b.id),
+  );
+  assert.equal(stray.id, "media:peppa-pig/stray.mkv");
+  assert.equal(stray.kind, "media");
+  assert.equal(stray.mediaKind, "video");
+  assert.equal(stray.title, "stray.mkv");
+  assert.equal(lunch.id, "lunch");
+});

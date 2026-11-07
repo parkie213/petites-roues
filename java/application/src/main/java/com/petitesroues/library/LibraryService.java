@@ -116,10 +116,12 @@ public class LibraryService {
   }
 
   /**
-   * Groups indexed titles by registered repository, including empty repositories, with each
-   * folder's media that no present document references. Individually registered titles remain
-   * accessible through {@link #catalogue()}. Reads registrations from the store; does not discover
-   * or refresh content.
+   * Groups indexed titles by the registered folder they are shown in, including empty folders, with
+   * each folder's media that no present document references. A title with linked media is shown in
+   * the folder holding that media (its {@link CatalogueItem#mediaPath} places it there); one
+   * without is shown where its document is. Individually registered titles remain accessible
+   * through {@link #catalogue()}. Reads registrations from the store; does not discover or refresh
+   * content.
    */
   public Library library() throws IOException {
     var titles = repository.all();
@@ -137,15 +139,18 @@ public class LibraryService {
                 repo ->
                     new Library.RepositoryContents(
                         repo,
-                        entries.stream()
-                            .filter(entry -> repo.id().equals(entry.repositoryId()))
-                            .toList(),
+                        entries.stream().filter(entry -> repo.id().equals(shownIn(entry))).toList(),
                         index.all().stream()
                             .filter(item -> repo.id().equals(item.repositoryId()))
                             .filter(item -> !referenced.contains(item.fingerprint()))
                             .map(LibraryService::unmatched)
                             .toList()))
             .toList());
+  }
+
+  /** A title is shown where its media lives; without linked media, where its document is. */
+  private static String shownIn(CatalogueItem entry) {
+    return entry.mediaRepositoryId() != null ? entry.mediaRepositoryId() : entry.repositoryId();
   }
 
   private static MediaItem unmatched(IndexedMedia item) {
@@ -232,7 +237,9 @@ public class LibraryService {
               mediaAvailable,
               poster,
               seriesPoster,
-              progress));
+              progress,
+              matched.map(IndexedMedia::repositoryId).orElse(null),
+              matched.map(IndexedMedia::relativePath).orElse(null)));
     }
     return List.copyOf(result);
   }

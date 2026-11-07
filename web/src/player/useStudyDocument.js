@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { request } from "../shared/api.js";
+import { shownPath } from "../library/repository-tree.js";
 
 /** Loads the study document, review queue and library return link. */
 export function useStudyDocument({ id, api, setStatus }) {
@@ -32,15 +33,13 @@ export function useStudyDocument({ id, api, setStatus }) {
     request("/api/library/titles", { signal: controller.signal })
       .then((entries) => {
         const entry = entries.find((row) => row.id === id);
+        // Back to the folder the library shows the title in: its media's, else its document's.
         if (entry?.repositoryId)
           setReturnPath(
             "/?" +
               new URLSearchParams({
-                repository: entry.repositoryId,
-                folder: (entry.relativePath || "")
-                  .split("/")
-                  .slice(0, -1)
-                  .join("/"),
+                repository: entry.mediaRepositoryId ?? entry.repositoryId,
+                folder: shownPath(entry).split("/").slice(0, -1).join("/"),
               }),
           );
       })

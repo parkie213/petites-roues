@@ -33,7 +33,6 @@ import { folderHref } from "./navigation.js";
 
 function StudyTitle({ entry }) {
   const comic = entry.type === "comic";
-  const available = comic ? entry.mediaAvailable : entry.videoAvailable;
   return (
     <Paper withBorder radius="md" p="md" my="xs">
       <Stack gap="sm">
@@ -47,14 +46,19 @@ function StudyTitle({ entry }) {
             </Text>
           </div>
         </Group>
-        {!available && (
-          <Group gap={5}>
-            <TriangleAlert size={13} color="var(--mantine-color-yellow-5)" />
-            <Text c="dimmed" size="xs">
-              {comic ? "CBZ is not present" : "Video is not present"}
-            </Text>
-          </Group>
-        )}
+        {entry.documentAvailable &&
+          Object.values(entry.unavailable ?? {}).map((problem) => (
+            <Group key={problem} gap={5} wrap="nowrap" align="flex-start">
+              <TriangleAlert
+                size={13}
+                color="var(--mantine-color-yellow-5)"
+                style={{ flexShrink: 0, marginTop: 2 }}
+              />
+              <Text c="dimmed" size="xs">
+                {problem}
+              </Text>
+            </Group>
+          ))}
         {entry.documentAvailable ? (
           <Group gap={6} wrap="nowrap">
             <Button
@@ -95,9 +99,57 @@ function StudyTitle({ entry }) {
   );
 }
 
-const titleCount = (node) =>
-  node.titles.length +
-  node.folders.reduce((sum, child) => sum + titleCount(child), 0);
+/** A video or CBZ that no study document references, with what needs fixing. */
+function UnlinkedMedia({ item }) {
+  const comic = item.mediaKind === "comic";
+  return (
+    <Paper withBorder radius="md" p="md" my="xs">
+      <Stack gap="sm">
+        <Group gap="sm" wrap="nowrap" align="flex-start">
+          <ThemeIcon variant="light" color="yellow" size={34}>
+            {comic ? <BookOpen size={18} /> : <Film size={18} />}
+          </ThemeIcon>
+          <Text
+            fw={600}
+            size="sm"
+            lh={1.4}
+            style={{ overflowWrap: "anywhere" }}
+          >
+            {item.title}
+          </Text>
+        </Group>
+        {item.warnings.map((warning) => (
+          <Group key={warning} gap={5} wrap="nowrap">
+            <TriangleAlert size={13} color="var(--mantine-color-yellow-5)" />
+            <Text c="dimmed" size="xs">
+              {warning}
+            </Text>
+          </Group>
+        ))}
+      </Stack>
+    </Paper>
+  );
+}
+
+const isMedia = (item) => item.kind === "media";
+
+/** Titles and unlinked media below a folder, for its row description. */
+function counts(node) {
+  const below = node.folders.map(counts);
+  const titles =
+    node.titles.filter((item) => !isMedia(item)).length +
+    below.reduce((sum, child) => sum + child.titles, 0);
+  const unlinked =
+    node.titles.filter(isMedia).length +
+    below.reduce((sum, child) => sum + child.unlinked, 0);
+  return { titles, unlinked };
+}
+
+function describe({ titles, unlinked }) {
+  const parts = [`${titles} ${titles === 1 ? "title" : "titles"}`];
+  if (unlinked) parts.push(`${unlinked} without a study document`);
+  return parts.join(" · ");
+}
 
 /** Renders indexed folders; Mantine owns navigation-row and menu interactions. */
 export function LibraryBrowser({
@@ -110,7 +162,9 @@ export function LibraryBrowser({
 }) {
   const strip = useRef(null);
   const repo = data.repos.find((item) => item.id === selection.repository);
-  const columns = repo ? repositoryColumns(repo.entries, selection.parts) : [];
+  const columns = repo
+    ? repositoryColumns(repo.entries, selection.parts, repo.media)
+    : [];
   useEffect(() => {
     const browser = strip.current;
     browser?.scrollTo({ left: browser.scrollWidth, behavior: "smooth" });
@@ -184,7 +238,7 @@ export function LibraryBrowser({
         <Box
           component="nav"
           className="library-browser-column"
-          aria-label="Repositories"
+          aria-label="Folders"
           p="sm"
         >
           <Text
@@ -196,14 +250,17 @@ export function LibraryBrowser({
             py="xs"
             mb="xs"
           >
-            Repositories
+            Folders
           </Text>
           {data.repos.map((item) => (
             <NavLink
               key={item.id}
               href={folderHref(item.id)}
               label={item.name}
-              description={`${item.entries.length} ${item.entries.length === 1 ? "title" : "titles"}`}
+              description={describe({
+                titles: item.entries.length,
+                unlinked: item.media?.length ?? 0,
+              })}
               active={repo?.id === item.id}
               aria-current={repo?.id === item.id ? "location" : undefined}
               leftSection={<Library size={18} />}
@@ -222,7 +279,7 @@ export function LibraryBrowser({
           >
             <Group justify="space-between" px="sm" py="xs" mb="xs">
               <Text size="xs" fw={600} c="dimmed" tt="uppercase">
-                {parts.at(-1) || "Folders"}
+                {parts.at(-1) || repo.name}
               </Text>
               <Badge size="xs" color="gray" variant="light">
                 {node.folders.length + node.titles.length}
@@ -230,13 +287,13 @@ export function LibraryBrowser({
             </Group>
             {node.folders.map((folder) => {
               const selected = columns[index + 1]?.parts.at(-1) === folder.name;
-              const count = titleCount(folder);
+              const count = describe(counts(folder));
               return (
                 <NavLink
                   key={folder.name}
                   href={folderHref(repo.id, [...parts, folder.name])}
                   label={folder.name}
-                  description={`${count} ${count === 1 ? "title" : "titles"}`}
+                  description={count}
                   active={selected}
                   aria-current={selected ? "location" : undefined}
                   leftSection={
@@ -263,12 +320,18 @@ export function LibraryBrowser({
                 />
               );
             })}
-            {node.titles.map((entry) => (
-              <StudyTitle key={entry.id} entry={entry} />
-            ))}
+            {node.titles.map((entry) =>
+              isMedia(entry) ? (
+                <UnlinkedMedia key={entry.id} item={entry} />
+              ) : (
+                <StudyTitle key={entry.id} entry={entry} />
+              ),
+            )}
             {!node.folders.length && !node.titles.length && (
               <Text p="md" size="sm" c="dimmed">
-                No indexed titles. Add content, then refresh this repository.
+                {index === 0 && repo.titles > 0
+                  ? `${repo.titles} study ${repo.titles === 1 ? "document here is" : "documents here are"} shown with ${repo.titles === 1 ? "its video" : "their videos"}, in the folder that holds ${repo.titles === 1 ? "it" : "them"}.`
+                  : "Nothing found. Add videos, comics or study documents, then Refresh library."}
               </Text>
             )}
           </Box>
@@ -285,7 +348,7 @@ export function LibraryBrowser({
               <FolderOpen size={28} />
             </ThemeIcon>
             <Text c="dimmed" size="sm" ta="center" maw={260}>
-              Choose a repository to explore your titles.
+              Choose a folder to explore your titles.
             </Text>
           </Stack>
         )}
@@ -307,7 +370,7 @@ function RepositoryMenu({ repo, busy, act, onRemove }) {
         </ActionIcon>
       </Menu.Target>
       <Menu.Dropdown>
-        <Menu.Label>Repository</Menu.Label>
+        <Menu.Label>Folder</Menu.Label>
         <Text
           size="xs"
           c="dimmed"
@@ -325,11 +388,11 @@ function RepositoryMenu({ repo, busy, act, onRemove }) {
               "/api/repositories/" + repo.id + "/refresh",
               "POST",
               null,
-              "Repository refreshed.",
+              "Folder refreshed.",
             ).catch(() => {})
           }
         >
-          Refresh repository
+          Refresh folder
         </Menu.Item>
         <Menu.Divider />
         <Menu.Item

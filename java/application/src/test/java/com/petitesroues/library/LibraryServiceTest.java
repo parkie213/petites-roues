@@ -241,4 +241,33 @@ class LibraryServiceTest {
     assertEquals(0.5, progress.get("book"));
     assertNull(progress.get("old-book"), "comic positions saved before fractions show no bar");
   }
+
+  @Test
+  void aLinkedTitleIsShownInTheFolderHoldingItsMedia(@TempDir Path videosRoot) throws Exception {
+    var documents = new ContentRepository("repo", "documents", root.toString(), null, 2, 0);
+    var videos = new ContentRepository("media", "media", videosRoot.toString(), null, 0, 0, 1);
+    Files.write(root.resolve("film.json"), new byte[] {0});
+    Files.write(root.resolve("notes-only.json"), new byte[] {0});
+    Files.createDirectories(videosRoot.resolve("films"));
+    Files.write(videosRoot.resolve("films/Film.mkv"), new byte[] {0});
+    var film =
+        new CatalogueEntry(
+            "film", "Film", null, null, null, null, "film.json", located("v1:film", "video"));
+    var unlinked =
+        new CatalogueEntry(
+            "notes", "Notes", null, null, null, null, "notes-only.json", located(null, "video"));
+    when(repositories.list()).thenReturn(List.of(documents, videos));
+    when(repository.all()).thenReturn(List.of(film, unlinked));
+    when(media.all())
+        .thenReturn(List.of(indexed("media", videosRoot, "films/Film.mkv", "video", "v1:film")));
+
+    var folders = library().library().repositories();
+
+    assertEquals(List.of("notes"), folders.getFirst().entries().stream().map(e -> e.id()).toList());
+    var shown = folders.get(1).entries();
+    assertEquals(List.of("film"), shown.stream().map(e -> e.id()).toList());
+    assertEquals("films/Film.mkv", shown.getFirst().mediaPath());
+    assertEquals("film.json", shown.getFirst().relativePath(), "the document keeps its own path");
+    assertTrue(folders.get(1).media().isEmpty());
+  }
 }
