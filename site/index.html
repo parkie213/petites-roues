@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f7f4ed">
+  <meta name="description" content="Petites roues.">
+  <title>petites roues</title>
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400&display=swap" rel="stylesheet">
+  <style>
+    :root{color-scheme:light;--paper:#f7f4ed;--ink:#142d4e;--coral:#d94b3a}
+    *{box-sizing:border-box}
+    body{margin:0;background:var(--paper);color:var(--ink);-webkit-font-smoothing:antialiased}
+    main{min-height:100svh;display:grid;place-items:center;padding:40px 24px}
+    figure{margin:0;text-align:center;width:min(100%,360px)}
+    svg{display:block;width:100%;height:auto;overflow:visible;margin:auto}
+    .logo{transform-origin:322px 408px;animation:wobble 2.4s cubic-bezier(.35,0,.2,1) both}
+    figcaption{margin:48px 0 0;font:400 clamp(26px,5vw,29px)/1.4 Manrope,Arial,sans-serif;color:var(--ink)}
+    .github{display:inline-flex;align-items:center;gap:6px;margin-top:24px;padding:8px;color:#72777b;font:400 12px/1.5 Manrope,Arial,sans-serif;text-decoration:none;transition:color .2s}
+    .github:hover{color:var(--ink)}
+    .github:focus-visible{outline:2px solid var(--coral);outline-offset:4px;border-radius:3px}
+    @keyframes wobble{0%{transform:rotate(5deg)}28%{transform:rotate(-3deg)}52%{transform:rotate(1.5deg)}74%{transform:rotate(-.6deg)}100%{transform:rotate(0)}}
+    @media(prefers-reduced-motion:reduce){.logo{animation:none}}
+  </style>
+</head>
+<body>
+  <main>
+    <figure>
+      <svg viewBox="0 0 540 440" fill="none" role="img" aria-labelledby="logo-title">
+        <title id="logo-title">Petites roues</title>
+        <g class="logo">
+          <circle cx="322" cy="218" r="190" stroke="#142d4e" stroke-width="24"/>
+          <circle cx="322" cy="218" r="78" stroke="#142d4e" stroke-width="20"/>
+          <g class="little">
+            <circle cx="139" cy="318" r="111" fill="#f7f4ed"/>
+            <circle cx="139" cy="318" r="90" stroke="#d94b3a" stroke-width="22"/>
+            <circle cx="139" cy="318" r="33" stroke="#d94b3a" stroke-width="17"/>
+          </g>
+        </g>
+      </svg>
+      <figcaption>petites roues</figcaption>
+      <a class="github" href="https://github.com/parkie213/petites-roues">GitHub <span aria-hidden="true">↗</span></a>
+    </figure>
+  </main>
+</body>
+</html>
