@@ -4,9 +4,9 @@
   reference.py --document path/to/document.json [--media FILE] [--replace]
 
 Writes the body's `reference`: the v1 fingerprint and size of the media, and for a video its
-duration from ffprobe. The media defaults to the one video or CBZ beside the document. Add title
-records this itself; run this for a title registered some other way, or after replacing its media
-with the copy the cues are timed against.
+duration from ffprobe. The media defaults to the one video or CBZ beside the document.
+new_title.py records this when it starts a document; run this for an existing document, or after
+replacing its media with the copy the cues are timed against.
 
 A document that already names a different fingerprint is left alone unless --replace is given,
 because a different file may be a different cut that the cues no longer fit.

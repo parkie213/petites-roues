@@ -115,33 +115,6 @@ caption {
   color: #ff9c92;
   white-space: pre-wrap;
 }
-.import-page {
-  max-width: 800px;
-}
-.import-page label {
-  display: block;
-  margin: 18px 0;
-}
-.import-page input {
-  display: block;
-  width: 100%;
-  padding: 10px;
-  border: 1px solid var(--bd);
-  background: var(--pan);
-  color: var(--tx);
-  border-radius: 6px;
-}
-.import-page small {
-  display: block;
-  color: var(--dim);
-}
-.import-page details {
-  margin: 24px 0;
-}
-.import-page fieldset {
-  border: 0;
-  padding: 0;
-}
 
 @media (max-width: 900px) {
   .page {

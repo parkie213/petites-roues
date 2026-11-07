@@ -190,7 +190,7 @@ documents/
 - **Linking.** A video or CBZ links to a document whose `reference.fingerprint` equals its
   fingerprint, in any registered folder. Nothing else links them: not sharing a folder, nor
   series, episode or duration. A document without a reference fingerprint has no media until
-  one is recorded (`prepare/reference.py`, or Add title). When several copies match, one in the
+  one is recorded (`prepare/new_title.py` or `prepare/reference.py`). When several copies match, one in the
   document's own folder is preferred.
 - **Warnings.** Media that no document references is listed under *Needs attention* as "No study
   document". A video with no browser-playable audio track (AAC, MP3, Opus, Vorbis or FLAC) warns
@@ -270,8 +270,8 @@ sit at one end, and a CBZ's central directory, with every entry's CRC, sits at i
 
 A shared content repository rarely matches by fingerprint, because each person's download or rip
 is a different file; the fingerprint recognises the author's own copy, and the duration is what
-tells a different cut apart. Add title records the reference of the media it writes;
-`prepare/reference.py` records it for a title added any other way.
+tells a different cut apart. `prepare/new_title.py` records the reference when it starts a
+document; `prepare/reference.py` records it for an existing one.
 
 ## Comic documents
 

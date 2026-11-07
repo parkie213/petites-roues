@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 """Find and transcribe the text on a registered comic's pages with an OpenRouter vision model.
 
-  comic_text.py --document content/my-comic/document.json --run-dir DIR [--pages 9-11]
+  comic_text.py --document content/my-comic/document.json --run-dir DIR [--media FILE] [--pages 9-11]
 
-Reads the CBZ beside the document. Pages that already have boxes are left alone. Several pages
-go into each request; every request and response is saved per batch in the run directory, and
-rerunning the same command resumes, skipping answered batches. Adds one box per text
-region to the document in place.
+Reads the CBZ given by --media, else the one beside the document. Pages that already have boxes
+are left alone. Several pages go into each request; every request and response is saved per
+batch in the run directory, and rerunning the same command resumes, skipping answered batches.
+Adds one box per text region to the document in place.
 
 The model also flags pages that open a chapter and copies any table of contents. Once the run
 directory holds answers for every page, the chapters are written to `comic.chapters`, but only
@@ -110,12 +110,13 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--document", type=Path, required=True)
     parser.add_argument("--run-dir", type=Path, required=True)
+    parser.add_argument("--media", type=Path, help="the CBZ; defaults to the one beside the document")
     parser.add_argument("--pages", help="one-based positions: 9, 9-11 or 18-")
     parser.add_argument("--batch", type=int, default=3, help="pages per request")
     parser.add_argument("--model", default=MODEL)
     args = parser.parse_args()
 
-    books = list(args.document.parent.glob("*.cbz"))
+    books = [args.media] if args.media else list(args.document.parent.glob("*.cbz"))
     if len(books) != 1:
         raise SystemExit(f"Expected one .cbz beside the document, found {len(books)}")
     book = zipfile.ZipFile(books[0])

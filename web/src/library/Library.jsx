@@ -25,7 +25,6 @@ import {
   TriangleAlert,
 } from "lucide-react";
 import { chooseOnComputer, request } from "../shared/api.js";
-import { ImportTitle } from "./ImportTitle.jsx";
 import { LibraryBrowser } from "./LibraryBrowser.jsx";
 import { JobProgress } from "./JobProgress.jsx";
 import { jobSucceeded } from "./library-job.js";
@@ -80,7 +79,6 @@ export function Library() {
   const [data, setData] = useState(null),
     [error, setError] = useState(""),
     [message, setMessage] = useState(""),
-    [importing, setImporting] = useState(false),
     [busy, setBusy] = useState(false),
     [removing, setRemoving] = useState(null),
     [usage, setUsage] = useState("");
@@ -198,15 +196,6 @@ export function Library() {
                 </Button>
               )}
               {data?.repos.length > 0 && <LibraryQuiz />}
-              {data?.repos.length > 0 && (
-                <Button
-                  leftSection={<Plus size={17} />}
-                  disabled={working}
-                  onClick={() => setImporting(true)}
-                >
-                  Add title
-                </Button>
-              )}
               {data?.repos.length > 0 && (
                 <Button
                   variant="default"
@@ -427,24 +416,6 @@ export function Library() {
           </Group>
         </Stack>
       </Modal>
-      {importing && (
-        <ImportTitle
-          repos={data.repos}
-          selection={selection}
-          onClose={() => setImporting(false)}
-          onCreated={async (created, kind) => {
-            await load();
-            setError("");
-            setMessage(
-              `Created ${created.documentPath}. Next: ${
-                kind === "video"
-                  ? "transcribe it with prepare/transcribe.py"
-                  : "find its text with prepare/comic_text.py"
-              }, then notes with prepare/notes.py (docs/PREPARE-TITLE.md).`,
-            );
-          }}
-        />
-      )}
     </Box>
   );
 }

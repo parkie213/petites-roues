@@ -7,7 +7,6 @@ import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Locale;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import org.springframework.stereotype.Component;
@@ -15,17 +14,14 @@ import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 
 /**
- * Lists a video's audio tracks with ffprobe and writes browser-playable copies with ffmpeg. Both
+ * Lists a video's audio tracks and duration with ffprobe and writes thumbnails with ffmpeg. Both
  * tools must be on the PATH. Browsers play only a file's default audio track and cannot decode AC3,
- * E-AC3 or DTS, so a playable copy keeps exactly one chosen track in a codec they support.
+ * E-AC3 or DTS, so each track records whether a browser could play it.
  */
 @Component
 public class Ffmpeg {
   /** Audio codecs Chrome, Firefox and Safari all decode in MP4 or WebM. */
   private static final Set<String> PLAYABLE = Set.of("aac", "mp3", "opus", "flac", "vorbis");
-
-  /** Containers the browser plays directly when they hold one playable track. */
-  private static final Set<String> PLAYABLE_CONTAINERS = Set.of("mp4", "m4v", "webm");
 
   private final ObjectMapper mapper;
 
@@ -85,91 +81,6 @@ public class Ffmpeg {
   }
 
   /**
-   * How much later the audio stream starts than the first video stream, in seconds. Desktop players
-   * honour such a delay, but browsers ignore it in MP4 and play the audio early.
-   */
-  private double audioDelay(Path video, int audioIndex) throws IOException {
-    double videoStart = 0, audioStart = 0;
-    boolean seenVideo = false;
-    for (JsonNode stream : streams(video)) {
-      double start = stream.path("start_time").asDouble(0);
-      if (!seenVideo && "video".equals(stream.path("codec_type").asString(""))) {
-        videoStart = start;
-        seenVideo = true;
-      }
-      if (stream.path("index").asInt(-1) == audioIndex) audioStart = start;
-    }
-    return audioStart - videoStart;
-  }
-
-  /**
-   * Writes {@code target} as a browser-playable copy of {@code source} with only the chosen audio
-   * track. A file that already has just that track, in a playable codec and container, starting
-   * with the video, is copied byte for byte. Otherwise the picture is copied unchanged into MP4 and
-   * the audio is copied or converted to AAC. Audio that starts later than the video is re-encoded
-   * with that gap filled by silence, so it stays in sync in browsers. Returns the written file,
-   * whose extension follows the result's container.
-   *
-   * @param target the output path without extension
-   */
-  public Path playableCopy(Path source, int audioIndex, Path target) throws IOException {
-    var tracks = audioTracks(source);
-    var chosen =
-        tracks.stream()
-            .filter(track -> track.index() == audioIndex)
-            .findFirst()
-            .orElseThrow(() -> new IllegalArgumentException("No audio track " + audioIndex));
-    String extension = extension(source);
-    boolean delayed = Math.abs(audioDelay(source, audioIndex)) > 0.001;
-    if (tracks.size() == 1
-        && chosen.playable()
-        && !delayed
-        && PLAYABLE_CONTAINERS.contains(extension)) {
-      Path copy = target.resolveSibling(target.getFileName() + "." + extension);
-      Files.copy(source, copy);
-      return copy;
-    }
-    Path output = target.resolveSibling(target.getFileName() + ".mp4");
-    Path partial = target.resolveSibling(target.getFileName() + ".partial.mp4");
-    var command =
-        new ArrayList<>(
-            List.of(
-                "ffmpeg",
-                "-nostdin",
-                "-v",
-                "error",
-                "-n",
-                "-i",
-                source.toString(),
-                "-map",
-                "0:v:0?",
-                "-map",
-                "0:" + audioIndex,
-                "-map_chapters",
-                "-1",
-                "-c:v",
-                "copy"));
-    if (delayed) command.addAll(List.of("-af", "aresample=async=1:first_pts=0"));
-    boolean copyAudio = !delayed && Set.of("aac", "mp3").contains(chosen.codec());
-    command.addAll(
-        List.of(
-            "-c:a",
-            copyAudio ? "copy" : "aac",
-            "-b:a",
-            "192k",
-            "-movflags",
-            "+faststart",
-            partial.toString()));
-    try {
-      run(command);
-      Files.move(partial, output);
-      return output;
-    } finally {
-      Files.deleteIfExists(partial);
-    }
-  }
-
-  /**
    * Writes {@code target} as a JPEG of {@code image} (JPEG, PNG or WebP) at most {@code width}
    * pixels wide, keeping its aspect ratio; smaller images are not enlarged. The file appears
    * complete or not at all.
@@ -204,11 +115,6 @@ public class Ffmpeg {
   private static String text(JsonNode node, String field) {
     String value = node.path(field).asString("");
     return value.isBlank() ? null : value;
-  }
-
-  private static String extension(Path file) {
-    String name = file.getFileName().toString();
-    return name.substring(name.lastIndexOf('.') + 1).toLowerCase(Locale.ROOT);
   }
 
   /** Runs a tool to completion, returning stdout; a nonzero exit reports its stderr. */
