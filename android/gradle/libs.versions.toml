@@ -1,8 +1,8 @@
 [versions]
+# The shared Java library's version: the project version in java/pom.xml.
+petitesRoues = "0.1.0-SNAPSHOT"
 agp = "9.5.0"
 kotlin = "2.4.21"
-# Keep in step with the version Spring Boot manages for the desktop server.
-jackson = "3.1.5"
 composeBom = "2026.09.00"
 activityCompose = "1.13.0"
 lifecycle = "2.11.0"
@@ -12,7 +12,7 @@ markdownRenderer = "0.46.0"
 junit = "4.13.2"
 
 [libraries]
-jackson-databind = { module = "tools.jackson.core:jackson-databind", version.ref = "jackson" }
+petites-roues-documents = { module = "com.petitesroues:petites-roues-documents", version.ref = "petitesRoues" }
 compose-bom = { module = "androidx.compose:compose-bom", version.ref = "composeBom" }
 compose-material3 = { module = "androidx.compose.material3:material3" }
 compose-icons = { module = "androidx.compose.material:material-icons-extended" }

@@ -27,7 +27,7 @@ android/              Offline phone player and comic reader (Gradle)
 `java/documents` owns the document format: immutable records in
 `com.petitesroues.model.document`, the codec that reads and writes their canonical JSON,
 and the validation and phrase alignment rules. It depends only on Jackson, with no Spring,
-JDBC or HTTP dependencies, so the Android app compiles the same sources. Its main code
+JDBC or HTTP dependencies, so the Android app uses the same jar. Its main code
 is pinned to Java 17 (`maven.compiler.release`) because Android's library and D8 need it;
 its tests stay on Java 25.
 `java/application` depends on documents and owns services, stores, content discovery,
@@ -121,9 +121,12 @@ Syncthing) through the Storage Access Framework, never writes documents and keep
 own index and progress in a local SQLite database. Kotlin, Jetpack Compose and Media3;
 Android 14 or newer.
 
-Its `documents` Gradle module compiles `java/documents/src/main/java` directly, so
-there is no Maven install step. Keep the Jackson version in
-`android/gradle/libs.versions.toml` in step with the one Spring Boot manages.
+The app uses the shared Java library (`java/documents`) as a jar from `~/.m2`, the same
+jar the server builds against. Gradle installs it with Maven whenever it configures the
+build, including an Android Studio sync, so the app never compiles against a stale jar; Maven
+skips work that is up to date. Jackson comes with the jar, at the version Spring Boot manages.
+Keep `petitesRoues` in `android/gradle/libs.versions.toml` equal to the project version in
+`java/pom.xml`. Building needs the JDK in `.java-version`, as Maven does.
 
 ```bash
 cd android
@@ -161,5 +164,6 @@ executable packaging. Ordinary modules produce dependency JARs. Maven orders the
 build using their dependencies. Use `-pl server -am verify` from `java/` to build
 the server and the modules it requires.
 
-CI runs Maven, npm and the Android Gradle build separately, plus the existing preparation-tool and workflow
+CI builds and tests the shared library once, then builds the server and the Android app against
+that jar in parallel jobs (Gradle's `-PprebuiltLibrary` skips its own install), plus the existing preparation-tool and workflow
 tests. Generated sources, frontend bundles, node_modules and Maven targets are ignored.
