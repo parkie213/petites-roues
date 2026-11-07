@@ -54,9 +54,11 @@ repository, the folder for the title inside it, the title and the languages:
 - **Comics:** pick the reading direction. The CBZ is copied into the folder and the pages are
   listed in natural filename order; check the first few pages in the reader.
 
-The app writes an empty `document.json` and indexes the title. Add metadata such as `series`,
-`season`, `episode`, `sourceUrl` and `edition` to the document by hand if you want it (see
-[the document format](DOCUMENT-FORMAT.md#metadata-and-review-fields)).
+The app writes an empty `document.json`, with the written video or CBZ recorded as its
+[reference](DOCUMENT-FORMAT.md#reference-media), and indexes the title. Add metadata such as
+`series`, `season`, `episode` and `sourceUrl` to the document by hand if you want it (see
+[the document format](DOCUMENT-FORMAT.md#metadata-and-review-fields)). For a title registered
+some other way, record its reference with `prepare/reference.py --document path/to/document.json`.
 
 To download a video first: `yt-dlp -t mp4 --no-playlist -o 'video.%(ext)s' 'VIDEO_URL'`.
 

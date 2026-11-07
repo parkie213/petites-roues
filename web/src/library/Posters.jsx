@@ -10,16 +10,17 @@ import {
   Stack,
   Text,
   Title,
+  Tooltip,
 } from "@mantine/core";
-import { BookOpen, Copy, Ellipsis, Film, TriangleAlert } from "lucide-react";
+import { BookOpen, Copy, Ellipsis, Film } from "lucide-react";
+import { clock } from "../player/quiz.js";
 import { responseError, titlePath } from "../shared/api.js";
-import { openHref, shelves } from "./shelves.js";
+import { mediaEntry, openHref, shelves, warnings } from "./shelves.js";
 import { postersHref } from "./navigation.js";
+import { nativeName } from "./language.js";
 import "./Posters.css";
 
-const artUrl = (art) =>
-  art &&
-  `/api/titles/${encodeURIComponent(art.id)}/${art.kind === "series" ? "series-card" : "card"}`;
+const artUrl = (art) => art?.url;
 
 /** A stable hue per name, so placeholders are distinguishable but never random. */
 function hue(name) {
@@ -52,7 +53,10 @@ function Art({ art, name, type }) {
   );
 }
 
-/** Lists every copy of a slot (repository · edition) so a specific one can be opened. */
+/**
+ * Lists every copy of a slot (repository · reference duration) so a specific one can be opened.
+ * Different cuts of a video have different durations.
+ */
 function Copies({ slot, repositoryNames }) {
   if (slot.copies.length < 2) return null;
   return (
@@ -83,7 +87,10 @@ function Copies({ slot, repositoryNames }) {
                 {repositoryNames.get(copy.repositoryId) ?? "Standalone"}
               </Text>
               <Text size="xs" c="dimmed">
-                {[copy.edition, copy.unavailable?.title]
+                {[
+                  copy.durationSeconds != null && clock(copy.durationSeconds),
+                  copy.unavailable?.title,
+                ]
                   .filter(Boolean)
                   .join(" · ") || "Available"}
               </Text>
@@ -138,9 +145,37 @@ function More({ slot, onChanged }) {
 }
 
 /**
+ * A small (!) on the corner of the art; hovering or focusing it lists what needs attention.
+ */
+function Attention({ lines }) {
+  return (
+    <Tooltip
+      label={lines.map((line) => (
+        <div key={line}>{line}</div>
+      ))}
+      multiline
+      maw={260}
+      withArrow
+      events={{ hover: true, focus: true, touch: true }}
+    >
+      <span
+        className="poster-attention"
+        role="img"
+        tabIndex={0}
+        aria-label={`Needs attention: ${lines.join("; ")}`}
+      >
+        !
+      </span>
+    </Tooltip>
+  );
+}
+
+/**
  * One card: a whole series (opens its tomes/episodes), or a single title/slot (opens it).
- * Unavailable titles are dimmed with the reason on the art; a missing document cannot be opened.
- * A title's reading or viewing progress is a thin bar along the bottom of its art.
+ * Anything that needs the user shows as a (!) on the art. A card that cannot be opened (no study
+ * document yet) or whose media is missing is dimmed.
+ * A title's reading or viewing progress is a thin bar along the bottom of its art. [language], when
+ * given, is a pill on the art's top-left corner.
  */
 function Card({
   name,
@@ -151,18 +186,19 @@ function Card({
   slot,
   repositoryNames,
   onChanged,
+  attention = [],
+  language = null,
 }) {
   const entry = slot?.entry;
-  const problem = entry && Object.values(entry.unavailable ?? {})[0];
+  const lines = entry ? warnings(entry) : attention;
+  const dimmed = Boolean(entry && (!href || entry.unavailable?.media));
   const progress = entry?.progress > 0 ? Math.min(1, entry.progress) : null;
-  // The name is only in the caption; the warning sits on the art to keep captions short.
   const content = (
     <div className="poster-frame">
       <Art art={art} name={name} type={type} />
-      {problem && (
-        <span className="poster-problem" title={problem}>
-          <TriangleAlert size={12} />
-          <span>{problem}</span>
+      {language && (
+        <span className="poster-language" lang={language}>
+          {nativeName(language)}
         </span>
       )}
       {progress !== null && (
@@ -180,7 +216,7 @@ function Card({
     </div>
   );
   return (
-    <div className={`poster-card${problem ? " poster-unavailable" : ""}`}>
+    <div className={`poster-card${dimmed ? " poster-unavailable" : ""}`}>
       {href ? (
         <a className="poster-link" href={href} aria-label={name}>
           {content}
@@ -188,6 +224,7 @@ function Card({
       ) : (
         <div className="poster-link">{content}</div>
       )}
+      {lines.length > 0 && <Attention lines={lines} />}
       <Group gap={4} wrap="nowrap" justify="space-between" align="flex-start">
         <div className="poster-caption">
           <Text size="sm" fw={600} lineClamp={2} title={name}>
@@ -210,14 +247,16 @@ function Card({
   );
 }
 
-function groupCard(group, selection, repositoryNames, onChanged) {
-  const type = group.shelf === "manga" ? "comic" : "video";
+function groupCard(group, selection, repositoryNames, onChanged, tagged) {
+  const type = group.type;
+  const language = tagged ? group.language : null;
   if (group.single) {
     const [slot] = group.slots;
     return (
       <Card
         key={group.key}
         name={group.name}
+        language={language}
         art={group.art}
         type={type}
         href={openHref(slot.entry)}
@@ -227,11 +266,20 @@ function groupCard(group, selection, repositoryNames, onChanged) {
       />
     );
   }
+  const needing = group.slots.filter(
+    (slot) => warnings(slot.entry).length > 0,
+  ).length;
   return (
     <Card
       key={group.key}
       name={group.name}
       detail={group.count}
+      language={language}
+      attention={
+        needing > 0
+          ? [`${needing} of ${group.slots.length} need attention`]
+          : []
+      }
       art={group.art}
       type={type}
       href={postersHref({ repository: selection.repository, group: group.key })}
@@ -264,7 +312,9 @@ function SeriesView({ group, selection, follow, repositoryNames, onChanged }) {
         <div>
           <Title order={3}>{group.name}</Title>
           <Text size="sm" c="dimmed">
-            {group.count}
+            {[group.language && nativeName(group.language), group.count]
+              .filter(Boolean)
+              .join(" · ")}
           </Text>
         </div>
         {season && (
@@ -308,7 +358,8 @@ function SeriesView({ group, selection, follow, repositoryNames, onChanged }) {
 }
 
 /**
- * Plex-like browsing: Manga, Series and Films shelves across all repositories, grouped from
+ * Plex-like browsing of what can be watched or read: titles with their media and media awaiting a
+ * study document; documents whose media was not found are listed in the Documents view. Shelves across all folders (named by documents, else Comics, Series and Films), grouped from
  * document metadata. The repository chips filter before grouping. [onChanged] reloads the library
  * after a card action, receiving the error when the action failed.
  */
@@ -316,13 +367,27 @@ export function Posters({ data, selection, go, onChanged }) {
   const repositoryNames = new Map(
     data.repos.map((repo) => [repo.id, repo.name]),
   );
-  const filter = data.repos.some((repo) => repo.id === selection.repository)
+  // Posters show titles whose media was found, in the folder holding that media, and media
+  // awaiting a study document. Only folders that hold something to show get a chip.
+  const titles = data.repos
+    .flatMap((repo) => repo.entries)
+    .filter((entry) => entry.mediaAvailable);
+  const cards = (repo) => [
+    ...titles.filter((entry) => entry.mediaRepositoryId === repo.id),
+    ...(repo.media ?? []).filter((item) => !item.titleId).map(mediaEntry),
+  ];
+  const folders = data.repos.filter((repo) => cards(repo).length > 0);
+  const filter = folders.some((repo) => repo.id === selection.repository)
     ? selection.repository
     : null;
   const entries = data.repos
     .filter((repo) => !filter || repo.id === filter)
-    .flatMap((repo) => repo.entries);
+    .flatMap(cards);
   const result = shelves(entries);
+  // Cards name their language only when the posters show more than one.
+  const tagged =
+    new Set(entries.map((entry) => entry.sourceLanguage).filter(Boolean)).size >
+    1;
   const follow = (event, href) => {
     if (
       event &&
@@ -341,7 +406,7 @@ export function Posters({ data, selection, go, onChanged }) {
 
   return (
     <Stack gap="xl">
-      {data.repos.length > 1 && (
+      {folders.length > 1 && (
         <Chip.Group
           value={filter ?? ""}
           onChange={(value) =>
@@ -355,9 +420,9 @@ export function Posters({ data, selection, go, onChanged }) {
         >
           <Group gap="xs">
             <Chip value="" size="xs" variant="light">
-              All repositories
+              All folders
             </Chip>
-            {data.repos.map((repo) => (
+            {folders.map((repo) => (
               <Chip key={repo.id} value={repo.id} size="xs" variant="light">
                 {repo.name}
               </Chip>
@@ -392,14 +457,18 @@ export function Posters({ data, selection, go, onChanged }) {
                 }}
               >
                 {shelf.groups.map((group) =>
-                  groupCard(group, shown, repositoryNames, onChanged),
+                  groupCard(group, shown, repositoryNames, onChanged, tagged),
                 )}
               </div>
             </Stack>
           ))
       )}
       {!open && entries.length === 0 && (
-        <Text c="dimmed">No titles in this repository yet.</Text>
+        <Text c="dimmed">
+          {filter
+            ? "Nothing in this folder yet. Refresh after adding videos, comics or study documents."
+            : "Nothing here yet."}
+        </Text>
       )}
     </Stack>
   );

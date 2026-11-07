@@ -26,7 +26,7 @@ class PhraseAlignmentTest {
         alignment.source(),
         "Changing a caller's list must not rewrite an existing alignment");
     assertDoesNotThrow(
-        () -> PhraseAlignmentValidator.validateFor(alignment, "Salut", "Hi"),
+        () -> PhraseAlignmentValidator.validateFor(alignment, "Salut", "Hi", "fr", "en"),
         "The alignment must still match the original subtitle");
   }
 

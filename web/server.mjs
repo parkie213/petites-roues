@@ -18,6 +18,7 @@ const pageRoute = (pathname) =>
   pathname === "/" ||
   pathname === "/repositories" ||
   /^\/(?:player|watch|reader)\/(?:[A-Za-z0-9_-]+\/?)?$/.test(pathname) ||
+  /^\/video\/[^/]+\/?$/.test(pathname) ||
   /^\/notes(?:\/[^/]+\/[^/]+)?\/?$/.test(pathname);
 
 export async function createServer({

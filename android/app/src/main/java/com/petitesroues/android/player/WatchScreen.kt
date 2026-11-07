@@ -86,6 +86,7 @@ import com.petitesroues.android.quiz.QuizDialog
 import com.petitesroues.android.quiz.QuizPack
 import com.petitesroues.android.quiz.QuizShare
 import com.petitesroues.android.study.readyAlignment
+import com.petitesroues.model.ChunkSeparator
 import com.petitesroues.android.study.LearnerNote
 import com.petitesroues.android.study.PhraseLine
 import com.petitesroues.android.study.SubtitleLook
@@ -233,7 +234,7 @@ fun WatchScreen(
       horizontalAlignment = Alignment.CenterHorizontally,
       verticalArrangement = Arrangement.spacedBy(6.dp),
     ) {
-      val exploredAlignment = exploredCue?.let { readyAlignment(it.line()) }
+      val exploredAlignment = exploredCue?.let { readyAlignment(it.line(), document) }
       if (exploredAlignment != null) {
         val phrase = explored!!.phrase
         Panel {
@@ -247,6 +248,7 @@ fun WatchScreen(
             Modifier.background(Color(0xCC000000), RoundedCornerShape(6.dp))
               .padding(horizontal = 8.dp, vertical = 3.dp),
             centred = true,
+            separator = ChunkSeparator.of(document.translationLanguage()),
           )
         }
       } else if (help == Help.NOTES) {
@@ -269,7 +271,7 @@ fun WatchScreen(
       }
       if (subtitles) for (cue in showing) {
         val line = cue.line()
-        val alignment = readyAlignment(line)
+        val alignment = readyAlignment(line, document)
         if (alignment != null)
           PhraseLine(
             alignment,

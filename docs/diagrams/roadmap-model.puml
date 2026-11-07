@@ -11,8 +11,9 @@ skinparam class {
 
 package "Portable" {
   class StudyDocument
-  class MediaFingerprint <<planned>> {
-    partial hash
+  class "Reference media" as Reference {
+    fingerprint
+    sizeBytes
     durationSeconds
   }
 }
@@ -34,11 +35,11 @@ package "Local" {
   class QueuedEdit
 }
 
-StudyDocument *-- "0..1" MediaFingerprint : made for
+StudyDocument *-- "0..1" Reference : made for
 Title ..> StudyDocument
 Title "1" *-- "0..1" MediaLink
 MediaLink ..> MediaFolder : inside
-MediaLink ..> MediaFingerprint : checked against
+MediaLink ..> Reference : checked against
 Device "1" *-- "1" OfflineSet
 OfflineSet o-- "0..*" Title
 Device ..> QueuedEdit : sends edits

@@ -31,29 +31,49 @@ npm run dev
 
 <img src="../images/getting-started/01-empty-library.png" alt="The empty library" style="max-width: 100%; height: auto;">
 
-The library should start empty. Click **Add repository** in the middle.
+The library should start empty. Click **Add folder** in the middle.
 
 <img src="../images/getting-started/02-locate-example-directory.png" alt="Locate the example directory" style="max-width: 100%; height: auto;">
 
-Select the `example` directory in the petites roues repository.
+Select the `example/media-fr` directory in the petites roues repository. Its two Peppa Pig
+episodes and a short comic appear as posters, each with a small **(!)**: "No study document".
+You can already watch the videos. Click **Add folder** again and select `example/documents-fr`:
+each file links to its study document and the warnings clear.
 
-A repository is simply a content folder; Git is optional. The example holds one title and the
-folders the library reads at a repository's root:
+A folder can hold videos, comics, study documents, or any mix, and Git is optional. The example
+keeps its study documents and its media apart, as you might with a Plex library, with one pair
+of folders per language: French (`-fr`) and German (`-de`), each to English.
+Add the German pair the same way to try a second language.
 
 ```text
 example/
-  peppa/
-    document.json     subtitles, translations, phrases and notes
-    video.mp4
-    poster.jpg        optional, placeholder card when absent 
-  quizzes/
-    verb-plus-infinitive.md
-  notes/
-    verb-plus-infinitive.md
+  media-fr/                   the media, linked to documents by fingerprint
+    series/
+      peppa-pig/
+        poster.jpg            optional series card, beside the videos it covers
+        s01e01-les-flaques-de-boue.mp4
+        s01e02-a-la-recherche-de-mr-dinosaure.mp4
+    comics/
+      lulu/
+        le-parapluie-de-lulu.cbz  a four-page comic made for the example
+  documents-fr/               study documents, notes and quizzes
+    series/
+      peppa-pig/
+        s01e01/document.json  subtitles, translations, phrases and notes
+        s01e02/document.json
+    comics/
+      lulu/
+        le-parapluie-de-lulu/document.json  speech balloons, translations and notes
+    quizzes/
+      verb-plus-infinitive.md
+    notes/
+      verb-plus-infinitive.md
+  media-de/, documents-de/    Masha and the Bear, in German
 ```
 
-A repository can contain titles, notes, quizzes, or any combination of them. For example,
-you can keep videos in one repository, comics in another, and notes and quizzes in a third.
+Each study document records its media's fingerprint (`video.reference` or `comic.reference`), so the two find each
+other wherever they live. Notes and quizzes are read from `notes/` and `quizzes/` at the top of
+a registered folder. After adding or changing files, click **Refresh library**.
 
 <img src="../images/getting-started/03-example-added-to-library.png" alt="The example added to the library" style="max-width: 100%; height: auto;">
 

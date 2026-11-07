@@ -25,7 +25,7 @@ data class Title(
   val documentUri: Uri,
   val mediaUri: Uri?,
   override val documentId: String,
-  val edition: String?,
+  val durationSeconds: Double?,
   override val season: Int?,
   override val episode: Int?,
   override val volume: Int?,

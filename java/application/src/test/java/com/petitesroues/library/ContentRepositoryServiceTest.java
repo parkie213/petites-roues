@@ -9,12 +9,17 @@ import com.petitesroues.documents.StudyDocumentReader;
 import com.petitesroues.library.discovery.ContentRepositoryScanner;
 import com.petitesroues.library.persistence.CatalogueStore;
 import com.petitesroues.library.persistence.ContentRepositoryStore;
+import com.petitesroues.library.persistence.MediaStore;
+import com.petitesroues.media.MediaProbe;
 import com.petitesroues.model.document.StudyDocument;
 import com.petitesroues.model.document.VideoDocument;
+import com.petitesroues.model.document.VideoReference;
 import com.petitesroues.model.library.CatalogueEntry;
 import com.petitesroues.model.library.ContentRepository;
+import com.petitesroues.model.library.IndexedMedia;
 import com.petitesroues.study.ReviewQueue;
 import java.io.IOException;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.NoSuchElementException;
@@ -22,6 +27,7 @@ import java.util.function.Consumer;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.api.io.TempDir;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.transaction.TransactionStatus;
@@ -42,15 +48,22 @@ class ContentRepositoryServiceTest {
   @Mock StudyDocumentReader reader;
   @Mock RepositoryContentService registration;
   @Mock ReviewQueue queue;
+  @Mock MediaStore media;
+  @Mock MediaProbe probe;
   @Mock TransactionTemplate transactions;
   @Mock TransactionStatus transactionStatus;
   ContentRepositoryService service;
 
   @BeforeEach
-  void setup() {
+  void setup() throws IOException {
     service =
         new ContentRepositoryService(
-            repositories, scanner, reader, transactions, registration, queue);
+            repositories, scanner, reader, transactions, registration, queue, media, probe);
+    lenient().when(reader.isStudyDocument(any())).thenReturn(true);
+  }
+
+  private static ContentRepositoryScanner.Discovery found(Path... documents) {
+    return new ContentRepositoryScanner.Discovery(List.of(documents), List.of(), List.of());
   }
 
   private void knownRepository() {
@@ -59,7 +72,7 @@ class ContentRepositoryServiceTest {
 
   private void oneDocument() throws IOException {
     knownRepository();
-    when(scanner.scan(root)).thenReturn(List.of(first));
+    when(scanner.scan(root)).thenReturn(found(first));
     when(reader.read(first)).thenReturn(document("title"));
   }
 
@@ -77,7 +90,7 @@ class ContentRepositoryServiceTest {
   @Test
   void duplicateIdsAreRejectedBeforeStartingATransaction() throws Exception {
     knownRepository();
-    when(scanner.scan(root)).thenReturn(List.of(first, second));
+    when(scanner.scan(root)).thenReturn(found(first, second));
     when(reader.read(first)).thenReturn(document("title"));
     when(reader.read(second)).thenReturn(document("title"));
     var failure = assertThrows(IllegalArgumentException.class, () -> service.refresh(ID));
@@ -89,7 +102,7 @@ class ContentRepositoryServiceTest {
   @Test
   void invalidDocumentReportsItsRelativePathAndPreservesTheCause() throws Exception {
     knownRepository();
-    when(scanner.scan(root)).thenReturn(List.of(first));
+    when(scanner.scan(root)).thenReturn(found(first));
     var cause = new IllegalArgumentException("Unsupported document format");
     when(reader.read(first)).thenThrow(cause);
     var failure = assertThrows(IllegalArgumentException.class, () -> service.refresh(ID));
@@ -101,7 +114,7 @@ class ContentRepositoryServiceTest {
   @Test
   void readFailurePropagatesWithoutStartingATransaction() throws Exception {
     knownRepository();
-    when(scanner.scan(root)).thenReturn(List.of(first));
+    when(scanner.scan(root)).thenReturn(found(first));
     var failure = new IOException("Unreadable document");
     when(reader.read(first)).thenThrow(failure);
     assertSame(failure, assertThrows(IOException.class, () -> service.refresh(ID)));
@@ -138,7 +151,7 @@ class ContentRepositoryServiceTest {
     knownRepository();
     executeTransaction();
     when(reader.read(first)).thenReturn(document("title"));
-    when(scanner.scan(root)).thenReturn(List.of(first, second));
+    when(scanner.scan(root)).thenReturn(found(first, second));
     var base = document("new-title");
     var video = base.video();
     var added =
@@ -150,8 +163,7 @@ class ContentRepositoryServiceTest {
             base.notesLanguage(),
             null,
             null,
-            "French edition",
-            new VideoDocument(null, null, null, 120.0, video.cues()));
+            new VideoDocument(null, null, new VideoReference(null, null, 120.0), video.cues()));
     when(reader.read(second)).thenReturn(added);
     when(registration.register(
             new RepositoryContentService.Registration(first.toString(), true), ID))
@@ -170,5 +182,70 @@ class ContentRepositoryServiceTest {
     verify(registration)
         .register(new RepositoryContentService.Registration(second.toString(), true), ID);
     verify(repositories).recordRefresh(eq(ID), anyString());
+  }
+
+  @Test
+  void jsonThatIsNotAStudyDocumentIsIgnored() throws Exception {
+    knownRepository();
+    executeTransaction();
+    when(scanner.scan(root)).thenReturn(found(first));
+    when(reader.isStudyDocument(first)).thenReturn(false);
+    service.refresh(ID);
+    verify(reader, never()).read(any());
+    verifyNoInteractions(registration);
+    verify(media).replace(ID, List.of());
+  }
+
+  @Test
+  void refreshProbesOnlyNewOrChangedMediaAndReplacesTheFolderIndex(@TempDir Path folder)
+      throws Exception {
+    var here = new ContentRepository(ID, "Repository", folder.toString(), "old", 0, 0);
+    when(repositories.find(ID)).thenReturn(here);
+    executeTransaction();
+    Path kept = Files.write(folder.resolve("kept.mp4"), new byte[] {1});
+    Path changed = Files.write(folder.resolve("changed.mkv"), new byte[] {1, 2});
+    long keptTime = Files.getLastModifiedTime(kept).toMillis();
+    var previous =
+        List.of(
+            new IndexedMedia(
+                ID,
+                folder.toString(),
+                "kept.mp4",
+                "video",
+                1,
+                keptTime,
+                "v1:kept",
+                60.0,
+                "aac",
+                true),
+            new IndexedMedia(
+                ID, folder.toString(), "changed.mkv", "video", 1, 0, "v1:old", 60.0, "aac", true),
+            new IndexedMedia(
+                ID, folder.toString(), "gone.mp4", "video", 1, 0, "v1:gone", 60.0, "aac", true));
+    when(media.inRepository(ID)).thenReturn(previous);
+    when(scanner.scan(folder))
+        .thenReturn(
+            new ContentRepositoryScanner.Discovery(List.of(), List.of(changed, kept), List.of()));
+    when(probe.video(changed)).thenReturn(new MediaProbe.Probe("v1:new", 30.0, "ac3", false));
+
+    service.refresh(ID);
+
+    verify(probe, never()).video(kept);
+    verify(media)
+        .replace(
+            ID,
+            List.of(
+                new IndexedMedia(
+                    null,
+                    folder.toString(),
+                    "changed.mkv",
+                    "video",
+                    2,
+                    Files.getLastModifiedTime(changed).toMillis(),
+                    "v1:new",
+                    30.0,
+                    "ac3",
+                    false),
+                previous.getFirst()));
   }
 }

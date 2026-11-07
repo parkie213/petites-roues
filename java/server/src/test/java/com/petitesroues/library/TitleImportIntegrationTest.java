@@ -4,6 +4,8 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 import com.petitesroues.media.Ffmpeg;
+import com.petitesroues.media.MediaFingerprint;
+import com.petitesroues.model.document.ComicReference;
 import com.petitesroues.model.document.ReadingDirection;
 import com.petitesroues.model.document.StudyDocument;
 import com.petitesroues.support.HttpIntegrationTest;
@@ -129,6 +131,11 @@ class TitleImportIntegrationTest extends HttpIntegrationTest {
     assertEquals("My film", document.title());
     assertEquals("fr", document.sourceLanguage());
     assertEquals(0, document.video().cues().size());
+    var reference = document.video().reference();
+    Path video = folder.resolve("video.mp4");
+    assertEquals(MediaFingerprint.of(video), reference.fingerprint());
+    assertEquals(Files.size(video), reference.sizeBytes());
+    assertEquals(new Ffmpeg(mapper).duration(video), reference.durationSeconds());
 
     assertThrows(
         HttpClientErrorException.BadRequest.class,
@@ -238,6 +245,10 @@ class TitleImportIntegrationTest extends HttpIntegrationTest {
         List.of("page-1.png", "page-2.png", "page-10.png"),
         document.comic().pages().stream().map(p -> p.entry()).toList());
     assertEquals(ReadingDirection.RTL, document.comic().readingDirection());
+    Path cbz = repository.resolve("Manga/Volume 1/Volume 1.cbz");
+    assertEquals(
+        new ComicReference(MediaFingerprint.of(cbz), Files.size(cbz)),
+        document.comic().reference());
   }
 
   @Test

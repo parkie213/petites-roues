@@ -62,7 +62,7 @@ Local content belongs under ignored `content/`, or in a separately registered co
 Live documents may be in that repository; videos and SQLite stay local.
 The SQLite index stores document paths relative to their owning repository root.
 New titles are created with the library's Add title, or registered through repository Add/Refresh; the SQLite location is configured independently.
-See [the document format](docs/DOCUMENT-FORMAT.md#files-beside-the-document). Keep app sources and generic workflows outside content.
+See [the document format](docs/DOCUMENT-FORMAT.md#documents-and-media). Keep app sources and generic workflows outside content.
 
 Keep `content/` limited to live videos, comics, subtitle/notes documents and library
 metadata. Preparation scripts, research Markdown, old sources and exports belong in
@@ -70,8 +70,8 @@ ignored `content-archive/`, not among live title files.
 
 The local catalogue is `content/library.sqlite` (SQLite), not binding or organization
 JSON. Documents remain JSON. Repository-wide title discovery runs only on explicit
-Add/Refresh actions; normal browsing uses SQLite and checks indexed title folders
-for the single supported video or CBZ. Do not add compatibility readers.
+Add/Refresh actions; normal browsing uses SQLite, and media links to a document by
+fingerprint (its `reference`). Do not add compatibility readers.
 
 Git is an ordinary checkpoint for content, not the review queue. Pending player edits and
 completed review decisions are in SQLite ([docs/REVIEW-API.md](docs/REVIEW-API.md)). Old JSONL

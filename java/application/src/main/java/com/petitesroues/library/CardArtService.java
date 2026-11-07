@@ -1,5 +1,6 @@
 package com.petitesroues.library;
 
+import com.petitesroues.comic.CbzReader;
 import com.petitesroues.comic.ComicService;
 import com.petitesroues.library.discovery.TitleMediaResolver;
 import com.petitesroues.library.persistence.CatalogueStore;
@@ -11,17 +12,21 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.Comparator;
 import java.util.HexFormat;
 import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
+import java.util.regex.Pattern;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 /**
- * Chooses and caches the images on library cards. A title card shows the title folder's {@code
- * poster.*}, else a comic's first manifest page; a series card shows the nearest {@code poster.*}
- * above the title folder. Titles without one have no card image; the library draws a placeholder.
+ * Chooses and caches the images on library cards. Card images live with media, not with study
+ * documents ({@link TitleMediaResolver}): a title card shows its linked media's own poster, else a
+ * comic's first manifest page; a series card shows the series poster for that media. A media file
+ * no document references has the same cards, keyed by its fingerprint, with a CBZ's first entry by
+ * name as its cover. Without one, the library draws a placeholder.
  *
  * <p>Images are downscaled once to card size and kept in a local cache directory, never in content
  * folders. A card's version is derived from its source files' paths, sizes and modification times,
@@ -32,9 +37,12 @@ public class CardArtService {
   /** Card width in pixels; about twice the displayed width, for high-density screens. */
   private static final int WIDTH = 480;
 
+  private static final Pattern PAGE = Pattern.compile("(?i).+\\.(jpe?g|png|webp|gif)");
+
   private final CatalogueStore titles;
   private final LibraryService library;
   private final ComicService comics;
+  private final CbzReader archives;
   private final Ffmpeg ffmpeg;
   private final Path cache;
 
@@ -42,42 +50,74 @@ public class CardArtService {
       CatalogueStore titles,
       LibraryService library,
       ComicService comics,
+      CbzReader archives,
       Ffmpeg ffmpeg,
       @Value("${petitesroues.cards.cache:content/.cache/cards}") Path cache) {
     this.titles = titles;
     this.library = library;
     this.comics = comics;
+    this.archives = archives;
     this.ffmpeg = ffmpeg;
     this.cache = cache;
   }
 
-  /** The source of one card image and the version naming its cached JPEG. */
-  public record Card(String titleId, String version, Path source, boolean comicCover) {}
+  /**
+   * The source of one card image and the version naming its cached JPEG.
+   *
+   * @param source an image, or a CBZ when {@code page} names the entry to show
+   * @param page the CBZ entry holding the image, or null
+   */
+  public record Card(String version, Path source, String page) {}
 
   /**
    * The title card's source: its poster, else a comic's first page, else empty.
    *
-   * @throws IllegalArgumentException if the title folder has several posters or CBZ files
+   * @throws IllegalArgumentException if a folder has several posters
    */
   public Optional<Card> titleCard(String id) throws IOException {
     var poster = library.poster(id);
-    if (poster.isPresent())
-      return Optional.of(card(id, poster.get(), false, List.of(poster.get())));
+    if (poster.isPresent()) return Optional.of(card(poster.get(), null, List.of(poster.get())));
     var entry = titles.find(id);
     if (entry.isEmpty()
         || entry.get().location() == null
         || !"comic".equals(entry.get().location().documentType())) return Optional.empty();
     Path document = entry.get().documentFile();
-    Path archive = TitleMediaResolver.comic(document);
+    var archive = library.media(id).orElse(null);
     if (archive == null) return Optional.empty();
+    String first = comics.document(id).comic().pages().getFirst().entry();
     // The first page can change with the document, so its version covers both files.
-    return Optional.of(card(id, archive, true, List.of(archive, document)));
+    return Optional.of(card(archive, first, List.of(archive, document)));
   }
 
-  /** The series card's source: the nearest poster above the title folder, else empty. */
+  /** The series card's source: the series poster for the title's media, else empty. */
   public Optional<Card> seriesCard(String id) throws IOException {
-    var poster = library.seriesPoster(id);
-    return poster.map(file -> card(id, file, false, List.of(file)));
+    return library.seriesPoster(id).map(file -> card(file, null, List.of(file)));
+  }
+
+  /**
+   * The card of a media file by fingerprint: its own poster, else a CBZ's first image entry by
+   * name, else empty.
+   */
+  public Optional<Card> mediaCard(String fingerprint) throws IOException {
+    var item = library.indexedMedia(fingerprint);
+    if (item.isEmpty()) return Optional.empty();
+    Path poster = LibraryService.poster(item.get());
+    if (poster != null) return Optional.of(card(poster, null, List.of(poster)));
+    if (!"comic".equals(item.get().kind())) return Optional.empty();
+    Path archive = item.get().file();
+    var first =
+        archives.entries(archive).stream()
+            .filter(name -> PAGE.matcher(name).matches())
+            .min(Comparator.naturalOrder());
+    return first.map(page -> card(archive, page, List.of(archive)));
+  }
+
+  /** The series card of a media file by fingerprint, or empty. */
+  public Optional<Card> mediaSeriesCard(String fingerprint) throws IOException {
+    var item = library.indexedMedia(fingerprint);
+    if (item.isEmpty()) return Optional.empty();
+    return Optional.ofNullable(LibraryService.seriesPoster(item.get()))
+        .map(file -> card(file, null, List.of(file)));
   }
 
   /**
@@ -88,16 +128,13 @@ public class CardArtService {
     Path target = cache.resolve(card.version() + ".jpg");
     if (Files.isRegularFile(target)) return target;
     Files.createDirectories(cache);
-    if (!card.comicCover()) {
+    if (card.page() == null) {
       ffmpeg.thumbnail(card.source(), WIDTH, target);
       return target;
     }
-    var document = comics.document(card.titleId());
-    var first = document.comic().pages().getFirst();
-    var page = comics.image(card.titleId(), first.id());
-    Path extracted = Files.createTempFile(cache, card.version(), extension(page.name()));
+    Path extracted = Files.createTempFile(cache, card.version(), extension(card.page()));
     try {
-      Files.write(extracted, page.bytes());
+      Files.write(extracted, archives.read(card.source(), card.page()));
       ffmpeg.thumbnail(extracted, WIDTH, target);
       return target;
     } finally {
@@ -106,12 +143,12 @@ public class CardArtService {
   }
 
   /**
-   * Names a card by its versioned files, so titles sharing a series folder share one cached image
+   * Names a card by its versioned files and page, so cards sharing a poster share one cached image
    * and any replaced file yields a new name.
    */
-  private static Card card(String id, Path source, boolean comicCover, List<Path> versioned) {
+  private static Card card(Path source, String page, List<Path> versioned) {
     try {
-      var stamp = new StringBuilder();
+      var stamp = new StringBuilder(page == null ? "" : page).append('\0');
       for (Path file : versioned) {
         Path absolute = file.toAbsolutePath().normalize();
         stamp.append(absolute).append('\0').append(Files.size(absolute)).append('\0');
@@ -120,7 +157,7 @@ public class CardArtService {
       byte[] digest =
           MessageDigest.getInstance("SHA-256")
               .digest(stamp.toString().getBytes(StandardCharsets.UTF_8));
-      return new Card(id, HexFormat.of().formatHex(digest).substring(0, 20), source, comicCover);
+      return new Card(HexFormat.of().formatHex(digest).substring(0, 20), source, page);
     } catch (IOException failure) {
       throw new UncheckedIOException(failure);
     } catch (NoSuchAlgorithmException impossible) {

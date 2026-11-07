@@ -12,8 +12,9 @@ import java.util.function.UnaryOperator;
 
 /**
  * One title's study document: metadata, languages and exactly one body, a video or a comic.
- * Optional metadata ({@code series}, {@code sourceUrl}, {@code edition}) is {@code null} when
- * absent.
+ * Optional metadata ({@code series}, {@code shelf}, {@code sourceUrl}) is {@code null} when absent.
+ * {@code shelf} names the library shelf the title is shown on (for example "Manga"); without it the
+ * library chooses Comics, Series or Films from the body.
  *
  * <p>The body is never {@code null}, so a document cannot have both kinds of body or neither. In
  * JSON the body sits under its kind, {@code "video"} or {@code "comic"}, after the metadata.
@@ -26,10 +27,11 @@ public record StudyDocument(
     String translationLanguage,
     String notesLanguage,
     String series,
+    String shelf,
     String sourceUrl,
-    String edition,
     @JsonIgnore StudyBody body) {
   public StudyDocument {
+    shelf = shelf == null || shelf.isBlank() ? null : shelf.strip();
     id = text(id);
     title = text(title);
     sourceLanguage = text(sourceLanguage);
@@ -37,6 +39,28 @@ public record StudyDocument(
     notesLanguage = text(notesLanguage);
     if (body == null)
       throw new IllegalArgumentException("Exactly one video or comic body is required");
+  }
+
+  /** Creates a document without a chosen shelf. */
+  public StudyDocument(
+      String id,
+      String title,
+      String sourceLanguage,
+      String translationLanguage,
+      String notesLanguage,
+      String series,
+      String sourceUrl,
+      StudyBody body) {
+    this(
+        id,
+        title,
+        sourceLanguage,
+        translationLanguage,
+        notesLanguage,
+        series,
+        null,
+        sourceUrl,
+        body);
   }
 
   /** Reads the JSON form, where the body is under {@code "video"} or {@code "comic"}. */
@@ -48,8 +72,8 @@ public record StudyDocument(
       @JsonProperty("translationLanguage") String translationLanguage,
       @JsonProperty("notesLanguage") String notesLanguage,
       @JsonProperty("series") String series,
+      @JsonProperty("shelf") String shelf,
       @JsonProperty("sourceUrl") String sourceUrl,
-      @JsonProperty("edition") String edition,
       @JsonProperty("video") VideoDocument video,
       @JsonProperty("comic") ComicDocument comic) {
     if (video != null && comic != null)
@@ -61,8 +85,8 @@ public record StudyDocument(
         translationLanguage,
         notesLanguage,
         series,
+        shelf,
         sourceUrl,
-        edition,
         video != null ? video : comic);
   }
 
@@ -102,8 +126,8 @@ public record StudyDocument(
         translationLanguage,
         notesLanguage,
         series,
+        shelf,
         sourceUrl,
-        edition,
         body);
   }
 
@@ -115,14 +139,13 @@ public record StudyDocument(
         translationLanguage,
         notesLanguage,
         series,
+        shelf,
         sourceUrl,
-        edition,
         body);
   }
 
   public StudyDocument withLanguages(String source, String translation, String notes) {
-    return new StudyDocument(
-        id, title, source, translation, notes, series, sourceUrl, edition, body);
+    return new StudyDocument(id, title, source, translation, notes, series, shelf, sourceUrl, body);
   }
 
   public StudyDocument withBody(StudyBody body) {
@@ -133,8 +156,8 @@ public record StudyDocument(
         translationLanguage,
         notesLanguage,
         series,
+        shelf,
         sourceUrl,
-        edition,
         body);
   }
 

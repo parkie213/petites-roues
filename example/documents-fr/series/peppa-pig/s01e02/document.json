@@ -1,0 +1,859 @@
+{
+  "id": "peppa-pig-example-s01e02",
+  "title": "À la recherche de Mr. Dinosaure - one-minute example",
+  "sourceLanguage": "fr",
+  "translationLanguage": "en",
+  "notesLanguage": "en",
+  "series": "Peppa Pig",
+  "sourceUrl": "https://www.youtube.com/watch?v=M9FrHb4npsc",
+  "video": {
+    "season": 1,
+    "episode": 2,
+    "reference": {
+      "fingerprint": "v1:85b6c41190770a5e25e59cdba91338c8cd184cc1b2442e7fbaa2d177cd7992a7",
+      "sizeBytes": 785974,
+      "durationSeconds": 59.0
+    },
+    "cues": [
+      {
+        "line": {
+          "id": "8afc64b2-ded0-48a3-8329-fa5029cfb274",
+          "source": "Qu'est-ce qu'il y a, Georges ?",
+          "translation": "What's the matter, George?",
+          "notes": [],
+          "alignment": {
+            "source": [
+              "Qu'est-ce qu'il y a,",
+              "Georges ?"
+            ],
+            "translation": [
+              "What's the matter,",
+              "George?"
+            ],
+            "links": [
+              {
+                "source": [
+                  0
+                ],
+                "translation": [
+                  0
+                ],
+                "note": "`Qu'est-ce qu'il y a` = what's wrong / what's the matter, literally “what is it that there is?”: `est → être`, third-person singular present indicative; `il y a` = there is, with `a → avoir`, third-person singular present indicative and the dummy subject `il`. With a person named after it, it asks what is wrong with them."
+              },
+              {
+                "source": [
+                  1
+                ],
+                "translation": [
+                  1
+                ],
+                "note": "`Georges` = George, the person asked."
+              }
+            ]
+          },
+          "continuesPrevious": false
+        },
+        "start": 0.573,
+        "end": 2.342
+      },
+      {
+        "line": {
+          "id": "aae78bd8-cd5c-449e-b1f9-e1c8c2fad0d3",
+          "source": "Eh bien, Georges, qu'est-ce qu'il t'arrive ?",
+          "translation": "Well, George, what's wrong with you?",
+          "notes": [
+            "This line and the previous `Qu'est-ce qu'il y a ?` both ask what is wrong. This version builds on `arriver à`: literally “what is it that is happening to you?”, with `t'` (to you) receiving the happening."
+          ],
+          "alignment": {
+            "source": [
+              "Eh bien,",
+              "Georges,",
+              "qu'est-ce qu'il t'arrive ?"
+            ],
+            "translation": [
+              "Well,",
+              "George,",
+              "what's wrong with you?"
+            ],
+            "links": [
+              {
+                "source": [
+                  0
+                ],
+                "translation": [
+                  0
+                ],
+                "note": "`Eh bien` = well, a discourse marker opening the reply."
+              },
+              {
+                "source": [
+                  1
+                ],
+                "translation": [
+                  1
+                ],
+                "note": "`Georges` = George, the person addressed."
+              },
+              {
+                "source": [
+                  2
+                ],
+                "translation": [
+                  2
+                ],
+                "note": "`qu'est-ce qu'il t'arrive` = what's happening to you / what's wrong with you, literally “what is it that arrives to you?”: `arrive → arriver`, third-person singular present indicative with the dummy subject `il`. `T'` = `te` (to you) elided before a vowel, the indirect object — the person the thing happens to. `Arriver à quelqu'un` = to happen to someone."
+              }
+            ]
+          },
+          "continuesPrevious": false
+        },
+        "start": 4.358,
+        "end": 6.114
+      },
+      {
+        "line": {
+          "id": "4390a26a-50ca-4e7f-9242-07b0fddb23d1",
+          "source": "Dinosaur !",
+          "translation": "Dinosaur!",
+          "notes": [],
+          "alignment": {
+            "source": [
+              "Dinosaur !"
+            ],
+            "translation": [
+              "Dinosaur!"
+            ],
+            "links": [
+              {
+                "source": [
+                  0
+                ],
+                "translation": [
+                  0
+                ],
+                "note": "`Dinosaur !` = “Dinosaur!” — George's tearful cry: the lost toy is all he can say."
+              }
+            ]
+          },
+          "continuesPrevious": false
+        },
+        "start": 7.28,
+        "end": 7.74
+      },
+      {
+        "line": {
+          "id": "67e7d47c-1b56-4f7b-b622-acca7c80b6d8",
+          "source": "Oh non, ne me dis pas que tu as perdu Monsieur Dinosaur.",
+          "translation": "Oh no, don't tell me you've lost Mister Dinosaur.",
+          "notes": [
+            "In the negative imperative the pronoun stays before the verb — `ne me dis pas` — while the affirmative form attaches it after with a hyphen: `dis-moi`, heard later in this episode."
+          ],
+          "alignment": {
+            "source": [
+              "Oh non,",
+              "ne me dis pas",
+              "que tu as perdu Monsieur Dinosaur."
+            ],
+            "translation": [
+              "Oh no,",
+              "don't tell me",
+              "you've lost Mister Dinosaur."
+            ],
+            "links": [
+              {
+                "source": [
+                  0
+                ],
+                "translation": [
+                  0
+                ],
+                "note": "`Oh non` = oh no; `non` = no."
+              },
+              {
+                "source": [
+                  1
+                ],
+                "translation": [
+                  1
+                ],
+                "note": "`ne me dis pas` = don't tell me. `Dis → dire`, second-person singular imperative used negatively: `ne ... pas` wraps the verb, and the indirect object `me` (to me) stays in front of it. `Ne me dis pas que...` is a set frame for dismay about the news in the `que`-clause."
+              },
+              {
+                "source": [
+                  2
+                ],
+                "translation": [
+                  2
+                ],
+                "note": "`que tu as perdu Monsieur Dinosaur` = (that) you've lost Mister Dinosaur. `Que` = that, introducing what must not be said; `as perdu → perdre`, passé composé with `as → avoir` (second-person singular present) + `perdu` (past participle) = have lost; `tu` = you, the subject."
+              }
+            ]
+          },
+          "continuesPrevious": false
+        },
+        "start": 8.07,
+        "end": 11.74
+      },
+      {
+        "line": {
+          "id": "37834b94-3cb6-4287-8837-68cfc14805f1",
+          "source": "Georges a perdu Monsieur Dinosaur.",
+          "translation": "George has lost Mister Dinosaur.",
+          "notes": [],
+          "alignment": {
+            "source": [
+              "Georges",
+              "a perdu",
+              "Monsieur Dinosaur."
+            ],
+            "translation": [
+              "George",
+              "has lost",
+              "Mister Dinosaur."
+            ],
+            "links": [
+              {
+                "source": [
+                  0
+                ],
+                "translation": [
+                  0
+                ],
+                "note": "`Georges` = George, the subject."
+              },
+              {
+                "source": [
+                  1
+                ],
+                "translation": [
+                  1
+                ],
+                "note": "`a perdu → perdre`, passé composé, third-person singular: `a` = the auxiliary `avoir` in the present + `perdu`, the past participle = has lost. The loss is complete and its result stands now: the toy is missing."
+              },
+              {
+                "source": [
+                  2
+                ],
+                "translation": [
+                  2
+                ],
+                "note": "`Monsieur Dinosaur` = Mister Dinosaur, the direct object — the thing lost."
+              }
+            ]
+          },
+          "continuesPrevious": false
+        },
+        "start": 13.29,
+        "end": 15.55
+      },
+      {
+        "line": {
+          "id": "68782be9-eadb-401b-8670-3eb5fdd37edb",
+          "source": "Ne t'inquiète pas, on va t'aider à le retrouver.",
+          "translation": "Don't worry, we'll help you find him.",
+          "notes": [
+            "`On` does the job of `nous` for “we” in everyday French and takes a singular verb: `on va` = we're going to.",
+            "Three verb levels stack: `va` (going to) + `t'aider` (help you) + `à le retrouver` (to find him). Each governing verb keeps the next one in the infinitive."
+          ],
+          "alignment": {
+            "source": [
+              "Ne t'inquiète pas,",
+              "on va t'aider",
+              "à le retrouver."
+            ],
+            "translation": [
+              "Don't worry,",
+              "we'll help you",
+              "find him."
+            ],
+            "links": [
+              {
+                "source": [
+                  0
+                ],
+                "translation": [
+                  0
+                ],
+                "note": "`Ne t'inquiète pas` = don't worry. `T'inquiète → s'inquiéter`, second-person singular imperative, negative: the verb is pronominal, so the reflexive `te` (yourself, elided to `t'`) stays before the verb, with `ne ... pas` around it — literally “don't worry yourself”."
+              },
+              {
+                "source": [
+                  1
+                ],
+                "translation": [
+                  1
+                ],
+                "note": "`on va t'aider` = we'll help you. `On` = we in everyday speech; `va → aller`, third-person singular present indicative agreeing with `on`; `aller + infinitive` = going to / will; `t'aider → aider` (to help) stays an infinitive, with `te` (you) as its object placed before it."
+              },
+              {
+                "source": [
+                  2
+                ],
+                "translation": [
+                  2
+                ],
+                "note": "`à le retrouver` = to find him. `Aider à + infinitive` = to help do something; `retrouver` = to find again, get back (`re-` = again + `trouver`, to find); `le` = him, standing for Monsieur Dinosaur, before the infinitive."
+              }
+            ]
+          },
+          "continuesPrevious": false
+        },
+        "start": 16.4,
+        "end": 18.76
+      },
+      {
+        "line": {
+          "id": "72895bdd-73e4-4676-b030-1895c3c816fe",
+          "source": "Ça, c'est le travail d'un bon détective.",
+          "translation": "That's the job of a good detective.",
+          "notes": [
+            "The fronted `ça` is picked up by `c'est`: literally “that, it is the job of a good detective”. Dropping the announcement gives the ordinary order `c'est le travail d'un bon détective`."
+          ],
+          "alignment": {
+            "source": [
+              "Ça, c'est",
+              "le travail",
+              "d'un bon détective."
+            ],
+            "translation": [
+              "That's",
+              "the job",
+              "of a good detective."
+            ],
+            "links": [
+              {
+                "source": [
+                  0
+                ],
+                "translation": [
+                  0
+                ],
+                "note": "`Ça, c'est` = that's / that is. `Ça` = that, an informal demonstrative, fronted and then picked up by `c'` in `c'est` — `est → être`, third-person singular present indicative with subject `ce`."
+              },
+              {
+                "source": [
+                  1
+                ],
+                "translation": [
+                  1
+                ],
+                "note": "`le travail` = the job / the work; `travail` = work."
+              },
+              {
+                "source": [
+                  2
+                ],
+                "translation": [
+                  2
+                ],
+                "note": "`d'un bon détective` = of a good detective: `d'un` = `de + un` (of a); `bon` = good; `détective` = detective."
+              }
+            ]
+          },
+          "continuesPrevious": false
+        },
+        "start": 19.06,
+        "end": 21.54
+      },
+      {
+        "line": {
+          "id": "07cbb311-159c-45f6-ac47-33da9fbe99ce",
+          "source": "Papa, c'est quoi un détective ?",
+          "translation": "Daddy, what's a detective?",
+          "notes": [
+            "`C'est quoi` puts the question word after the statement frame `c'est`: informal but the usual spoken pattern. A neutral written version is `Qu'est-ce qu'un détective ?`."
+          ],
+          "alignment": {
+            "source": [
+              "Papa,",
+              "c'est quoi",
+              "un détective ?"
+            ],
+            "translation": [
+              "Daddy,",
+              "what's",
+              "a detective?"
+            ],
+            "links": [
+              {
+                "source": [
+                  0
+                ],
+                "translation": [
+                  0
+                ],
+                "note": "`Papa` = Daddy, the person asked."
+              },
+              {
+                "source": [
+                  1
+                ],
+                "translation": [
+                  1
+                ],
+                "note": "`c'est quoi` = what is: an informal spoken question that keeps the statement frame `c'est` (`est → être`, third-person singular present indicative) and adds `quoi` (what) after it."
+              },
+              {
+                "source": [
+                  2
+                ],
+                "translation": [
+                  2
+                ],
+                "note": "`un détective` = a detective: `un` = a, the masculine article."
+              }
+            ]
+          },
+          "continuesPrevious": false
+        },
+        "start": 21.74,
+        "end": 25.34
+      },
+      {
+        "line": {
+          "id": "9bfe3015-46ee-4b0f-969e-d90408540b6b",
+          "source": "Un détective, c'est une personne très importante parce qu'il peut retrouver n'importe quoi.",
+          "translation": "A detective is a very important person because he can find anything.",
+          "notes": [
+            "The definition pattern `un détective, c'est...` announces the word first and then defines it with `c'est` plus a description — the everyday way to define something, instead of the flatter `un détective est une personne...`."
+          ],
+          "alignment": {
+            "source": [
+              "Un détective,",
+              "c'est",
+              "une personne très importante",
+              "parce qu'il peut retrouver",
+              "n'importe quoi."
+            ],
+            "translation": [
+              "A detective",
+              "is",
+              "a very important person",
+              "because he can find",
+              "anything."
+            ],
+            "links": [
+              {
+                "source": [
+                  0
+                ],
+                "translation": [
+                  0
+                ],
+                "note": "`Un détective` = a detective — the word being defined, announced first."
+              },
+              {
+                "source": [
+                  1
+                ],
+                "translation": [
+                  1
+                ],
+                "note": "`c'est` = is: `est → être`, third-person singular present indicative with subject `ce`; its real subject here is the fronted `un détective`."
+              },
+              {
+                "source": [
+                  2
+                ],
+                "translation": [
+                  2
+                ],
+                "note": "`une personne très importante` = a very important person. `Personne` = person, a feminine noun; `très` = very; `importante` = important, feminine singular agreeing with `personne`."
+              },
+              {
+                "source": [
+                  3
+                ],
+                "translation": [
+                  3
+                ],
+                "note": "`parce qu'il peut retrouver` = because he can find. `Parce que` = because (`parce qu'` before a vowel); `peut → pouvoir`, third-person singular present indicative = can, is able to; `retrouver` = to find, an infinitive after the modal `peut`; `il` = he, referring to the detective."
+              },
+              {
+                "source": [
+                  4
+                ],
+                "translation": [
+                  4
+                ],
+                "note": "`n'importe quoi` = anything, literally “no matter what”: a fixed expression from `n'importe` (no matter) + `quoi` (what)."
+              }
+            ]
+          },
+          "continuesPrevious": false
+        },
+        "start": 25.34,
+        "end": 31.02
+      },
+      {
+        "line": {
+          "id": "8b74292f-cc72-4735-aace-204a45289dc3",
+          "source": "Moi, moi, moi, moi aussi je peux trouver n'importe quoi.",
+          "translation": "Me, me, me! I can find anything too!",
+          "notes": [
+            "`Moi aussi` doubles the subject: the stressed `moi` emphasizes who is included, and `je` just after resumes that person as the grammatical subject. Ordinary order: `je peux aussi trouver...`."
+          ],
+          "alignment": {
+            "source": [
+              "Moi, moi, moi,",
+              "moi aussi",
+              "je peux trouver n'importe quoi."
+            ],
+            "translation": [
+              "Me, me, me!",
+              "I can find anything",
+              "too!"
+            ],
+            "links": [
+              {
+                "source": [
+                  0
+                ],
+                "translation": [
+                  0
+                ],
+                "note": "`Moi, moi, moi` = me, me, me: `moi` is the stressed pronoun for me, used on its own when shouting to be picked."
+              },
+              {
+                "source": [
+                  1
+                ],
+                "translation": [
+                  2
+                ],
+                "note": "`moi aussi` = me too: `aussi` = too, as well. The stressed `moi` emphasizes who is included, and the subject `je` just after resumes the same person."
+              },
+              {
+                "source": [
+                  2
+                ],
+                "translation": [
+                  1
+                ],
+                "note": "`je peux trouver n'importe quoi` = I can find anything. `Peux → pouvoir`, first-person singular present indicative = can; `trouver` = to find, an infinitive after the modal; `n'importe quoi` = anything, literally “no matter what”."
+              }
+            ]
+          },
+          "continuesPrevious": false
+        },
+        "start": 31.41,
+        "end": 34.59
+      },
+      {
+        "line": {
+          "id": "c39c2c54-c924-4529-acfc-a931b1af3dfc",
+          "source": "C'est entendu, ce sera Peppa notre détective.",
+          "translation": "All right then, Peppa will be our detective.",
+          "notes": [
+            "`Ce sera Peppa notre détective` states the choice and then appends her role with no connecting verb: literally “it will be Peppa, our detective”. English needs “Peppa will be our detective”."
+          ],
+          "alignment": {
+            "source": [
+              "C'est entendu,",
+              "ce sera Peppa",
+              "notre détective."
+            ],
+            "translation": [
+              "All right then,",
+              "Peppa will be",
+              "our detective."
+            ],
+            "links": [
+              {
+                "source": [
+                  0
+                ],
+                "translation": [
+                  0
+                ],
+                "note": "`C'est entendu` = agreed / all right then / it's settled. `Est → être`, third-person singular present indicative with subject `ce`; `entendu` = the past participle of `entendre` (to hear) inside this fixed phrase — “heard and accepted”."
+              },
+              {
+                "source": [
+                  1
+                ],
+                "translation": [
+                  1
+                ],
+                "note": "`ce sera Peppa` = Peppa will be, literally “it will be Peppa”. `Sera → être`, third-person singular future, with subject `ce`; the person chosen follows the verb."
+              },
+              {
+                "source": [
+                  2
+                ],
+                "translation": [
+                  2
+                ],
+                "note": "`notre détective` = our detective: `notre` = our; `détective` = detective."
+              }
+            ]
+          },
+          "continuesPrevious": false
+        },
+        "start": 34.67,
+        "end": 37.25
+      },
+      {
+        "line": {
+          "id": "2bc76709-8fff-4477-88bb-5042947b6d64",
+          "source": "Georges, c'est moi la détective. Je vais t'aider à retrouver Monsieur Dinosaur.",
+          "translation": "George, I'm the detective. I'll help you find Mister Dinosaur.",
+          "notes": [
+            "`C'est moi la détective` insists on who: the ordinary order is `je suis la détective`. The `c'est moi` pattern puts the stress on the person."
+          ],
+          "alignment": {
+            "source": [
+              "Georges,",
+              "c'est moi",
+              "la détective.",
+              "Je vais t'aider",
+              "à retrouver Monsieur Dinosaur."
+            ],
+            "translation": [
+              "George,",
+              "I'm",
+              "the detective.",
+              "I'll help you",
+              "find Mister Dinosaur."
+            ],
+            "links": [
+              {
+                "source": [
+                  0
+                ],
+                "translation": [
+                  0
+                ],
+                "note": "`Georges` = George, the person addressed."
+              },
+              {
+                "source": [
+                  1
+                ],
+                "translation": [
+                  1
+                ],
+                "note": "`c'est moi` = I'm / it's me: `est → être`, third-person singular present indicative with subject `ce`; `moi` = me, the stressed pronoun naming who is meant."
+              },
+              {
+                "source": [
+                  2
+                ],
+                "translation": [
+                  2
+                ],
+                "note": "`la détective` = the detective. The feminine article `la` marks that the detective is a girl (Peppa); both `le détective` and `la détective` occur for a woman, and the noun's spelling does not change."
+              },
+              {
+                "source": [
+                  3
+                ],
+                "translation": [
+                  3
+                ],
+                "note": "`Je vais t'aider` = I'll help you / I'm going to help you. `Vais → aller`, first-person singular present indicative; `aller + infinitive` expresses what is about to happen; `t'aider → aider` (to help) stays an infinitive, with `te` (you) placed before it."
+              },
+              {
+                "source": [
+                  4
+                ],
+                "translation": [
+                  4
+                ],
+                "note": "`à retrouver Monsieur Dinosaur` = to find Mister Dinosaur: `aider à + infinitive` again; `retrouver` = to find again, get back."
+              }
+            ]
+          },
+          "continuesPrevious": false
+        },
+        "start": 38.431,
+        "end": 44.36
+      },
+      {
+        "line": {
+          "id": "29809149-3b5e-4b8d-a74b-e190cea17921",
+          "source": "La détective devrait peut-être commencer par poser à Georges des questions simples.",
+          "translation": "The detective should perhaps start by asking George some simple questions.",
+          "notes": [
+            "Three verbs stack: `devrait` (should) is conjugated, `commencer` (to start) is its infinitive, and `poser` (to ask) is in turn governed by `commencer par` — start by asking."
+          ],
+          "alignment": {
+            "source": [
+              "La détective",
+              "devrait peut-être",
+              "commencer par",
+              "poser à Georges",
+              "des questions simples."
+            ],
+            "translation": [
+              "The detective",
+              "should perhaps",
+              "start by",
+              "asking George",
+              "some simple questions."
+            ],
+            "links": [
+              {
+                "source": [
+                  0
+                ],
+                "translation": [
+                  0
+                ],
+                "note": "`La détective` = the detective — Peppa, the subject."
+              },
+              {
+                "source": [
+                  1
+                ],
+                "translation": [
+                  1
+                ],
+                "note": "`devrait peut-être` = should perhaps. `Devrait → devoir`, third-person singular conditional = should, ought to; `peut-être` = maybe, a fixed adverb placed inside the verb group here."
+              },
+              {
+                "source": [
+                  2
+                ],
+                "translation": [
+                  2
+                ],
+                "note": "`commencer par` = start by: `commencer` = to start, an infinitive after `devrait`; `commencer par + infinitive` = to begin by doing something."
+              },
+              {
+                "source": [
+                  3
+                ],
+                "translation": [
+                  3
+                ],
+                "note": "`poser à Georges` = asking George: `poser` = to put, to pose, an infinitive after `par`; `poser une question à quelqu'un` = to ask someone a question, with the person marked by `à` — `à Georges` = to George."
+              },
+              {
+                "source": [
+                  4
+                ],
+                "translation": [
+                  4
+                ],
+                "note": "`des questions simples` = some simple questions: `des` = some; `questions` = questions; `simples` = simple, placed after the noun it describes."
+              }
+            ]
+          },
+          "continuesPrevious": false
+        },
+        "start": 45.79,
+        "end": 50.13
+      },
+      {
+        "line": {
+          "id": "37b99ac0-012f-40c9-83e3-dfd4b3724fb0",
+          "source": "Georges, il est où Monsieur Dinosaur ?",
+          "translation": "George, where is Mister Dinosaur?",
+          "notes": [
+            "The pronoun `il` comes before the name it stands for: literally “he is where, Mister Dinosaur?”. Spoken French often announces the pronoun first and names the person after; English must wait for the name.",
+            "`Il est où` keeps statement order, with `où` left after the verb — the informal spoken way to ask. Formal French fronts it: `où est Monsieur Dinosaur ?`."
+          ],
+          "alignment": {
+            "source": [
+              "Georges,",
+              "il est où",
+              "Monsieur Dinosaur ?"
+            ],
+            "translation": [
+              "George,",
+              "where is",
+              "Mister Dinosaur?"
+            ],
+            "links": [
+              {
+                "source": [
+                  0
+                ],
+                "translation": [
+                  0
+                ],
+                "note": "`Georges` = George, the person addressed."
+              },
+              {
+                "source": [
+                  1
+                ],
+                "translation": [
+                  1
+                ],
+                "note": "`il est où` = where is (he/it): `est → être`, third-person singular present indicative; `où` = where, left after the verb. `Il` = he/it, standing for the toy."
+              },
+              {
+                "source": [
+                  2
+                ],
+                "translation": [
+                  2
+                ],
+                "note": "`Monsieur Dinosaur ?` = Mister Dinosaur, named after the pronoun that stands for him."
+              }
+            ]
+          },
+          "continuesPrevious": false
+        },
+        "start": 50.582,
+        "end": 53.881
+      },
+      {
+        "line": {
+          "id": "2d62778f-eea7-4f7b-b840-1e4aac355fc8",
+          "source": "Georges ne sait pas où se trouve Monsieur Dinosaur.",
+          "translation": "George doesn't know where Mister Dinosaur is.",
+          "notes": [
+            "Inside the `où`-clause the subject follows the verb: `où se trouve Monsieur Dinosaur` = where Mister Dinosaur is located. That inversion is normal in indirect questions; English keeps the subject before “is”."
+          ],
+          "alignment": {
+            "source": [
+              "Georges",
+              "ne sait pas",
+              "où se trouve Monsieur Dinosaur."
+            ],
+            "translation": [
+              "George",
+              "doesn't know",
+              "where Mister Dinosaur is."
+            ],
+            "links": [
+              {
+                "source": [
+                  0
+                ],
+                "translation": [
+                  0
+                ],
+                "note": "`Georges` = George, the subject."
+              },
+              {
+                "source": [
+                  1
+                ],
+                "translation": [
+                  1
+                ],
+                "note": "`ne sait pas` = doesn't know. `Sait → savoir`, third-person singular present indicative, negated with `ne ... pas`; `savoir` = to know a fact."
+              },
+              {
+                "source": [
+                  2
+                ],
+                "translation": [
+                  2
+                ],
+                "note": "`où se trouve Monsieur Dinosaur` = where Mister Dinosaur is. `Où` = where, introducing the indirect question; `se trouve → se trouver`, third-person singular present indicative, literally “finds itself” = is located; its subject, `Monsieur Dinosaur`, comes after the verb."
+              }
+            ]
+          },
+          "continuesPrevious": false
+        },
+        "start": 55.24,
+        "end": 58.5
+      }
+    ]
+  }
+}

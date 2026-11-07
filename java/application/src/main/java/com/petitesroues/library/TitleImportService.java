@@ -6,11 +6,14 @@ import com.petitesroues.library.discovery.TitleMediaResolver;
 import com.petitesroues.library.persistence.CatalogueStore;
 import com.petitesroues.library.persistence.ContentRepositoryStore;
 import com.petitesroues.media.Ffmpeg;
+import com.petitesroues.media.MediaFingerprint;
 import com.petitesroues.model.document.ComicDocument;
 import com.petitesroues.model.document.ComicPage;
+import com.petitesroues.model.document.ComicReference;
 import com.petitesroues.model.document.ReadingDirection;
 import com.petitesroues.model.document.StudyDocument;
 import com.petitesroues.model.document.VideoDocument;
+import com.petitesroues.model.document.VideoReference;
 import com.petitesroues.study.DocumentStore;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -222,10 +225,7 @@ public class TitleImportService {
             language(request.notesLanguage(), "en"),
             null,
             null,
-            null,
-            comic
-                ? comicBody(file, request)
-                : new VideoDocument(null, null, null, null, List.of()));
+            comic ? comicBody(file, request) : new VideoDocument(null, null, null, List.of()));
     int audioTrack = 0;
     if (!comic) {
       var tracks = ffmpeg.audioTracks(file);
@@ -249,7 +249,7 @@ public class TitleImportService {
               ? Files.copy(plan.source(), plan.folder().resolve(plan.source().getFileName()))
               : ffmpeg.playableCopy(
                   plan.source(), plan.audioTrack(), plan.folder().resolve("video"));
-      documents.create(plan.document(), plan.created());
+      documents.create(plan.document(), withReference(plan.created(), media));
     } catch (IOException | RuntimeException failure) {
       if (media != null) Files.deleteIfExists(media);
       throw failure;
@@ -259,6 +259,19 @@ public class TitleImportService {
       var entry = catalogue.findDocument(plan.repositoryId(), plan.id()).orElseThrow();
       return new Created(entry.id(), plan.root().relativize(plan.document()).toString());
     }
+  }
+
+  /** Records the written media as the copy the document's material will be made against. */
+  private StudyDocument withReference(StudyDocument document, Path media) throws IOException {
+    String fingerprint = MediaFingerprint.of(media);
+    long size = Files.size(media);
+    return switch (document.body()) {
+      case ComicDocument comic ->
+          document.withBody(comic.withReference(new ComicReference(fingerprint, size)));
+      case VideoDocument video ->
+          document.withBody(
+              video.withReference(new VideoReference(fingerprint, size, ffmpeg.duration(media))));
+    };
   }
 
   private static Path source(String path) throws IOException {

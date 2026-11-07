@@ -7,8 +7,11 @@ import static org.junit.jupiter.api.Assertions.*;
 import com.petitesroues.model.document.ComicDocument;
 import com.petitesroues.model.document.StudyDocument;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.List;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 import tools.jackson.databind.json.JsonMapper;
 import tools.jackson.databind.node.ObjectNode;
 
@@ -41,6 +44,30 @@ class StudyDocumentReaderTest {
     assertTrue(json.endsWith("}\n"));
     assertFalse(json.contains("\"series\""), "absent optional fields are omitted");
     assertTrue(json.contains("\"continuesPrevious\": false"), "booleans are always written");
+  }
+
+  @Test
+  void anOptionalShelfIsTrimmedWrittenAfterTheSeriesAndBlankMeansNone() {
+    var base = document("example");
+    var shelved =
+        new StudyDocument(
+            base.id(),
+            base.title(),
+            base.sourceLanguage(),
+            base.translationLanguage(),
+            base.notesLanguage(),
+            "Demon Slayer",
+            " Manga ",
+            null,
+            base.body());
+    assertEquals("Manga", shelved.shelf());
+    assertEquals(shelved, roundTrip(shelved));
+    String json = codec.encode(shelved);
+    assertTrue(json.indexOf("\"series\"") < json.indexOf("\"shelf\""));
+    assertEquals("Manga", shelved.withTitle("Tome 1").shelf(), "edits keep the shelf");
+    assertNull(
+        new StudyDocument(base.id(), base.title(), "fr", "en", "en", null, "  ", null, base.body())
+            .shelf());
   }
 
   @Test
@@ -128,5 +155,31 @@ class StudyDocumentReaderTest {
     var loaded = roundTrip(doc);
     assertEquals("early", loaded.video().cues().getFirst().line().id());
     assertEquals(original.line().notes(), loaded.video().cues().getFirst().line().notes());
+  }
+
+  @Test
+  void anyJsonClaimingADocumentBodyIsAStudyDocumentWhateverItsName(@TempDir Path folder)
+      throws Exception {
+    var reader = new StudyDocumentReader();
+    Path lunch =
+        Files.writeString(
+            folder.resolve("lunch.json"), "{\"sourceLanguage\": \"zh\", \"video\": {}}");
+    Path comic =
+        Files.writeString(
+            folder.resolve("tome.json"), "{\"sourceLanguage\": \"fr\", \"comic\": 1}");
+    assertTrue(reader.isStudyDocument(lunch), "invalid documents still claim to be documents");
+    assertTrue(reader.isStudyDocument(comic));
+    Path broken =
+        Files.writeString(
+            folder.resolve("broken.json"), "{\"sourceLanguage\": \"fr\", \"video\": {,");
+    assertTrue(reader.isStudyDocument(broken), "a document broken mid-edit must still be read");
+    for (String other :
+        List.of(
+            "{\"name\": \"package\", \"version\": \"1.0.0\"}",
+            "{\"sourceLanguage\": \"fr\"}",
+            "[{\"video\": {}}]",
+            "not JSON at all",
+            ""))
+      assertFalse(reader.isStudyDocument(Files.writeString(folder.resolve("other.json"), other)));
   }
 }

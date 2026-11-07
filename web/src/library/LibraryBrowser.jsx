@@ -26,14 +26,12 @@ import {
   Pencil,
   RefreshCw,
   Trash2,
-  TriangleAlert,
 } from "lucide-react";
-import { repositoryColumns } from "./repository-tree.js";
+import { repositoryColumns, repositoryTree } from "./repository-tree.js";
 import { folderHref } from "./navigation.js";
 
 function StudyTitle({ entry }) {
   const comic = entry.type === "comic";
-  const available = comic ? entry.mediaAvailable : entry.videoAvailable;
   return (
     <Paper withBorder radius="md" p="md" my="xs">
       <Stack gap="sm">
@@ -45,21 +43,8 @@ function StudyTitle({ entry }) {
             <Text fw={600} size="sm" lh={1.4}>
               {entry.title}
             </Text>
-            {entry.edition && (
-              <Text size="xs" c="dimmed" mt={4}>
-                {entry.edition}
-              </Text>
-            )}
           </div>
         </Group>
-        {!available && (
-          <Group gap={5}>
-            <TriangleAlert size={13} color="var(--mantine-color-yellow-5)" />
-            <Text c="dimmed" size="xs">
-              {comic ? "CBZ is not present" : "Video is not present"}
-            </Text>
-          </Group>
-        )}
         {entry.documentAvailable ? (
           <Group gap={6} wrap="nowrap">
             <Button
@@ -100,9 +85,79 @@ function StudyTitle({ entry }) {
   );
 }
 
-const titleCount = (node) =>
-  node.titles.length +
-  node.folders.reduce((sum, child) => sum + titleCount(child), 0);
+/** Where a video or CBZ opens: its title, else a video plays on its own. */
+function mediaHref(item) {
+  const comic = item.mediaKind === "comic";
+  if (item.titleId)
+    return `/${comic ? "reader" : "watch"}/${encodeURIComponent(item.titleId)}/`;
+  return comic ? null : `/video/${encodeURIComponent(item.fingerprint)}/`;
+}
+
+/** A video or CBZ file in the folder, named by its file. */
+function MediaFile({ item }) {
+  const comic = item.mediaKind === "comic";
+  const href = mediaHref(item);
+  return (
+    <Paper withBorder radius="md" p="md" my="xs">
+      <Stack gap="sm">
+        <Group gap="sm" wrap="nowrap" align="flex-start">
+          <ThemeIcon variant="light" color="gray" size={34}>
+            {comic ? <BookOpen size={18} /> : <Film size={18} />}
+          </ThemeIcon>
+          <Text
+            fw={600}
+            size="sm"
+            lh={1.4}
+            style={{ overflowWrap: "anywhere" }}
+          >
+            {item.title}
+          </Text>
+        </Group>
+        {href && (
+          <Button
+            component="a"
+            variant="light"
+            size="xs"
+            fullWidth
+            rightSection={<ChevronRight size={14} />}
+            href={href}
+          >
+            {comic ? "Read" : "Play"}
+          </Button>
+        )}
+      </Stack>
+    </Paper>
+  );
+}
+
+const isMedia = (item) => item.kind === "media";
+
+/** Study documents, videos and comics below a folder, for its row description. */
+function counts(node) {
+  const total = { documents: 0, videos: 0, comics: 0 };
+  for (const item of node.titles) {
+    if (!isMedia(item)) total.documents++;
+    else if (item.mediaKind === "comic") total.comics++;
+    else total.videos++;
+  }
+  for (const child of node.folders.map(counts))
+    for (const key of Object.keys(total)) total[key] += child[key];
+  return total;
+}
+
+const plural = (n, word) => `${n} ${word}${n === 1 ? "" : "s"}`;
+
+function describe({ documents, videos, comics }) {
+  return (
+    [
+      videos > 0 && plural(videos, "video"),
+      comics > 0 && plural(comics, "comic"),
+      documents > 0 && plural(documents, "study document"),
+    ]
+      .filter(Boolean)
+      .join(" · ") || "Empty"
+  );
+}
 
 /** Renders indexed folders; Mantine owns navigation-row and menu interactions. */
 export function LibraryBrowser({
@@ -115,7 +170,9 @@ export function LibraryBrowser({
 }) {
   const strip = useRef(null);
   const repo = data.repos.find((item) => item.id === selection.repository);
-  const columns = repo ? repositoryColumns(repo.entries, selection.parts) : [];
+  const columns = repo
+    ? repositoryColumns(repo.entries, selection.parts, repo.media)
+    : [];
   useEffect(() => {
     const browser = strip.current;
     browser?.scrollTo({ left: browser.scrollWidth, behavior: "smooth" });
@@ -208,7 +265,9 @@ export function LibraryBrowser({
               key={item.id}
               href={folderHref(item.id)}
               label={item.name}
-              description={`${item.entries.length} ${item.entries.length === 1 ? "title" : "titles"}`}
+              description={describe(
+                counts(repositoryTree(item.entries, item.media)),
+              )}
               active={repo?.id === item.id}
               aria-current={repo?.id === item.id ? "location" : undefined}
               leftSection={<Library size={18} />}
@@ -227,7 +286,7 @@ export function LibraryBrowser({
           >
             <Group justify="space-between" px="sm" py="xs" mb="xs">
               <Text size="xs" fw={600} c="dimmed" tt="uppercase">
-                {parts.at(-1) || "Folders"}
+                {parts.at(-1) || repo.name}
               </Text>
               <Badge size="xs" color="gray" variant="light">
                 {node.folders.length + node.titles.length}
@@ -235,13 +294,13 @@ export function LibraryBrowser({
             </Group>
             {node.folders.map((folder) => {
               const selected = columns[index + 1]?.parts.at(-1) === folder.name;
-              const count = titleCount(folder);
+              const count = describe(counts(folder));
               return (
                 <NavLink
                   key={folder.name}
                   href={folderHref(repo.id, [...parts, folder.name])}
                   label={folder.name}
-                  description={`${count} ${count === 1 ? "title" : "titles"}`}
+                  description={count}
                   active={selected}
                   aria-current={selected ? "location" : undefined}
                   leftSection={
@@ -268,12 +327,17 @@ export function LibraryBrowser({
                 />
               );
             })}
-            {node.titles.map((entry) => (
-              <StudyTitle key={entry.id} entry={entry} />
-            ))}
+            {node.titles.map((entry) =>
+              isMedia(entry) ? (
+                <MediaFile key={entry.id} item={entry} />
+              ) : (
+                <StudyTitle key={entry.id} entry={entry} />
+              ),
+            )}
             {!node.folders.length && !node.titles.length && (
               <Text p="md" size="sm" c="dimmed">
-                No indexed titles. Add content, then refresh this repository.
+                Nothing found. Add videos, comics or study documents, then
+                Refresh library.
               </Text>
             )}
           </Box>
@@ -290,7 +354,7 @@ export function LibraryBrowser({
               <FolderOpen size={28} />
             </ThemeIcon>
             <Text c="dimmed" size="sm" ta="center" maw={260}>
-              Choose a repository to explore your titles.
+              Choose a folder to explore your titles.
             </Text>
           </Stack>
         )}
@@ -312,7 +376,7 @@ function RepositoryMenu({ repo, busy, act, onRemove }) {
         </ActionIcon>
       </Menu.Target>
       <Menu.Dropdown>
-        <Menu.Label>Repository</Menu.Label>
+        <Menu.Label>Folder</Menu.Label>
         <Text
           size="xs"
           c="dimmed"
@@ -330,11 +394,11 @@ function RepositoryMenu({ repo, busy, act, onRemove }) {
               "/api/repositories/" + repo.id + "/refresh",
               "POST",
               null,
-              "Repository refreshed.",
+              "Folder refreshed.",
             ).catch(() => {})
           }
         >
-          Refresh repository
+          Refresh folder
         </Menu.Item>
         <Menu.Divider />
         <Menu.Item

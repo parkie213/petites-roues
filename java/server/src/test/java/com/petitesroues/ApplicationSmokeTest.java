@@ -5,7 +5,9 @@ import static com.petitesroues.support.HttpClients.client;
 import static org.junit.jupiter.api.Assertions.*;
 
 import com.petitesroues.documents.StudyDocumentCodec;
+import com.petitesroues.media.MediaFingerprint;
 import com.petitesroues.model.document.StudyDocument;
+import com.petitesroues.model.document.VideoReference;
 import com.petitesroues.model.library.Library;
 import com.petitesroues.support.HttpIntegrationTest;
 import java.nio.charset.StandardCharsets;
@@ -18,18 +20,34 @@ import org.springframework.http.MediaType;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 
-/** One user journey through repository browsing, media selection and playback resume. */
+/**
+ * One user journey: register a media folder (its video warns that no study document matches), add a
+ * folder of study documents, see the video linked by fingerprint, play it and resume.
+ */
 class ApplicationSmokeTest extends HttpIntegrationTest {
   @Test
-  void registerBrowseSelectMediaAndResumePlayback() throws Exception {
+  void registerMediaThenDocumentsLinkByFingerprintAndResumePlayback() throws Exception {
+    Path media = Files.createDirectories(root.resolve("media/series"));
+    Path video = Files.copy(root.resolve("video.mp4"), media.resolve("Episode 1.mp4"));
+    http.post()
+        .uri("/api/repositories")
+        .body(Map.of("localPath", root.resolve("media").toString()))
+        .retrieve()
+        .toBodilessEntity();
+    var unmatched = http.get().uri("/api/library").retrieve().body(Library.class);
+    var mediaFolder = unmatched.repositories().getFirst();
+    assertTrue(mediaFolder.entries().isEmpty());
+    assertEquals("series/Episode 1.mp4", mediaFolder.media().getFirst().relativePath());
+    assertEquals(List.of("No study document"), mediaFolder.media().getFirst().warnings());
+
     Path repository = root.resolve("content");
-    Path titleFolder = repository.resolve("series/season-01/episode-01");
+    Path titleFolder = repository.resolve("series/season-01");
     Files.createDirectories(titleFolder);
-    var title = document("episode-01");
+    var reference = new VideoReference(MediaFingerprint.of(video), null, null);
+    var title = document("episode-01").withVideo(body -> body.withReference(reference));
     Files.write(
-        titleFolder.resolve("document.json"),
+        titleFolder.resolve("episode-01.json"),
         new StudyDocumentCodec().encode(title).getBytes(StandardCharsets.UTF_8));
-    Files.copy(root.resolve("video.mp4"), titleFolder.resolve("video.mp4"));
 
     var registered =
         http.post()
@@ -38,12 +56,28 @@ class ApplicationSmokeTest extends HttpIntegrationTest {
             .retrieve()
             .body(JsonNode.class);
 
-    // The folder browser uses these indexed paths to construct its hierarchy.
+    // Each folder lists what it holds: the documents folder its title, the media folder its video,
+    // which now names that title and no longer warns.
     var library = http.get().uri("/api/library").retrieve().body(Library.class);
-    var content = library.repositories().getFirst();
-    assertEquals(registered.get("id").asText(), content.repository().id());
-    var selected = content.entries().getFirst();
-    assertEquals("series/season-01/episode-01/document.json", selected.relativePath());
+    var selected =
+        library.repositories().stream()
+            .filter(folder -> folder.repository().id().equals(registered.get("id").asText()))
+            .findFirst()
+            .orElseThrow()
+            .entries()
+            .getFirst();
+    assertEquals("series/Episode 1.mp4", selected.mediaPath());
+    assertEquals("series/season-01/episode-01.json", selected.relativePath());
+    assertTrue(selected.videoAvailable());
+    var indexed =
+        library.repositories().stream()
+            .filter(folder -> folder.repository().name().equals("media"))
+            .findFirst()
+            .orElseThrow()
+            .media()
+            .getFirst();
+    assertEquals(selected.id(), indexed.titleId());
+    assertTrue(indexed.warnings().isEmpty(), "the linked video no longer warns");
     String titleApi = "/api/titles/" + selected.id();
 
     var wire = http.get().uri(titleApi).accept(MediaType.ALL).retrieve().toEntity(String.class);
@@ -57,12 +91,24 @@ class ApplicationSmokeTest extends HttpIntegrationTest {
     assertEquals(302, redirect.getStatusCode().value());
     String versioned = titleApi + "/" + redirect.getHeaders().getLocation();
     assertArrayEquals(
-        Files.readAllBytes(titleFolder.resolve("video.mp4")),
-        http.get().uri(versioned).retrieve().body(byte[].class));
+        Files.readAllBytes(video), http.get().uri(versioned).retrieve().body(byte[].class));
     var stale = http.get().uri(titleApi + "/media/1-1").retrieve().toBodilessEntity();
     assertEquals(
         versioned.substring(versioned.lastIndexOf('/') + 1),
         stale.getHeaders().getLocation().toString());
+    // Any indexed video plays by fingerprint, before or without a study document.
+    String byFingerprint = "/api/media/" + MediaFingerprint.of(video) + "/video";
+    var fingerprinted = http.get().uri(byFingerprint).retrieve().toBodilessEntity();
+    assertArrayEquals(
+        Files.readAllBytes(video),
+        http.get()
+            .uri(
+                "/api/media/"
+                    + MediaFingerprint.of(video)
+                    + "/"
+                    + fingerprinted.getHeaders().getLocation())
+            .retrieve()
+            .body(byte[].class));
 
     // Pausing saves the position; reopening the title reads it through a fresh client.
     http.put()

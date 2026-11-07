@@ -1,7 +1,6 @@
 package com.petitesroues.comic;
 
 import com.petitesroues.library.LibraryService;
-import com.petitesroues.library.discovery.TitleMediaResolver;
 import com.petitesroues.library.persistence.CatalogueStore;
 import com.petitesroues.model.document.ComicPage;
 import com.petitesroues.model.document.StudyDocument;
@@ -57,12 +56,13 @@ public class ComicService {
   }
 
   private Path archive(String id) throws IOException {
-    var title =
-        titles.find(id).orElseThrow(() -> new NoSuchElementException("Unknown title: " + id));
-    var archive = TitleMediaResolver.comic(title.documentFile());
-    if (archive == null)
-      throw new NoSuchElementException("CBZ not downloaded — place one CBZ in the title folder");
-    return archive;
+    titles.find(id).orElseThrow(() -> new NoSuchElementException("Unknown title: " + id));
+    return library
+        .media(id)
+        .orElseThrow(
+            () ->
+                new NoSuchElementException(
+                    "CBZ not found — add the folder that holds it, then Refresh"));
   }
 
   /** The validated entry name identifies its MIME type; bytes never contain an extracted path. */

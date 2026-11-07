@@ -54,3 +54,31 @@ test("column navigation keeps ancestors and stops at an invalid folder", () => {
   assert.equal(branch.length, 2);
   assert.equal(branch.at(-1).node.titles[0].id, "b");
 });
+test("documents and media sit at their own paths, linked or not", () => {
+  const tree = repositoryTree(
+    [
+      {
+        id: "film",
+        title: "Film",
+        relativePath: "docs/film/document.json",
+        mediaPath: "films/Film.mkv",
+      },
+    ],
+    [
+      { relativePath: "films/Film.mkv", kind: "video", titleId: "film" },
+      { relativePath: "films/Other.mkv", kind: "video" },
+    ],
+  );
+  assert.deepEqual(
+    tree.folders.map((f) => f.name),
+    ["docs", "films"],
+  );
+  assert.equal(tree.folders[0].folders[0].titles[0].id, "film");
+  assert.deepEqual(
+    tree.folders[1].titles.map((item) => [item.title, item.titleId ?? null]),
+    [
+      ["Film.mkv", "film"],
+      ["Other.mkv", null],
+    ],
+  );
+});

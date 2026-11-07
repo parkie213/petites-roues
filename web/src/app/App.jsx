@@ -1,6 +1,7 @@
 import { ComicReader } from "../comic/ComicReader.jsx";
 import { Library } from "../library/Library.jsx";
 import { Notes } from "../library/Notes.jsx";
+import { BareVideo } from "../player/BareVideo.jsx";
 import { Player } from "../player/Player.jsx";
 import { Watch } from "../player/Watch.jsx";
 
@@ -20,6 +21,11 @@ export function App() {
   if (reader) return <ComicReader key={reader[1]} id={reader[1]} />;
   const watch = url.pathname.match(/^\/watch\/([A-Za-z0-9_-]+)\/?$/);
   if (watch) return <Watch key={watch[1]} id={watch[1]} />;
+  const bare = url.pathname.match(/^\/video\/([^/]+)\/?$/);
+  if (bare) {
+    const fingerprint = decodeURIComponent(bare[1]);
+    return <BareVideo key={fingerprint} fingerprint={fingerprint} />;
+  }
   const match = url.pathname.match(/^\/player\/([A-Za-z0-9_-]+)\/?$/);
   if (match) return <Player key={match[1]} id={match[1]} />;
   const oldId = url.searchParams.get("title");

@@ -4,8 +4,11 @@ import com.petitesroues.documents.StudyDocumentReader;
 import com.petitesroues.library.discovery.ContentRepositoryScanner;
 import com.petitesroues.library.persistence.CatalogueStore;
 import com.petitesroues.library.persistence.ContentRepositoryStore;
+import com.petitesroues.library.persistence.MediaStore;
+import com.petitesroues.media.MediaProbe;
 import com.petitesroues.model.document.StudyDocument;
 import com.petitesroues.model.library.ContentRepository;
+import com.petitesroues.model.library.IndexedMedia;
 import com.petitesroues.study.ReviewQueue;
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -15,30 +18,35 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Set;
 import java.util.UUID;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.support.TransactionTemplate;
 
 /**
- * Coordinates registration, refresh and removal of local content repositories.
+ * Coordinates registration, refresh and removal of registered folders (repositories).
  *
- * <p>Add and Refresh delegate discovery to {@link ContentRepositoryScanner}, which finds files
- * named {@code document.json}, skipping {@code .git} directories and symbolic links. Each document
- * supplies its portable document ID and metadata; its directory determines where the title appears
- * in the library. A content folder need not be a Git checkout. This service does not run Git
- * commands or copy content files.
+ * <p>Add and Refresh delegate discovery to {@link ContentRepositoryScanner}. A folder may hold
+ * study documents, media, or both. A {@code .json} file is a study document when {@link
+ * StudyDocumentReader#isStudyDocument} says it claims to be one, whatever its name; each supplies
+ * its portable document ID and metadata, and its path determines where the title appears in the
+ * library. Every video and CBZ is indexed with its fingerprint, which links it to a document whose
+ * reference fingerprint matches, in any folder (see {@link TitleMediaService}). A folder need not
+ * be a Git checkout. This service does not run Git commands or copy content files.
  *
- * <p>This service reads and validates discovered documents before starting a database transaction.
- * SQL and database mapping belong to {@link ContentRepositoryStore} and {@link CatalogueStore}.
- * This service owns workflow rules and transaction boundaries. Index updates then register the
- * titles, record repository membership and reference-edition metadata, mark absent titles as
- * missing, and update the refresh timestamp together. Missing titles retain their catalogue entries
- * and pending reviews until the repository is removed.
+ * <p>This service reads and validates discovered documents, and probes new or changed media, before
+ * starting a database transaction. SQL and database mapping belong to {@link
+ * ContentRepositoryStore} and {@link CatalogueStore}. This service owns workflow rules and
+ * transaction boundaries. Index updates then register the titles, record repository membership and
+ * reference metadata, mark absent titles as missing, and update the refresh timestamp together.
+ * Missing titles retain their catalogue entries and pending reviews until the repository is
+ * removed.
  *
- * <p>Ordinary browsing reads the SQLite index. Video availability is checked separately in indexed
- * title folders by {@link LibraryService}; media does not participate in discovery. Application
+ * <p>Ordinary browsing reads the SQLite index; media is probed only by Add and Refresh. Application
  * callers hold {@link LibraryUpdateService}'s monitor while adding, refreshing or removing a
  * repository to coordinate these operations with document edits.
  */
@@ -55,11 +63,16 @@ public class ContentRepositoryService {
   /** A discovered document path whose contents passed preflight validation. */
   private record DiscoveredDocument(Path documentPath) {}
 
+  /** A folder's validated documents and probed media, ready to index in one transaction. */
+  private record Discovered(List<DiscoveredDocument> documents, List<IndexedMedia> media) {}
+
   private final ContentRepositoryScanner scanner;
   private final StudyDocumentReader reader;
   private final TransactionTemplate transactions;
   private final RepositoryContentService registration;
   private final ReviewQueue queue;
+  private final MediaStore media;
+  private final MediaProbe probe;
 
   public ContentRepositoryService(
       ContentRepositoryStore repositories,
@@ -67,13 +80,17 @@ public class ContentRepositoryService {
       StudyDocumentReader reader,
       TransactionTemplate transactions,
       RepositoryContentService registration,
-      ReviewQueue queue) {
+      ReviewQueue queue,
+      MediaStore media,
+      MediaProbe probe) {
     this.repositories = repositories;
     this.scanner = scanner;
     this.reader = reader;
     this.transactions = transactions;
     this.registration = registration;
     this.queue = queue;
+    this.media = media;
+    this.probe = probe;
   }
 
   /**
@@ -105,11 +122,11 @@ public class ContentRepositoryService {
         request.name() == null || request.name().isBlank()
             ? root.getFileName().toString()
             : request.name().strip();
-    var discoveredDocuments = readDocuments(root);
+    var discovered = discover(root, List.of());
     transactions.executeWithoutResult(
         status -> {
           repositories.insert(id, name, root.toString());
-          updateIndex(id, discoveredDocuments);
+          updateIndex(id, discovered);
         });
     return repositories.find(id);
   }
@@ -126,16 +143,77 @@ public class ContentRepositoryService {
    */
   public ContentRepository refresh(String id) throws IOException {
     var repository = repositories.find(id);
-    var discoveredDocuments = readDocuments(Path.of(repository.localPath()));
-    transactions.executeWithoutResult(status -> updateIndex(id, discoveredDocuments));
+    var discovered = discover(Path.of(repository.localPath()), media.inRepository(id));
+    transactions.executeWithoutResult(status -> updateIndex(id, discovered));
     return repositories.find(id);
   }
 
-  /** Reads discovered paths and rejects duplicate IDs before any index transaction starts. */
-  private List<DiscoveredDocument> readDocuments(Path root) throws IOException {
+  /**
+   * Refreshes every registered folder, each in its own transaction, in name order.
+   *
+   * @throws IllegalArgumentException naming the folder whose refresh failed; folders refreshed
+   *     before it keep their new index
+   */
+  public List<ContentRepository> refreshAll() throws IOException {
+    for (var repository : list()) {
+      try {
+        refresh(repository.id());
+      } catch (IllegalArgumentException failure) {
+        throw new IllegalArgumentException(
+            repository.name() + ": " + failure.getMessage(), failure);
+      }
+    }
+    return list();
+  }
+
+  /**
+   * Walks the folder, reads its study documents and probes its media before any index transaction
+   * starts. Media whose size and modification time match its previous index row keeps that row's
+   * probe; anything else is probed now.
+   */
+  private Discovered discover(Path root, List<IndexedMedia> previous) throws IOException {
+    var found = scanner.scan(root);
+    Map<String, IndexedMedia> known =
+        previous.stream()
+            .collect(Collectors.toMap(IndexedMedia::relativePath, Function.identity()));
+    List<IndexedMedia> probed = new ArrayList<>();
+    for (var kind : List.of("video", "comic"))
+      for (Path file : kind.equals("video") ? found.videos() : found.comics()) {
+        String relative = root.relativize(file).toString().replace('\\', '/');
+        long size = Files.size(file);
+        long modified = Files.getLastModifiedTime(file).toMillis();
+        var old = known.get(relative);
+        if (old != null
+            && old.kind().equals(kind)
+            && old.sizeBytes() == size
+            && old.modifiedMillis() == modified) {
+          probed.add(old);
+          continue;
+        }
+        var result = kind.equals("video") ? probe.video(file) : probe.comic(file);
+        probed.add(
+            new IndexedMedia(
+                null,
+                root.toString(),
+                relative,
+                kind,
+                size,
+                modified,
+                result.fingerprint(),
+                result.durationSeconds(),
+                result.audioCodecs(),
+                result.audioPlayable()));
+      }
+    return new Discovered(readDocuments(root, found.documents()), probed);
+  }
+
+  /** Reads the files that claim to be study documents and rejects duplicate IDs. */
+  private List<DiscoveredDocument> readDocuments(Path root, List<Path> candidates)
+      throws IOException {
     List<DiscoveredDocument> documents = new ArrayList<>();
     Set<String> ids = new HashSet<>();
-    for (Path file : scanner.scan(root)) {
+    for (Path file : candidates) {
+      if (!reader.isStudyDocument(file)) continue;
       StudyDocument document;
       try {
         document = reader.read(file);
@@ -152,13 +230,14 @@ public class ContentRepositoryService {
 
   /**
    * Reconciles a complete discovery result inside the caller's transaction. Existing titles start
-   * as missing; each discovered title is registered and marked present. Registration assigns or
-   * retains each local entry ID and rereads the document through {@link RepositoryContentService}.
-   * Checked read failures are wrapped so the enclosing transaction rolls back.
+   * as missing; each discovered title is registered and marked present, and the folder's media
+   * index is replaced. Registration assigns or retains each local entry ID and rereads the document
+   * through {@link RepositoryContentService}. Checked read failures are wrapped so the enclosing
+   * transaction rolls back.
    */
-  private void updateIndex(String repositoryId, List<DiscoveredDocument> documents) {
+  private void updateIndex(String repositoryId, Discovered discovered) {
     repositories.markTitlesMissing(repositoryId);
-    for (var item : documents) {
+    for (var item : discovered.documents()) {
       try {
         registration.register(
             new RepositoryContentService.Registration(item.documentPath().toString(), true),
@@ -167,6 +246,7 @@ public class ContentRepositoryService {
         throw new UncheckedIOException(failure);
       }
     }
+    media.replace(repositoryId, discovered.media());
     repositories.recordRefresh(repositoryId, Instant.now().toString());
   }
 

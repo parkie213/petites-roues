@@ -16,12 +16,15 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+import java.util.regex.Pattern;
 
 /**
  * Checks imported or loaded documents for the assumptions required by the player and editor.
  * Structural validity says nothing about the quality of translations or notes.
  */
 public final class StudyDocumentValidator {
+  private static final Pattern FINGERPRINT = Pattern.compile("v1:[0-9a-f]{64}");
+
   private StudyDocumentValidator() {}
 
   /**
@@ -64,8 +67,8 @@ public final class StudyDocumentValidator {
     validateLanguage(document.sourceLanguage(), "Source");
     validateLanguage(document.translationLanguage(), "Translation");
     validateLanguage(document.notesLanguage(), "Notes");
-    if (document.body() instanceof ComicDocument comic) validateComic(comic, problems);
-    else validateVideo(document.video(), problems);
+    if (document.body() instanceof ComicDocument comic) validateComic(comic, document, problems);
+    else validateVideo(document.video(), document, problems);
   }
 
   private static String lineId(Line line) {
@@ -81,9 +84,12 @@ public final class StudyDocumentValidator {
     }
   }
 
-  private static void validateComic(ComicDocument document, List<String> problems) {
+  private static void validateComic(
+      ComicDocument document, StudyDocument languages, List<String> problems) {
     if (document.volume() != null && document.volume() < 1)
       throw new IllegalArgumentException("A comic volume must be a positive number");
+    if (document.reference() != null)
+      validateReference(document.reference().fingerprint(), document.reference().sizeBytes());
     if (document.pages().isEmpty() || document.pages().size() > 10000)
       throw new IllegalArgumentException("A comic requires 1–10000 pages");
     Set<String> ids = new HashSet<>();
@@ -113,7 +119,7 @@ public final class StudyDocumentValidator {
             () -> {
               if (line.id().isBlank() || !lineIds.add(line.id()))
                 throw new IllegalArgumentException("Line IDs must be unique and nonempty");
-              validateLine(line);
+              validateLine(line, languages);
             });
     }
   }
@@ -160,10 +166,15 @@ public final class StudyDocumentValidator {
     }
   }
 
-  private static void validateVideo(VideoDocument document, List<String> problems) {
-    if (document.durationSeconds() != null
-        && (!Double.isFinite(document.durationSeconds()) || document.durationSeconds() <= 0))
-      throw new IllegalArgumentException("Reference duration must be positive and finite");
+  private static void validateVideo(
+      VideoDocument document, StudyDocument languages, List<String> problems) {
+    var reference = document.reference();
+    if (reference != null) {
+      validateReference(reference.fingerprint(), reference.sizeBytes());
+      if (reference.durationSeconds() != null
+          && (!Double.isFinite(reference.durationSeconds()) || reference.durationSeconds() <= 0))
+        throw new IllegalArgumentException("Reference duration must be positive and finite");
+    }
     Set<String> cueIds = new HashSet<>();
     for (VideoCue cue : document.cues()) {
       check(
@@ -172,9 +183,18 @@ public final class StudyDocumentValidator {
           () -> {
             if (!cue.hasLine() || cue.line().id().isBlank() || !cueIds.add(cue.line().id()))
               throw new IllegalArgumentException("Cue IDs must be unique and nonempty");
-            validateCue(cue);
+            validateCue(cue, languages);
           });
     }
+  }
+
+  /** A reference's optional fingerprint is a v1 hash and its optional size is positive. */
+  private static void validateReference(String fingerprint, Long sizeBytes) {
+    if (fingerprint != null && !FINGERPRINT.matcher(fingerprint).matches())
+      throw new IllegalArgumentException(
+          "Reference fingerprint must be v1: and 64 lowercase hex digits");
+    if (sizeBytes != null && sizeBytes <= 0)
+      throw new IllegalArgumentException("Reference size must be positive");
   }
 
   /** Requires an explicit, well-formed BCP 47 tag with a language subtag. */
@@ -190,8 +210,8 @@ public final class StudyDocumentValidator {
     }
   }
 
-  private static void validateCue(VideoCue cue) {
-    validateLine(cue.line());
+  private static void validateCue(VideoCue cue, StudyDocument languages) {
+    validateLine(cue.line(), languages);
     if (cue.start() == null
         || cue.end() == null
         || !Double.isFinite(cue.start())
@@ -202,8 +222,14 @@ public final class StudyDocumentValidator {
     }
   }
 
-  private static void validateLine(Line line) {
+  /** A line's alignment binds to its text by the document's languages' chunk separators. */
+  private static void validateLine(Line line, StudyDocument languages) {
     if (line.alignment() != null)
-      PhraseAlignmentValidator.validateFor(line.alignment(), line.source(), line.translation());
+      PhraseAlignmentValidator.validateFor(
+          line.alignment(),
+          line.source(),
+          line.translation(),
+          languages.sourceLanguage(),
+          languages.translationLanguage());
   }
 }

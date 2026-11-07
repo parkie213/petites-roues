@@ -33,13 +33,15 @@
   box-shadow:
     0 1px 0 var(--mantine-color-dark-4) inset,
     0 6px 18px rgb(0 0 0 / 0.35);
-  transition:
-    transform 140ms ease,
-    box-shadow 140ms ease;
+  transition: box-shadow 140ms ease;
+}
+/* The whole frame lifts, so the language pill and progress bar move with the art. */
+a.poster-link:hover .poster-frame,
+a.poster-link:focus-visible .poster-frame {
+  transform: translateY(-3px);
 }
 a.poster-link:hover .poster-art,
 a.poster-link:focus-visible .poster-art {
-  transform: translateY(-3px);
   box-shadow:
     0 0 0 2px var(--mantine-color-sage-4),
     0 10px 24px rgb(0 0 0 / 0.45);
@@ -56,29 +58,52 @@ a.poster-link:focus-visible .poster-art {
 }
 .poster-frame {
   position: relative;
+  transition: transform 140ms ease;
 }
-.poster-problem {
+/* The (!) on a card's corner; its tooltip says what needs attention. */
+.poster-card {
+  position: relative;
+}
+.poster-attention {
   position: absolute;
-  left: 8px;
-  right: 8px;
-  bottom: 8px;
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  padding: 3px 7px;
-  border-radius: var(--mantine-radius-sm);
-  background: rgb(10 11 14 / 0.82);
-  color: var(--mantine-color-yellow-4);
-  font-size: 11px;
-  line-height: 1.4;
-  white-space: nowrap;
+  top: 6px;
+  right: 6px;
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--mantine-color-yellow-5);
+  color: var(--mantine-color-dark-9);
+  font-size: 13px;
+  font-weight: 800;
+  line-height: 1;
+  box-shadow: 0 1px 4px rgb(0 0 0 / 0.5);
+  cursor: help;
 }
-.poster-problem span {
+.poster-attention:focus-visible {
+  outline: 2px solid var(--mantine-color-yellow-3);
+  outline-offset: 2px;
+}
+/* The source language, on the art's top-left corner when the posters span several languages. */
+.poster-language {
+  position: absolute;
+  top: 6px;
+  left: 6px;
+  max-width: calc(100% - 40px);
+  padding: 2px 8px;
   overflow: hidden;
+  border-radius: 999px;
+  background: rgb(20 22 26 / 0.82);
+  color: var(--mantine-color-gray-0);
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 16px;
+  white-space: nowrap;
   text-overflow: ellipsis;
-}
-.poster-problem svg {
-  flex: none;
+  box-shadow: 0 1px 4px rgb(0 0 0 / 0.5);
+  backdrop-filter: blur(4px);
+  pointer-events: none;
 }
 .poster-progress {
   position: absolute;
@@ -95,10 +120,6 @@ a.poster-link:focus-visible .poster-art {
   display: block;
   height: 100%;
   background: var(--mantine-color-sage-4);
-}
-/* The problem banner sits above the progress bar when a title has both. */
-.poster-frame:has(.poster-progress) .poster-problem {
-  bottom: 12px;
 }
 .poster-caption {
   min-width: 0;

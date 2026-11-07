@@ -1,6 +1,7 @@
 package com.petitesroues.study;
 
 import com.petitesroues.documents.StudyDocumentValidator;
+import com.petitesroues.model.ChunkSeparator;
 import com.petitesroues.model.document.ComicBox;
 import com.petitesroues.model.document.ComicDocument;
 import com.petitesroues.model.document.ComicRegion;
@@ -225,7 +226,8 @@ public final class DocumentEdits {
                     .withSource(
                         selected.stream()
                             .map(c -> c.line().source().strip())
-                            .collect(Collectors.joining(" ")))
+                            .collect(
+                                Collectors.joining(ChunkSeparator.of(document.sourceLanguage()))))
                     .withTextCheck(text.isBlank() ? null : text)
                     .withAlignment(null));
     var result = new ArrayList<>(cues);

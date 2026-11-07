@@ -19,20 +19,23 @@ import java.util.Map;
  * @param season optional season number
  * @param episode optional episode number
  * @param volume optional comic volume (tome) number
+ * @param shelf the library shelf the document names, or null for the default for its type
+ * @param sourceLanguage the document's source language (BCP 47), or null
  * @param sourceUrl optional reference to the source material
  * @param repositoryId owning repository identity, or {@code null} for a standalone registration
  * @param repositoryName owning repository display name, or {@code null} for a standalone entry
  * @param relativePath repository-relative document path, or {@code null} for a standalone entry
- * @param edition optional reference-edition description
  * @param durationSeconds optional reference-video duration in seconds
  * @param documentAvailable whether the document is marked present and currently exists as a file
- * @param videoAvailable whether the title folder currently has one supported video; this does not
- *     imply that the document is available
+ * @param videoAvailable whether a video matching the document's reference fingerprint was indexed
+ *     and still exists; this does not imply that the document is available
  * @param type indexed document discriminator: video or comic
- * @param mediaAvailable whether the matching video or CBZ currently exists unambiguously
- * @param unavailable availability diagnostics; currently {@code title} describes a missing document
- *     or, when the document is present, a missing or invalid media; empty when both are available.
- *     A missing video does not prevent opening the document and its notes
+ * @param mediaAvailable whether a video or CBZ matching the document's reference fingerprint was
+ *     indexed and still exists
+ * @param unavailable diagnostics in display order: {@code title} describes a missing document or,
+ *     when the document is present, unmatched media; {@code audio} says a matched video has no
+ *     browser-playable audio track. Empty when all is well. A missing video does not prevent
+ *     opening the document and its notes
  * @param posterAvailable whether the title folder has a {@code poster.*} card image
  * @param seriesPosterAvailable whether a folder above the title, below its repository root, has a
  *     {@code poster.*} image for the series card
@@ -40,6 +43,9 @@ import java.util.Map;
  *     position over its reference duration, or a comic's (page index + 1) over its page count;
  *     {@code null} when there is no saved position, the video has no known duration, or a comic
  *     position predates stored fractions
+ * @param mediaRepositoryId the folder holding the linked video or CBZ, or {@code null} when none is
+ *     linked
+ * @param mediaPath the linked media's path within that folder, or {@code null}
  */
 public record CatalogueItem(
     String id,
@@ -49,11 +55,12 @@ public record CatalogueItem(
     Integer season,
     Integer episode,
     Integer volume,
+    String shelf,
+    String sourceLanguage,
     String sourceUrl,
     String repositoryId,
     String repositoryName,
     String relativePath,
-    String edition,
     Double durationSeconds,
     boolean documentAvailable,
     boolean videoAvailable,
@@ -62,4 +69,6 @@ public record CatalogueItem(
     boolean mediaAvailable,
     boolean posterAvailable,
     boolean seriesPosterAvailable,
-    Double progress) {}
+    Double progress,
+    String mediaRepositoryId,
+    String mediaPath) {}

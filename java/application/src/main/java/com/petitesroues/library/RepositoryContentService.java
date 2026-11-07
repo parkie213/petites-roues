@@ -16,18 +16,18 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 /**
- * Indexes one existing {@code document.json} in this computer's SQLite catalogue so the application
- * can load and edit it by its stable title ID.
+ * Indexes one existing study document (a JSON file of any name) in this computer's SQLite catalogue
+ * so the application can load and edit it by its stable title ID.
  *
  * <p>Registration reads and validates the study document, then inserts or updates its display
  * metadata and document location. The document remains the source of truth for subtitles and
- * learner notes; registration does not rewrite or copy it. Media locations follow the title-folder
- * contract and are not stored here.
+ * learner notes; registration does not rewrite or copy it. Its reference fingerprint is stored so
+ * that indexed media can be matched to it; media itself is indexed by Refresh.
  *
  * <p>Called by {@link ContentRepositoryService} during Add/Refresh, which owns discovery,
  * repository reconciliation and its transaction boundary. This service saves the title row,
- * including its ownership and reference-edition metadata. Repository-scoped replacements retain the
- * local entry ID and must remain inside that repository. Portable IDs may recur in different
+ * including its ownership and reference metadata. Repository-scoped replacements retain the local
+ * entry ID and must remain inside that repository. Portable IDs may recur in different
  * repositories; local IDs identify independent copies.
  */
 @Service
@@ -46,7 +46,7 @@ public class RepositoryContentService {
   /**
    * An explicit request to index a document already on disk.
    *
-   * @param documentPath absolute path to a file named {@code document.json}
+   * @param documentPath absolute path to the study document's JSON file
    * @param replace whether an existing entry in the target scope with the document's ID may be
    *     updated; does not authorize overwriting the document file
    */
@@ -66,8 +66,6 @@ public class RepositoryContentService {
     if (!file.isAbsolute()) throw new IllegalArgumentException("Document path must be absolute");
     if (!Files.isRegularFile(file)) throw new IllegalArgumentException("Missing file: " + file);
     file = file.toRealPath();
-    if (!file.getFileName().toString().equals("document.json"))
-      throw new IllegalArgumentException("Title document must be named document.json");
     StudyDocument document = reader.read(file);
     CatalogueEntry previous = repository.findDocument(repositoryId, document.id()).orElse(null);
     if (previous != null && !request.replace()) throw new TitleExistsException();
@@ -96,9 +94,11 @@ public class RepositoryContentService {
             owningRepository.name(),
             root.toString(),
             false,
-            document.edition(),
-            video == null ? null : video.durationSeconds(),
-            video == null ? "comic" : "video");
+            video == null || video.reference() == null ? null : video.reference().durationSeconds(),
+            video == null ? "comic" : "video",
+            video != null
+                ? video.reference() == null ? null : video.reference().fingerprint()
+                : comic.reference() == null ? null : comic.reference().fingerprint());
     var entry =
         new CatalogueEntry(
             entryId,
@@ -108,6 +108,8 @@ public class RepositoryContentService {
             video == null ? null : video.season(),
             video == null ? null : video.episode(),
             comic == null ? null : comic.volume(),
+            document.shelf(),
+            document.sourceLanguage(),
             document.sourceUrl(),
             storedPath,
             location);

@@ -28,7 +28,7 @@ object AskPack {
     phrase: Int?,
     question: String,
   ): String {
-    val alignment = readyAlignment(line)
+    val alignment = readyAlignment(line, document)
     val source = language(document.sourceLanguage())
     val notes = language(document.notesLanguage())
     val explored = phrase?.let { alignment?.source()?.getOrNull(it) }

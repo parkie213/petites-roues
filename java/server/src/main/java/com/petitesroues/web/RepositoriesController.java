@@ -52,6 +52,14 @@ public class RepositoriesController {
     }
   }
 
+  /** Refreshes every registered folder: the library's one Refresh button. */
+  @PostMapping("/repositories/refresh")
+  public List<ContentRepository> refreshAll() throws IOException {
+    synchronized (updates) {
+      return repositories.refreshAll();
+    }
+  }
+
   @PostMapping("/repositories/{id}/refresh")
   public ContentRepository refresh(@PathVariable String id) throws IOException {
     synchronized (updates) {

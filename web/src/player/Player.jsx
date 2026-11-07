@@ -277,7 +277,7 @@ export function Player({ id }) {
   if (error)
     return (
       <main className="page">
-        <a href="/">← Library</a>
+        <a href={returnPath}>← Library</a>
         <h1>Could not open title</h1>
         <p role="alert" className="error">
           {error}
@@ -334,8 +334,6 @@ export function Player({ id }) {
             <Stack gap={4}>
               <strong>Title details</strong>
               <p>{doc.title}</p>
-              {doc.edition && <p>{doc.edition}</p>}
-              {doc.transcriptionMethod && <p>{doc.transcriptionMethod}</p>}
               {doc.sourceUrl && (
                 <a href={doc.sourceUrl} target="_blank" rel="noreferrer">
                   View original source ↗

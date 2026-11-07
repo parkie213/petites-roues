@@ -10,7 +10,7 @@ through a content repository) and what is **local** (this machine's paths, state
 | --- | --- | --- | --- |
 | Study documents | Portable | `document.json` in a content repository | Agents only |
 | Editing | Local queue of commands that refer only to portable IDs | SQLite `review_queue`, `review_batches` | The app, from player and reader edits |
-| Library | Local | SQLite `repositories`, `titles`, progress tables; files found beside documents | The app, on Add/Refresh |
+| Library | Local | SQLite `repositories`, `titles`, `media`, progress tables; posters found beside media | The app, on Add/Refresh |
 
 Two rules hold the boundary:
 
@@ -79,31 +79,33 @@ The library is this machine's index of what it can open, and what the learner ha
 - A title has two identities. `id` is local: player URLs, progress and the review queue use it.
   `documentId` is the document's own ID, unique within its repository but not across
   repositories.
-- A title also caches document metadata (title, series, season, episode, volume, edition,
-  duration, type), so browsing never opens JSON. Refresh rebuilds that cache from the files.
+- A title also caches document metadata (title, series, season, episode, volume,
+  reference duration, type), so browsing never opens JSON. Refresh rebuilds that cache from the files.
 - A registration survives a missing file (`missing`), so progress and reviews outlive a moved
   folder or an unplugged drive.
-- Media and posters aren't registered. They're found beside the document when the library is
-  browsed: one video or CBZ in the title folder, and a `poster.*` beside it or in a series
-  folder above.
+- Media is indexed by Refresh (SQLite `media`: path, size, modification time, fingerprint,
+  duration, audio codecs) and linked to a title when its fingerprint equals the document's
+  reference fingerprint, in any registered folder. Posters aren't registered: they are found
+  beside the media file, or in a series folder above, when the library is browsed.
 
 ## Roadmap changes
 
 Roadmap items 2 (phone sync) and 3 (videos where they already live) are mostly library work.
-This is a proposal and nothing in it is built yet.
+The reference media is built; the rest is a proposal.
 
 ![Planned additions](diagrams/roadmap-model.svg)
 
-- **Media fingerprint (portable).** A document records the media its cues were timed or its
-  boxes were drawn against: a fingerprint plus the duration. This is a fact about the material,
-  so it belongs in the document.
-  - Hashing a whole 4 GB video on every Refresh is too slow. A partial hash (file size plus the
-    first and last few MB) is enough to say "this is the exact file". A CBZ can be hashed in full.
+- **Reference media (portable, built).** A document's body records the copy its cues were timed
+  or its boxes were drawn against: a fingerprint, the size and, for a video, the duration
+  ([format](DOCUMENT-FORMAT.md#reference-media)). This is a fact about the material, so it
+  belongs in the document.
+  - Hashing a whole 4 GB video on every Refresh is too slow, so the v1 fingerprint hashes the
+    size and the first and last 4 MiB, which is enough to say "this is the exact file".
   - A re-encode or a different rip has a different hash even when the cues still fit. Matching
     therefore falls back to series, season, episode and duration, and the player warns when a
     linked copy's duration differs.
-- **Media links (local).** A title links to a file in a registered media folder: beside the
-  document (as today), located by hand, or matched on Refresh. The link stays on this machine.
+- **Media links (local).** A title links to an indexed file whose fingerprint matches its
+  reference (built), or to one located by hand (planned). The link stays on this machine.
 - **Devices and offline sets (local).** A paired phone keeps a chosen set of titles offline,
   and later sends its edits to the desktop review queue.
 

@@ -11,8 +11,13 @@ import com.petitesroues.documents.StudyDocumentReader;
 import com.petitesroues.library.discovery.ContentRepositoryScanner;
 import com.petitesroues.library.persistence.CatalogueStore;
 import com.petitesroues.library.persistence.ContentRepositoryStore;
+import com.petitesroues.library.persistence.MediaStore;
+import com.petitesroues.media.Ffmpeg;
+import com.petitesroues.media.MediaFingerprint;
+import com.petitesroues.media.MediaProbe;
 import com.petitesroues.model.document.StudyDocument;
 import com.petitesroues.model.document.VideoDocument;
+import com.petitesroues.model.document.VideoReference;
 import com.petitesroues.model.library.ContentRepository;
 import com.petitesroues.model.progress.PlaybackProgress;
 import com.petitesroues.playback.PlaybackProgressStore;
@@ -76,7 +81,9 @@ class ContentRepositoryRefreshIntegrationTest {
         reader,
         new TransactionTemplate(new DataSourceTransactionManager(source)),
         registration,
-        new ReviewQueue(jdbc, mapper));
+        new ReviewQueue(jdbc, mapper),
+        new MediaStore(jdbc),
+        new MediaProbe(new Ffmpeg(mapper)));
   }
 
   private Path write(String folder, StudyDocument document) throws IOException {
@@ -150,7 +157,8 @@ class ContentRepositoryRefreshIntegrationTest {
             repositories,
             store,
             new PlaybackProgressStore(jdbc),
-            new ReadingProgressStore(jdbc));
+            new ReadingProgressStore(jdbc),
+            new TitleMediaService(new MediaStore(jdbc)));
     var editing = new DocumentEditingService(catalogue, served, queue);
     byte[] originalFirst = Files.readAllBytes(firstFile);
     var cue =
@@ -210,9 +218,10 @@ class ContentRepositoryRefreshIntegrationTest {
             original.translationLanguage(),
             original.notesLanguage(),
             null,
+            "Cartoons",
             null,
-            "French edition",
-            new VideoDocument(null, null, null, 120.0, original.video().cues()));
+            new VideoDocument(
+                null, null, new VideoReference(null, null, 120.0), original.video().cues()));
     write("a", changed);
     write("b", document("new-title"));
     byte[] expected = Files.readAllBytes(file);
@@ -227,7 +236,9 @@ class ContentRepositoryRefreshIntegrationTest {
     Instant.parse(result.lastRefreshedAt());
     var entry = catalogue.find("existing").orElseThrow();
     assertEquals("Updated", entry.title());
-    assertEquals("French edition", entry.location().edition());
+    assertEquals("Cartoons", entry.shelf(), "the document's shelf is indexed");
+    assertEquals(changed.sourceLanguage(), entry.sourceLanguage(), "and its source language");
+    assertNull(catalogue.find("new-title").orElseThrow().shelf(), "no shelf means the default");
     assertEquals(120.0, entry.location().durationSeconds());
     assertTrue(catalogue.contains("new-title"));
     assertEquals(reviews, jdbc.queryForList("SELECT * FROM review_queue"));
@@ -266,7 +277,7 @@ class ContentRepositoryRefreshIntegrationTest {
     var changed = document("existing").withTitle("Must not reach the index");
     write("a", changed);
     Path invalid = write("b", document("invalid"));
-    Files.writeString(invalid, "invalid JSON");
+    Files.writeString(invalid, "{\"sourceLanguage\": \"fr\", invalid JSON");
     var failure =
         assertThrows(IllegalArgumentException.class, () -> service.refresh(repository.id()));
     assertTrue(failure.getMessage().contains("b/document.json"));
@@ -310,5 +321,32 @@ class ContentRepositoryRefreshIntegrationTest {
         "CREATE TRIGGER fail_refresh BEFORE UPDATE OF last_refreshed_at ON repositories BEGIN SELECT RAISE(ABORT, 'timestamp failure'); END");
     assertThrows(DataAccessException.class, () -> service.refresh(repository.id()));
     assertEquals(before, snapshot());
+  }
+
+  @Test
+  void refreshIndexesMediaWithItsFingerprintDurationAndAudio() throws Exception {
+    Path folder = Files.createDirectories(root.resolve("films"));
+    for (String name : List.of("aac.mp4", "ac3.mp4"))
+      try (var fixture = getClass().getResourceAsStream("/media/" + name)) {
+        Files.copy(fixture, folder.resolve(name));
+      }
+    var repository = add();
+    var media = new MediaStore(jdbc).inRepository(repository.id());
+    assertEquals(
+        List.of("films/aac.mp4", "films/ac3.mp4"),
+        media.stream().map(m -> m.relativePath()).toList());
+    var playable = media.getFirst();
+    assertEquals(MediaFingerprint.of(folder.resolve("aac.mp4")), playable.fingerprint());
+    assertEquals("aac", playable.audioCodecs());
+    assertEquals(true, playable.audioPlayable());
+    assertTrue(playable.durationSeconds() > 0);
+    var dubbed = media.get(1);
+    assertEquals(false, dubbed.audioPlayable());
+    assertEquals("No audio track this player can play (AC3)", dubbed.audioWarning());
+    assertEquals(2, repositories.find(repository.id()).media());
+
+    Files.delete(folder.resolve("ac3.mp4"));
+    service.refresh(repository.id());
+    assertEquals(1, new MediaStore(jdbc).inRepository(repository.id()).size());
   }
 }

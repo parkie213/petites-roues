@@ -48,9 +48,10 @@ export function Repositories() {
       <header className="page-header">
         <div>
           <div className="eyebrow">Your study content</div>
-          <h1>Repositories</h1>
+          <h1>Folders</h1>
           <p>
-            Register a local Git checkout. Refresh after pulling new content.
+            Register any folder of videos, comics or study documents. Refresh
+            after adding or changing files.
           </p>
         </div>
       </header>
@@ -63,7 +64,7 @@ export function Repositories() {
               "/api/repositories",
               "POST",
               { localPath: path, name },
-              "Repository added. Link videos from the library to start watching.",
+              "Folder added.",
             )
           ) {
             setPath("");
@@ -71,13 +72,13 @@ export function Repositories() {
           }
         }}
       >
-        <h2>Add repository</h2>
+        <h2>Add folder</h2>
         <label htmlFor="repository-path">Directory on this computer</label>
         <div className="repository-path">
           <input
             id="repository-path"
             required
-            placeholder="Path to your local study-content checkout"
+            placeholder="Path to a folder on this computer"
             value={path}
             onChange={(e) => setPath(e.target.value)}
           />
@@ -104,11 +105,12 @@ export function Repositories() {
           placeholder="Study content"
         />
         <button className="action" disabled={busy}>
-          {busy ? "Working…" : "Add repository"}
+          {busy ? "Working…" : "Add folder"}
         </button>
         <p className="detail">
-          Documents stay in the checkout. Videos are linked separately. Git pull
-          and push remain normal Git commands.
+          Files stay where they are. A video or comic links to the study
+          document whose reference fingerprint matches it, in any folder. Git,
+          if you use it, stays an ordinary Git checkout.
         </p>
       </form>
       {message && <p role="status">{message}</p>}
@@ -117,7 +119,7 @@ export function Repositories() {
           {error}
         </p>
       )}
-      <section aria-label="Registered repositories" className="repository-list">
+      <section aria-label="Registered folders" className="repository-list">
         {repos?.map((repo) => (
           <article key={repo.id} className="repository-card">
             <div>
@@ -125,6 +127,7 @@ export function Repositories() {
               <p className="repository-directory">{repo.localPath}</p>
               <p>
                 {repo.titles} titles
+                {repo.media ? ` · ${repo.media} media files` : ""}
                 {repo.missing ? ` · ${repo.missing} documents missing` : ""}
               </p>
               <p className="detail">
@@ -143,7 +146,7 @@ export function Repositories() {
                     `/api/repositories/${repo.id}/refresh`,
                     "POST",
                     null,
-                    "Repository refreshed.",
+                    "Folder refreshed.",
                   )
                 }
               >
@@ -161,7 +164,7 @@ export function Repositories() {
                         `/api/repositories/${repo.id}`,
                         "DELETE",
                         null,
-                        "Repository removed from the library. Files were left untouched.",
+                        "Folder removed from the library. Files were left untouched.",
                       )
                     }
                   >
@@ -179,10 +182,10 @@ export function Repositories() {
         ))}
         {repos?.length === 0 && (
           <p className="empty">
-            No repositories yet. Add a checkout above to populate your library.
+            No folders yet. Add one above to populate your library.
           </p>
         )}
-        {!repos && !error && <p role="status">Loading repositories…</p>}
+        {!repos && !error && <p role="status">Loading folders…</p>}
       </section>
     </main>
   );

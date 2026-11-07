@@ -8,8 +8,8 @@ export const alignmentColors = [
   "#91cbd2",
 ];
 
-// An annotation is usable only while its chunks still spell out the line's complete source and
-// translation. Span indices refer to phrases, not words: idioms and split expressions stay together.
+// An annotation is usable only while its chunks, joined with the line's separator for that side,
+// still spell out the line's complete source and translation. Span indices refer to phrases, not words: idioms and split expressions stay together.
 export function validAlignment(cue, candidate) {
   if (
     !cue ||
@@ -26,7 +26,7 @@ export function validAlignment(cue, candidate) {
       !candidate[side].every(
         (phrase) => typeof phrase === "string" && phrase.trim(),
       ) ||
-      candidate[side].join(" ") !== cue[side]
+      candidate[side].join(cue[`${side}Separator`] ?? " ") !== cue[side]
     )
       return null;
   }

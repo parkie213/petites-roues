@@ -1,6 +1,6 @@
 # Study document format
 
-A `document.json` describes one video or comic edition. Video documents contain timed source subtitles,
+A study document is a JSON file, of any name, that describes one video or comic. Video documents contain timed source subtitles,
 translations, learner notes and optional phrase links. It contains no
 machine-specific media paths, playback progress or review queue.
 
@@ -23,8 +23,8 @@ Unknown fields and legacy formats are rejected on load.
 
 ## A complete small document
 
-This is invented example dialogue. Save it as `document.json` inside a title folder
-and add its parent content folder as a repository. It can be opened without a video.
+This is invented example dialogue. Save it as a `.json` file (for example `document.json`) in a
+folder and add that folder to the library. It can be opened without a video.
 
 ```json
 {
@@ -33,7 +33,6 @@ and add its parent content folder as a repository. It can be opened without a vi
   "sourceLanguage": "fr",
   "translationLanguage": "en",
   "notesLanguage": "en",
-  "edition": "Invented example",
   "video": {
     "cues": [
       {
@@ -75,14 +74,12 @@ have a null translation. No language is inferred from the field names or filenam
 
 ## Metadata and review fields
 
-Optional document metadata includes `series`, integer `season` and `episode`,
-`sourceUrl`, `edition`, `transcriptionMethod`, `durationSeconds`.
-Duration, when supplied, must be positive and finite. Use `sourceUrl` and `edition`
-to identify the reference recording; the correct words with the wrong video edition
-can still have unusable timings.
-
-Describe transcription provenance once in `transcriptionMethod` (for example the ASR model).
-Cue-specific fields carry more precise information:
+Optional document metadata includes `series`, `shelf`, `sourceUrl`, and on a video integer
+`season` and `episode`. `shelf` names the library shelf the title is shown on, any label you like
+("Manga", "BD", "YouTube"); without it a comic goes on Comics, a video with a season or episode on
+Series, and other videos on Films. Media without a study document always uses those defaults. How the material was prepared (which ASR or vision model, which pass) is not part of
+the document: it belongs in the commit message, with raw model output kept in `content-archive/`.
+Cue-specific fields carry review information:
 
 | Cue field | Meaning |
 | --- | --- |
@@ -146,9 +143,11 @@ Add this optional `alignment` object to the example cue’s `line` to connect it
 }
 ```
 
-The phrase arrays bind the graph to the line's exact text: joining `source` with single spaces
-must reproduce the line's `source` exactly, and joining `translation` its `translation`,
-including punctuation and apostrophes. A graph made for older wording therefore fails
+The phrase arrays bind the graph to the line's exact text: joining `source` must reproduce the
+line's `source` exactly, and joining `translation` its `translation`, including punctuation and
+apostrophes. Chunks join with a single space, except in languages written without spaces
+between words (Chinese, Japanese, Thai, Lao, Khmer and Burmese, by the document's language
+tag), whose chunks join with nothing: `我们` `去` `公园。` reproduces `我们去公园。`. A graph made for older wording therefore fails
 validation.
 
 Link indices are zero-based positions in the phrase arrays. Every phrase on both
@@ -167,52 +166,118 @@ For the teaching standard and generation instructions, use
 [translation notes](../agents/guides/translation-notes.md) and
 [translation notes guide](../agents/guides/translation-notes.md).
 
-## Files beside the document
+## Documents and media
+
+The library reads registered folders. A folder may hold study documents, media, or both, and
+the media can live anywhere: a Plex library, a NAS, a drive or beside the documents.
 
 ```text
-content-root/
-  title-folder/
-    document.json
-    video.mp4
+media/
+  peppa-pig/
+    Les Flaques de Boue.mp4
+documents/
+  peppa-pig/
+    s01e01/document.json      its reference fingerprint matches the video above
 ```
 
-The video is optional. Keep at most one supported video in the title
-folder: `.mp4`, `.mkv`, `.webm`, `.mov`, `.m4v`, `.avi` or `.ogv`. Extension support
-does not guarantee that a browser can decode its audio/video codecs. Media must
-resolve inside the title folder.
+- **Study documents.** Refresh reads every `.json` file whose top level has `sourceLanguage` and
+  a `video` or `comic` body, whatever its name. Other JSON is ignored. A file that claims to be a
+  study document but doesn't validate fails the Refresh with its path.
+- **Media.** Refresh indexes every video (`.mp4`, `.mkv`, `.webm`, `.mov`, `.m4v`, `.avi`,
+  `.ogv`) and `.cbz`, with its [fingerprint](#reference-media), duration and audio codecs. A file
+  is probed again only when its size or modification time changes. Hidden folders,
+  `node_modules` and `content-archive` are skipped.
+- **Linking.** A video or CBZ links to a document whose `reference.fingerprint` equals its
+  fingerprint, in any registered folder. Nothing else links them: not sharing a folder, nor
+  series, episode or duration. A document without a reference fingerprint has no media until
+  one is recorded (`prepare/reference.py`, or Add title). When several copies match, one in the
+  document's own folder is preferred.
+- **Warnings.** Media that no document references is listed under *Needs attention* as "No study
+  document". A video with no browser-playable audio track (AAC, MP3, Opus, Vorbis or FLAC) warns
+  "No audio track this player can play"; remux it with your own tools. Refresh clears a warning
+  once it is fixed.
 
 ### Card images
 
-The library's Posters view shows a card per title or series. A title card uses an optional
-`poster.jpg`, `poster.jpeg`, `poster.png` or `poster.webp` beside `document.json`; without one,
-a comic uses its first manifest page and a video gets a placeholder. A series card uses the
-nearest `poster.*` in a folder above the title folders (for example `peppa-pig/poster.jpg`),
-never the repository root; without one it uses its first volume's or episode's card. Keep at
-most one poster per folder. Posters are checked when the library is browsed, so no Refresh is
-needed. Card-sized copies are cached locally in `content/.cache/cards/`
+The library's Posters view shows a card per title or series, for media with or without a study
+document. A study document whose media was not found has no card; the Documents view lists every
+document with the media it links to, or why it has none. When the library holds documents in more than
+one `sourceLanguage`, chips above Posters show one language at a time (Documents always lists every document); media without
+a study document has no declared language and shows only under All languages. Posters live with the media, as in a Plex library, not with study documents, so they
+show before any document exists. Images are `.jpg`, `.jpeg`, `.png` or `.webp`:
+
+- A video or CBZ alone in its folder (a film or tome folder) uses that folder's `poster.*`.
+- Any video or CBZ can have an image with its own file name, such as `ponyo.jpg` beside
+  `ponyo.mkv`; it wins over `poster.*`.
+- A series card uses `poster.*` in a folder shared by several episodes or volumes (for example
+  `peppa-pig/poster.jpg` beside its videos), or the nearest one above a title folder, up to and
+  including the registered folder. A film without its own poster uses that card too.
+
+Without an image, a comic uses its first page and a video gets a placeholder. Keep at most one
+poster per folder. Posters are checked when the library is browsed, so no Refresh is needed. Card-sized copies are cached locally in `content/.cache/cards/`
 (`petitesroues.cards.cache`) and can be deleted at any time.
 
-Posters group titles from document metadata, never folder names: comics by `series` and
-`comic.volume`, videos with a season or episode by `series`, and other videos as films. Series
-names match ignoring case and spacing, across repositories; copies of the same volume or episode
-share one card.
+Posters group titles from document metadata onto shelves (see `shelf` above), ordered by name:
+comics by `series` and `comic.volume`, videos with a season or episode by `series`, and other
+videos one card each. A series card sits on the shelf most of its titles name, so one volume
+without a `shelf` doesn't split its series. Media without a document is named from
+its path instead, as media servers do: the series is its nearest folder that is not a `Season N`
+or episode folder, and `s01e02` or a leading number (`083-bienenalarm.mp4`) gives the episode.
+Those names are for display only; linking is by fingerprint alone. Series names match ignoring
+case and spacing, across folders, so a video awaiting its document sits in its series beside the
+episodes that have one. Copies of the same volume or episode share one card.
 
-Add/Refresh indexes documents and folder hierarchy. Refresh after adding/moving
-documents or changing indexed title metadata; reopening the player reloads document
-contents and checks for sibling media. Removing a repository unregisters local
-state without deleting its files.
+Add/Refresh indexes documents, media and folder hierarchy. Refresh after adding, moving or
+changing documents or media; reopening the player reloads document contents. Removing a folder
+unregisters local state without deleting its files.
 
-Copying a title folder transfers its material. Video stays local unless you copy it;
+Copying a document transfers its material. Video stays local unless you copy it;
 JSON export alone does not include video. A separate content Git
 repository can checkpoint documents while ignoring media. Local
 SQLite state is configured independently through `spring.datasource.url`, defaulting
 to `jdbc:sqlite:content/library.sqlite`.
 
+## Reference media
+
+Each body may record its `reference`: the copy of the media its cues were timed or its boxes were
+drawn against. The correct words with the wrong cut of a video can still have unusable timings,
+so the reference says which copy the material fits. It describes the material, not where a copy
+is on this machine, and every field is optional.
+
+```json
+"video": {
+  "season": 1,
+  "episode": 3,
+  "reference": {
+    "fingerprint": "v1:9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08",
+    "sizeBytes": 734003200,
+    "durationSeconds": 1312.48
+  },
+  "cues": []
+}
+```
+
+| Field | Meaning |
+| --- | --- |
+| `fingerprint` | `v1:` and 64 lowercase hex digits, defined below; says whether a local file is this exact copy |
+| `sizeBytes` | The file's size in bytes, positive |
+| `durationSeconds` | Video only: the reference duration in seconds, positive and finite; a different cut or speed differs |
+
+The v1 fingerprint is the SHA-256 of the file size as 8 bytes big-endian, then the first 4 MiB,
+then the last 4 MiB; a file of at most 8 MiB is hashed once, whole, after its size. Reading only
+the ends keeps a large video fast to check, and still tells re-encodes apart: MP4 sample tables
+sit at one end, and a CBZ's central directory, with every entry's CRC, sits at its end.
+
+A shared content repository rarely matches by fingerprint, because each person's download or rip
+is a different file; the fingerprint recognises the author's own copy, and the duration is what
+tells a different cut apart. Add title records the reference of the media it writes;
+`prepare/reference.py` records it for a title added any other way.
+
 ## Comic documents
 
-The shared `StudyDocument` owns identity, title, series, edition, source URL and language roles.
-`VideoDocument` owns season/episode, duration, transcription provenance and timed cues.
-`ComicDocument` owns an ordered page manifest and reading direction; it has no timestamps,
+The shared `StudyDocument` owns identity, title, series, source URL and language roles.
+`VideoDocument` owns season/episode, its reference video and timed cues.
+`ComicDocument` owns its reference CBZ, an ordered page manifest and reading direction; it has no timestamps,
 audio checks or video cues. The selected body determines the media type.
 
 ```json
@@ -249,7 +314,7 @@ audio checks or video cues. The selected body determines the media type.
 }
 ```
 
-Place one `.cbz` beside `document.json`. The archive stays local, like video. Add/Refresh
+The `.cbz` links to the document by fingerprint, like a video, and stays local. Add/Refresh
 indexes the comic type and metadata; normal library browsing does not decode documents or
 scan the archive. Opening the reader checks all manifest entries against the CBZ. Pages are
 served directly from the archive without extracting files.
@@ -336,7 +401,6 @@ a time or as a list. Text edits, comments and review requests address a line by 
 or deleting a box addresses the box's ID and takes all its lines along.
 `prepare/split_block.py` splits an aligned line into its sentences at sentence-ending chunks.
 
-`annotationMethod` records extraction provenance on the comic.
 Drawn boxes start with one line whose source may be empty while awaiting OCR or transcription,
 so review/OCR can target it before any text is available.
 Use `textCheck` for a specific unresolved issue. Comic boxes have no listening checks or timestamps.

@@ -6,12 +6,14 @@
   "notesLanguage": "en",
   "series": "Peppa Pig",
   "sourceUrl": "https://www.youtube.com/watch?v=Mh_GJPIaPTI",
-  "edition": "Demo excerpt: source 00:30.720-01:33.540",
   "video": {
     "season": 1,
     "episode": 1,
-    "transcriptionMethod": "Subtitle Edit whisper.cpp large, French, Silero VAD",
-    "durationSeconds": 62.833333,
+    "reference": {
+      "fingerprint": "v1:b561c1578fd731cb893d41a87b6199b53b1e1d210088acdb82d208d64fcf87f9",
+      "sizeBytes": 882882,
+      "durationSeconds": 62.849
+    },
     "cues": [
       {
         "line": {

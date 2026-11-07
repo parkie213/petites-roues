@@ -1,0 +1,585 @@
+{
+  "id": "masha-and-the-bear-example-083-de",
+  "title": "Bienenalarm! - one-minute example",
+  "sourceLanguage": "de",
+  "translationLanguage": "en",
+  "notesLanguage": "en",
+  "series": "Masha and the Bear",
+  "sourceUrl": "https://www.youtube.com/watch?v=pz5gblFeacc",
+  "video": {
+    "episode": 83,
+    "reference": {
+      "fingerprint": "v1:fadb5c924b0af2e5f17446026908cb4336e5aabcdf2ed9680f7888c33b377aa4",
+      "sizeBytes": 1132945,
+      "durationSeconds": 64.04
+    },
+    "cues": [
+      {
+        "line": {
+          "id": "be4f432a-36f2-5512-9f26-232a56a29a05",
+          "source": "Ja, hallo!",
+          "translation": "Well, hello!",
+          "notes": [],
+          "alignment": {
+            "source": [
+              "Ja, hallo!"
+            ],
+            "translation": [
+              "Well, hello!"
+            ],
+            "links": [
+              {
+                "source": [
+                  0
+                ],
+                "translation": [
+                  0
+                ],
+                "note": "A cheerful greeting. `Ja` here is not an answer: at the start of a greeting it works like English \"well\" or \"oh\"."
+              }
+            ]
+          },
+          "continuesPrevious": false
+        },
+        "start": 4.3,
+        "end": 4.9,
+        "listeningCheck": "The automatic captions hear `Bär, hallo` here: confirm `Ja` or `Bär`."
+      },
+      {
+        "line": {
+          "id": "a9a507be-56d0-5687-b8d8-c25ca2f371c5",
+          "source": "Guck mal, was wir uns beide ausgedacht haben!",
+          "translation": "Look what the two of us have come up with!",
+          "notes": [
+            "After `was` (what), as in any clause it introduces, the conjugated verb goes to the end: `wir haben … ausgedacht` becomes `was wir … ausgedacht haben`."
+          ],
+          "alignment": {
+            "source": [
+              "Guck mal,",
+              "was wir uns beide ausgedacht haben!"
+            ],
+            "translation": [
+              "Look",
+              "what the two of us have come up with!"
+            ],
+            "links": [
+              {
+                "source": [
+                  0
+                ],
+                "translation": [
+                  0
+                ],
+                "note": "`Guck` is the informal (`du`) command of `gucken`, an everyday word for look. `Mal` softens a command, much like \"just\" or \"have a…\" in English."
+              },
+              {
+                "source": [
+                  1
+                ],
+                "translation": [
+                  1
+                ],
+                "note": "`Sich etwas ausdenken` = to think something up. `Ausgedacht` is its past participle, and `haben` + participle is the perfect, the everyday spoken past. `Uns` is the \"ourselves\" this verb needs, and `beide` (both) gives \"the two of us\"."
+              }
+            ]
+          },
+          "continuesPrevious": false
+        },
+        "start": 5.3,
+        "end": 7.2
+      },
+      {
+        "line": {
+          "id": "4105ec3c-0b5d-51c1-8108-0b302f610db9",
+          "source": "Los, schnapp sie!",
+          "translation": "Go on, catch it!",
+          "notes": [],
+          "alignment": {
+            "source": [
+              "Los,",
+              "schnapp sie!"
+            ],
+            "translation": [
+              "Go on,",
+              "catch it!"
+            ],
+            "links": [
+              {
+                "source": [
+                  0
+                ],
+                "translation": [
+                  0
+                ],
+                "note": "`Los!` starts something off: go on, off you go, go."
+              },
+              {
+                "source": [
+                  1
+                ],
+                "translation": [
+                  1
+                ],
+                "note": "`Schnapp` is the `du` command of `schnappen`, to snap up or grab, as a dog does with its mouth. `Sie` is \"it\" here: German uses `sie` for a feminine noun, presumably the flying disc, `die Scheibe`."
+              }
+            ]
+          },
+          "continuesPrevious": false
+        },
+        "start": 7.6,
+        "end": 8.7
+      },
+      {
+        "line": {
+          "id": "15fd5f4c-432e-51a8-a124-b746aa4fc165",
+          "source": "Oh, was hat er denn?",
+          "translation": "Oh, what's wrong with him?",
+          "notes": [],
+          "alignment": {
+            "source": [
+              "Oh,",
+              "was hat er denn?"
+            ],
+            "translation": [
+              "Oh,",
+              "what's wrong with him?"
+            ],
+            "links": [
+              {
+                "source": [
+                  0
+                ],
+                "translation": [
+                  0
+                ],
+                "note": "Surprise, as in English."
+              },
+              {
+                "source": [
+                  1
+                ],
+                "translation": [
+                  1
+                ],
+                "note": "Literally \"what has he?\": German asks what someone \"has\" to mean what is wrong with them (`Was hast du?` — What's the matter with you?). `Hat → haben`, present, with `er` (he). `Denn` makes the question sound concerned; English has no word for it here."
+              }
+            ]
+          },
+          "continuesPrevious": false
+        },
+        "start": 12.5,
+        "end": 13.5
+      },
+      {
+        "line": {
+          "id": "5ed9c8d0-465d-5c13-8597-6d1730f101db",
+          "source": "Ich bin hier.",
+          "translation": "I'm here.",
+          "notes": [],
+          "alignment": {
+            "source": [
+              "Ich bin hier."
+            ],
+            "translation": [
+              "I'm here."
+            ],
+            "links": [
+              {
+                "source": [
+                  0
+                ],
+                "translation": [
+                  0
+                ],
+                "note": "`Bin → sein` (be), present, with `ich`. `Hier` = here."
+              }
+            ]
+          },
+          "continuesPrevious": false
+        },
+        "start": 16.4,
+        "end": 17.0
+      },
+      {
+        "line": {
+          "id": "ec72362c-85d5-525f-ab58-dfb70b884b41",
+          "source": "Ob er krank ist oder so?",
+          "translation": "I wonder if he's ill or something?",
+          "notes": [],
+          "alignment": {
+            "source": [
+              "Ob er krank ist",
+              "oder so?"
+            ],
+            "translation": [
+              "I wonder if he's ill",
+              "or something?"
+            ],
+            "links": [
+              {
+                "source": [
+                  0
+                ],
+                "translation": [
+                  0
+                ],
+                "note": "`Ob` = whether, if. An `ob` clause on its own, with nothing before it, wonders aloud: \"I wonder if…\". As in every `ob` clause, the verb (`ist → sein`) goes to the end. `Krank` = ill, sick."
+              },
+              {
+                "source": [
+                  1
+                ],
+                "translation": [
+                  1
+                ],
+                "note": "`Oder so` = or something, a vague ending as in English."
+              }
+            ]
+          },
+          "continuesPrevious": false
+        },
+        "start": 18.3,
+        "end": 19.6
+      },
+      {
+        "line": {
+          "id": "82f8cfdd-07b3-5c7c-bc70-2260e22ef4fb",
+          "source": "Sie ist kalt und ganz schön feucht.",
+          "translation": "It's cold and pretty damp.",
+          "notes": [],
+          "alignment": {
+            "source": [
+              "Sie ist kalt",
+              "und ganz schön feucht."
+            ],
+            "translation": [
+              "It's cold",
+              "and pretty damp."
+            ],
+            "links": [
+              {
+                "source": [
+                  0
+                ],
+                "translation": [
+                  0
+                ],
+                "note": "Masha is touching Bear's nose, `die Nase`, a feminine noun, so German says `sie` (she) where English says \"it\". `Ist → sein`, present. `Kalt` = cold."
+              },
+              {
+                "source": [
+                  1
+                ],
+                "translation": [
+                  1
+                ],
+                "note": "`Ganz schön` before an adjective means \"really, pretty\" (`ganz schön teuer` — pretty expensive), although `schön` alone means beautiful. `Feucht` = damp, moist."
+              }
+            ]
+          },
+          "continuesPrevious": false
+        },
+        "start": 21.5,
+        "end": 23.5
+      },
+      {
+        "line": {
+          "id": "b961d27b-e818-520e-a17b-f22dc64cb44d",
+          "source": "Es ist keine Grippe, aber er ist nicht glücklich.",
+          "translation": "It's not flu, but he's not happy.",
+          "notes": [],
+          "alignment": {
+            "source": [
+              "Es ist keine Grippe,",
+              "aber er ist nicht glücklich."
+            ],
+            "translation": [
+              "It's not flu,",
+              "but he's not happy."
+            ],
+            "links": [
+              {
+                "source": [
+                  0
+                ],
+                "translation": [
+                  0
+                ],
+                "note": "German negates a noun with `kein` rather than `nicht`: `keine Grippe` = not flu, no flu. `Keine` is feminine to match `die Grippe` (flu)."
+              },
+              {
+                "source": [
+                  1
+                ],
+                "translation": [
+                  1
+                ],
+                "note": "`Aber` = but. `Nicht` negates the adjective `glücklich` (happy); `kein` is only for nouns."
+              }
+            ]
+          },
+          "continuesPrevious": false
+        },
+        "start": 24.0,
+        "end": 26.7
+      },
+      {
+        "line": {
+          "id": "410b80b9-3b34-5654-9399-b8c87fab3efd",
+          "source": "Tja, da ist nix zu machen.",
+          "translation": "Well, there's nothing to be done.",
+          "notes": [],
+          "alignment": {
+            "source": [
+              "Tja,",
+              "da ist nix zu machen."
+            ],
+            "translation": [
+              "Well,",
+              "there's nothing to be done."
+            ],
+            "links": [
+              {
+                "source": [
+                  0
+                ],
+                "translation": [
+                  0
+                ],
+                "note": "`Tja` is a resigned \"well\", a verbal shrug."
+              },
+              {
+                "source": [
+                  1
+                ],
+                "translation": [
+                  1
+                ],
+                "note": "`Nix` is the spoken form of `nichts` (nothing). `Sein` + `zu` + infinitive says what can be done: `das ist leicht zu machen` — that's easy to do. `Da` (there) is a vague \"in this case\"."
+              }
+            ]
+          },
+          "continuesPrevious": false
+        },
+        "start": 29.4,
+        "end": 31.2
+      },
+      {
+        "line": {
+          "id": "eaf6f298-8032-5be3-b390-25a0b4a951a8",
+          "source": "Komm schon, jetzt lach doch mal ein bisschen, Bär.",
+          "translation": "Come on, have a little laugh now, Bear.",
+          "notes": [],
+          "alignment": {
+            "source": [
+              "Komm schon,",
+              "jetzt lach doch mal ein bisschen,",
+              "Bär."
+            ],
+            "translation": [
+              "Come on,",
+              "have a little laugh now,",
+              "Bear."
+            ],
+            "links": [
+              {
+                "source": [
+                  0
+                ],
+                "translation": [
+                  0
+                ],
+                "note": "`Komm` is the `du` command of `kommen` (come). `Schon` usually means already; in a command it urges, like \"come on\"."
+              },
+              {
+                "source": [
+                  1
+                ],
+                "translation": [
+                  1
+                ],
+                "note": "`Lach` is the `du` command of `lachen`, to laugh. `Doch mal` urges gently: `doch` insists, `mal` keeps it casual. `Ein bisschen` = a little; `jetzt` = now."
+              },
+              {
+                "source": [
+                  2
+                ],
+                "translation": [
+                  2
+                ],
+                "note": "`Der Bär` = the bear; Masha uses it as his name."
+              }
+            ]
+          },
+          "continuesPrevious": false
+        },
+        "start": 37.4,
+        "end": 40.2
+      },
+      {
+        "line": {
+          "id": "492a6383-b41d-50e3-b51f-3f6b7db726d3",
+          "source": "Ah, du hast keinen Honig mehr im Haus.",
+          "translation": "Ah, you've got no honey left in the house.",
+          "notes": [],
+          "alignment": {
+            "source": [
+              "Ah,",
+              "du hast keinen Honig mehr",
+              "im Haus."
+            ],
+            "translation": [
+              "Ah,",
+              "you've got no honey left",
+              "in the house."
+            ],
+            "links": [
+              {
+                "source": [
+                  0
+                ],
+                "translation": [
+                  0
+                ],
+                "note": "Realisation, as in English."
+              },
+              {
+                "source": [
+                  1
+                ],
+                "translation": [
+                  1
+                ],
+                "note": "`Kein … mehr` = no … left, not any more. `Keinen` is masculine and the object of `hast` (`haben`, have), matching `der Honig` (honey)."
+              },
+              {
+                "source": [
+                  2
+                ],
+                "translation": [
+                  2
+                ],
+                "note": "`Im` is short for `in dem`, in the. `Das Haus` = the house."
+              }
+            ]
+          },
+          "continuesPrevious": false
+        },
+        "start": 50.9,
+        "end": 53.4
+      },
+      {
+        "line": {
+          "id": "300ede98-c25d-5eab-b77e-dd45ee911f10",
+          "source": "Sei nicht traurig, ich hole dir welchen.",
+          "translation": "Don't be sad, I'll get you some.",
+          "notes": [],
+          "alignment": {
+            "source": [
+              "Sei nicht traurig,",
+              "ich hole dir welchen."
+            ],
+            "translation": [
+              "Don't be sad,",
+              "I'll get you some."
+            ],
+            "links": [
+              {
+                "source": [
+                  0
+                ],
+                "translation": [
+                  0
+                ],
+                "note": "`Sei` is the `du` command of `sein` (be); `nicht traurig` = not sad."
+              },
+              {
+                "source": [
+                  1
+                ],
+                "translation": [
+                  1
+                ],
+                "note": "`Hole → holen` = fetch, go and get. German often uses the present for a plan, where English says \"I'll\". `Dir` = (for) you. `Welchen` = some, standing in for `Honig`, so it takes the masculine object form."
+              }
+            ]
+          },
+          "continuesPrevious": false
+        },
+        "start": 53.9,
+        "end": 55.8
+      },
+      {
+        "line": {
+          "id": "6604e8e8-fcc6-5556-ac1b-01923b6603f5",
+          "source": "Schön hierbleiben.",
+          "translation": "Stay right here, now.",
+          "notes": [],
+          "alignment": {
+            "source": [
+              "Schön hierbleiben."
+            ],
+            "translation": [
+              "Stay right here, now."
+            ],
+            "links": [
+              {
+                "source": [
+                  0
+                ],
+                "translation": [
+                  0
+                ],
+                "note": "An infinitive on its own can be a command, often to children: `Hierbleiben!` — stay here! `Hierbleiben` = `hier` (here) + `bleiben` (stay). `Schön` (nice) before an instruction makes it friendly but firm, like \"now\" or \"nicely\"."
+              }
+            ]
+          },
+          "continuesPrevious": false
+        },
+        "start": 57.4,
+        "end": 58.4
+      },
+      {
+        "line": {
+          "id": "cea710b0-62b0-56e3-8254-3423cdcbc4f3",
+          "source": "Bären brauchen eine Menge Honig, damit sie glücklich sind.",
+          "translation": "Bears need lots of honey to be happy.",
+          "notes": [],
+          "alignment": {
+            "source": [
+              "Bären brauchen eine Menge Honig,",
+              "damit sie glücklich sind."
+            ],
+            "translation": [
+              "Bears need lots of honey",
+              "to be happy."
+            ],
+            "links": [
+              {
+                "source": [
+                  0
+                ],
+                "translation": [
+                  0
+                ],
+                "note": "`Bären` is the plural of `der Bär`. `Brauchen` = need. `Eine Menge` = a lot (literally \"a quantity\"), followed directly by the noun with no word for \"of\"."
+              },
+              {
+                "source": [
+                  1
+                ],
+                "translation": [
+                  1
+                ],
+                "note": "`Damit` = so that, with its verb (`sind → sein`, they are) at the end. English shortens \"so that they are happy\" to \"to be happy\"."
+              }
+            ]
+          },
+          "continuesPrevious": false
+        },
+        "start": 59.4,
+        "end": 62.5
+      }
+    ]
+  }
+}

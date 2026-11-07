@@ -114,7 +114,7 @@ fun PhraseLine(
 /**
  * The whole translation in its own word order, each chunk underlined in its source phrase's
  * colour and the explored phrase's chunks emphasised. [onTap], when given, explores the first
- * source phrase a chunk translates.
+ * source phrase a chunk translates. [separator] joins the chunks (see `ChunkSeparator`).
  */
 @Composable
 fun TranslationContext(
@@ -123,6 +123,7 @@ fun TranslationContext(
   style: TextStyle,
   modifier: Modifier = Modifier,
   centred: Boolean = false,
+  separator: String = " ",
   onTap: ((Int) -> Unit)? = null,
 ) {
   PhraseParagraph(
@@ -139,10 +140,14 @@ fun TranslationContext(
     onTap = { onTap?.invoke(it) },
     modifier = modifier,
     centred = centred,
+    separator = separator,
   )
 }
 
-/** A source line as one paragraph of phrases, for cards where phrases may wrap across lines. */
+/**
+ * A source line as one paragraph of phrases, for cards where phrases may wrap across lines.
+ * [separator] joins the phrases (see `ChunkSeparator`).
+ */
 @Composable
 fun PhraseParagraphLine(
   alignment: PhraseAlignment,
@@ -150,6 +155,7 @@ fun PhraseParagraphLine(
   style: TextStyle,
   onTap: (Int) -> Unit,
   modifier: Modifier = Modifier,
+  separator: String = " ",
 ) {
   PhraseParagraph(
     alignment.source().mapIndexed { index, phrase ->
@@ -164,6 +170,7 @@ fun PhraseParagraphLine(
     style,
     onTap = onTap,
     modifier = modifier,
+    separator = separator,
   )
 }
 
@@ -182,11 +189,12 @@ fun PhraseParagraph(
   onTap: (Int) -> Unit,
   modifier: Modifier = Modifier,
   centred: Boolean = false,
+  separator: String = " ",
 ) {
   val ranges = mutableListOf<IntRange>()
   val text = buildAnnotatedString {
     spans.forEachIndexed { index, span ->
-      if (index > 0) append(" ")
+      if (index > 0) append(separator)
       val start = length
       if (span.active) withStyle(SpanStyle(color = Color.White)) { append(span.text.trim()) }
       else append(span.text.trim())

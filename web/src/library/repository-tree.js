@@ -1,8 +1,22 @@
-// Build the displayed tree from indexed paths; title discovery happens only on Add/Refresh.
-export function repositoryTree(entries) {
+/**
+ * Build a registered folder's tree as it is on disk, from indexed paths; discovery happens only on
+ * Add/Refresh. Study documents sit at their document's path; every video and CBZ
+ * (`kind: "media"`) at its own path, named after its file.
+ */
+export function repositoryTree(entries, media = []) {
   const root = { name: "", folders: [], titles: [] };
-  for (const entry of entries) {
-    const parts = (entry.relativePath || "document.json")
+  const items = [
+    ...entries,
+    ...media.map((item) => ({
+      ...item,
+      mediaKind: item.kind,
+      kind: "media",
+      id: `media:${item.relativePath}`,
+      title: item.relativePath.split("/").pop(),
+    })),
+  ];
+  for (const entry of items) {
+    const parts = (entry.relativePath ?? "document.json")
       .replaceAll("\\", "/")
       .split("/")
       .slice(0, -1);
@@ -31,8 +45,8 @@ export function repositoryTree(entries) {
 }
 
 // Keep each ancestor visible. Invalid or stale URL segments stop at the last indexed folder.
-export function repositoryColumns(entries, requested = []) {
-  let node = repositoryTree(entries);
+export function repositoryColumns(entries, requested = [], media = []) {
+  let node = repositoryTree(entries, media);
   const columns = [{ node, parts: [] }];
   for (const part of requested) {
     const folder = node.folders.find((child) => child.name === part);

@@ -79,7 +79,7 @@ class LibraryService(
         documentUri = found.document,
         mediaUri = media?.let(found.siblings::get),
         documentId = document.id(),
-        edition = document.edition(),
+        durationSeconds = video?.reference()?.durationSeconds(),
         season = video?.season(),
         episode = video?.episode(),
         volume = comic?.volume(),

@@ -32,6 +32,8 @@ public class CatalogueStore {
         (Integer) row.getObject("season"),
         (Integer) row.getObject("episode"),
         (Integer) row.getObject("volume"),
+        row.getString("shelf"),
+        row.getString("source_language"),
         row.getString("source_url"),
         row.getString("document_path"),
         new CatalogueLocation(
@@ -39,9 +41,9 @@ public class CatalogueStore {
             row.getString("repository_name"),
             row.getString("repository_path"),
             row.getBoolean("missing"),
-            row.getString("edition"),
             (Double) row.getObject("duration_seconds"),
-            row.getString("document_type")));
+            row.getString("document_type"),
+            row.getString("reference_fingerprint")));
   }
 
   public List<CatalogueEntry> all() {
@@ -75,9 +77,10 @@ public class CatalogueStore {
     jdbc.update(
         """
         INSERT INTO titles (
-          id, document_id, title, series, season, episode, volume, source_url,
-          document_path, repository_id, missing, edition, duration_seconds, document_type
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          id, document_id, title, series, season, episode, volume, shelf, source_language,
+          source_url, document_path, repository_id, missing, duration_seconds, document_type,
+          reference_fingerprint
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ON CONFLICT(id) DO UPDATE SET
           document_id = excluded.document_id,
           title = excluded.title,
@@ -85,13 +88,15 @@ public class CatalogueStore {
           season = excluded.season,
           episode = excluded.episode,
           volume = excluded.volume,
+          shelf = excluded.shelf,
+          source_language = excluded.source_language,
           source_url = excluded.source_url,
           document_path = excluded.document_path,
           repository_id = excluded.repository_id,
           missing = excluded.missing,
-          edition = excluded.edition,
           duration_seconds = excluded.duration_seconds,
-          document_type = excluded.document_type
+          document_type = excluded.document_type,
+          reference_fingerprint = excluded.reference_fingerprint
         """,
         title.id(),
         title.documentId(),
@@ -100,12 +105,14 @@ public class CatalogueStore {
         title.season(),
         title.episode(),
         title.volume(),
+        title.shelf(),
+        title.sourceLanguage(),
         title.sourceUrl(),
         title.documentPath(),
         title.location().repositoryId(),
         title.location().missing(),
-        title.location().edition(),
         title.location().durationSeconds(),
-        title.location().documentType());
+        title.location().documentType(),
+        title.location().referenceFingerprint());
   }
 }

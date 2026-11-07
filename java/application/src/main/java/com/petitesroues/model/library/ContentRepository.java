@@ -1,9 +1,9 @@
 package com.petitesroues.model.library;
 
 /**
- * A registered, structured collection of learning content. Its folders organize study documents,
- * translations, learner notes and optional local videos or comics. A repository may be a Git
- * checkout, but Git is not required by this model.
+ * A registered folder of learning content: study documents, notes and quizzes, media (videos and
+ * CBZ comics), or any mix. Media links to documents by fingerprint, in this folder or another. A
+ * repository may be a Git checkout, but Git is not required by this model.
  *
  * <p>The registration describes a local content root and its last successful discovery result.
  * Missing documents remain registered so their local learning state survives temporary absence.
@@ -17,6 +17,19 @@ package com.petitesroues.model.library;
  * @param titles number of registered entries belonging to this repository, including missing
  *     documents
  * @param missing number of registered entries whose documents were absent at the last refresh
+ * @param media number of videos and CBZ files found at the last refresh
  */
 public record ContentRepository(
-    String id, String name, String localPath, String lastRefreshedAt, int titles, int missing) {}
+    String id,
+    String name,
+    String localPath,
+    String lastRefreshedAt,
+    int titles,
+    int missing,
+    int media) {
+  /** Creates a registration without indexed media. */
+  public ContentRepository(
+      String id, String name, String localPath, String lastRefreshedAt, int titles, int missing) {
+    this(id, name, localPath, lastRefreshedAt, titles, missing, 0);
+  }
+}

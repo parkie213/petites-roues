@@ -44,6 +44,7 @@ import {
 import { useStoredState } from "../shared/storage.js";
 import { ReadAloudKey, ReadAloudProvider } from "./ReadAloud.jsx";
 import "./ComicReader.css";
+import { libraryReturnPath } from "../shared/library-return.js";
 
 /**
  * Reads an ordered comic manifest one page or spread at a time; only successfully displayed
@@ -261,7 +262,7 @@ export function ComicReader({ id }) {
         <Alert color="red" title="Could not open comic">
           {error}
         </Alert>
-        <Button component="a" href="/" mt="md">
+        <Button component="a" href={libraryReturnPath()} mt="md">
           Return to library
         </Button>
       </main>
@@ -333,7 +334,7 @@ export function ComicReader({ id }) {
               <Tooltip label="Library" withArrow>
                 <ActionIcon
                   component="a"
-                  href="/"
+                  href={libraryReturnPath()}
                   variant="subtle"
                   size="lg"
                   aria-label="Back to library"
@@ -346,7 +347,7 @@ export function ComicReader({ id }) {
                   {document.title}
                 </Title>
                 <Text size="xs" c="dimmed" truncate>
-                  {document.edition || document.series}
+                  {document.series}
                 </Text>
               </div>
             </div>

@@ -171,7 +171,6 @@ def main():
                 added += 1
             except (KeyError, TypeError, ValueError) as e:
                 skipped.append(f"{page['id']} region {region.get('order')}: {e}")
-    comic["annotationMethod"] = f"{args.model} via OpenRouter"
     chapters = write_chapters(comic, comic["pages"], replies)
     temporary = args.document.with_name(args.document.name + ".tmp")
     save(temporary, document)

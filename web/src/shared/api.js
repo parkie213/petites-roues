@@ -1,3 +1,5 @@
+import { chunkSeparator } from "../player/languages.js";
+
 export async function request(url, options) {
   const response = await fetch(url, options);
   if (!response.ok) throw await responseError(response);
@@ -29,6 +31,10 @@ export function playerDocument(document) {
   const body = document?.video || document?.comic;
   if (!body) return document;
   const comic = Boolean(document.comic);
+  const separators = {
+    sourceSeparator: chunkSeparator(document.sourceLanguage),
+    translationSeparator: chunkSeparator(document.translationLanguage),
+  };
   return {
     ...document,
     ...body,
@@ -38,30 +44,36 @@ export function playerDocument(document) {
           readingDirection: body.readingDirection || "ltr",
           pages: (body.pages || []).map(({ boxes, ...page }) => page),
           boxes: (body.pages || []).flatMap((page) =>
-            (page.boxes || []).map((box, i) => comicBox(box, page.id, i + 1)),
+            (page.boxes || []).map((box, i) =>
+              comicBox(box, page.id, i + 1, separators),
+            ),
           ),
         }
-      : { cues: (body.cues || []).map(videoCue) }),
+      : { cues: (body.cues || []).map((cue) => videoCue(cue, separators)) }),
   };
 }
 
-/** A video cue in the flat view: its line's fields beside its timing. */
-function videoCue({ line, ...timing }) {
-  return { ...timing, ...line, source: line?.source || "" };
+/**
+ * A video cue in the flat view: its line's fields beside its timing, and the separators its
+ * phrase chunks join with (see `chunkSeparator`).
+ */
+function videoCue({ line, ...timing }, separators) {
+  return { ...timing, ...line, ...separators, source: line?.source || "" };
 }
 
 /**
  * A comic box in the flat view: one list for the whole comic, each box knowing its `pageId` and
  * its one-based `order` on that page (its position in the page's `boxes`). Each of its lines knows
- * its page and its box's `boxId`, so a selected line can find its box.
+ * its page and its box's `boxId`, so a selected line can find its box, and its chunk separators.
  */
-function comicBox({ lines, ...box }, pageId, order) {
+function comicBox({ lines, ...box }, pageId, order, separators) {
   return {
     ...box,
     pageId,
     order,
     lines: (lines || []).map((line) => ({
       ...line,
+      ...separators,
       source: line.source || "",
       pageId,
       boxId: box.id,
