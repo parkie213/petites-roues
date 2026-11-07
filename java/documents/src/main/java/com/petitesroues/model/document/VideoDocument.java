@@ -14,7 +14,8 @@ public record VideoDocument(
     Integer episode,
     String transcriptionMethod,
     Double durationSeconds,
-    List<VideoCue> cues) {
+    List<VideoCue> cues)
+    implements StudyBody {
   public VideoDocument {
     cues = list(cues);
   }

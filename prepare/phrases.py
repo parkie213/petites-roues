@@ -44,22 +44,20 @@ TEACHING GUIDE:
 
 
 def slim(cue):
-    study = cue["study"]
-    return {k: v for k, v in {"id": study["id"], "pageId": cue.get("pageId"), "source": study["source"],
-                              "translation": study.get("translation"),
-                              "continuesPrevious": study.get("continuesPrevious", False),
+    line = cue["line"]
+    return {k: v for k, v in {"id": line["id"], "pageId": cue.get("pageId"), "source": line["source"],
+                              "translation": line.get("translation"),
+                              "continuesPrevious": line.get("continuesPrevious", False),
                               "listeningCheck": cue.get("listeningCheck"),
-                              "textCheck": study.get("textCheck")}.items() if v is not None}
+                              "textCheck": line.get("textCheck")}.items() if v is not None}
 
 
-def annotate(study, answer):
+def annotate(line, answer):
     """Writes an answer's chunks and links into a cue, without link notes; notes.py later writes
     them and replaces the sentence notes."""
     a = answer["alignment"]
-    study.update(alignmentStale=False,
-                 alignment={"sourceText": study["source"], "translationText": study["translation"],
-                            "source": a["source"], "translation": a["translation"],
-                            "links": [{"source": l["source"], "translation": l["translation"]} for l in a["links"]]})
+    line["alignment"] = {"source": a["source"], "translation": a["translation"],
+                         "links": [{"source": l["source"], "translation": l["translation"]} for l in a["links"]]}
 
 
 def shape_errors(c):
@@ -153,11 +151,11 @@ def main():
                              + "; ".join(app.problems(title, document)[:5]))
         cues = batches.cues_of(document)
         listed = set(args.cues.read_text(encoding="utf-8").split()) if args.cues else None
-        if listed is not None and listed - {c["study"]["id"] for c in cues}:
-            raise SystemExit("Unknown cue IDs: " + ", ".join(sorted(listed - {c["study"]["id"] for c in cues})))
-        wanted = [i for i, c in enumerate(cues) if c["study"].get("translation") and (
-            c["study"]["id"] in listed if listed is not None else
-            args.all or not c["study"].get("alignment") or c["study"].get("alignmentStale"))]
+        if listed is not None and listed - {c["line"]["id"] for c in cues}:
+            raise SystemExit("Unknown cue IDs: " + ", ".join(sorted(listed - {c["line"]["id"] for c in cues})))
+        wanted = [i for i, c in enumerate(cues) if c["line"].get("translation") and (
+            c["line"]["id"] in listed if listed is not None else
+            args.all or not c["line"].get("alignment"))]
         batches.create(args.run_dir, document, raw, GUIDE.read_text(encoding="utf-8"), args.model, title,
                        wanted, args.batch, slim)
     manifest = load(args.run_dir / "manifest.json")

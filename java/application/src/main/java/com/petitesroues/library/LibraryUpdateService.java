@@ -1,8 +1,8 @@
 package com.petitesroues.library;
 
 import com.petitesroues.model.document.StudyDocument;
-import com.petitesroues.model.editing.ComicCueCreate;
-import com.petitesroues.model.editing.ComicCueUpdate;
+import com.petitesroues.model.editing.ComicBoxCreate;
+import com.petitesroues.model.editing.ComicBoxUpdate;
 import com.petitesroues.model.editing.ComicTextEdit;
 import com.petitesroues.model.editing.MergeCues;
 import com.petitesroues.model.editing.SplitCue;
@@ -62,22 +62,22 @@ public class LibraryUpdateService {
     return editing.deleteCue(titleId, cueId);
   }
 
-  public synchronized StudyDocument editComicText(String id, String cueId, ComicTextEdit edit)
+  public synchronized StudyDocument editComicText(String id, String lineId, ComicTextEdit edit)
       throws IOException {
-    return editing.editComicText(id, cueId, edit);
+    return editing.editComicText(id, lineId, edit);
   }
 
-  public synchronized StudyDocument createComicCue(String id, ComicCueCreate create)
+  public synchronized StudyDocument createComicBox(String id, ComicBoxCreate create)
       throws IOException {
-    return editing.createComicCue(id, create);
+    return editing.createComicBox(id, create);
   }
 
-  public synchronized StudyDocument placeComicCue(String id, String cueId, ComicCueUpdate update)
+  public synchronized StudyDocument placeComicBox(String id, String boxId, ComicBoxUpdate update)
       throws IOException {
-    return editing.placeComicCue(id, cueId, update);
+    return editing.placeComicBox(id, boxId, update);
   }
 
-  public synchronized StudyDocument deleteComicCue(String id, String cueId) throws IOException {
-    return editing.deleteComicCue(id, cueId);
+  public synchronized StudyDocument deleteComicBox(String id, String boxId) throws IOException {
+    return editing.deleteComicBox(id, boxId);
   }
 }

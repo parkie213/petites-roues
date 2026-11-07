@@ -28,15 +28,15 @@ public final class TestDocuments {
   }
 
   public static VideoCueEdit edit(VideoCue cue) {
-    var study = cue.study();
+    var line = cue.line();
     return new VideoCueEdit(
         cue.start(),
         cue.end(),
-        study.source(),
-        study.translation(),
-        study.notes(),
-        study.continuesPrevious(),
+        line.source(),
+        line.translation(),
+        line.notes(),
+        line.continuesPrevious(),
         cue.listeningCheck(),
-        study.textCheck());
+        line.textCheck());
   }
 }

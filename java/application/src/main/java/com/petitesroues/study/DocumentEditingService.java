@@ -2,10 +2,9 @@ package com.petitesroues.study;
 
 import com.petitesroues.library.LibraryUpdateService;
 import com.petitesroues.library.persistence.CatalogueStore;
-import com.petitesroues.model.document.ComicCue;
 import com.petitesroues.model.document.StudyDocument;
-import com.petitesroues.model.editing.ComicCueCreate;
-import com.petitesroues.model.editing.ComicCueUpdate;
+import com.petitesroues.model.editing.ComicBoxCreate;
+import com.petitesroues.model.editing.ComicBoxUpdate;
 import com.petitesroues.model.editing.ComicTextEdit;
 import com.petitesroues.model.editing.DocumentEdit;
 import com.petitesroues.model.editing.MergeCues;
@@ -79,7 +78,7 @@ public class DocumentEditingService {
     var selected = new HashSet<>(merge.ids());
     var ordered = new ArrayList<String>();
     for (var cue : served.document(entry(id)).video().cues())
-      if (selected.contains(cue.study().id())) ordered.add(cue.study().id());
+      if (selected.contains(cue.line().id())) ordered.add(cue.line().id());
     if (ordered.size() != merge.ids().size()) ordered = new ArrayList<>(merge.ids());
     return record(id, new DocumentEdit.MergeVideoCues(List.copyOf(ordered)));
   }
@@ -88,40 +87,26 @@ public class DocumentEditingService {
     return record(id, new DocumentEdit.DeleteVideoCue(cueId));
   }
 
-  public StudyDocument editComicText(String id, String cueId, ComicTextEdit edit)
+  public StudyDocument editComicText(String id, String lineId, ComicTextEdit edit)
       throws IOException {
-    return record(id, new DocumentEdit.EditComicText(cueId, edit));
+    return record(id, new DocumentEdit.EditComicText(lineId, edit));
   }
 
-  /** New bubbles get page-NNN-bubble-MM IDs from their page position and next reading order. */
-  public StudyDocument createComicCue(String id, ComicCueCreate create) throws IOException {
-    if (create == null || create.pageId() == null)
-      throw new IllegalArgumentException("Page and one region are required");
-    var document = served.document(entry(id));
-    if (!document.hasComic())
-      throw new IllegalArgumentException("This operation requires a comic document");
-    int position = DocumentEdits.pagePosition(document, create.pageId());
-    int order =
-        document.comic().cues().stream()
-                .filter(cue -> cue.pageId().equals(create.pageId()))
-                .mapToInt(ComicCue::order)
-                .max()
-                .orElse(0)
-            + 1;
-    var used = document.comic().cues().stream().map(c -> c.study().id()).toList();
-    String base = "page-%03d-bubble-%02d".formatted(position, order);
-    String cueId = base;
-    for (int suffix = 2; used.contains(cueId); suffix++) cueId = base + "-" + suffix;
-    return record(id, new DocumentEdit.CreateComicCue(cueId, create));
+  /** Adds a box with fresh UUIDs for the box and the one line it starts with. */
+  public StudyDocument createComicBox(String id, ComicBoxCreate create) throws IOException {
+    return record(
+        id,
+        new DocumentEdit.CreateComicBox(
+            UUID.randomUUID().toString(), UUID.randomUUID().toString(), create));
   }
 
-  public StudyDocument placeComicCue(String id, String cueId, ComicCueUpdate update)
+  public StudyDocument placeComicBox(String id, String boxId, ComicBoxUpdate update)
       throws IOException {
-    return record(id, new DocumentEdit.PlaceComicCue(cueId, update));
+    return record(id, new DocumentEdit.PlaceComicBox(boxId, update));
   }
 
-  public StudyDocument deleteComicCue(String id, String cueId) throws IOException {
-    return record(id, new DocumentEdit.DeleteComicCue(cueId));
+  public StudyDocument deleteComicBox(String id, String boxId) throws IOException {
+    return record(id, new DocumentEdit.DeleteComicBox(boxId));
   }
 
   /** Applies the edit to the served document and queues it unless it changes nothing. */

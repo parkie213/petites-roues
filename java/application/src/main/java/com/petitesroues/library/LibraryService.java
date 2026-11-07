@@ -67,8 +67,8 @@ public class LibraryService {
   /** Loads a video for subtitle operations; comic documents cannot be edited as timed cues. */
   public StudyDocument videoDocument(String id) throws IOException {
     var document = document(id);
-    if (document.hasVideo()) return document;
-    throw new IllegalArgumentException("This operation requires a video document");
+    document.video();
+    return document;
   }
 
   /**

@@ -3,7 +3,9 @@ package com.petitesroues.android.library
 import android.content.ContentResolver
 import android.net.Uri
 import com.petitesroues.documents.StudyDocumentReader
+import com.petitesroues.model.document.ComicDocument
 import com.petitesroues.model.document.StudyDocument
+import com.petitesroues.model.document.VideoDocument
 
 /**
  * Builds the phone's library from the chosen content folders and opens title documents. Refresh is
@@ -65,7 +67,9 @@ class LibraryService(
   private fun index(found: TitleScanner.Found, problems: MutableList<Problem>): Title? =
     try {
       val document = read(found.document)
-      val kind = if (document.hasComic()) TitleKind.COMIC else TitleKind.VIDEO
+      val video = document.body() as? VideoDocument
+      val comic = document.body() as? ComicDocument
+      val kind = if (comic != null) TitleKind.COMIC else TitleKind.VIDEO
       val media = TitleMedia.select(found.siblings.keys.toList(), kind)
       Title(
         path = found.path,
@@ -76,12 +80,12 @@ class LibraryService(
         mediaUri = media?.let(found.siblings::get),
         documentId = document.id(),
         edition = document.edition(),
-        season = document.video()?.season(),
-        episode = document.video()?.episode(),
-        volume = document.comic()?.volume(),
+        season = video?.season(),
+        episode = video?.episode(),
+        volume = comic?.volume(),
         poster = found.poster,
         seriesPoster = found.seriesPoster,
-        firstPage = document.comic()?.pages()?.firstOrNull()?.entry(),
+        firstPage = comic?.pages()?.firstOrNull()?.entry(),
       )
     } catch (failure: Exception) {
       problems += Problem(found.path, failure.message ?: failure.toString())

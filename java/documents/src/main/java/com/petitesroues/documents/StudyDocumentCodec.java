@@ -67,8 +67,12 @@ public final class StudyDocumentCodec {
     try {
       return MAPPER.readValue(bytes, StudyDocument.class);
     } catch (JacksonException failure) {
-      throw new IllegalArgumentException(
-          "Invalid study document: " + failure.getOriginalMessage(), failure);
+      // A record that rejects its values (such as a missing body) says why in its own words.
+      String reason =
+          failure.getCause() instanceof IllegalArgumentException rejected
+              ? rejected.getMessage()
+              : failure.getOriginalMessage();
+      throw new IllegalArgumentException("Invalid study document: " + reason, failure);
     }
   }
 }

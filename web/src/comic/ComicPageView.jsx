@@ -4,12 +4,17 @@ import { pageLayout, regionFromDrag, clampRegion } from "./annotations.js";
 import { ComicBubblePopover } from "./ComicBubblePopover.jsx";
 
 const HOVER_CLOSE_DELAY = 180;
+// While a card is open, another box must be rested on this long to take over, so the pointer
+// can cross neighbouring boxes on its way into the open card.
+const HOVER_SWITCH_DELAY = 250;
 
 /**
  * Shows one page or a two-page spread in a shared scrolling viewport. Bubble regions are
  * invisible hit areas unless debug or annotate mode outlines them; hovering opens a bubble's
  * study card (when cards are enabled) and selects it for the study panel; clicking pins the
- * bubble until it is dismissed.
+ * bubble until it is dismissed. Hovering another box while a card is open switches only after a
+ * short rest, and reaching the open card cancels the switch. A text block's card steps through or
+ * lists its lines, as `blockMode` chooses. `selectedId` is a line; boxes are keyed by their own id.
  */
 export function ComicPageView({
   document,
@@ -17,13 +22,15 @@ export function ComicPageView({
   api,
   zoom,
   scale,
-  cues,
+  boxes,
   rtl,
   selectedId,
   onSelect,
   onLoaded,
   debug,
   cards,
+  blockMode,
+  onBlockMode,
   editing,
   annotate,
   onDraw,
@@ -32,6 +39,7 @@ export function ComicPageView({
   const viewport = useRef(null);
   const [area, setArea] = useState({ width: 0, height: 0 });
   const [bubble, setBubble] = useState(null);
+  // The pending hover change: closing the open card, or switching it to another box.
   const closeTimer = useRef(null);
   useEffect(() => {
     const observer = new ResizeObserver(([entry]) =>
@@ -63,12 +71,17 @@ export function ComicPageView({
   const interactive = !annotate && !editing;
   const bubbles = {
     current: bubble,
-    hover(id) {
+    hover(id, lineId) {
       clearTimeout(closeTimer.current);
       // A pinned bubble keeps the study panel too, so crossing the page doesn't change it.
       if (bubble?.pinned) return;
-      setBubble({ id, pinned: false });
-      onSelect(id);
+      const open = () => {
+        setBubble({ id, pinned: false });
+        onSelect(lineId);
+      };
+      if (cards && bubble && bubble.id !== id)
+        closeTimer.current = setTimeout(open, HOVER_SWITCH_DELAY);
+      else open();
     },
     leave() {
       clearTimeout(closeTimer.current);
@@ -77,12 +90,12 @@ export function ComicPageView({
         HOVER_CLOSE_DELAY,
       );
     },
-    pin(id) {
+    pin(id, lineId) {
       clearTimeout(closeTimer.current);
       setBubble((open) =>
         open?.pinned && open.id === id ? null : { id, pinned: true },
       );
-      onSelect(id);
+      onSelect(lineId);
     },
     dismiss() {
       clearTimeout(closeTimer.current);
@@ -124,8 +137,8 @@ export function ComicPageView({
             height={area.height}
             zoom={zoom}
             scale={scale}
-            cues={cues.filter((cue) => cue.pageId === page.id)}
-            numbers={cues}
+            boxes={boxes.filter((box) => box.pageId === page.id)}
+            numbers={boxes}
             selectedId={selectedId}
             onLoaded={slot === 0 ? onLoaded : undefined}
             outlined={debug || annotate}
@@ -133,6 +146,8 @@ export function ComicPageView({
             annotate={annotate}
             bubbles={interactive ? bubbles : null}
             cards={cards}
+            blockMode={blockMode}
+            onBlockMode={onBlockMode}
             onSelect={onSelect}
             onDraw={(region) => onDraw?.(region, page.id)}
             onPlacement={onPlacement}
@@ -152,7 +167,7 @@ function ComicPage({
   height,
   zoom,
   scale,
-  cues,
+  boxes,
   numbers,
   selectedId,
   onLoaded,
@@ -161,6 +176,8 @@ function ComicPage({
   annotate,
   bubbles,
   cards,
+  blockMode,
+  onBlockMode,
   onSelect,
   onDraw,
   onPlacement,
@@ -215,7 +232,7 @@ function ComicPage({
     window.addEventListener("pointerup", up);
   }
 
-  function startMove(event, cue, region, corner) {
+  function startMove(event, box, region, corner) {
     if (!annotate || editing || event.button !== 0) return;
     event.preventDefault();
     event.stopPropagation();
@@ -251,21 +268,24 @@ function ComicPage({
       window.removeEventListener("pointermove", move);
       window.removeEventListener("pointerup", up);
       setDragBox(null);
-      if (updated) onPlacement?.(cue, [updated]);
+      if (updated) onPlacement?.(box, [updated]);
     };
     window.addEventListener("pointermove", move);
     window.addEventListener("pointerup", up);
   }
 
-  function region(cue, region, r) {
-    const number = numbers.indexOf(cue) + 1;
-    const isSelected = cue.id === selectedId;
-    const isOpen = bubbles?.current?.id === cue.id;
+  function region(box, region, r) {
+    const number = numbers.indexOf(box) + 1;
+    const selectedLine = box.lines.find((line) => line.id === selectedId);
+    const isSelected = Boolean(selectedLine);
+    // The line the box selects: a block keeps its current sentence, arriving fresh at the first.
+    const lineId = (selectedLine || box.lines[0]).id;
+    const isOpen = bubbles?.current?.id === box.id;
     const dragging = !draft && dragBox && isSelected;
-    const box = dragging ? dragBox : region;
+    const rect = dragging ? dragBox : region;
     const button = (
       <button
-        key={cue.id + ":" + r}
+        key={box.id + ":" + r}
         className={
           "comic-region" +
           (outlined ? " is-outlined" : "") +
@@ -273,28 +293,32 @@ function ComicPage({
           (isSelected && outlined ? " is-selected" : "") +
           (annotate ? " is-annotate" : "")
         }
-        aria-label={`Bubble ${number}: ${cue.source || "text pending"}`}
+        aria-label={
+          box.lines.length > 1
+            ? `Text block ${number}: ${box.lines.length} sentences`
+            : `Bubble ${number}: ${box.lines[0].source || "text pending"}`
+        }
         aria-expanded={bubbles ? isOpen : undefined}
         aria-pressed={annotate ? isSelected : undefined}
         disabled={editing}
         style={{
-          left: `${box.x * 100}%`,
-          top: `${box.y * 100}%`,
-          width: `${box.width * 100}%`,
-          height: `${box.height * 100}%`,
+          left: `${rect.x * 100}%`,
+          top: `${rect.y * 100}%`,
+          width: `${rect.width * 100}%`,
+          height: `${rect.height * 100}%`,
         }}
         onClick={() => {
           if (draft) return;
-          if (bubbles) bubbles.pin(cue.id);
-          else onSelect(cue.id);
+          if (bubbles) bubbles.pin(box.id, lineId);
+          else onSelect(lineId);
         }}
         onPointerEnter={(event) =>
-          event.pointerType === "mouse" && bubbles?.hover(cue.id)
+          event.pointerType === "mouse" && bubbles?.hover(box.id, lineId)
         }
         onPointerLeave={(event) =>
           event.pointerType === "mouse" && bubbles?.leave()
         }
-        onPointerDown={(event) => startMove(event, cue, region)}
+        onPointerDown={(event) => startMove(event, box, region)}
       >
         {outlined && <span aria-hidden="true">{number}</span>}
         {annotate &&
@@ -309,23 +333,27 @@ function ComicPage({
                 [corner[0] === "n" ? "top" : "bottom"]: -6,
                 [corner[1] === "w" ? "left" : "right"]: -6,
               }}
-              onPointerDown={(event) => startMove(event, cue, region, corner)}
+              onPointerDown={(event) => startMove(event, box, region, corner)}
             />
           ))}
       </button>
     );
-    // The card anchors to the cue's first region only, so split bubbles open one card.
+    // The card anchors to the box's first region only, so split bubbles open one card.
     if (!bubbles || !cards || r > 0) return button;
     return (
       <ComicBubblePopover
-        key={cue.id + ":" + r}
-        cue={cue}
+        key={box.id + ":" + r}
+        box={box}
+        selectedId={selectedId}
+        blockMode={blockMode}
+        onBlockMode={onBlockMode}
+        onSelect={onSelect}
         document={document}
         number={number}
         opened={isOpen}
         onDismiss={bubbles.dismiss}
-        onKeep={() => bubbles.keep(cue.id)}
-        onPointerEnter={() => bubbles.hover(cue.id)}
+        onKeep={() => bubbles.keep(box.id)}
+        onPointerEnter={() => bubbles.hover(box.id, lineId)}
         onPointerLeave={(event) =>
           event.pointerType === "mouse" && bubbles.leave()
         }
@@ -390,7 +418,7 @@ function ComicPage({
           }}
         />
         {loaded &&
-          cues.flatMap((cue) => cue.regions.map((r, i) => region(cue, r, i)))}
+          boxes.flatMap((box) => box.regions.map((r, i) => region(box, r, i)))}
         {dragBox && draft && (
           <div
             className="comic-region comic-draft-box"

@@ -4,6 +4,7 @@ import static com.petitesroues.support.DocumentFixtures.document;
 import static com.petitesroues.support.SpecFixtures.*;
 import static org.junit.jupiter.api.Assertions.*;
 
+import com.petitesroues.model.document.ComicDocument;
 import com.petitesroues.model.document.StudyDocument;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
@@ -26,7 +27,7 @@ class StudyDocumentReaderTest {
       try (var input = getClass().getResourceAsStream("/documents/" + type + ".json")) {
         var loaded = reader.decode(input.readAllBytes());
         assertEquals(loaded, roundTrip(loaded));
-        assertEquals(type.equals("comic"), loaded.hasComic());
+        assertEquals(type.equals("comic"), loaded.body() instanceof ComicDocument);
       }
     }
   }
@@ -39,7 +40,7 @@ class StudyDocumentReaderTest {
     assertTrue(json.contains("\"notes\": [\n            \"A greeting.\"\n          ]"));
     assertTrue(json.endsWith("}\n"));
     assertFalse(json.contains("\"series\""), "absent optional fields are omitted");
-    assertTrue(json.contains("\"alignmentStale\": false"), "booleans are always written");
+    assertTrue(json.contains("\"continuesPrevious\": false"), "booleans are always written");
   }
 
   @Test
@@ -52,18 +53,17 @@ class StudyDocumentReaderTest {
                       v.withCue(
                           0,
                           c ->
-                              c.withTiming(0.0, .9)
-                                  .withStudy(s -> s.withTranslation(translation))));
+                              c.withTiming(0.0, .9).withLine(s -> s.withTranslation(translation))));
       var loaded = roundTrip(doc);
-      assertEquals(translation, loaded.video().cues().getFirst().study().translation());
+      assertEquals(translation, loaded.video().cues().getFirst().line().translation());
       assertEquals(0, loaded.video().cues().getFirst().start());
     }
   }
 
   @Test
-  void rejectsMissingTimingStudyBodyUnknownFieldsAndLegacyDocuments() {
+  void rejectsMissingTimingLineBodyUnknownFieldsAndLegacyDocuments() {
     var json = mapper.readTree(codec.encode(document("example")));
-    for (String field : new String[] {"start", "end", "study"}) {
+    for (String field : new String[] {"start", "end", "line"}) {
       var changed = json.deepCopy();
       ((ObjectNode) changed.path("video").path("cues").get(0)).remove(field);
       assertThrows(
@@ -93,8 +93,6 @@ class StudyDocumentReaderTest {
             List.of("ko", "fr", "저는 사과를 먹어요.", "Je mange une pomme."))) {
       var alignment =
           newAlignment(
-              pair.get(2),
-              pair.get(3),
               List.of(pair.get(2)),
               List.of(pair.get(3)),
               List.of(newLink(List.of(0), List.of(0), "Meaning")));
@@ -107,7 +105,7 @@ class StudyDocumentReaderTest {
                           0,
                           c ->
                               c.withListeningCheck("Keep unresolved evidence")
-                                  .withStudy(
+                                  .withLine(
                                       s ->
                                           s.withSource(pair.get(2))
                                               .withTranslation(pair.get(3))
@@ -115,21 +113,20 @@ class StudyDocumentReaderTest {
       var json = codec.encode(doc);
       assertEquals(doc, reader.decode(json.getBytes(StandardCharsets.UTF_8)));
       assertFalse(mapper.readTree(json).has("format"));
-      var stale =
-          doc.withVideo(v -> v.withCue(0, c -> c.withStudy(s -> s.withAlignmentStale(true))));
-      assertThrows(IllegalArgumentException.class, () -> codec.encode(stale));
+      var reworded = doc.withVideo(v -> v.withCue(0, c -> c.withLine(s -> s.withSource("Autre"))));
+      assertThrows(IllegalArgumentException.class, () -> codec.encode(reworded));
     }
   }
 
   @Test
   void sortsVideoCuesWithoutDetachingAnnotations() {
     var original = document("example").video().cues().getFirst();
-    var early = original.withStudy(s -> s.withId("early"));
+    var early = original.withLine(s -> s.withId("early"));
     var doc =
         document("example")
             .withVideo(v -> v.withCues(List.of(original.withTiming(4.0, 5.0), early)));
     var loaded = roundTrip(doc);
-    assertEquals("early", loaded.video().cues().getFirst().study().id());
-    assertEquals(original.study().notes(), loaded.video().cues().getFirst().study().notes());
+    assertEquals("early", loaded.video().cues().getFirst().line().id());
+    assertEquals(original.line().notes(), loaded.video().cues().getFirst().line().notes());
   }
 }

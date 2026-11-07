@@ -3,7 +3,7 @@ package com.petitesroues.documents;
 import static com.petitesroues.support.SpecFixtures.*;
 import static org.junit.jupiter.api.Assertions.*;
 
-import com.petitesroues.model.document.StudyCue;
+import com.petitesroues.model.document.Line;
 import com.petitesroues.model.document.StudyDocument;
 import com.petitesroues.model.document.VideoCue;
 import com.petitesroues.model.document.VideoDocument;
@@ -11,10 +11,10 @@ import java.util.List;
 import org.junit.jupiter.api.Test;
 
 class StudyDocumentValidatorTest {
-  private static final VideoCue CUE = new VideoCue(StudyCue.of("cue-a", "Bonjour"), 0.0, 1.0, null);
+  private static final VideoCue CUE = new VideoCue(Line.of("cue-a", "Bonjour"), 0.0, 1.0, null);
 
   private static StudyDocument document(VideoDocument video) {
-    return new StudyDocument("example", "Example", "fr", "en", "en", null, null, null, video, null);
+    return new StudyDocument("example", "Example", "fr", "en", "en", null, null, null, video);
   }
 
   private static StudyDocument document(VideoCue... cues) {
@@ -23,6 +23,26 @@ class StudyDocumentValidatorTest {
 
   private static void invalid(StudyDocument document) {
     assertThrows(IllegalArgumentException.class, () -> StudyDocumentValidator.validate(document));
+  }
+
+  @Test
+  void aDocumentHasExactlyOneBodyUnderItsKind() {
+    var codec = new StudyDocumentCodec();
+    String metadata =
+        "\"id\": \"x\", \"title\": \"X\", \"sourceLanguage\": \"fr\","
+            + " \"translationLanguage\": \"en\", \"notesLanguage\": \"en\"";
+    String video = "\"video\": {\"cues\": []}";
+    String comic = "\"comic\": {\"pages\": [{\"id\": \"p\", \"entry\": \"001.jpg\"}]}";
+    for (String body : new String[] {"", ", " + video + ", " + comic})
+      assertEquals(
+          List.of("Invalid study document: Exactly one video or comic body is required"),
+          codec.problems(("{" + metadata + body + "}").getBytes()));
+    for (String body : new String[] {video, comic}) {
+      String encoded = codec.encode(codec.decode(("{" + metadata + ", " + body + "}").getBytes()));
+      assertTrue(encoded.contains("\"" + body.substring(1, 6) + "\": {"), encoded);
+      assertFalse(encoded.contains("\"body\""), encoded);
+    }
+    assertThrows(IllegalArgumentException.class, () -> document((VideoDocument) null));
   }
 
   @Test
@@ -41,19 +61,17 @@ class StudyDocumentValidatorTest {
   @Test
   void problemsListsEachInvalidCueAndPhrasesBelongToOneLink() {
     var shared =
-        CUE.withStudy(
-            StudyCue.of("cue-a", "Range-le")
+        CUE.withLine(
+            Line.of("cue-a", "Range-le")
                 .withTranslation("Put it away")
                 .withAlignment(
                     newAlignment(
-                        "Range-le",
-                        "Put it away",
                         List.of("Range-le"),
                         List.of("Put", "it", "away"),
                         List.of(
                             newLink(List.of(0), List.of(0, 2), "Put away"),
                             newLink(List.of(0), List.of(1, 2), "it")))));
-    var late = new VideoCue(StudyCue.of("cue-b", "Oui"), 3.0, 2.0, null);
+    var late = new VideoCue(Line.of("cue-b", "Oui"), 3.0, 2.0, null);
     var document = document(shared, late);
 
     assertEquals(

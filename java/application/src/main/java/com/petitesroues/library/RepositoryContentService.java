@@ -3,7 +3,9 @@ package com.petitesroues.library;
 import com.petitesroues.documents.StudyDocumentReader;
 import com.petitesroues.library.persistence.CatalogueStore;
 import com.petitesroues.library.persistence.ContentRepositoryStore;
+import com.petitesroues.model.document.ComicDocument;
 import com.petitesroues.model.document.StudyDocument;
+import com.petitesroues.model.document.VideoDocument;
 import com.petitesroues.model.library.CatalogueEntry;
 import com.petitesroues.model.library.CatalogueLocation;
 import java.io.IOException;
@@ -86,6 +88,8 @@ public class RepositoryContentService {
     if (!file.startsWith(root))
       throw new IllegalArgumentException("Document is outside its owning repository");
     String storedPath = root.relativize(file).toString().replace('\\', '/');
+    var video = document.body() instanceof VideoDocument v ? v : null;
+    var comic = document.body() instanceof ComicDocument c ? c : null;
     var location =
         new CatalogueLocation(
             repositoryId,
@@ -93,17 +97,17 @@ public class RepositoryContentService {
             root.toString(),
             false,
             document.edition(),
-            document.hasVideo() ? document.video().durationSeconds() : null,
-            document.hasVideo() ? "video" : "comic");
+            video == null ? null : video.durationSeconds(),
+            video == null ? "comic" : "video");
     var entry =
         new CatalogueEntry(
             entryId,
             document.id(),
             document.title(),
             document.series(),
-            document.hasVideo() ? document.video().season() : null,
-            document.hasVideo() ? document.video().episode() : null,
-            document.hasComic() ? document.comic().volume() : null,
+            video == null ? null : video.season(),
+            video == null ? null : video.episode(),
+            comic == null ? null : comic.volume(),
             document.sourceUrl(),
             storedPath,
             location);

@@ -2,7 +2,7 @@ package com.petitesroues.android.study
 
 import com.petitesroues.android.cue
 import com.petitesroues.android.weather
-import com.petitesroues.model.document.StudyCue
+import com.petitesroues.model.document.Line
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertSame
@@ -14,10 +14,9 @@ class AlignmentTest {
     val alignment = weather()
     assertSame(alignment, readyAlignment(cue("a", "Il fait beau", "The weather is nice", alignment)))
     assertNull(readyAlignment(cue("a", "Il fait froid", "The weather is nice", alignment)))
-    assertNull(readyAlignment(cue("a", "Il fait beau", "The weather is nice", alignment, stale = true)))
     assertNull(readyAlignment(cue("a", "Il fait beau", "The weather is nice")))
     // Untranslated lines have a null translation; they show as plain text, never crash.
-    assertNull(readyAlignment(StudyCue("a", "Il fait beau", null, listOf(), alignment, false, false, null)))
+    assertNull(readyAlignment(Line("a", "Il fait beau", null, listOf(), alignment, false, null)))
   }
 
   @Test

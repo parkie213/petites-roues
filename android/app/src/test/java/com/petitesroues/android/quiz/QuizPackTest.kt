@@ -4,12 +4,12 @@ import com.petitesroues.android.cue
 import com.petitesroues.android.pages.MarkdownPage
 import com.petitesroues.android.weather
 import com.petitesroues.model.document.ComicChapter
-import com.petitesroues.model.document.ComicCue
+import com.petitesroues.model.document.ComicBox
 import com.petitesroues.model.document.ComicDocument
 import com.petitesroues.model.document.ComicPage
 import com.petitesroues.model.document.ComicRegion
 import com.petitesroues.model.document.ReadingDirection
-import com.petitesroues.model.document.StudyCue
+import com.petitesroues.model.document.Line
 import com.petitesroues.model.document.StudyDocument
 import com.petitesroues.model.document.VideoCue
 import com.petitesroues.model.document.VideoDocument
@@ -19,10 +19,10 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class QuizPackTest {
-  private fun at(start: Double, study: StudyCue) = VideoCue(study, start, start + 2, null)
+  private fun at(start: Double, line: Line) = VideoCue(line, start, start + 2, null)
 
   private fun document(cues: List<VideoCue>) =
-    StudyDocument("film", "Le Film", "fr", "en", "en", null, null, null, VideoDocument(null, null, null, null, cues), null)
+    StudyDocument("film", "Le Film", "fr", "en", "en", null, null, null, VideoDocument(null, null, null, null, cues))
 
   private fun build(cues: List<VideoCue>, current: Int) =
     QuizPack.build("# Subtitle quiz agent\n\nRules.", document(cues), cues, current)
@@ -31,7 +31,7 @@ class QuizPackTest {
   fun carriesTheRulesAndWatchedLinesWithTheirTranslations() {
     val cues =
       listOf(
-        at(10.0, StudyCue("a", "Il fait beau", "The weather is nice", listOf("Weather uses faire."), weather(), false, false, null)),
+        at(10.0, Line("a", "Il fait beau", "The weather is nice", listOf("Weather uses faire."), weather(), false, null)),
         at(70.0, cue("b", "Pas encore vu", "Not seen yet")),
       )
     val pack = build(cues, current = 0)
@@ -56,24 +56,18 @@ class QuizPackTest {
 
   @Test
   fun aChapterBriefCarriesItsBubblesInReadingOrder() {
-    val pages = listOf("cover", "a1", "a2", "b1").map { ComicPage(it, "$it.png", null) }
-    val bubble = { page: String, order: Int, study: StudyCue -> ComicCue(study, page, order, listOf(ComicRegion(0.1, 0.1, 0.2, 0.2))) }
-    val comic =
-      ComicDocument(
-        null,
-        ReadingDirection.RTL,
-        null,
-        pages,
-        listOf(ComicChapter(1, "Cruauté", "a1"), ComicChapter(2, "Inconnu", "b1")),
-        listOf(
-          bubble("a2", 2, cue("w", "Je te sauverai !", "I'll save you!")),
-          bubble("a2", 1, StudyCue("n", "Nezuko…", "", listOf("A name called out."), null, false, false, null)),
-          bubble("a1", 1, cue("c", "C'est un cauchemar !")),
-          bubble("cover", 1, cue("t", "Demon Slayer")),
-          bubble("b1", 1, cue("e", "Excusez-moi…")),
-        ),
+    val bubble = { line: Line -> ComicBox("box-${line.id()}", listOf(ComicRegion(0.1, 0.1, 0.2, 0.2)), listOf(line)) }
+    val page = { id: String, lines: List<Line> -> ComicPage(id, "$id.png", null, lines.map(bubble)) }
+    val pages =
+      listOf(
+        page("cover", listOf(cue("t", "Demon Slayer"))),
+        page("a1", listOf(cue("c", "C'est un cauchemar !"))),
+        page("a2", listOf(Line("n", "Nezuko…", "", listOf("A name called out."), null, false, null), cue("w", "Je te sauverai !", "I'll save you!"))),
+        page("b1", listOf(cue("e", "Excusez-moi…"))),
       )
-    val document = StudyDocument("t1", "Demon Slayer — Tome 1", "fr", "en", "en", null, null, null, null, comic)
+    val comic =
+      ComicDocument(null, ReadingDirection.RTL, null, pages, listOf(ComicChapter(1, "Cruauté", "a1"), ComicChapter(2, "Inconnu", "b1")))
+    val document = StudyDocument("t1", "Demon Slayer — Tome 1", "fr", "en", "en", null, null, null, comic)
     val pack = QuizPack.chapter("# Subtitle quiz agent\n\nRules.", document, comic, 0)
     assertTrue(pack.startsWith("# Chapter quiz: Demon Slayer — Tome 1, chapter 1 · Cruauté\n"))
     assertTrue("## Bubbles in chapter 1 · Cruauté (pages 2–3)\n\nPick items from all over these lines, in a mixed order" in pack)

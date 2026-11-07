@@ -18,6 +18,7 @@ import argparse
 import re
 from pathlib import Path
 
+from batches import cues_of
 from openrouter import load, save
 
 
@@ -35,8 +36,8 @@ def pattern(spellings):
     return re.compile(rf"(?<!\w)(?:{words})(?!\w)"), variants
 
 
-def annotated(study):
-    return bool(study.get("translation") or study.get("notes") or study.get("alignment"))
+def annotated(line):
+    return bool(line.get("translation") or line.get("notes") or line.get("alignment"))
 
 
 def main():
@@ -46,21 +47,20 @@ def main():
     parser.add_argument("--dry-run", action="store_true", help="print the changes without writing")
     args = parser.parse_args()
     document = load(args.document)
-    body = document.get("video") or document.get("comic")
-    if body is None:
+    if not (document.get("video") or document.get("comic")):
         raise SystemExit("Not a video or comic document")
     names, variants = pattern(load(args.spellings))
     changed, skipped = 0, []
-    for cue in body.get("cues") or []:
-        study = cue["study"]
-        corrected = names.sub(lambda m: variants[m.group()], study.get("source", ""))
-        if corrected == study.get("source", ""):
+    for cue in cues_of(document):
+        line = cue["line"]
+        corrected = names.sub(lambda m: variants[m.group()], line.get("source", ""))
+        if corrected == line.get("source", ""):
             continue
-        if annotated(study):
-            skipped.append(study["id"])
+        if annotated(line):
+            skipped.append(line["id"])
             continue
-        print(f"{study['id']}: {study['source']}\n{' ' * len(study['id'])}→ {corrected}")
-        study["source"] = corrected
+        print(f"{line['id']}: {line['source']}\n{' ' * len(line['id'])}→ {corrected}")
+        line["source"] = corrected
         changed += 1
     if skipped:
         print(f"Skipped {len(skipped)} annotated cues; correct them in the player: {', '.join(skipped)}")

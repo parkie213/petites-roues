@@ -68,7 +68,7 @@ class ApplicationConcurrencyTest {
   void simultaneousEditsToDifferentCuesBothSurvive() throws Exception {
     var title = document("two-edits");
     var first = title.video().cues().getFirst();
-    var second = first.withTiming(2.0, 3.0).withStudy(s -> s.withId("second-cue"));
+    var second = first.withTiming(2.0, 3.0).withLine(s -> s.withId("second-cue"));
     registerTitle(title.withVideo(v -> v.withCues(List.of(first, second))));
 
     overlap(
@@ -81,9 +81,9 @@ class ApplicationConcurrencyTest {
     assertEquals(2.3, saved.video().cues().get(1).start());
     assertEquals(2.8, saved.video().cues().get(1).end());
     for (var cue : saved.video().cues()) {
-      assertEquals("Bonjour !", cue.study().source());
-      assertEquals("Hello!", cue.study().translation());
-      assertEquals(List.of("A greeting."), cue.study().notes());
+      assertEquals("Bonjour !", cue.line().source());
+      assertEquals("Hello!", cue.line().translation());
+      assertEquals(List.of("A greeting."), cue.line().notes());
     }
   }
 

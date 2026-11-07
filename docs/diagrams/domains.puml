@@ -1,0 +1,30 @@
+@startuml
+skinparam shadowing false
+skinparam defaultFontName sans-serif
+skinparam rectangleBorderColor #555555
+skinparam packageBorderColor #888888
+skinparam ArrowColor #444444
+left to right direction
+
+actor Learner
+actor "Agent" as Agent
+
+package "Portable — the same on every machine\n(content repository, Git)" as portable {
+  rectangle "Study documents\n<i>document.json</i>" as Documents
+}
+
+package "Local — this machine only\n(SQLite and files beside documents)" as local {
+  rectangle "Library\n<i>repositories, titles, media</i>" as Library
+  rectangle "Editing\n<i>review queue of edit commands</i>" as Editing
+  rectangle "Progress\n<i>resume positions</i>" as Progress
+}
+
+Library --> Documents : indexes (read only)
+Editing --> Documents : replays pending edits\nover the file when served
+Agent --> Documents : the only writer
+Agent --> Editing : claims and completes\nreview batches
+Learner --> Editing : edits, comments
+Learner --> Progress : reads and watches
+Progress --> Library : keyed by title
+Editing --> Library : keyed by title
+@enduml

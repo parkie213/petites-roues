@@ -129,7 +129,7 @@ reads the pages instead:
    opens, minus its printed page.
 3. Look at every predicted first page (printed page + offset) and confirm it shows that
    chapter's heading; scans can add or drop pages, so re-measure the offset where one doesn't.
-4. Write the list between `pages` and `cues`, check it with `POST /api/titles/{id}/validate`,
+4. Write the list after `pages`, check it with `POST /api/titles/{id}/validate`,
    and commit the documents.
 
 ## Annotate in three stages
@@ -179,7 +179,7 @@ python3 prepare/phrases.py --document content/my-title/document.json \
 
 With each translation fixed, the model divides the line into chunks and links them to the
 English, following the guide's *Chunking* and *Links* sections. By default it handles translated
-cues with no breakdown or a stale one; `--all` redoes every translated cue. A chunk of seven or
+cues with no breakdown; `--all` redoes every translated cue. A chunk of seven or
 more words is sent back once, asking for a split at a clause or adverbial boundary, or for it to
 stay whole only when the English wraps around it. A long chunk that survives is named in that
 cue's review request.

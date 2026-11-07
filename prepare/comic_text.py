@@ -3,9 +3,9 @@
 
   comic_text.py --document content/my-comic/document.json --run-dir DIR [--pages 9-11]
 
-Reads the CBZ beside the document. Pages that already have cues are left alone. Several pages
+Reads the CBZ beside the document. Pages that already have boxes are left alone. Several pages
 go into each request; every request and response is saved per batch in the run directory, and
-rerunning the same command resumes, skipping answered batches. Adds one cue per text
+rerunning the same command resumes, skipping answered batches. Adds one box per text
 region to the document in place.
 
 The model also flags pages that open a chapter and copies any table of contents. Once the run
@@ -16,6 +16,7 @@ the document's chapters are left alone; existing chapters are never replaced.
 """
 import argparse
 import base64
+import uuid
 import zipfile
 from pathlib import Path
 
@@ -38,15 +39,16 @@ def page_range(value, total):
     return range(first - 1, last)
 
 
-def to_cue(page_id, n, region):
+def to_box(region):
     left, top, right, bottom = (min(max(v / 1000, 0.0), 1.0) for v in region["box"])
     if right <= left or bottom <= top:
         raise ValueError("empty box")
-    study = {"id": f"{page_id}-{n:02}", "source": region.get("text", "").strip()}
-    if region.get("uncertain") or "[?]" in study["source"]:
-        study["textCheck"] = "Model marked this text uncertain; check the printed page."
-    return {"pageId": page_id, "order": n, "study": study,
-            "regions": [{"x": left, "y": top, "width": right - left, "height": bottom - top}]}
+    line = {"id": str(uuid.uuid4()), "source": region.get("text", "").strip()}
+    if region.get("uncertain") or "[?]" in line["source"]:
+        line["textCheck"] = "Model marked this text uncertain; check the printed page."
+    return {"id": str(uuid.uuid4()),
+            "regions": [{"x": left, "y": top, "width": right - left, "height": bottom - top}],
+            "lines": [line]}
 
 
 def chapters_from(pages, answers):
@@ -90,7 +92,7 @@ def chapters_from(pages, answers):
 
 
 def write_chapters(comic, pages, answers):
-    """Puts consistent chapters between pages and cues; reports why it did not otherwise."""
+    """Writes consistent chapters after the pages; reports why it did not otherwise."""
     if comic.get("chapters"):
         return "Chapters: the document already lists them; left unchanged."
     unanswered = [p["id"] for p in pages if p["id"] not in answers]
@@ -100,9 +102,7 @@ def write_chapters(comic, pages, answers):
     if problems:
         found = ", ".join(f"{c.get('number', '-')} {c['pageId']}" for c in chapters)
         return "Chapters: not written; check by eye. " + "; ".join(problems) + f". Found: {found or 'none'}"
-    cues = comic.pop("cues", [])
     comic["chapters"] = chapters
-    comic["cues"] = cues
     return "Chapters: wrote " + ", ".join(f"{c.get('number', '-')} {c['pageId']} {c['title']}" for c in chapters)
 
 
@@ -122,10 +122,10 @@ def main():
     args.run_dir.mkdir(parents=True, exist_ok=True)
     document = load(args.document)
     comic = document["comic"]
-    done = {c["pageId"] for c in comic["cues"]}
+    done = {p["id"] for p in comic["pages"] if p.get("boxes")}
     positions = page_range(args.pages, len(comic["pages"])) if args.pages else range(len(comic["pages"]))
     todo = [comic["pages"][i] for i in positions if comic["pages"][i]["id"] not in done]
-    rtl = comic.get("readingDirection") == "READING_DIRECTION_RTL"
+    rtl = comic.get("readingDirection") == "rtl"
     prompt = PROMPT.format(language=document["sourceLanguage"], order="manga (right-to-left)" if rtl else "left-to-right",
                            panels="right-to-left" if rtl else "left-to-right")
 
@@ -159,15 +159,15 @@ def main():
     failed = [p["id"] for p in todo if p["id"] not in answers]
     document = load(args.document)  # pick up anything written while the requests ran
     comic = document["comic"]
-    done = {c["pageId"] for c in comic["cues"]}
+    done = {p["id"] for p in comic["pages"] if p.get("boxes")}
     added, skipped = 0, []
     for page in comic["pages"]:
         if page["id"] in done or page["id"] not in answers:
             continue
         regions = sorted(answers[page["id"]], key=lambda r: r.get("order", 0))
-        for n, region in enumerate(r for r in regions if r.get("text", "").strip()):
+        for region in (r for r in regions if r.get("text", "").strip()):
             try:
-                comic["cues"].append(to_cue(page["id"], n + 1, region))
+                page.setdefault("boxes", []).append(to_box(region))
                 added += 1
             except (KeyError, TypeError, ValueError) as e:
                 skipped.append(f"{page['id']} region {region.get('order')}: {e}")
@@ -176,7 +176,7 @@ def main():
     temporary = args.document.with_name(args.document.name + ".tmp")
     save(temporary, document)
     temporary.replace(args.document)
-    print(f"Added {added} cues; this run cost USD {total}; updated {args.document}")
+    print(f"Added {added} boxes; this run cost USD {total}; updated {args.document}")
     print(chapters)
     for line in skipped:
         print("Skipped", line)

@@ -33,12 +33,38 @@ export function playerDocument(document) {
     ...document,
     ...body,
     type: comic ? "comic" : "video",
-    readingDirection:
-      body.readingDirection === "READING_DIRECTION_RTL" ? "rtl" : "ltr",
-    cues: (body.cues || []).map(({ study, ...placement }) => ({
-      ...placement,
-      ...study,
-      source: study?.source || "",
+    ...(comic
+      ? {
+          readingDirection: body.readingDirection || "ltr",
+          pages: (body.pages || []).map(({ boxes, ...page }) => page),
+          boxes: (body.pages || []).flatMap((page) =>
+            (page.boxes || []).map((box, i) => comicBox(box, page.id, i + 1)),
+          ),
+        }
+      : { cues: (body.cues || []).map(videoCue) }),
+  };
+}
+
+/** A video cue in the flat view: its line's fields beside its timing. */
+function videoCue({ line, ...timing }) {
+  return { ...timing, ...line, source: line?.source || "" };
+}
+
+/**
+ * A comic box in the flat view: one list for the whole comic, each box knowing its `pageId` and
+ * its one-based `order` on that page (its position in the page's `boxes`). Each of its lines knows
+ * its page and its box's `boxId`, so a selected line can find its box.
+ */
+function comicBox({ lines, ...box }, pageId, order) {
+  return {
+    ...box,
+    pageId,
+    order,
+    lines: (lines || []).map((line) => ({
+      ...line,
+      source: line.source || "",
+      pageId,
+      boxId: box.id,
     })),
   };
 }

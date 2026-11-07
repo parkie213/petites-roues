@@ -1,0 +1,59 @@
+@startuml
+hide methods
+hide circle
+skinparam shadowing false
+skinparam classAttributeIconSize 0
+skinparam defaultFontName sans-serif
+
+class ContentRepository {
+  id
+  name
+  localPath
+  lastRefreshedAt?
+}
+class Title {
+  id (local)
+  documentId (portable)
+  documentPath
+  missing
+  type: video | comic
+  -- indexed from the document --
+  title
+  series?
+  season?
+  episode?
+  volume?
+  edition?
+  sourceUrl?
+  durationSeconds?
+}
+class StudyDocument <<portable>>
+class "Media file" as Media {
+  one video or CBZ
+  beside the document
+}
+class "Poster image" as Poster {
+  poster.* beside the document
+  or in a series folder
+}
+class PlaybackProgress {
+  positionSeconds
+  updatedAt
+}
+class ReadingProgress {
+  pageId
+  fraction
+  updatedAt
+}
+class MarkdownPage {
+  quizzes/ or notes/
+}
+
+ContentRepository "1" *-- "0..*" Title : registers
+ContentRepository "1" *-- "0..*" MarkdownPage : lists
+Title ..> "1" StudyDocument : documentPath
+Title ..> "0..1" Media : found when browsed
+Title ..> "0..1" Poster : found when browsed
+Title "1" *-- "0..1" PlaybackProgress
+Title "1" *-- "0..1" ReadingProgress
+@enduml

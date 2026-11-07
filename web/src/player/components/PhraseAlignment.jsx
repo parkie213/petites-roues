@@ -153,17 +153,10 @@ export function PhraseAlignment({ cue, plain = false, showLinkNotes = false }) {
           <div className="translation" lang={translationLanguage}>
             {cue.translation}
           </div>
-          {state === "stale" ? (
-            <p className="alignment-warning" role="status">
-              Phrase links need regenerating after this subtitle changed.
+          {!alignment && cue.translation && (
+            <p className="alignment-hint">
+              Phrase links haven't been added to this subtitle yet.
             </p>
-          ) : (
-            !alignment &&
-            cue.translation && (
-              <p className="alignment-hint">
-                Phrase links haven't been added to this subtitle yet.
-              </p>
-            )
           )}
         </>
       )}

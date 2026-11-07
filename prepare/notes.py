@@ -34,31 +34,31 @@ TEACHING GUIDE:
 """
 
 
-def needs_notes(study):
-    a = study.get("alignment")
-    return bool(a) and not study.get("alignmentStale") and any(not (l.get("note") or "").strip() for l in a["links"])
+def needs_notes(line):
+    a = line.get("alignment")
+    return bool(a) and any(not (l.get("note") or "").strip() for l in a["links"])
 
 
 def slim(cue):
     """What the model sees: the cue's text and its links as chunk text; context cues without a
     breakdown show only their text."""
-    study = cue["study"]
-    a = study.get("alignment")
+    line = cue["line"]
+    a = line.get("alignment")
     links = [{"link": n, "source": " ".join(a["source"][i] for i in l["source"]) or None,
               "translation": " ".join(a["translation"][i] for i in l["translation"]) or None}
-             for n, l in enumerate(a["links"])] if a and not study.get("alignmentStale") else None
-    return {k: v for k, v in {"id": study["id"], "pageId": cue.get("pageId"), "source": study["source"],
-                              "translation": study.get("translation"), "links": links,
-                              "continuesPrevious": study.get("continuesPrevious", False),
+             for n, l in enumerate(a["links"])] if a else None
+    return {k: v for k, v in {"id": line["id"], "pageId": cue.get("pageId"), "source": line["source"],
+                              "translation": line.get("translation"), "links": links,
+                              "continuesPrevious": line.get("continuesPrevious", False),
                               "listeningCheck": cue.get("listeningCheck"),
-                              "textCheck": study.get("textCheck")}.items() if v is not None}
+                              "textCheck": line.get("textCheck")}.items() if v is not None}
 
 
-def annotate(study, answer):
+def annotate(line, answer):
     """Writes each link's note and the sentence notes; chunks and links are left as they are."""
-    for link, note in zip(study["alignment"]["links"], answer["linkNotes"]):
+    for link, note in zip(line["alignment"]["links"], answer["linkNotes"]):
         link["note"] = note
-    study["notes"] = answer["notes"]
+    line["notes"] = answer["notes"]
 
 
 def main():
@@ -82,9 +82,9 @@ def main():
             raise SystemExit("The document is invalid; fix it first: " + "; ".join(app.problems(title, document)[:5]))
         cues = batches.cues_of(document)
         listed = set(args.cues.read_text(encoding="utf-8").split()) if args.cues else None
-        ready = [i for i, c in enumerate(cues) if c["study"].get("alignment") and not c["study"].get("alignmentStale")]
-        wanted = [i for i in ready if (cues[i]["study"]["id"] in listed if listed is not None else
-                                       args.all or needs_notes(cues[i]["study"]))]
+        ready = [i for i, c in enumerate(cues) if c["line"].get("alignment")]
+        wanted = [i for i in ready if (cues[i]["line"]["id"] in listed if listed is not None else
+                                       args.all or needs_notes(cues[i]["line"]))]
         if listed is not None and len(wanted) < len(listed):
             print(f"Skipping {len(listed) - len(wanted)} listed cues without a current breakdown")
         batches.create(args.run_dir, document, raw, GUIDE.read_text(encoding="utf-8"), args.model, title,
@@ -94,8 +94,8 @@ def main():
 
     guide = (args.run_dir / "teaching-guide.md").read_text(encoding="utf-8")
     base = load(args.run_dir / "base-document.json")
-    link_counts = {c["study"]["id"]: len(c["study"]["alignment"]["links"])
-                   for c in batches.cues_of(base) if c["study"].get("alignment")}
+    link_counts = {c["line"]["id"]: len(c["line"]["alignment"]["links"])
+                   for c in batches.cues_of(base) if c["line"].get("alignment")}
 
     def prompt(batch):
         return CONTRACT + guide + "\n\nINPUT:\n" + json.dumps(batch, ensure_ascii=False, indent=2)
@@ -120,9 +120,9 @@ def main():
         print(f"Not written: answers are in {args.run_dir}/batch-*/accepted.json")
         return
 
-    def unchanged(study):
-        return {k: v for k, v in slim({"study": study}).items() if k in ("source", "translation", "links")} \
-            == {k: v for k, v in sent[study["id"]].items() if k in ("source", "translation", "links")}
+    def unchanged(line):
+        return {k: v for k, v in slim({"line": line}).items() if k in ("source", "translation", "links")} \
+            == {k: v for k, v in sent[line["id"]].items() if k in ("source", "translation", "links")}
 
     applied, changed = batches.write(args.document, args.run_dir, title, answers, unchanged, annotate)
     print(f"Applied {len(applied)} cues; updated {args.document}")

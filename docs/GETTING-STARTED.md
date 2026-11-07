@@ -107,3 +107,4 @@ Have your agent of choice quiz you.
 - **On your phone:** the offline Android app reads the same folders; see
   [BUILD.md](BUILD.md#android-app).
 - **The document format:** [DOCUMENT-FORMAT.md](DOCUMENT-FORMAT.md).
+- **The domain model:** [DOMAIN-MODEL.md](DOMAIN-MODEL.md), documents, editing and the library with diagrams.

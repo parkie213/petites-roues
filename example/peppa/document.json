@@ -14,7 +14,7 @@
     "durationSeconds": 62.833333,
     "cues": [
       {
-        "study": {
+        "line": {
           "id": "a5ce11b2-3e58-3652-a46e-0969f2a861f5",
           "source": "Il ne pleut plus maintenant. Est-ce qu'on peut sortir jouer ?",
           "translation": "It isn't raining any more now. Can we go outside and play?",
@@ -23,8 +23,6 @@
             "`On peut sortir jouer` chains two infinitives: we can go out to play. `Sortir` follows `peut`, and `jouer` states the purpose of going out; English supplies and in this translation."
           ],
           "alignment": {
-            "sourceText": "Il ne pleut plus maintenant. Est-ce qu'on peut sortir jouer ?",
-            "translationText": "It isn't raining any more now. Can we go outside and play?",
             "source": [
               "Il ne pleut plus",
               "maintenant.",
@@ -87,7 +85,6 @@
               }
             ]
           },
-          "alignmentStale": false,
           "continuesPrevious": false
         },
         "start": 2.5,
@@ -95,7 +92,7 @@
         "listeningCheck": "The opening form of address is uncertain in the automatic transcript and has been omitted here. Check the opening against the audio; the transcript and timings still need a listening review."
       },
       {
-        "study": {
+        "line": {
           "id": "b65a6f06-3525-357f-9286-49eba2ef8b82",
           "source": "Bien sûr. Allez-y et amusez-vous bien.",
           "translation": "Of course. Go ahead and have fun.",
@@ -103,8 +100,6 @@
             "Both commands address the children together. In affirmative commands, the pronouns follow the verb with a hyphen: `allez-y`, `amusez-vous`."
           ],
           "alignment": {
-            "sourceText": "Bien sûr. Allez-y et amusez-vous bien.",
-            "translationText": "Of course. Go ahead and have fun.",
             "source": [
               "Bien sûr.",
               "Allez-y",
@@ -156,14 +151,13 @@
               }
             ]
           },
-          "alignmentStale": false,
           "continuesPrevious": false
         },
         "start": 6.92,
         "end": 9.82
       },
       {
-        "study": {
+        "line": {
           "id": "0c0abb38-65f1-3af0-a80f-b3b026d39c96",
           "source": "Peppa adore sauter dans les flaques de boue.",
           "translation": "Peppa loves jumping in muddy puddles.",
@@ -171,8 +165,6 @@
             "`Adorer + infinitive` names an activity someone loves. French uses the infinitive `sauter`, where this English translation uses jumping."
           ],
           "alignment": {
-            "sourceText": "Peppa adore sauter dans les flaques de boue.",
-            "translationText": "Peppa loves jumping in muddy puddles.",
             "source": [
               "Peppa adore",
               "sauter",
@@ -213,14 +205,13 @@
               }
             ]
           },
-          "alignmentStale": false,
           "continuesPrevious": false
         },
         "start": 13.79,
         "end": 23.0
       },
       {
-        "study": {
+        "line": {
           "id": "dedfe945-d403-3a91-913e-bce5f4307f65",
           "source": "J'adore sauter dans les flaques de boue.",
           "translation": "I love jumping in muddy puddles.",
@@ -228,8 +219,6 @@
             "`J'adore` expresses Peppa's own enthusiasm. French uses an infinitive for the enjoyed activity: `adorer sauter` = love jumping."
           ],
           "alignment": {
-            "sourceText": "J'adore sauter dans les flaques de boue.",
-            "translationText": "I love jumping in muddy puddles.",
             "source": [
               "J'adore",
               "sauter",
@@ -270,14 +259,13 @@
               }
             ]
           },
-          "alignmentStale": false,
           "continuesPrevious": false
         },
         "start": 23.3,
         "end": 25.6
       },
       {
-        "study": {
+        "line": {
           "id": "bee41b70-ca55-3103-b868-0ced0f40cb9c",
           "source": "Si tu as envie de sauter dans les flaques, tu dois mettre tes bottes en caoutchouc.",
           "translation": "If you want to jump in the puddles, you must put on your rubber boots.",
@@ -286,8 +274,6 @@
             "`Mettre` changes meaning with its object: with clothes, `mettre ses bottes` means put on one’s boots, rather than simply put them somewhere."
           ],
           "alignment": {
-            "sourceText": "Si tu as envie de sauter dans les flaques, tu dois mettre tes bottes en caoutchouc.",
-            "translationText": "If you want to jump in the puddles, you must put on your rubber boots.",
             "source": [
               "Si",
               "tu as envie de",
@@ -372,21 +358,18 @@
               }
             ]
           },
-          "alignmentStale": false,
           "continuesPrevious": false
         },
         "start": 29.56,
         "end": 34.44
       },
       {
-        "study": {
+        "line": {
           "id": "bf0855b9-8b66-37e0-8c22-852f7f910017",
           "source": "D'accord, maman.",
           "translation": "Okay, Mummy.",
           "notes": [],
           "alignment": {
-            "sourceText": "D'accord, maman.",
-            "translationText": "Okay, Mummy.",
             "source": [
               "D'accord,",
               "maman."
@@ -416,14 +399,13 @@
               }
             ]
           },
-          "alignmentStale": false,
           "continuesPrevious": false
         },
         "start": 35.22,
         "end": 36.18
       },
       {
-        "study": {
+        "line": {
           "id": "c95af3af-2039-3fa0-bf92-bac27cfa7a10",
           "source": "George aussi aime bien sauter dans les flaques de boue.",
           "translation": "George likes jumping in muddy puddles too.",
@@ -431,8 +413,6 @@
             "`Aussi` includes George alongside someone else: George too. French puts it after his name here; this English translation places too at the end. George remains the subject of `aime`."
           ],
           "alignment": {
-            "sourceText": "George aussi aime bien sauter dans les flaques de boue.",
-            "translationText": "George likes jumping in muddy puddles too.",
             "source": [
               "George",
               "aussi",
@@ -495,14 +475,13 @@
               }
             ]
           },
-          "alignmentStale": false,
           "continuesPrevious": false
         },
         "start": 43.6,
         "end": 48.96
       },
       {
-        "study": {
+        "line": {
           "id": "3f99d471-14a3-3011-83ea-a66d7dad4904",
           "source": "George, si tu as envie de sauter dans les flaques de boue, tu dois mettre tes bottes en caoutchouc.",
           "translation": "George, if you want to jump in muddy puddles, you must put on your rubber boots.",
@@ -511,8 +490,6 @@
             "`Si` sets the condition for the requirement in `tu dois`. The desire and obligation both use present indicative forms, `as` and `dois`."
           ],
           "alignment": {
-            "sourceText": "George, si tu as envie de sauter dans les flaques de boue, tu dois mettre tes bottes en caoutchouc.",
-            "translationText": "George, if you want to jump in muddy puddles, you must put on your rubber boots.",
             "source": [
               "George,",
               "si",
@@ -608,14 +585,13 @@
               }
             ]
           },
-          "alignmentStale": false,
           "continuesPrevious": false
         },
         "start": 49.82,
         "end": 57.61
       },
       {
-        "study": {
+        "line": {
           "id": "f8c57f08-470b-3753-be30-55e793446ed3",
           "source": "Peppa aime bien s'occuper de son petit frère George.",
           "translation": "Peppa likes looking after her little brother George.",
@@ -623,8 +599,6 @@
             "`Son` agrees with the thing or person possessed, masculine singular `frère`, rather than the gender of the possessor. Here it means her because the brother is Peppa’s; the same form can mean his in another context."
           ],
           "alignment": {
-            "sourceText": "Peppa aime bien s'occuper de son petit frère George.",
-            "translationText": "Peppa likes looking after her little brother George.",
             "source": [
               "Peppa aime bien",
               "s'occuper de",
@@ -665,7 +639,6 @@
               }
             ]
           },
-          "alignmentStale": false,
           "continuesPrevious": false
         },
         "start": 57.61,

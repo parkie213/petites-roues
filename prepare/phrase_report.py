@@ -57,15 +57,15 @@ def main():
     runs = {run: (load(run / "manifest.json")["model"], accepted(run)) for run in args.runs}
     sent = {cue["id"] for run in args.runs for name in load(run / "manifest.json")["batches"]
             for cue in load(run / name / "input.json")["assign"]}
-    studies = [c["study"] for c in cues_of(load(args.document)) if c["study"]["id"] in sent]
+    annotated = [c["line"] for c in cues_of(load(args.document)) if c["line"]["id"] in sent]
 
-    lines = [f"# Phrase breakdowns: {len(studies)} cues", ""]
-    summary = [("current", stats([s["alignment"] for s in studies if s.get("alignment")]))]
+    lines = [f"# Phrase breakdowns: {len(annotated)} cues", ""]
+    summary = [("current", stats([s["alignment"] for s in annotated if s.get("alignment")]))]
     summary += [(f"{run.name} ({model})", stats(list(answers.values()))) for run, (model, answers) in runs.items()]
     for name, text in summary:
         print(f"{name}: {text}")
         lines.append(f"- **{name}**: {text}")
-    for s in studies:
+    for s in annotated:
         lines += ["", f"## {s['id']}", "", f"> {s['source']}", ">", f"> {s['translation']}", ""]
         lines += ["**Current**", "", table(s.get("alignment"))]
         for run, (model, answers) in runs.items():

@@ -4,8 +4,8 @@ import com.petitesroues.comic.ComicService;
 import com.petitesroues.comic.ReadingProgressService;
 import com.petitesroues.library.LibraryUpdateService;
 import com.petitesroues.model.document.StudyDocument;
-import com.petitesroues.model.editing.ComicCueCreate;
-import com.petitesroues.model.editing.ComicCueUpdate;
+import com.petitesroues.model.editing.ComicBoxCreate;
+import com.petitesroues.model.editing.ComicBoxUpdate;
 import com.petitesroues.model.editing.ComicTextEdit;
 import com.petitesroues.model.progress.ReadingProgress;
 import java.io.IOException;
@@ -47,34 +47,37 @@ public class ComicController {
         .body(image.bytes());
   }
 
-  /** Saves a bubble correction without accepting geometry or annotations from the text editor. */
-  @PutMapping("/cues/{cueId}")
+  /**
+   * Saves a text correction to one line, in whichever box holds it, without accepting geometry or
+   * annotations from the text editor.
+   */
+  @PutMapping("/lines/{lineId}")
   public StudyDocument edit(
-      @PathVariable String id, @PathVariable String cueId, @RequestBody ComicTextEdit edit)
+      @PathVariable String id, @PathVariable String lineId, @RequestBody ComicTextEdit edit)
       throws IOException {
-    return updates.editComicText(id, cueId, edit);
+    return updates.editComicText(id, lineId, edit);
   }
 
-  /** Adds one drawn bubble annotation; ids and reading order are assigned server-side. */
-  @PostMapping("/cues")
-  public StudyDocument create(@PathVariable String id, @RequestBody ComicCueCreate create)
+  /** Adds one drawn box with one line; ids and reading order are assigned server-side. */
+  @PostMapping("/boxes")
+  public StudyDocument create(@PathVariable String id, @RequestBody ComicBoxCreate create)
       throws IOException {
-    return updates.createComicCue(id, create);
+    return updates.createComicBox(id, create);
   }
 
-  /** Replaces one bubble's regions and optional order; text and teaching material stay. */
-  @PutMapping("/cues/{cueId}/placement")
+  /** Replaces one box's regions and optional order; its lines stay as they are. */
+  @PutMapping("/boxes/{boxId}/placement")
   public StudyDocument updatePlacement(
-      @PathVariable String id, @PathVariable String cueId, @RequestBody ComicCueUpdate update)
+      @PathVariable String id, @PathVariable String boxId, @RequestBody ComicBoxUpdate update)
       throws IOException {
-    return updates.placeComicCue(id, cueId, update);
+    return updates.placeComicBox(id, boxId, update);
   }
 
-  /** Removes one annotated bubble from the document. */
-  @DeleteMapping("/cues/{cueId}")
-  public StudyDocument delete(@PathVariable String id, @PathVariable String cueId)
+  /** Removes one box, with all its lines, from the document. */
+  @DeleteMapping("/boxes/{boxId}")
+  public StudyDocument delete(@PathVariable String id, @PathVariable String boxId)
       throws IOException {
-    return updates.deleteComicCue(id, cueId);
+    return updates.deleteComicBox(id, boxId);
   }
 
   @GetMapping("/progress")

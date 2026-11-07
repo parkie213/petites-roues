@@ -1,8 +1,21 @@
-/** Explicit cue order is independent of extraction order or text position. */
-export function pageCues(document, pageId) {
-  return (document.cues || [])
-    .filter((cue) => cue.pageId === pageId)
+/** A page's boxes in their explicit reading order, independent of extraction order or position. */
+export function pageBoxes(document, pageId) {
+  return (document.boxes || [])
+    .filter((box) => box.pageId === pageId)
     .sort((a, b) => a.order - b.order);
+}
+
+/**
+ * Every line in these boxes, in reading order. Selection, navigation and text editing work on
+ * lines; a box with more than one is a text block read a sentence at a time.
+ */
+export function boxLines(boxes) {
+  return boxes.flatMap((box) => box.lines);
+}
+
+/** The box holding the line `lineId`. */
+export function boxOf(boxes, lineId) {
+  return boxes.find((box) => box.lines.some((line) => line.id === lineId));
 }
 
 /** Clamps a drawn or dragged region into valid normalized bounds with a minimum size. */

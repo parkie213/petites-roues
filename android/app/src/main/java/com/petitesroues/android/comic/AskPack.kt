@@ -2,8 +2,8 @@ package com.petitesroues.android.comic
 
 import com.petitesroues.android.study.phraseNotes
 import com.petitesroues.android.study.readyAlignment
-import com.petitesroues.model.document.ComicCue
-import com.petitesroues.model.document.StudyCue
+import com.petitesroues.model.document.ComicBox
+import com.petitesroues.model.document.Line
 import com.petitesroues.model.document.StudyDocument
 import java.util.Locale
 
@@ -15,20 +15,20 @@ import java.util.Locale
  */
 object AskPack {
   /**
-   * The message for [cue] on [pageName] of [document]. [pageCues] are the page's bubbles in
-   * reading order (including [cue]); [phrase] is the source phrase the learner was exploring, if
-   * any; a blank [question] asks for a deeper explanation.
+   * The message for [line] on [pageName] of [document]: a bubble's text, or the sentence of a
+   * text block being read. [pageBoxes] are the page's boxes in reading order (including the one
+   * holding [line]), whose bubbles and sentences give the context; [phrase] is the source phrase
+   * the learner was exploring, if any; a blank [question] asks for a deeper explanation.
    */
   fun build(
     document: StudyDocument,
     pageName: String,
-    cue: ComicCue,
-    pageCues: List<ComicCue>,
+    line: Line,
+    pageBoxes: List<ComicBox>,
     phrase: Int?,
     question: String,
   ): String {
-    val study = cue.study()
-    val alignment = readyAlignment(study)
+    val alignment = readyAlignment(line)
     val source = language(document.sourceLanguage())
     val notes = language(document.notesLanguage())
     val explored = phrase?.let { alignment?.source()?.getOrNull(it) }
@@ -42,8 +42,8 @@ object AskPack {
       else appendLine("Please explain this bubble in more depth.")
       if (explored != null) appendLine("I'm asking about the phrase “$explored”.")
       appendLine()
-      appendLine("Bubble: ${study.source()}")
-      study.translation()?.takeIf { it.isNotBlank() }?.let { appendLine("Translation: $it") }
+      appendLine("Bubble: ${line.source()}")
+      line.translation()?.takeIf { it.isNotBlank() }?.let { appendLine("Translation: $it") }
       val phrases =
         alignment?.let {
           it.source().indices.mapNotNull { index ->
@@ -60,18 +60,18 @@ object AskPack {
         appendLine("Phrase notes from my reader:")
         phrases.forEach { appendLine(it) }
       }
-      if (study.notes().isNotEmpty()) {
+      if (line.notes().isNotEmpty()) {
         appendLine()
         appendLine("Sentence notes:")
-        study.notes().forEach { appendLine("- $it") }
+        line.notes().forEach { appendLine("- $it") }
       }
-      val others = pageCues.filter { it.hasStudy() && it.study().source().isNotBlank() }
+      val others = pageBoxes.flatMap { it.lines() }.filter { it.source().isNotBlank() }
       if (others.size > 1) {
         appendLine()
         appendLine("The page's bubbles in reading order, for context (→ marks this one):")
         for (other in others) {
-          val line = other.study().line()
-          appendLine(if (other.study().id() == study.id()) "→ $line" else "- $line")
+          val text = other.withTranslationText()
+          appendLine(if (other.id() == line.id()) "→ $text" else "- $text")
         }
       }
       appendLine()
@@ -82,7 +82,7 @@ object AskPack {
     }
   }
 
-  private fun StudyCue.line(): String =
+  private fun Line.withTranslationText(): String =
     source() + (translation()?.takeIf { it.isNotBlank() }?.let { " ($it)" } ?: "")
 
   /** "fr" → "French"; falls back to the tag itself. */

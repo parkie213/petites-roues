@@ -159,12 +159,12 @@ class ContentRepositoryRefreshIntegrationTest {
             .video()
             .cues()
             .getFirst()
-            .withStudy(s -> s.withSource("Changed in second copy"));
-    editing.editCue(second.id(), cue.study().id(), edit(cue));
+            .withLine(s -> s.withSource("Changed in second copy"));
+    editing.editCue(second.id(), cue.line().id(), edit(cue));
     assertArrayEquals(originalFirst, Files.readAllBytes(firstFile));
     assertEquals(
         "Changed in second copy",
-        library.videoDocument(second.id()).video().cues().getFirst().study().source());
+        library.videoDocument(second.id()).video().cues().getFirst().line().source());
     assertEquals("shared", library.document(second.id()).id());
     assertEquals(1, queue.read(second).size());
     assertTrue(queue.read(first).isEmpty());
@@ -178,7 +178,7 @@ class ContentRepositoryRefreshIntegrationTest {
     assertArrayEquals(originalFirst, Files.readAllBytes(firstFile));
     assertEquals(
         "Changed in second copy",
-        library.videoDocument(second.id()).video().cues().getFirst().study().source());
+        library.videoDocument(second.id()).video().cues().getFirst().line().source());
     assertEquals(1, queue.read(second).size());
     service.remove(firstRepo.id());
     assertEquals(42, progress.find(second.id()).positionSeconds());
@@ -212,8 +212,7 @@ class ContentRepositoryRefreshIntegrationTest {
             null,
             null,
             "French edition",
-            new VideoDocument(null, null, null, 120.0, original.video().cues()),
-            null);
+            new VideoDocument(null, null, null, 120.0, original.video().cues()));
     write("a", changed);
     write("b", document("new-title"));
     byte[] expected = Files.readAllBytes(file);

@@ -27,8 +27,7 @@ class ComicDocumentTest {
         null,
         null,
         null,
-        null,
-        new ComicDocument(null, ReadingDirection.RTL, null, pages, List.of(), List.of()));
+        new ComicDocument(null, ReadingDirection.RTL, null, pages, List.of()));
   }
 
   private static void invalid(List<ComicPage> pages, String message) {

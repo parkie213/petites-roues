@@ -1,9 +1,9 @@
 package com.petitesroues.documents;
 
 import com.petitesroues.model.PhraseAlignmentValidator;
-import com.petitesroues.model.document.ComicCue;
+import com.petitesroues.model.document.ComicBox;
 import com.petitesroues.model.document.ComicDocument;
-import com.petitesroues.model.document.StudyCue;
+import com.petitesroues.model.document.Line;
 import com.petitesroues.model.document.StudyDocument;
 import com.petitesroues.model.document.VideoCue;
 import com.petitesroues.model.document.VideoDocument;
@@ -40,7 +40,7 @@ public final class StudyDocumentValidator {
 
   /**
    * Lists every structural problem without throwing. Document-level problems stop the check; each
-   * cue is checked independently and its problems are prefixed with its ID.
+   * cue, box and line is checked independently and its problems are prefixed with its ID.
    */
   public static List<String> problems(StudyDocument document) {
     List<String> problems = new ArrayList<>();
@@ -53,7 +53,7 @@ public final class StudyDocumentValidator {
   }
 
   private static void validateDocument(StudyDocument document, List<String> problems) {
-    if (document == null || (!document.hasVideo() && !document.hasComic()))
+    if (document == null)
       throw new IllegalArgumentException("Exactly one video or comic body is required");
     if (document.id().isBlank()) {
       throw new IllegalArgumentException("A nonblank document id is required");
@@ -64,23 +64,20 @@ public final class StudyDocumentValidator {
     validateLanguage(document.sourceLanguage(), "Source");
     validateLanguage(document.translationLanguage(), "Translation");
     validateLanguage(document.notesLanguage(), "Notes");
-    if (document.hasComic()) {
-      validateComic(document.comic(), problems);
-      return;
-    }
-    validateVideo(document.video(), problems);
+    if (document.body() instanceof ComicDocument comic) validateComic(comic, problems);
+    else validateVideo(document.video(), problems);
   }
 
-  private static String cueId(StudyCue study) {
-    return study == null ? "" : study.id();
+  private static String lineId(Line line) {
+    return line == null ? "" : line.id();
   }
 
-  /** Runs one cue's rules, recording a failure under the cue's ID instead of stopping. */
-  private static void checkCue(List<String> problems, String cueId, Runnable rules) {
+  /** Runs one item's rules, recording a failure under its ID instead of stopping. */
+  private static void check(List<String> problems, String id, Runnable rules) {
     try {
       rules.run();
     } catch (IllegalArgumentException failure) {
-      problems.add((cueId.isBlank() ? "" : cueId + ": ") + failure.getMessage());
+      problems.add((id.isBlank() ? "" : id + ": ") + failure.getMessage());
     }
   }
 
@@ -103,10 +100,21 @@ public final class StudyDocumentValidator {
         throw new IllegalArgumentException("Comic pages require distinct relative image entries");
     }
     validateChapters(document);
-    Set<String> cueIds = new HashSet<>();
-    Set<String> orders = new HashSet<>();
-    for (var cue : document.cues()) {
-      checkCue(problems, cueId(cue.study()), () -> validateComicCue(cue, ids, cueIds, orders));
+    Set<String> boxIds = new HashSet<>();
+    Set<String> lineIds = new HashSet<>();
+    for (var box : document.boxes()) {
+      check(problems, box.id(), () -> validateComicBox(box, boxIds));
+      // Text problems are reported under the line's own ID, which is what review and preparation
+      // address.
+      for (var line : box.lines())
+        check(
+            problems,
+            line.id(),
+            () -> {
+              if (line.id().isBlank() || !lineIds.add(line.id()))
+                throw new IllegalArgumentException("Line IDs must be unique and nonempty");
+              validateLine(line);
+            });
     }
   }
 
@@ -129,18 +137,15 @@ public final class StudyDocumentValidator {
     }
   }
 
-  private static void validateComicCue(
-      ComicCue cue, Set<String> pageIds, Set<String> cueIds, Set<String> orders) {
-    if (!cue.hasStudy() || cue.study().id().isBlank() || !cueIds.add(cue.study().id()))
-      throw new IllegalArgumentException("Cue IDs must be unique and nonempty");
-    if (!pageIds.contains(cue.pageId())
-        || cue.order() <= 0
-        || !orders.add(cue.pageId() + ":" + cue.order()))
-      throw new IllegalArgumentException(
-          "Comic cues need a known page and unique positive page order");
-    if (cue.regions().isEmpty())
-      throw new IllegalArgumentException("Comic cues require at least one region");
-    for (var region : cue.regions()) {
+  /** A box: its own ID, unique across the comic, at least one line, and valid regions. */
+  private static void validateComicBox(ComicBox box, Set<String> boxIds) {
+    if (box.id().isBlank() || !boxIds.add(box.id()))
+      throw new IllegalArgumentException("Comic box IDs must be unique and nonempty");
+    if (box.lines().isEmpty())
+      throw new IllegalArgumentException("A comic box needs at least one line");
+    if (box.regions().isEmpty())
+      throw new IllegalArgumentException("Comic boxes require at least one region");
+    for (var region : box.regions()) {
       if (!Double.isFinite(region.x())
           || !Double.isFinite(region.y())
           || !Double.isFinite(region.width())
@@ -153,7 +158,6 @@ public final class StudyDocumentValidator {
           || region.y() + region.height() > 1)
         throw new IllegalArgumentException("Comic regions must fit inside normalized page bounds");
     }
-    validateStudyCue(cue.study());
   }
 
   private static void validateVideo(VideoDocument document, List<String> problems) {
@@ -162,11 +166,11 @@ public final class StudyDocumentValidator {
       throw new IllegalArgumentException("Reference duration must be positive and finite");
     Set<String> cueIds = new HashSet<>();
     for (VideoCue cue : document.cues()) {
-      checkCue(
+      check(
           problems,
-          cueId(cue.study()),
+          lineId(cue.line()),
           () -> {
-            if (!cue.hasStudy() || cue.study().id().isBlank() || !cueIds.add(cue.study().id()))
+            if (!cue.hasLine() || cue.line().id().isBlank() || !cueIds.add(cue.line().id()))
               throw new IllegalArgumentException("Cue IDs must be unique and nonempty");
             validateCue(cue);
           });
@@ -187,23 +191,19 @@ public final class StudyDocumentValidator {
   }
 
   private static void validateCue(VideoCue cue) {
-    validateStudyCue(cue.study());
+    validateLine(cue.line());
     if (cue.start() == null
         || cue.end() == null
         || !Double.isFinite(cue.start())
         || !Double.isFinite(cue.end())
         || cue.start() < 0
         || cue.end() <= cue.start()) {
-      throw new IllegalArgumentException("Invalid timing for cue " + cue.study().id());
+      throw new IllegalArgumentException("Invalid timing for cue " + cue.line().id());
     }
   }
 
-  private static void validateStudyCue(StudyCue cue) {
-    if (cue.alignment() != null) {
-      if (cue.alignmentStale())
-        throw new IllegalArgumentException(
-            "Stale alignment must be regenerated for cue " + cue.id());
-      PhraseAlignmentValidator.validateFor(cue.alignment(), cue.source(), cue.translation());
-    }
+  private static void validateLine(Line line) {
+    if (line.alignment() != null)
+      PhraseAlignmentValidator.validateFor(line.alignment(), line.source(), line.translation());
   }
 }

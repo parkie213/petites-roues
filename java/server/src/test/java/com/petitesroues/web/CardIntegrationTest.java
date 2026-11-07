@@ -48,14 +48,9 @@ class CardIntegrationTest extends HttpIntegrationTest {
             ReadingDirection.RTL,
             List.of(newPage("cover", "z.png", null), newPage("story", "a.png", "1")));
     comic =
-        comic.withComic(
+        comic.withBody(
             new ComicDocument(
-                1,
-                comic.comic().readingDirection(),
-                null,
-                comic.comic().pages(),
-                List.of(),
-                List.of()));
+                1, comic.comic().readingDirection(), null, comic.comic().pages(), List.of()));
     Files.writeString(
         tome.resolve("document.json"),
         new StudyDocumentCodec().encode(comic),

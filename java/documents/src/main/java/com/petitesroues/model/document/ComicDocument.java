@@ -2,14 +2,15 @@ package com.petitesroues.model.document;
 
 import static com.petitesroues.model.document.Defaults.list;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.UnaryOperator;
 
 /**
- * A comic body: optional volume number, reading direction, pages in manifest order, optional
- * chapters and the text regions on the pages.
+ * A comic body: optional volume number, reading direction, pages in manifest order (each holding
+ * its text boxes) and optional chapters.
  *
  * @param volume optional positive volume (tome) number within its series; the library sorts and
  *     labels a series' volumes by it
@@ -22,23 +23,28 @@ public record ComicDocument(
     ReadingDirection readingDirection,
     String annotationMethod,
     List<ComicPage> pages,
-    List<ComicChapter> chapters,
-    List<ComicCue> cues) {
+    List<ComicChapter> chapters)
+    implements StudyBody {
   public ComicDocument {
-    if (readingDirection == null) readingDirection = ReadingDirection.UNSPECIFIED;
+    if (readingDirection == null) readingDirection = ReadingDirection.LTR;
     pages = list(pages);
     chapters = list(chapters);
-    cues = list(cues);
   }
 
-  public ComicDocument withCues(List<ComicCue> cues) {
-    return new ComicDocument(volume, readingDirection, annotationMethod, pages, chapters, cues);
+  public ComicDocument withPages(List<ComicPage> pages) {
+    return new ComicDocument(volume, readingDirection, annotationMethod, pages, chapters);
   }
 
-  /** Replaces the cue at {@code index} with {@code change} applied to it. */
-  public ComicDocument withCue(int index, UnaryOperator<ComicCue> change) {
-    var changed = new ArrayList<>(cues);
-    changed.set(index, change.apply(cues.get(index)));
-    return withCues(changed);
+  /** Replaces the page at {@code index} with {@code change} applied to it. */
+  public ComicDocument withPage(int index, UnaryOperator<ComicPage> change) {
+    var changed = new ArrayList<>(pages);
+    changed.set(index, change.apply(pages.get(index)));
+    return withPages(changed);
+  }
+
+  /** Every box in reading order: page by page, then by position on the page. */
+  @JsonIgnore
+  public List<ComicBox> boxes() {
+    return pages.stream().flatMap(page -> page.boxes().stream()).toList();
   }
 }

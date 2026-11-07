@@ -30,7 +30,7 @@ import { ComicPageView } from "./ComicPageView.jsx";
 import { ComicStudyPanel } from "./ComicStudyPanel.jsx";
 import { StudyLanguagesProvider } from "../player/StudyLanguages.jsx";
 import { QuickEdit } from "../player/components/QuickEdit.jsx";
-import { pageCues } from "./annotations.js";
+import { boxLines, boxOf, pageBoxes } from "./annotations.js";
 import { chapterQuizBrief, chapterQuizFileName } from "./quiz.js";
 import { QuizShare } from "../player/components/QuizShare.jsx";
 import {
@@ -60,6 +60,8 @@ export function ComicReader({ id }) {
   const [studyOpen, setStudyOpen] = useStoredState("comic:study", false);
   const [debug, setDebug] = useStoredState("comic:debug", false);
   const [spread, setSpread] = useStoredState("comic:spread", false);
+  // How a text block split into sentences opens: one sentence at a time, or as a list.
+  const [blockMode, setBlockMode] = useStoredState("comic:block-mode", "step");
   const [autoListen, setAutoListen] = useStoredState(
     "comic:auto-listen",
     false,
@@ -100,8 +102,11 @@ export function ComicReader({ id }) {
     (i) => document.pages[i],
   );
   const page = visible[0];
-  const cues = visible.flatMap((p) => pageCues(document, p.id));
-  const selected = cues.find((cue) => cue.id === selectedId) || cues[0];
+  const boxes = visible.flatMap((p) => pageBoxes(document, p.id));
+  // The selection is a line (a bubble, or one sentence of a text block); its box is for annotating.
+  const lines = boxLines(boxes);
+  const selected = lines.find((line) => line.id === selectedId) || lines[0];
+  const selectedBox = selected && boxOf(boxes, selected.id);
   const rtl = document?.readingDirection === "rtl";
   const locked = editing || savingBox || !!draftRegion;
   const previous = document ? adjacentView(index, count, spread, -1) : null;
@@ -202,8 +207,8 @@ export function ComicReader({ id }) {
     boxWrite.current = true;
     setSavingBox(true);
     setDraftRegion({ region, pageId });
-    const previousIds = new Set((document.cues || []).map((cue) => cue.id));
-    annotateRequest("/cues", {
+    const previousIds = new Set((document.boxes || []).map((box) => box.id));
+    annotateRequest("/boxes", {
       method: "POST",
       body: JSON.stringify({
         pageId,
@@ -211,10 +216,10 @@ export function ComicReader({ id }) {
       }),
     })
       .then((saved) => {
-        const created = (saved.cues || []).find(
-          (cue) => !previousIds.has(cue.id),
+        const created = (saved.boxes || []).find(
+          (box) => !previousIds.has(box.id),
         );
-        if (created) setSelectedId(created.id);
+        if (created) setSelectedId(created.lines[0].id);
         setDraftRegion(null);
       })
       .catch(() => {})
@@ -224,24 +229,26 @@ export function ComicReader({ id }) {
       });
   }
 
-  function savePlacement(cue, regions) {
-    annotateRequest(`/cues/${encodeURIComponent(cue.id)}/placement`, {
+  function savePlacement(box, regions) {
+    annotateRequest(`/boxes/${encodeURIComponent(box.id)}/placement`, {
       method: "PUT",
-      body: JSON.stringify({ expectedRegions: cue.regions, regions }),
+      body: JSON.stringify({ expectedRegions: box.regions, regions }),
     }).catch(() => {});
   }
 
   function deleteSelected() {
-    if (!selected || !annotate) return;
+    if (!selectedBox || !annotate) return;
     if (
       !window.confirm(
-        selected.source
-          ? `Delete the bubble "${selected.source}"?`
-          : "Delete this box?",
+        selectedBox.lines.length > 1
+          ? `Delete this text block and its ${selectedBox.lines.length} sentences?`
+          : selected.source
+            ? `Delete the bubble "${selected.source}"?`
+            : "Delete this box?",
       )
     )
       return;
-    annotateRequest(`/cues/${encodeURIComponent(selected.id)}`, {
+    annotateRequest(`/boxes/${encodeURIComponent(selectedBox.id)}`, {
       method: "DELETE",
     })
       .then(() => setSelectedId(null))
@@ -488,7 +495,7 @@ export function ComicReader({ id }) {
                   </Button>
                 </Group>
               )}
-              {selected && (
+              {selectedBox && (
                 <Button
                   size="compact-xs"
                   variant="subtle"
@@ -496,7 +503,9 @@ export function ComicReader({ id }) {
                   mt="xs"
                   onClick={deleteSelected}
                 >
-                  Delete selected bubble
+                  {selectedBox.lines.length > 1
+                    ? "Delete selected text block"
+                    : "Delete selected bubble"}
                 </Button>
               )}
             </Alert>
@@ -511,13 +520,15 @@ export function ComicReader({ id }) {
                 api={api}
                 zoom={zoom}
                 scale={scale}
-                cues={cues}
+                boxes={boxes}
                 rtl={rtl}
                 selectedId={selected?.id}
                 onSelect={setSelectedId}
                 onLoaded={() => save(page.id)}
                 debug={debug}
                 cards={!studyOpen}
+                blockMode={blockMode}
+                onBlockMode={setBlockMode}
                 editing={locked}
                 annotate={annotate}
                 onDraw={addBubble}
@@ -528,7 +539,8 @@ export function ComicReader({ id }) {
             {studyOpen && (
               <ComicStudyPanel
                 key={selected?.id || page.id}
-                cues={cues}
+                boxes={boxes}
+                lines={lines}
                 cue={selected}
                 api={api}
                 onSelect={setSelectedId}

@@ -10,8 +10,6 @@ import {
 } from "../src/player/quiz.js";
 
 const weather = {
-  sourceText: "Il fait beau",
-  translationText: "The weather is nice",
   source: ["Il fait", "beau"],
   translation: ["The weather is", "nice"],
   links: [

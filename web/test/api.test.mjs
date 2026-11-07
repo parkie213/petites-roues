@@ -14,7 +14,7 @@ test("nested video responses retain zero timing, annotations and optional transl
           start: 0,
           end: 2,
           listeningCheck: "Listen again",
-          study: { id: "cue", source: "Bonjour !", notes: ["A greeting."] },
+          line: { id: "cue", source: "Bonjour !", notes: ["A greeting."] },
         },
       ],
     },
@@ -30,28 +30,49 @@ test("nested video responses retain zero timing, annotations and optional transl
   assert.deepEqual(wire, before);
 });
 
-test("comic responses combine teaching material and page placement in manifest order", () => {
+test("comic boxes come out of their pages, each knowing its page, order and lines", () => {
+  const box = (id, lineId) => ({
+    id,
+    regions: [{ x: 0, y: 0, width: 1, height: 1 }],
+    lines: [{ id: lineId, source: "Salut", translation: "Hi" }],
+  });
   const wire = {
     id: "book",
     comic: {
-      readingDirection: "READING_DIRECTION_RTL",
-      pages: [{ id: "p1", entry: "001.jpg" }],
-      cues: [
-        {
-          pageId: "p1",
-          order: 1,
-          regions: [{ x: 0, y: 0, width: 1, height: 1 }],
-          study: { id: "bubble", source: "Salut", translation: "Hi" },
-        },
+      readingDirection: "rtl",
+      pages: [
+        { id: "p1", entry: "001.jpg", boxes: [box("a", "la"), box("b", "lb")] },
+        { id: "p2", entry: "002.jpg", boxes: [box("c", "lc")] },
       ],
     },
   };
+  const before = structuredClone(wire);
   const view = playerDocument(wire);
+  assert.equal(view.cues, undefined);
   assert.equal(view.readingDirection, "rtl");
-  assert.equal(view.cues[0].pageId, "p1");
-  assert.equal(view.cues[0].source, "Salut");
-  assert.equal(view.cues[0].translation, "Hi");
-  assert.equal(view.cues[0].regions[0].width, 1);
+  assert.deepEqual(view.pages, [
+    { id: "p1", entry: "001.jpg" },
+    { id: "p2", entry: "002.jpg" },
+  ]);
+  assert.deepEqual(
+    view.boxes.map((b) => [b.id, b.pageId, b.order]),
+    [
+      ["a", "p1", 1],
+      ["b", "p1", 2],
+      ["c", "p2", 1],
+    ],
+  );
+  assert.equal(view.boxes[0].regions[0].width, 1);
+  assert.deepEqual(view.boxes[1].lines, [
+    {
+      id: "lb",
+      source: "Salut",
+      translation: "Hi",
+      pageId: "p1",
+      boxId: "b",
+    },
+  ]);
+  assert.deepEqual(wire, before);
 });
 
 test("request leaves local catalogue and review records outside the portable document model", async (t) => {
@@ -63,20 +84,26 @@ test("request leaves local catalogue and review records outside the portable doc
   assert.equal(await request("/review-queue"), records);
 });
 
-test("box-only comic cues retain empty source for later text edits", () => {
+test("a line of a box awaiting text has an empty source for later text edits", () => {
   const document = playerDocument({
     comic: {
-      cues: [
+      pages: [
         {
-          study: { id: "box" },
-          pageId: "page",
-          order: 1,
-          regions: [{ x: 0.1, y: 0.2, width: 0.3, height: 0.4 }],
+          id: "page",
+          entry: "001.jpg",
+          boxes: [
+            {
+              id: "box",
+              regions: [{ x: 0.1, y: 0.2, width: 0.3, height: 0.4 }],
+              lines: [{ id: "pending" }],
+            },
+          ],
         },
       ],
     },
   });
-  assert.equal(document.cues[0].source, "");
-  assert.equal(document.cues[0].id, "box");
-  assert.equal(document.cues[0].regions.length, 1);
+  assert.equal(document.readingDirection, "ltr");
+  assert.equal(document.boxes[0].id, "box");
+  assert.equal(document.boxes[0].lines[0].source, "");
+  assert.equal(document.boxes[0].regions.length, 1);
 });

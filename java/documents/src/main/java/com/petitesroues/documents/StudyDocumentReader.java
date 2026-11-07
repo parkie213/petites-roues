@@ -2,6 +2,7 @@ package com.petitesroues.documents;
 
 import com.petitesroues.model.document.StudyDocument;
 import com.petitesroues.model.document.VideoCue;
+import com.petitesroues.model.document.VideoDocument;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -23,7 +24,7 @@ public final class StudyDocumentReader {
   public StudyDocument decode(byte[] bytes) {
     StudyDocument document = codec.decode(bytes);
     // Files may contain cues appended after transcription; playback needs chronological order.
-    if (document.hasVideo())
+    if (document.body() instanceof VideoDocument)
       document =
           document.withVideo(
               video ->
