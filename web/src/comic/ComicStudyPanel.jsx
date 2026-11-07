@@ -121,7 +121,7 @@ export function ComicStudyPanel({
             {block.length > 0 && !editing && (
               <p className="comic-block-context" lang={sourceLanguage}>
                 {block.map((sentence, i) => [
-                  i > 0 && " ",
+                  i > 0 && (sentence.sourceSeparator ?? " "),
                   <span
                     key={sentence.id}
                     role="button"

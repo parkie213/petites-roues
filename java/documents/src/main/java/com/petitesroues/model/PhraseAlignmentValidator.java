@@ -7,9 +7,9 @@ import java.util.Set;
 
 /**
  * Checks an alignment's intrinsic graph rules and its binding to the current line text: the chunks
- * on each side, joined with single spaces, must reproduce that side exactly. Document loading uses
- * this before exposing an alignment to the player. Validation is read-only and requires no
- * persistence, application services or framework configuration.
+ * on each side, joined with that side's {@link ChunkSeparator}, must reproduce it exactly. Document
+ * loading uses this before exposing an alignment to the player. Validation is read-only and
+ * requires no persistence, application services or framework configuration.
  */
 public final class PhraseAlignmentValidator {
   private PhraseAlignmentValidator() {}
@@ -24,21 +24,30 @@ public final class PhraseAlignmentValidator {
    * @param alignment graph to validate; required
    * @param source current source line text; required and matched exactly
    * @param target current translation; required and matched exactly
+   * @param sourceLanguage the document's source language, which decides how source chunks join
+   * @param translationLanguage the document's translation language, likewise for translation chunks
    * @throws IllegalArgumentException if the graph is absent, malformed or does not match the text
    */
-  public static void validateFor(PhraseAlignment alignment, String source, String target) {
+  public static void validateFor(
+      PhraseAlignment alignment,
+      String source,
+      String target,
+      String sourceLanguage,
+      String translationLanguage) {
     if (alignment == null) throw new IllegalArgumentException("Alignment is required");
     if (source == null || target == null)
       throw new IllegalArgumentException("An alignment needs a source and a translation");
-    validatePhrases(alignment.source(), source, "Source");
-    validatePhrases(alignment.translation(), target, "Translation");
+    validatePhrases(alignment.source(), source, ChunkSeparator.of(sourceLanguage), "Source");
+    validatePhrases(
+        alignment.translation(), target, ChunkSeparator.of(translationLanguage), "Translation");
     validateLinks(alignment);
   }
 
-  private static void validatePhrases(List<String> phrases, String sentence, String language) {
+  private static void validatePhrases(
+      List<String> phrases, String sentence, String separator, String language) {
     if (phrases.isEmpty() || phrases.stream().anyMatch(phrase -> phrase.isBlank()))
       throw new IllegalArgumentException(language + " phrases must be nonempty text");
-    if (!String.join(" ", phrases).equals(sentence))
+    if (!String.join(separator, phrases).equals(sentence))
       throw new IllegalArgumentException(
           language + " phrases must reproduce the complete sentence");
   }

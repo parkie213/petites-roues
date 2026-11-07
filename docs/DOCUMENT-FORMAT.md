@@ -141,9 +141,11 @@ Add this optional `alignment` object to the example cue’s `line` to connect it
 }
 ```
 
-The phrase arrays bind the graph to the line's exact text: joining `source` with single spaces
-must reproduce the line's `source` exactly, and joining `translation` its `translation`,
-including punctuation and apostrophes. A graph made for older wording therefore fails
+The phrase arrays bind the graph to the line's exact text: joining `source` must reproduce the
+line's `source` exactly, and joining `translation` its `translation`, including punctuation and
+apostrophes. Chunks join with a single space, except in languages written without spaces
+between words (Chinese, Japanese, Thai, Lao, Khmer and Burmese, by the document's language
+tag), whose chunks join with nothing: `我们` `去` `公园。` reproduces `我们去公园。`. A graph made for older wording therefore fails
 validation.
 
 Link indices are zero-based positions in the phrase arrays. Every phrase on both

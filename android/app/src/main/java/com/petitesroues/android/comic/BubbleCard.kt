@@ -33,7 +33,9 @@ import com.petitesroues.android.study.PhraseParagraphLine
 import com.petitesroues.android.study.TranslationContext
 import com.petitesroues.android.study.phraseNotes
 import com.petitesroues.android.study.readyAlignment
+import com.petitesroues.model.ChunkSeparator
 import com.petitesroues.model.document.Line
+import com.petitesroues.model.document.StudyDocument
 
 private val sourceStyle = TextStyle(color = Color(0xFFE8EDF2), fontSize = 18.sp, lineHeight = 26.sp)
 private val translationStyle = TextStyle(fontSize = 15.sp, lineHeight = 22.sp)
@@ -47,18 +49,32 @@ private val noteStyle = TextStyle(color = Color(0xFFC8D4E0), fontSize = 14.sp, l
  * when one is pinned. The ask button hands [onAsk] the phrase being explored, if any, to ask a chat app about it.
  */
 @Composable
-fun BubbleCard(cue: Line, readAloud: ReadAloud, onAsk: (Int?) -> Unit, modifier: Modifier = Modifier) {
-  val alignment = readyAlignment(cue)
+fun BubbleCard(
+  cue: Line,
+  document: StudyDocument,
+  readAloud: ReadAloud,
+  onAsk: (Int?) -> Unit,
+  modifier: Modifier = Modifier,
+) {
+  val alignment = readyAlignment(cue, document)
+  val sourceSeparator = ChunkSeparator.of(document.sourceLanguage())
+  val translationSeparator = ChunkSeparator.of(document.translationLanguage())
   var pinned by remember(cue.id()) { mutableStateOf<Int?>(null) }
   val explore = { index: Int -> pinned = if (pinned == index) null else index }
   Column(
     modifier.verticalScroll(rememberScrollState()).padding(14.dp),
     verticalArrangement = Arrangement.spacedBy(8.dp),
   ) {
-    if (alignment != null) PhraseParagraphLine(alignment, pinned, sourceStyle, explore)
+    if (alignment != null) PhraseParagraphLine(alignment, pinned, sourceStyle, explore, separator = sourceSeparator)
     else Text(cue.source(), style = sourceStyle)
     if (alignment != null)
-      TranslationContext(alignment, pinned, translationStyle, onTap = explore)
+      TranslationContext(
+        alignment,
+        pinned,
+        translationStyle,
+        separator = translationSeparator,
+        onTap = explore,
+      )
     else
       Text(
         cue.translation().orEmpty().ifBlank { "No translation for this bubble yet." },

@@ -22,13 +22,17 @@ class PhraseAlignmentValidatorTest {
   }
 
   private static void validate(PhraseAlignment alignment) {
-    PhraseAlignmentValidator.validateFor(alignment, "Salut", "Hi");
+    PhraseAlignmentValidator.validateFor(alignment, "Salut", "Hi", "fr", "en");
   }
 
   /** Validates the graph against the sentences its own chunks spell out. */
   private static void validateGraph(PhraseAlignment alignment) {
     PhraseAlignmentValidator.validateFor(
-        alignment, String.join(" ", alignment.source()), String.join(" ", alignment.translation()));
+        alignment,
+        String.join(" ", alignment.source()),
+        String.join(" ", alignment.translation()),
+        "fr",
+        "en");
   }
 
   @Test
@@ -37,15 +41,39 @@ class PhraseAlignmentValidatorTest {
     assertDoesNotThrow(() -> validate(alignment));
     assertThrows(
         IllegalArgumentException.class,
-        () -> PhraseAlignmentValidator.validateFor(null, "Salut", "Hi"));
+        () -> PhraseAlignmentValidator.validateFor(null, "Salut", "Hi", "fr", "en"));
     for (String source : Arrays.asList(null, "Bonsoir", "Salut!"))
       assertThrows(
           IllegalArgumentException.class,
-          () -> PhraseAlignmentValidator.validateFor(alignment, source, "Hi"));
+          () -> PhraseAlignmentValidator.validateFor(alignment, source, "Hi", "fr", "en"));
     for (String translation : Arrays.asList(null, "Hello", "Hi!"))
       assertThrows(
           IllegalArgumentException.class,
-          () -> PhraseAlignmentValidator.validateFor(alignment, "Salut", translation));
+          () -> PhraseAlignmentValidator.validateFor(alignment, "Salut", translation, "fr", "en"));
+  }
+
+  @Test
+  void languagesWrittenWithoutSpacesJoinTheirChunksDirectly() {
+    var link = newLink(List.of(0, 1, 2), List.of(0, 1, 2), null);
+    var alignment =
+        newAlignment(List.of("我们", "去", "公园。"), List.of("We", "go", "to the park."), List.of(link));
+    assertDoesNotThrow(
+        () ->
+            PhraseAlignmentValidator.validateFor(
+                alignment, "我们去公园。", "We go to the park.", "zh-Hans", "en"));
+    assertThrows(
+        IllegalArgumentException.class,
+        () ->
+            PhraseAlignmentValidator.validateFor(
+                alignment, "我们 去 公园。", "We go to the park.", "zh", "en"));
+    assertThrows(
+        IllegalArgumentException.class,
+        () ->
+            PhraseAlignmentValidator.validateFor(
+                alignment, "我们去公园。", "We go to the park.", "fr", "en"));
+    assertEquals("", ChunkSeparator.of("ja"));
+    assertEquals(" ", ChunkSeparator.of("de-CH"));
+    assertEquals(" ", ChunkSeparator.of(null));
   }
 
   static Stream<Arguments> invalidPhrases() {

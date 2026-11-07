@@ -101,7 +101,9 @@ Links:
   English word; English adds a word French leaves implicit) and say so in the note.
 - Mechanics, checked by the tools: chunks joined with single spaces reproduce the source
   text exactly, punctuation included; the same holds for the English; every chunk is in a
-  link; every link has a note.
+  link; every link has a note. Languages written without spaces between words (Chinese,
+  Japanese, Thai, Lao, Khmer, Burmese) join their chunks with nothing: `我们` `去` `公园。`
+  reproduces `我们去公园。`.
 
 ## Link notes: explain the chunk
 

@@ -80,7 +80,7 @@ export function ComicBubbleCard({ cue, document, onKeep, quiet = false }) {
       <div className="comic-card-line" lang={sourceLanguage}>
         {alignment
           ? alignment.source.map((phrase, index) => [
-              index > 0 && " ",
+              index > 0 && (cue.sourceSeparator ?? " "),
               <span
                 key={index}
                 className="comic-card-phrase"
@@ -114,7 +114,7 @@ export function ComicBubbleCard({ cue, document, onKeep, quiet = false }) {
               };
               return (
                 <span key={index}>
-                  {index > 0 && " "}
+                  {index > 0 && (cue.translationSeparator ?? " ")}
                   {phrase === undefined ? (
                     <span className="comic-card-chunk" style={style}>
                       {chunk.text}

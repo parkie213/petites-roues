@@ -160,7 +160,7 @@ export function VideoSubtitles({
           <span className="video-subtitle-english-line">
             {translationContext(alignment, active).map((chunk, index) => (
               <span key={index}>
-                {index > 0 && " "}
+                {index > 0 && (cue.translationSeparator ?? " ")}
                 <span
                   className="video-subtitle-context-chunk"
                   data-active={chunk.active || undefined}

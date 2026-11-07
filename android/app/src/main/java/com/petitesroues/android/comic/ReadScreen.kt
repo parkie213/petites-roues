@@ -334,6 +334,7 @@ fun ReadScreen(
           key(shown.id()) {
             BubbleCard(
               shown,
+              document,
               readAloud,
               onAsk = { phrase -> asking = Question(box, shown, phrase) },
               modifier = Modifier.weight(1f, fill = false),
@@ -439,7 +440,7 @@ fun ReadScreen(
 
     asking?.let { (box, line, phrase) ->
       AskDialog(
-        phrase = phrase?.let { readyAlignment(line)?.source()?.getOrNull(it) },
+        phrase = phrase?.let { readyAlignment(line, document)?.source()?.getOrNull(it) },
         onDismiss = { asking = null },
         onAsk = { question ->
           asking = null

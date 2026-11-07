@@ -67,8 +67,8 @@ public final class StudyDocumentValidator {
     validateLanguage(document.sourceLanguage(), "Source");
     validateLanguage(document.translationLanguage(), "Translation");
     validateLanguage(document.notesLanguage(), "Notes");
-    if (document.body() instanceof ComicDocument comic) validateComic(comic, problems);
-    else validateVideo(document.video(), problems);
+    if (document.body() instanceof ComicDocument comic) validateComic(comic, document, problems);
+    else validateVideo(document.video(), document, problems);
   }
 
   private static String lineId(Line line) {
@@ -84,7 +84,8 @@ public final class StudyDocumentValidator {
     }
   }
 
-  private static void validateComic(ComicDocument document, List<String> problems) {
+  private static void validateComic(
+      ComicDocument document, StudyDocument languages, List<String> problems) {
     if (document.volume() != null && document.volume() < 1)
       throw new IllegalArgumentException("A comic volume must be a positive number");
     if (document.reference() != null)
@@ -118,7 +119,7 @@ public final class StudyDocumentValidator {
             () -> {
               if (line.id().isBlank() || !lineIds.add(line.id()))
                 throw new IllegalArgumentException("Line IDs must be unique and nonempty");
-              validateLine(line);
+              validateLine(line, languages);
             });
     }
   }
@@ -165,7 +166,8 @@ public final class StudyDocumentValidator {
     }
   }
 
-  private static void validateVideo(VideoDocument document, List<String> problems) {
+  private static void validateVideo(
+      VideoDocument document, StudyDocument languages, List<String> problems) {
     var reference = document.reference();
     if (reference != null) {
       validateReference(reference.fingerprint(), reference.sizeBytes());
@@ -181,7 +183,7 @@ public final class StudyDocumentValidator {
           () -> {
             if (!cue.hasLine() || cue.line().id().isBlank() || !cueIds.add(cue.line().id()))
               throw new IllegalArgumentException("Cue IDs must be unique and nonempty");
-            validateCue(cue);
+            validateCue(cue, languages);
           });
     }
   }
@@ -208,8 +210,8 @@ public final class StudyDocumentValidator {
     }
   }
 
-  private static void validateCue(VideoCue cue) {
-    validateLine(cue.line());
+  private static void validateCue(VideoCue cue, StudyDocument languages) {
+    validateLine(cue.line(), languages);
     if (cue.start() == null
         || cue.end() == null
         || !Double.isFinite(cue.start())
@@ -220,8 +222,14 @@ public final class StudyDocumentValidator {
     }
   }
 
-  private static void validateLine(Line line) {
+  /** A line's alignment binds to its text by the document's languages' chunk separators. */
+  private static void validateLine(Line line, StudyDocument languages) {
     if (line.alignment() != null)
-      PhraseAlignmentValidator.validateFor(line.alignment(), line.source(), line.translation());
+      PhraseAlignmentValidator.validateFor(
+          line.alignment(),
+          line.source(),
+          line.translation(),
+          languages.sourceLanguage(),
+          languages.translationLanguage());
   }
 }

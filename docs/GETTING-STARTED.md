@@ -35,22 +35,34 @@ The library should start empty. Click **Add repository** in the middle.
 
 <img src="../images/getting-started/02-locate-example-directory.png" alt="Locate the example directory" style="max-width: 100%; height: auto;">
 
-Select the `example` directory in the petites roues repository.
+Select the `example/documents` directory in the petites roues repository.
 
-A repository is simply a content folder; Git is optional. The example holds one title and the
-folders the library reads at a repository's root:
+A repository is simply a content folder; Git is optional. The example keeps its study documents
+and its videos in separate folders. Four one-minute titles cover three language pairs: French,
+German and Mandarin, each to English.
 
 ```text
 example/
-  peppa/
-    document.json     subtitles, translations, phrases and notes
-    video.mp4
-    poster.jpg        optional, placeholder card when absent 
-  quizzes/
-    verb-plus-infinitive.md
-  notes/
-    verb-plus-infinitive.md
+  documents/                  the repository: study documents, notes and quizzes
+    peppa-pig/
+      poster.jpg              optional series card, placeholder when absent
+      s01e01/document.json    subtitles, translations, phrases and notes
+      s01e02/document.json
+      s01e34-zh/document.json the Mandarin dub, a second language for one series
+    masha-and-the-bear/
+      083-de/document.json    German, a second series
+    quizzes/
+      verb-plus-infinitive.md
+    notes/
+      verb-plus-infinitive.md
+  media/                      the videos, linked to documents by fingerprint
+    peppa-pig/
+    masha-and-the-bear/
 ```
+
+Today, add `example/documents` as the repository; the titles open without video. Once the
+folders change lands, you add `example` itself and Refresh finds both the documents and the
+videos, linking each video to its document by fingerprint.
 
 A repository can contain titles, notes, quizzes, or any combination of them. For example,
 you can keep videos in one repository, comics in another, and notes and quizzes in a third.

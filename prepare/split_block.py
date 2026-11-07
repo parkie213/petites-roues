@@ -4,8 +4,8 @@
   split_block.py --document path/to/document.json --line LINE_ID
 
 The line's phrase breakdown decides the sentences: a sentence ends after a source chunk ending
-in `.`, `!`, `?` or `…` (closing quotes allowed). Each link must stay inside one sentence on
-both sides, or nothing is written. The sentences replace the line in its box, in place, each
+in `.`, `!`, `?`, `…` or a full-width `。！？` (closing quotes allowed). Each link must stay
+inside one sentence on both sides, or nothing is written. The sentences replace the line in its box, in place, each
 with its own translation, chunks and link notes; the box, its id and its reading order are
 unchanged, and readers show a box with several lines a sentence at a time. The first sentence
 keeps the line's id; the rest get new UUIDs. Sentence notes of the paragraph go to the first
@@ -20,7 +20,9 @@ import re
 import uuid
 from pathlib import Path
 
-SENTENCE_END = re.compile(r"[.!?…][»”\"’)]*$")
+from languages import chunk_separator
+
+SENTENCE_END = re.compile(r"[.!?…。！？][»”\"’)」』）]*$")
 
 
 def sentence_spans(chunks):
@@ -35,7 +37,7 @@ def sentence_spans(chunks):
     return spans
 
 
-def split(line):
+def split(line, source_join=" ", translation_join=" "):
     """Sentence lines from one aligned paragraph line; raises if a link crosses sentences."""
     alignment = line.get("alignment")
     if not alignment:
@@ -81,8 +83,8 @@ def split(line):
         sentences.append(
             {
                 "id": line["id"] if s == 0 else str(uuid.uuid4()),
-                "source": " ".join(source),
-                "translation": " ".join(translation),
+                "source": source_join.join(source),
+                "translation": translation_join.join(translation),
                 "notes": list(line.get("notes") or []) if s == 0 else [],
                 "alignment": {
                     "source": source,
@@ -108,7 +110,8 @@ def main():
         raise SystemExit(f"No comic line {args.line}.")
     page, box, index = found[0]
     line = box["lines"][index]
-    sentences = split(line)
+    sentences = split(line, chunk_separator(document["sourceLanguage"]),
+                      chunk_separator(document["translationLanguage"]))
     if len(sentences) < 2:
         raise SystemExit("The line is a single sentence; nothing to split.")
     box["lines"][index : index + 1] = sentences

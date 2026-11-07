@@ -29,6 +29,7 @@ from pathlib import Path
 
 import app
 import batches
+from languages import describe_join
 from openrouter import load
 
 MODEL = "openai/gpt-6-luna"
@@ -37,7 +38,7 @@ GUIDE = Path(__file__).resolve().parent.parent / "agents/guides/translation-note
 SECTIONS = ("Chunking: the core rule",)
 CONTRACT = """Write the phrase breakdown for every assigned cue, applying the Chunking and Links rules of the guide below. Each cue's translation is fixed: divide that exact text. This stage writes no notes; they are written later for the reviewed chunks. Read neighbouring cues for context. Return only assigned IDs exactly once in input order. Return JSON only:
 {"cues":[{"id":"assigned-id","alignment":{"source":["exact source chunks"],"translation":["translation chunks"],"links":[{"source":[0],"translation":[0]}]}}]}
-Chunks joined with single spaces must exactly reproduce source/translation respectively, punctuation included. Every chunk must belong to exactly one link, translation indices in each link must be contiguous. Indices are zero-based. No markdown fences. Final-check all IDs, joins and links before returning.
+Source chunks joined with SOURCE_JOIN, and translation chunks joined with TRANSLATION_JOIN, must exactly reproduce source/translation respectively, punctuation included. Every chunk must belong to exactly one link, translation indices in each link must be contiguous. Indices are zero-based. No markdown fences. Final-check all IDs, joins and links before returning.
 
 TEACHING GUIDE:
 """
@@ -84,10 +85,12 @@ def guide_sections(guide, headings=SECTIONS):
     return "".join([parts[0]] + [p for p in parts[1:] if p[3:].split("\n", 1)[0].strip() in headings])
 
 
-def prompt_for(batch, guide):
-    """The breakdown request for one batch: the contract, the guide sections this stage uses and the
-    batch's cues."""
-    return CONTRACT + guide_sections(guide) + "\n\nINPUT:\n" + json.dumps(batch, ensure_ascii=False, indent=2)
+def prompt_for(batch, guide, document):
+    """The breakdown request for one batch: the contract, with how the document's languages join
+    their chunks, the guide sections this stage uses and the batch's cues."""
+    contract = (CONTRACT.replace("SOURCE_JOIN", describe_join(document["sourceLanguage"]))
+                .replace("TRANSLATION_JOIN", describe_join(document["translationLanguage"])))
+    return contract + guide_sections(guide) + "\n\nINPUT:\n" + json.dumps(batch, ensure_ascii=False, indent=2)
 
 
 def words(chunk):
@@ -174,7 +177,7 @@ def main():
                              lint if attempt == 1 else None)
 
     spent, sent, answers, failed = batches.run_all(
-        args.run_dir, manifest, lambda batch: prompt_for(batch, guide), accept, args.workers)
+        args.run_dir, manifest, lambda batch: prompt_for(batch, guide, base), accept, args.workers)
     remaining = {i: lint(a) for i, a in answers.items() if lint(a)}
     print(f"Accepted {len(answers)} of {len(sent)} cues ({len(remaining)} still with a flagged fault); "
           f"this run cost USD {spent}")

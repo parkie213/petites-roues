@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { playerDocument, request } from "../src/shared/api.js";
+import { alignmentState } from "../src/player/alignment.js";
 
 test("nested video responses retain zero timing, annotations and optional translation absence", () => {
   const wire = {
@@ -68,11 +69,43 @@ test("comic boxes come out of their pages, each knowing its page, order and line
       id: "lb",
       source: "Salut",
       translation: "Hi",
+      sourceSeparator: " ",
+      translationSeparator: " ",
       pageId: "p1",
       boxId: "b",
     },
   ]);
   assert.deepEqual(wire, before);
+});
+
+test("chunks of a language written without spaces join directly", () => {
+  const view = playerDocument({
+    sourceLanguage: "zh-Hans",
+    translationLanguage: "en",
+    video: {
+      cues: [
+        {
+          start: 0,
+          end: 1,
+          line: {
+            id: "c",
+            source: "我们去公园。",
+            translation: "We go to the park.",
+            alignment: {
+              source: ["我们", "去", "公园。"],
+              translation: ["We", "go", "to the park."],
+              links: [{ source: [0, 1, 2], translation: [0, 1, 2] }],
+            },
+          },
+        },
+      ],
+    },
+  });
+  const [cue] = view.cues;
+  assert.equal(cue.sourceSeparator, "");
+  assert.equal(cue.translationSeparator, " ");
+  assert.equal(alignmentState(cue), "ready");
+  assert.equal(alignmentState({ ...cue, source: "我们 去 公园。" }), "missing");
 });
 
 test("request leaves local catalogue and review records outside the portable document model", async (t) => {
