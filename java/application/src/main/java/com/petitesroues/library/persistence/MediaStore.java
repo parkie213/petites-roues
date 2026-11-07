@@ -33,7 +33,10 @@ public class MediaStore {
         row.getString("fingerprint"),
         (Double) row.getObject("duration_seconds"),
         row.getString("audio_codecs"),
-        playable == null ? null : ((Number) playable).intValue() != 0);
+        playable == null ? null : ((Number) playable).intValue() != 0,
+        row.getString("poster_path"),
+        row.getString("series_poster_path"),
+        row.getString("poster_problem"));
   }
 
   /** Every indexed media file, ordered by folder and path. */
@@ -67,8 +70,9 @@ public class MediaStore {
       jdbc.update(
           """
           INSERT INTO media (repository_id, relative_path, kind, size_bytes, modified_millis,
-            fingerprint, duration_seconds, audio_codecs, audio_playable)
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            fingerprint, duration_seconds, audio_codecs, audio_playable, poster_path,
+            series_poster_path, poster_problem)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
           """,
           repositoryId,
           item.relativePath(),
@@ -78,6 +82,9 @@ public class MediaStore {
           item.fingerprint(),
           item.durationSeconds(),
           item.audioCodecs(),
-          item.audioPlayable() == null ? null : item.audioPlayable() ? 1 : 0);
+          item.audioPlayable() == null ? null : item.audioPlayable() ? 1 : 0,
+          item.posterPath(),
+          item.seriesPosterPath(),
+          item.posterProblem());
   }
 }

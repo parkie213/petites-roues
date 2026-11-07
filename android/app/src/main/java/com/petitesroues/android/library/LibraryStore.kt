@@ -9,12 +9,13 @@ import androidx.core.net.toUri
 
 /**
  * The phone's title index and reading/playback progress in a local SQLite database. Progress is
- * keyed by title folder path, so it survives refreshes, and is never synced to the desktop.
+ * keyed by title path ([TitlePaths]), so it survives refreshes, and is never synced to the desktop.
  */
 class LibraryStore(context: Context) :
-  SQLiteOpenHelper(context, "library.sqlite", null, 4) {
+  SQLiteOpenHelper(context, "library.sqlite", null, 5) {
   override fun onCreate(db: SQLiteDatabase) {
     createTitles(db)
+    createFingerprints(db)
     db.execSQL(
       """CREATE TABLE progress (
            path TEXT PRIMARY KEY, position_seconds REAL, page_id TEXT,
@@ -24,12 +25,14 @@ class LibraryStore(context: Context) :
 
   /**
    * The title table is only an index of the content folders, so an upgrade empties it until the
-   * next refresh. Progress is kept; version 3 adds how far through each title it is, and version 4
-   * indexes the reference duration in place of the edition.
+   * next refresh. Progress is kept; version 3 adds how far through each title it is, version 4
+   * indexes the reference duration in place of the edition, and version 5 caches media
+   * fingerprints, as titles link to media by fingerprint from any folder.
    */
   override fun onUpgrade(db: SQLiteDatabase, oldVersion: Int, newVersion: Int) {
     db.execSQL("DROP TABLE IF EXISTS title")
     createTitles(db)
+    if (oldVersion < 5) createFingerprints(db)
     if (oldVersion < 3) db.execSQL("ALTER TABLE progress ADD COLUMN fraction REAL")
   }
 
@@ -41,6 +44,48 @@ class LibraryStore(context: Context) :
            season INTEGER, episode INTEGER, volume INTEGER, poster_uri TEXT,
            series_poster_uri TEXT, first_page TEXT)"""
     )
+
+  /** A media file's fingerprint as of a refresh, with the size and time it was taken at. */
+  data class Fingerprint(val size: Long, val modifiedMillis: Long, val fingerprint: String)
+
+  /** Media fingerprints from the last refresh, keyed by document URI, reused while unchanged. */
+  private fun createFingerprints(db: SQLiteDatabase) =
+    db.execSQL(
+      """CREATE TABLE fingerprint (
+           uri TEXT PRIMARY KEY, size INTEGER NOT NULL, modified_millis INTEGER NOT NULL,
+           fingerprint TEXT NOT NULL)"""
+    )
+
+  /** The cached fingerprints, keyed by media URI. */
+  fun fingerprints(): Map<String, Fingerprint> =
+    readableDatabase.rawQuery("SELECT uri, size, modified_millis, fingerprint FROM fingerprint", null).use {
+      buildMap {
+        while (it.moveToNext()) put(it.getString(0), Fingerprint(it.getLong(1), it.getLong(2), it.getString(3)))
+      }
+    }
+
+  /** Replaces the fingerprint cache with one refresh's media, in one transaction. */
+  fun replaceFingerprints(fingerprints: Map<String, Fingerprint>) {
+    val db = writableDatabase
+    db.beginTransaction()
+    try {
+      db.delete("fingerprint", null, null)
+      for ((uri, cached) in fingerprints)
+        db.insertOrThrow(
+          "fingerprint",
+          null,
+          ContentValues().apply {
+            put("uri", uri)
+            put("size", cached.size)
+            put("modified_millis", cached.modifiedMillis)
+            put("fingerprint", cached.fingerprint)
+          },
+        )
+      db.setTransactionSuccessful()
+    } finally {
+      db.endTransaction()
+    }
+  }
 
   /** Every indexed title, ordered by path. */
   fun titles(): List<Title> =

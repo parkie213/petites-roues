@@ -165,6 +165,60 @@ class LibraryServiceTest {
   }
 
   @Test
+  void postersComeFromRefreshAndAnAmbiguousFolderIsAWarning() throws Exception {
+    var folder = new ContentRepository("repo", "Folder", root.toString(), null, 1, 0, 2);
+    Files.write(root.resolve("film.json"), new byte[] {0});
+    Files.write(root.resolve("film.mkv"), new byte[] {0});
+    Files.write(root.resolve("film.jpg"), new byte[] {0});
+    var film =
+        new CatalogueEntry(
+            "film", "Film", null, null, null, null, "film.json", located("v1:film", "video"));
+    String problem = "Several posters named poster in show — keep one image";
+    var linked =
+        new IndexedMedia(
+            "repo",
+            root.toString(),
+            "film.mkv",
+            "video",
+            1,
+            1,
+            "v1:film",
+            60.0,
+            "aac",
+            true,
+            "film.jpg",
+            null,
+            null);
+    var episode =
+        new IndexedMedia(
+            "repo",
+            root.toString(),
+            "show/e1.mkv",
+            "video",
+            1,
+            1,
+            "v1:e1",
+            60.0,
+            "aac",
+            true,
+            null,
+            null,
+            problem);
+    when(repositories.list()).thenReturn(List.of(folder));
+    when(repository.all()).thenReturn(List.of(film));
+    when(media.all()).thenReturn(List.of(linked, episode));
+    when(repository.find("film")).thenReturn(Optional.of(film));
+    when(media.withFingerprint("v1:film")).thenReturn(List.of(linked));
+
+    var library = library();
+    var contents = library.library().repositories().getFirst();
+
+    assertTrue(contents.entries().getFirst().posterAvailable());
+    assertEquals(root.resolve("film.jpg"), library.poster("film").orElseThrow());
+    assertEquals(List.of("No study document", problem), contents.media().get(1).warnings());
+  }
+
+  @Test
   void unmatchedTitlesSayWhetherTheyLackAReferenceOrTheMedia() throws Exception {
     Files.write(root.resolve("a.json"), new byte[] {0});
     when(repository.all())

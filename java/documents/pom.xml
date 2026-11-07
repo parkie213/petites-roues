@@ -9,7 +9,7 @@
   </parent>
   <artifactId>petites-roues-documents</artifactId>
   <properties>
-    <!-- The Android app compiles these sources too; D8 and Android's library need Java 17. -->
+    <!-- The Android app uses this jar too; D8 and Android's library need Java 17. -->
     <maven.compiler.release>17</maven.compiler.release>
     <maven.compiler.testRelease>${java.version}</maven.compiler.testRelease>
   </properties>

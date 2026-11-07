@@ -1,10 +1,11 @@
 package com.petitesroues.library;
 
+import com.petitesroues.library.discovery.MediaKind;
+import com.petitesroues.library.linking.MediaLinks;
 import com.petitesroues.library.persistence.MediaStore;
 import com.petitesroues.model.library.CatalogueEntry;
 import com.petitesroues.model.library.IndexedMedia;
 import java.nio.file.Files;
-import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -12,14 +13,11 @@ import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 
 /**
- * Links titles to indexed media by fingerprint: a title's video or CBZ is a file of its kind, found
- * in any registered folder at the last refresh, whose fingerprint equals the document's reference
- * fingerprint. Nothing else links them: not sharing a folder, nor series, episode or duration. A
- * document without a reference fingerprint has no media.
- *
- * <p>When several files match (copies of one file), one in the title's own registered folder is
- * preferred, then the first by folder and path. A file that has gone since the refresh is skipped.
- * Reads the index only; Refresh does the probing.
+ * Links titles to indexed media by the library's shared rule ({@link MediaLinks}): a file of the
+ * title's kind, found in any registered folder at the last refresh, whose fingerprint equals the
+ * document's reference fingerprint; a copy in the title's own folder first, then the first by
+ * folder and path. A file that has gone since the refresh is skipped. Reads the index only; Refresh
+ * does the probing.
  */
 @Service
 public class TitleMediaService {
@@ -69,11 +67,21 @@ public class TitleMediaService {
   }
 
   private static Optional<IndexedMedia> pick(CatalogueEntry entry, List<IndexedMedia> candidates) {
-    String kind = "comic".equals(entry.location().documentType()) ? "comic" : "video";
-    String repository = entry.location().repositoryId();
-    return candidates.stream()
-        .filter(item -> item.kind().equals(kind))
-        .filter(item -> Files.isRegularFile(item.file()))
-        .min(Comparator.comparing((IndexedMedia item) -> !item.repositoryId().equals(repository)));
+    return MediaLinks.choose(
+        kind(entry.location().documentType()),
+        fingerprint(entry),
+        entry.location().repositoryId(),
+        candidates.stream()
+            .filter(item -> Files.isRegularFile(item.file()))
+            .map(
+                item ->
+                    new MediaLinks.Candidate<>(
+                        item, kind(item.kind()), item.fingerprint(), item.repositoryId()))
+            .toList());
+  }
+
+  /** The media kind of a document type or an indexed kind: {@code comic}, else video. */
+  static MediaKind kind(String type) {
+    return "comic".equals(type) ? MediaKind.COMIC : MediaKind.VIDEO;
   }
 }

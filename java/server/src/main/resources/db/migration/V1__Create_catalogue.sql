@@ -48,6 +48,11 @@ CREATE TABLE media (
   audio_codecs TEXT,
   -- Whether any audio stream is browser-playable; NULL for comics.
   audio_playable INTEGER,
+  -- Card images found beside the media by Refresh, relative to the folder; NULL when none.
+  poster_path TEXT,
+  series_poster_path TEXT,
+  -- Why a poster could not be chosen (several candidates in a folder); NULL when fine.
+  poster_problem TEXT,
   PRIMARY KEY (repository_id, relative_path)
 );
 CREATE INDEX media_fingerprint ON media(fingerprint);

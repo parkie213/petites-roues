@@ -30,7 +30,11 @@ public final class StudyDocumentReader {
    * silently dropping out of the library.
    */
   public boolean isStudyDocument(Path file) throws IOException {
-    byte[] bytes = Files.readAllBytes(file);
+    return isStudyDocument(Files.readAllBytes(file));
+  }
+
+  /** {@link #isStudyDocument(Path)} for a file already read, as Android reads content URIs. */
+  public boolean isStudyDocument(byte[] bytes) {
     JsonNode root;
     try {
       root = SHAPE.readTree(bytes);
