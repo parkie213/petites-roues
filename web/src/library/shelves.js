@@ -295,6 +295,15 @@ function bySeries(entries) {
   return groups;
 }
 
+/**
+ * A comic whose document names no series takes the one its media's folder names, as the volumes
+ * still awaiting documents do, so writing a document does not pull a volume out of its series.
+ */
+function seriesFromMedia(entry) {
+  if (hasSeries(entry) || !entry.mediaPath) return entry;
+  return { ...entry, series: namedFromPath(entry.mediaPath).series };
+}
+
 /** The shelf a group belongs on: the label most of its titles name, else its default. */
 function shelfOf(group, fallback) {
   const labels = group.slots
@@ -311,7 +320,9 @@ export function shelves(entries) {
   const placed = [];
   const place = (fallback) => (group) =>
     placed.push([shelfOf(group, fallback), group]);
-  const comics = entries.filter((entry) => entry.type === "comic");
+  const comics = entries
+    .filter((entry) => entry.type === "comic")
+    .map(seriesFromMedia);
   const videos = entries.filter((entry) => entry.type !== "comic");
 
   for (const [key, group] of bySeries(comics.filter(hasSeries)))

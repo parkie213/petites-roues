@@ -5,10 +5,7 @@ import com.petitesroues.documents.StudyDocumentReader;
 import com.petitesroues.model.document.StudyDocument;
 import com.petitesroues.model.library.CatalogueEntry;
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.StandardOpenOption;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
@@ -29,12 +26,6 @@ public class DocumentStore {
   public DocumentStore(StudyDocumentReader reader) {
     this.reader = reader;
     this.codec = new StudyDocumentCodec();
-  }
-
-  /** Writes a new, validated document; fails if {@code file} already exists. */
-  public void create(Path file, StudyDocument document) throws IOException {
-    Files.writeString(
-        file, codec.encode(document), StandardCharsets.UTF_8, StandardOpenOption.CREATE_NEW);
   }
 
   /**

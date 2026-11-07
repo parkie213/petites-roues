@@ -1,7 +1,7 @@
 # Prepare a title
 
 The steps for turning a video or a comic into a study document. They are written for a person
-or a coding agent to follow by hand. The library's **Add title** sets up the title folder; then
+or a coding agent to follow by hand. `prepare/new_title.py` starts the document; then
 small scripts in [prepare/](../prepare/) call hosted models through
 [OpenRouter](https://openrouter.ai) and fill in the document.
 There is no pipeline to maintain: when a step stops being useful, change this page.
@@ -41,24 +41,32 @@ minutes, not a film.
   quality: that is the review's job.
 - Keep originals: the source video/CBZ, any original subtitles and the raw run output.
 
-## Add the title
+## Start the document
 
-In the library, **Add title** and pick the video or `.cbz` on this computer. Choose the
-repository, the folder for the title inside it, the title and the languages:
+Put the video or `.cbz` in your media folder, then start its document in your documents folder:
 
-- **Videos:** pick the audio track to keep. The track matching the source language is
-  preselected; with dubs such as VFF and VFQ, check the track titles. The browser can only play
-  one track, and not AC3 or DTS, so the app keeps just that track (converting it to AAC if
-  needed) as `video.mp4` in the title folder. The picture is copied unchanged and the original
-  file is left where it was.
-- **Comics:** pick the reading direction. The CBZ is copied into the folder and the pages are
-  listed in natural filename order; check the first few pages in the reader.
+```bash
+python3 prepare/new_title.py --document ~/gits/study-content/comics/naruto/t02/document.json \
+  --media ~/media/fr/comics/naruto/Naruto-T02.cbz --title "Naruto T02" --series Naruto --volume 2
+```
 
-The app writes an empty `document.json`, with the written video or CBZ recorded as its
-[reference](DOCUMENT-FORMAT.md#reference-media), and indexes the title. Add metadata such as
-`series`, `season`, `episode` and `sourceUrl` to the document by hand if you want it (see
-[the document format](DOCUMENT-FORMAT.md#metadata-and-review-fields)). For a title registered
-some other way, record its reference with `prepare/reference.py --document path/to/document.json`.
+The script writes an empty `document.json` with the media recorded as its
+[reference](DOCUMENT-FORMAT.md#reference-media); the media stays where it is. The document ID
+defaults to the title with dashes (`naruto-t02`) and must be unique in the documents folder.
+Languages default to French source with English translation and notes (`--source`,
+`--translation`, `--notes`).
+
+- **Comics:** the pages are listed in natural filename order and read right to left unless
+  `--ltr`; check the first few pages in the reader.
+- **Videos:** the browser plays only a file's first audio track, and not AC3 or DTS. If the
+  library warns about the audio, or the first track is a dub, keep just the right track as AAC
+  before starting the document, for example
+  `ffmpeg -i in.mkv -map 0:v:0 -map 0:a:1 -c:v copy -c:a aac -b:a 192k -movflags +faststart video.mp4`.
+
+Then **Refresh** the documents folder in the library. Add other metadata such as `season`,
+`episode` and `sourceUrl` by hand if you want it (see
+[the document format](DOCUMENT-FORMAT.md#metadata-and-review-fields)). For a document that
+already exists, record its media with `prepare/reference.py --document path/to/document.json --media FILE`.
 
 To download a video first: `yt-dlp -t mp4 --no-playlist -o 'video.%(ext)s' 'VIDEO_URL'`.
 
@@ -66,6 +74,7 @@ To download a video first: `yt-dlp -t mp4 --no-playlist -o 'video.%(ext)s' 'VIDE
 
 ```bash
 python3 prepare/transcribe.py --document content/my-title/document.json \
+  --media ~/media/fr/films/my-title/my-title.mp4 \
   --run-dir content-archive/runs/my-title-transcribe --chunks 1
 ```
 
@@ -105,6 +114,7 @@ skipped and listed, so do this before the notes first pass.
 
 ```bash
 python3 prepare/comic_text.py --document content/my-comic/document.json \
+  --media ~/media/fr/comics/my-comic/my-comic-T01.cbz \
   --run-dir content-archive/runs/my-comic-text --pages 1-5
 ```
 

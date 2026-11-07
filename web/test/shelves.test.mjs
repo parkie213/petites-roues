@@ -345,3 +345,30 @@ test("media without a document joins its series' only language", () => {
   });
   assert.equal(shelf(shelves([linked, french, bare]), "series").length, 3);
 });
+
+test("a comic whose document names no series joins the series its folder names", () => {
+  const bare = mediaEntry({
+    repositoryId: "media",
+    relativePath: "comics/naruto/Naruto-T02.cbz",
+    kind: "comic",
+    fingerprint: "f2",
+    posterAvailable: false,
+    seriesPosterAvailable: false,
+    warnings: [],
+  });
+  const documented = entry({
+    type: "comic",
+    title: "Naruto T01",
+    sourceLanguage: "fr",
+    mediaPath: "comics/naruto/Naruto-T01.cbz",
+  });
+  const cards = shelf(shelves([documented, bare]), "comics");
+  assert.deepEqual(
+    cards.map((card) => [card.name, card.slots.length]),
+    [["Naruto", 2]],
+  );
+  assert.deepEqual(
+    cards[0].slots.map((slot) => slot.label),
+    ["Naruto T01", "Naruto T02"],
+  );
+});

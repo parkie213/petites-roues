@@ -45,8 +45,8 @@ verification. Routine reviews require no exports or backups.
 
 ## Preparing titles
 
-Follow [docs/PREPARE-TITLE.md](docs/PREPARE-TITLE.md): the library's Add title creates the title
-folder (media plus an empty document), then OpenRouter-backed scripts in `prepare/` fill in
+Follow [docs/PREPARE-TITLE.md](docs/PREPARE-TITLE.md): `prepare/new_title.py` starts an empty
+document that references the media, then OpenRouter-backed scripts in `prepare/` fill in
 transcription, comic text and first-pass notes. Keep it a
 runbook with small scripts, not a pipeline. Use [agents/workflows/subtitle-quiz.md](agents/workflows/subtitle-quiz.md)
 for interactive translation practice, and [agents/workflows/write-quiz.md](agents/workflows/write-quiz.md)
@@ -61,7 +61,7 @@ and title-specific preparation scripts belong outside the tracked application fi
 Local content belongs under ignored `content/`, or in a separately registered content repository.
 Live documents may be in that repository; videos and SQLite stay local.
 The SQLite index stores document paths relative to their owning repository root.
-New titles are created with the library's Add title, or registered through repository Add/Refresh; the SQLite location is configured independently.
+New titles are started with `prepare/new_title.py` and indexed through repository Add/Refresh; the SQLite location is configured independently.
 See [the document format](docs/DOCUMENT-FORMAT.md#documents-and-media). Keep app sources and generic workflows outside content.
 
 Keep `content/` limited to live videos, comics, subtitle/notes documents and library

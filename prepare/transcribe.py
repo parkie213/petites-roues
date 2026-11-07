@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 """Transcribe a registered video title through OpenRouter, in resumable chunks.
 
-  transcribe.py --document content/my-title/document.json --run-dir DIR [--chunks 1]
+  transcribe.py --document content/my-title/document.json --run-dir DIR [--media FILE] [--chunks 1]
 
-Extracts compact mono audio from the video beside the document (the library's Add title keeps
-only the chosen audio track) and transcribes it in the document's source language in chunks of
+Extracts compact mono audio from the video (--media, else the one beside the document; its first
+audio track, as the browser plays) and transcribes it in the document's source language in chunks of
 about ten minutes that overlap their neighbours by a few seconds. Each chunk's request and raw
 response are saved under DIR/chunk-NNN; a chunk that already has a response is not sent again,
 so rerunning the same command resumes after a failure.
@@ -71,6 +71,7 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--document", type=Path, required=True)
     parser.add_argument("--run-dir", type=Path, required=True)
+    parser.add_argument("--media", type=Path, help="the video; defaults to the one beside the document")
     parser.add_argument("--chunks", type=int, help="transcribe only the first N chunks (a sample)")
     parser.add_argument("--model", default=MODEL)
     args = parser.parse_args()
@@ -82,7 +83,8 @@ def main():
     written = load(written_path) if written_path.exists() else []
     if document["video"].get("cues") and not written:
         raise SystemExit("The document already has cues from another run; nothing to transcribe")
-    videos = [f for f in args.document.parent.iterdir() if f.suffix.lower() in VIDEOS]
+    videos = [args.media] if args.media else [
+        f for f in args.document.parent.iterdir() if f.suffix.lower() in VIDEOS]
     if len(videos) != 1:
         raise SystemExit(f"Expected one video beside the document, found {len(videos)}")
 

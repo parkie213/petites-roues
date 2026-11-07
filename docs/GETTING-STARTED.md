@@ -119,9 +119,8 @@ Have your agent of choice quiz you.
 
 ## Next steps
 
-- **Your own titles:** **Add title** in the library creates a title folder from a video or
-  comic, and [PREPARE-TITLE.md](PREPARE-TITLE.md) walks through transcribing, translating and
-  annotating it.
+- **Your own titles:** [PREPARE-TITLE.md](PREPARE-TITLE.md) walks through starting a
+  document for a video or comic, then transcribing, translating and annotating it.
 - **Quizzes and notes:** [write-quiz.md](../agents/workflows/write-quiz.md) and
   [write-notes.md](../agents/workflows/write-notes.md).
 - **On your phone:** the offline Android app reads the same folders; see

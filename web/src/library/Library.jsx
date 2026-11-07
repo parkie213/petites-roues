@@ -25,8 +25,10 @@ import {
   TriangleAlert,
 } from "lucide-react";
 import { chooseOnComputer, request } from "../shared/api.js";
-import { ImportTitle } from "./ImportTitle.jsx";
 import { LibraryBrowser } from "./LibraryBrowser.jsx";
+import { JobProgress } from "./JobProgress.jsx";
+import { jobSucceeded } from "./library-job.js";
+import { useLibraryJob } from "./useLibraryJob.js";
 import { LibraryQuiz } from "./LibraryQuiz.jsx";
 import { usageLine } from "./usage.js";
 import { Posters } from "./Posters.jsx";
@@ -88,7 +90,6 @@ export function Library() {
   const [data, setData] = useState(null),
     [error, setError] = useState(""),
     [message, setMessage] = useState(""),
-    [importing, setImporting] = useState(false),
     [busy, setBusy] = useState(false),
     [removing, setRemoving] = useState(null),
     [usage, setUsage] = useState("");
@@ -135,27 +136,39 @@ export function Library() {
     }
   }
 
-  /** Registers any folder: Refresh finds its study documents, videos and comics. */
+  // Add and Refresh run on the server in the background, streaming their progress.
+  const { job, start } = useLibraryJob((finished, body) => {
+    load()
+      .catch((e) => setError(e.message))
+      .then(() => {
+        if (finished.state === "failed") setError(finished.error);
+        else setMessage(jobSucceeded(finished, body));
+      });
+  });
+  const working = busy || job != null;
+  async function startJob(body) {
+    setError("");
+    setMessage("");
+    try {
+      await start(body);
+    } catch (e) {
+      setError(e.message);
+    }
+  }
+
+  /** Registers any folder: Add finds its study documents, videos and comics. */
   async function addFolder() {
     setError("");
     try {
       const path = await chooseOnComputer("folder");
-      if (path)
-        await act(
-          "/api/repositories",
-          "POST",
-          { localPath: path },
-          "Folder added.",
-        );
+      if (path) await startJob({ kind: "add", localPath: path });
     } catch (e) {
       setError(e.message);
     }
   }
 
   function refreshLibrary() {
-    act("/api/repositories/refresh", "POST", null, "Library refreshed.").catch(
-      () => {},
-    );
+    startJob({ kind: "refresh" });
   }
 
   const [language, setLanguage] = useState(storedLanguage);
@@ -196,18 +209,9 @@ export function Library() {
               {data?.repos.length > 0 && <LibraryQuiz />}
               {data?.repos.length > 0 && (
                 <Button
-                  leftSection={<Plus size={17} />}
-                  disabled={busy}
-                  onClick={() => setImporting(true)}
-                >
-                  Add title
-                </Button>
-              )}
-              {data?.repos.length > 0 && (
-                <Button
                   variant="default"
                   leftSection={<RefreshCw size={16} />}
-                  loading={busy}
+                  loading={working}
                   onClick={refreshLibrary}
                 >
                   Refresh library
@@ -216,7 +220,7 @@ export function Library() {
               <Button
                 variant="default"
                 leftSection={<Plus size={17} />}
-                disabled={busy}
+                disabled={working}
                 onClick={addFolder}
               >
                 Add folder
@@ -304,6 +308,7 @@ export function Library() {
               </Group>
             </Chip.Group>
           )}
+          {job && <JobProgress job={job} />}
           {error && (
             <Alert
               color="red"
@@ -331,7 +336,7 @@ export function Library() {
                 <Button
                   mt="sm"
                   leftSection={<Plus size={17} />}
-                  disabled={busy}
+                  disabled={working}
                   onClick={addFolder}
                 >
                   Add folder
@@ -355,8 +360,10 @@ export function Library() {
               data={data}
               selection={selection}
               navigate={navigate}
-              busy={busy}
-              act={act}
+              busy={working}
+              refresh={(repositoryId) =>
+                startJob({ kind: "refresh", repositoryId })
+              }
               onRemove={setRemoving}
             />
           ) : (
@@ -420,24 +427,6 @@ export function Library() {
           </Group>
         </Stack>
       </Modal>
-      {importing && (
-        <ImportTitle
-          repos={data.repos}
-          selection={selection}
-          onClose={() => setImporting(false)}
-          onCreated={async (created, kind) => {
-            await load();
-            setError("");
-            setMessage(
-              `Created ${created.documentPath}. Next: ${
-                kind === "video"
-                  ? "transcribe it with prepare/transcribe.py"
-                  : "find its text with prepare/comic_text.py"
-              }, then notes with prepare/notes.py (docs/PREPARE-TITLE.md).`,
-            );
-          }}
-        />
-      )}
     </Box>
   );
 }

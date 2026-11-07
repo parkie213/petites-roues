@@ -11,6 +11,7 @@ import com.petitesroues.media.MediaProbe;
 import com.petitesroues.model.document.StudyDocument;
 import com.petitesroues.model.library.ContentRepository;
 import com.petitesroues.model.library.IndexedMedia;
+import com.petitesroues.model.library.LibraryProgress;
 import com.petitesroues.study.ReviewQueue;
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -112,6 +113,11 @@ public class ContentRepositoryService {
    * @throws IOException if the directory traversal or a document read fails
    */
   public ContentRepository add(Add request) throws IOException {
+    return add(request, LibraryProgress.Listener.NONE);
+  }
+
+  /** {@link #add(Add)}, reporting progress as it scans, probes and reads. */
+  public ContentRepository add(Add request, LibraryProgress.Listener progress) throws IOException {
     if (request == null || request.localPath() == null || request.localPath().isBlank())
       throw new IllegalArgumentException("Choose a repository directory");
     if (!Files.isDirectory(Path.of(request.localPath())))
@@ -124,7 +130,8 @@ public class ContentRepositoryService {
         request.name() == null || request.name().isBlank()
             ? root.getFileName().toString()
             : request.name().strip();
-    var discovered = discover(root, List.of());
+    var discovered = discover(root, name, List.of(), progress);
+    progress.report(new LibraryProgress(name, "saving", 0, 0, null));
     transactions.executeWithoutResult(
         status -> {
           repositories.insert(id, name, root.toString());
@@ -144,8 +151,17 @@ public class ContentRepositoryService {
    * @throws IOException if the directory traversal or a document read fails
    */
   public ContentRepository refresh(String id) throws IOException {
+    return refresh(id, LibraryProgress.Listener.NONE);
+  }
+
+  /** {@link #refresh(String)}, reporting progress as it scans, probes and reads. */
+  public ContentRepository refresh(String id, LibraryProgress.Listener progress)
+      throws IOException {
     var repository = repositories.find(id);
-    var discovered = discover(Path.of(repository.localPath()), media.inRepository(id));
+    var discovered =
+        discover(
+            Path.of(repository.localPath()), repository.name(), media.inRepository(id), progress);
+    progress.report(new LibraryProgress(repository.name(), "saving", 0, 0, null));
     transactions.executeWithoutResult(status -> updateIndex(id, discovered));
     return repositories.find(id);
   }
@@ -157,9 +173,14 @@ public class ContentRepositoryService {
    *     before it keep their new index
    */
   public List<ContentRepository> refreshAll() throws IOException {
+    return refreshAll(LibraryProgress.Listener.NONE);
+  }
+
+  /** {@link #refreshAll()}, reporting each folder's progress in turn. */
+  public List<ContentRepository> refreshAll(LibraryProgress.Listener progress) throws IOException {
     for (var repository : list()) {
       try {
-        refresh(repository.id());
+        refresh(repository.id(), progress);
       } catch (IllegalArgumentException failure) {
         throw new IllegalArgumentException(
             repository.name() + ": " + failure.getMessage(), failure);
@@ -173,13 +194,18 @@ public class ContentRepositoryService {
    * starts. Media whose size and modification time match its previous index row keeps that row's
    * probe; anything else is probed now.
    */
-  private Discovered discover(Path root, List<IndexedMedia> previous) throws IOException {
+  private Discovered discover(
+      Path root, String folder, List<IndexedMedia> previous, LibraryProgress.Listener progress)
+      throws IOException {
+    progress.report(new LibraryProgress(folder, "scanning", 0, 0, null));
     var found = scanner.scan(root);
+    int count = 0, total = found.media().size();
     Map<String, IndexedMedia> known =
         previous.stream()
             .collect(Collectors.toMap(IndexedMedia::relativePath, Function.identity()));
     List<IndexedMedia> probed = new ArrayList<>();
     for (var file : found.media()) {
+      progress.report(new LibraryProgress(folder, "media", count++, total, file.relativePath()));
       String kind = file.kind().id();
       var old = known.get(file.relativePath());
       MediaProbe.Probe result =
@@ -209,16 +235,29 @@ public class ContentRepositoryService {
               file.posterProblem()));
     }
     return new Discovered(
-        readDocuments(root, found.documents().stream().map(ContentScanner.Found::handle).toList()),
+        readDocuments(
+            root,
+            folder,
+            found.documents().stream().map(ContentScanner.Found::handle).toList(),
+            progress),
         probed);
   }
 
   /** Reads the files that claim to be study documents and rejects duplicate IDs. */
-  private List<DiscoveredDocument> readDocuments(Path root, List<Path> candidates)
+  private List<DiscoveredDocument> readDocuments(
+      Path root, String folder, List<Path> candidates, LibraryProgress.Listener progress)
       throws IOException {
     List<DiscoveredDocument> documents = new ArrayList<>();
     Set<String> ids = new HashSet<>();
+    int count = 0;
     for (Path file : candidates) {
+      progress.report(
+          new LibraryProgress(
+              folder,
+              "documents",
+              count++,
+              candidates.size(),
+              root.relativize(file).toString().replace('\\', '/')));
       if (!reader.isStudyDocument(file)) continue;
       StudyDocument document;
       try {
