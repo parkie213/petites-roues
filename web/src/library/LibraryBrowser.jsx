@@ -28,7 +28,7 @@ import {
   Trash2,
 } from "lucide-react";
 import { repositoryColumns, repositoryTree } from "./repository-tree.js";
-import { folderHref } from "./navigation.js";
+import { folderHref, columnsHref } from "./navigation.js";
 
 function StudyTitle({ entry }) {
   const comic = entry.type === "comic";
@@ -207,7 +207,7 @@ export function LibraryBrowser({
             separator={<ChevronRight size={12} />}
             styles={{ root: { flexWrap: "wrap" } }}
           >
-            <Anchor size="xs" c="dimmed" href="/">
+            <Anchor size="xs" c="dimmed" href={columnsHref()}>
               Library
             </Anchor>
             {repo && (
