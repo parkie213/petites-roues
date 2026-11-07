@@ -23,7 +23,6 @@ entity "titles" as titles {
   source_url : TEXT
   * document_path : TEXT
   * missing : INTEGER = 0
-  edition : TEXT
   duration_seconds : REAL
   --
   UNIQUE(repository_id, document_id)

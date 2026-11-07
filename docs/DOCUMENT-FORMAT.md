@@ -1,6 +1,6 @@
 # Study document format
 
-A `document.json` describes one video or comic edition. Video documents contain timed source subtitles,
+A `document.json` describes one video or comic. Video documents contain timed source subtitles,
 translations, learner notes and optional phrase links. It contains no
 machine-specific media paths, playback progress or review queue.
 
@@ -33,7 +33,6 @@ and add its parent content folder as a repository. It can be opened without a vi
   "sourceLanguage": "fr",
   "translationLanguage": "en",
   "notesLanguage": "en",
-  "edition": "Invented example",
   "video": {
     "cues": [
       {
@@ -75,14 +74,10 @@ have a null translation. No language is inferred from the field names or filenam
 
 ## Metadata and review fields
 
-Optional document metadata includes `series`, integer `season` and `episode`,
-`sourceUrl`, `edition`, `transcriptionMethod`, `durationSeconds`.
-Duration, when supplied, must be positive and finite. Use `sourceUrl` and `edition`
-to identify the reference recording; the correct words with the wrong video edition
-can still have unusable timings.
-
-Describe transcription provenance once in `transcriptionMethod` (for example the ASR model).
-Cue-specific fields carry more precise information:
+Optional document metadata includes `series`, `sourceUrl`, and on a video integer `season` and
+`episode`. How the material was prepared (which ASR or vision model, which pass) is not part of
+the document: it belongs in the commit message, with raw model output kept in `content-archive/`.
+Cue-specific fields carry review information:
 
 | Cue field | Meaning |
 | --- | --- |
@@ -208,11 +203,47 @@ repository can checkpoint documents while ignoring media. Local
 SQLite state is configured independently through `spring.datasource.url`, defaulting
 to `jdbc:sqlite:content/library.sqlite`.
 
+## Reference media
+
+Each body may record its `reference`: the copy of the media its cues were timed or its boxes were
+drawn against. The correct words with the wrong cut of a video can still have unusable timings,
+so the reference says which copy the material fits. It describes the material, not where a copy
+is on this machine, and every field is optional.
+
+```json
+"video": {
+  "season": 1,
+  "episode": 3,
+  "reference": {
+    "fingerprint": "v1:9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08",
+    "sizeBytes": 734003200,
+    "durationSeconds": 1312.48
+  },
+  "cues": []
+}
+```
+
+| Field | Meaning |
+| --- | --- |
+| `fingerprint` | `v1:` and 64 lowercase hex digits, defined below; says whether a local file is this exact copy |
+| `sizeBytes` | The file's size in bytes, positive |
+| `durationSeconds` | Video only: the reference duration in seconds, positive and finite; a different cut or speed differs |
+
+The v1 fingerprint is the SHA-256 of the file size as 8 bytes big-endian, then the first 4 MiB,
+then the last 4 MiB; a file of at most 8 MiB is hashed once, whole, after its size. Reading only
+the ends keeps a large video fast to check, and still tells re-encodes apart: MP4 sample tables
+sit at one end, and a CBZ's central directory, with every entry's CRC, sits at its end.
+
+A shared content repository rarely matches by fingerprint, because each person's download or rip
+is a different file; the fingerprint recognises the author's own copy, and the duration is what
+tells a different cut apart. Add title records the reference of the media it writes;
+`prepare/reference.py` records it for a title added any other way.
+
 ## Comic documents
 
-The shared `StudyDocument` owns identity, title, series, edition, source URL and language roles.
-`VideoDocument` owns season/episode, duration, transcription provenance and timed cues.
-`ComicDocument` owns an ordered page manifest and reading direction; it has no timestamps,
+The shared `StudyDocument` owns identity, title, series, source URL and language roles.
+`VideoDocument` owns season/episode, its reference video and timed cues.
+`ComicDocument` owns its reference CBZ, an ordered page manifest and reading direction; it has no timestamps,
 audio checks or video cues. The selected body determines the media type.
 
 ```json
@@ -336,7 +367,6 @@ a time or as a list. Text edits, comments and review requests address a line by 
 or deleting a box addresses the box's ID and takes all its lines along.
 `prepare/split_block.py` splits an aligned line into its sentences at sentence-ending chunks.
 
-`annotationMethod` records extraction provenance on the comic.
 Drawn boxes start with one line whose source may be empty while awaiting OCR or transcription,
 so review/OCR can target it before any text is available.
 Use `textCheck` for a specific unresolved issue. Comic boxes have no listening checks or timestamps.

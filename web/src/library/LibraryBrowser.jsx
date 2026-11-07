@@ -45,11 +45,6 @@ function StudyTitle({ entry }) {
             <Text fw={600} size="sm" lh={1.4}>
               {entry.title}
             </Text>
-            {entry.edition && (
-              <Text size="xs" c="dimmed" mt={4}>
-                {entry.edition}
-              </Text>
-            )}
           </div>
         </Group>
         {!available && (

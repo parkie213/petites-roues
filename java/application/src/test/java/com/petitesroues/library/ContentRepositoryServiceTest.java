@@ -11,6 +11,7 @@ import com.petitesroues.library.persistence.CatalogueStore;
 import com.petitesroues.library.persistence.ContentRepositoryStore;
 import com.petitesroues.model.document.StudyDocument;
 import com.petitesroues.model.document.VideoDocument;
+import com.petitesroues.model.document.VideoReference;
 import com.petitesroues.model.library.CatalogueEntry;
 import com.petitesroues.model.library.ContentRepository;
 import com.petitesroues.study.ReviewQueue;
@@ -150,8 +151,7 @@ class ContentRepositoryServiceTest {
             base.notesLanguage(),
             null,
             null,
-            "French edition",
-            new VideoDocument(null, null, null, 120.0, video.cues()));
+            new VideoDocument(null, null, new VideoReference(null, null, 120.0), video.cues()));
     when(reader.read(second)).thenReturn(added);
     when(registration.register(
             new RepositoryContentService.Registration(first.toString(), true), ID))

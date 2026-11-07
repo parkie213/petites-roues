@@ -375,7 +375,10 @@ private class Cards(
     }
   }
 
-  /** Lists every copy of a title (content folder · edition) so a specific one can be opened. */
+  /**
+   * Lists every copy of a title (content folder · reference duration) so a specific one can be
+   * opened. Different cuts of a video have different durations.
+   */
   @Composable
   private fun Copies(copies: List<Title>) {
     var expanded by remember { mutableStateOf(false) }
@@ -391,7 +394,10 @@ private class Cards(
               Column {
                 Text(copy.folder)
                 Text(
-                  listOfNotNull(copy.edition, if (copy.mediaUri == null) "No media" else null)
+                  listOfNotNull(
+                      copy.durationSeconds?.let(::clock),
+                      if (copy.mediaUri == null) "No media" else null,
+                    )
                     .joinToString(" · ")
                     .ifEmpty { "Available" },
                   style = MaterialTheme.typography.bodySmall,

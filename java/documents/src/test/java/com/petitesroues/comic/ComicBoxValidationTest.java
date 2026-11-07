@@ -8,6 +8,7 @@ import com.petitesroues.model.document.ComicBox;
 import com.petitesroues.model.document.ComicChapter;
 import com.petitesroues.model.document.ComicDocument;
 import com.petitesroues.model.document.ComicPage;
+import com.petitesroues.model.document.ComicReference;
 import com.petitesroues.model.document.Line;
 import com.petitesroues.model.document.ReadingDirection;
 import com.petitesroues.model.document.StudyDocument;
@@ -27,7 +28,6 @@ class ComicBoxValidationTest {
         "fr",
         "en",
         "en",
-        null,
         null,
         null,
         new ComicDocument(null, ReadingDirection.RTL, null, pages, List.of()));
@@ -116,7 +116,22 @@ class ComicBoxValidationTest {
   private static ComicDocument volume(Integer volume) {
     var base = comic().comic();
     return new ComicDocument(
-        volume, base.readingDirection(), base.annotationMethod(), base.pages(), base.chapters());
+        volume, base.readingDirection(), base.reference(), base.pages(), base.chapters());
+  }
+
+  @Test
+  void aReferenceHasAV1FingerprintAndAPositiveSize() {
+    String hash = "v1:" + "0123456789abcdef".repeat(4);
+    valid(comic().withBody(reference(new ComicReference(hash, 48211904L))));
+    valid(comic().withBody(reference(new ComicReference(null, null))));
+    invalid(comic().withBody(reference(new ComicReference("sha256:" + hash.substring(3), null))));
+    invalid(comic().withBody(reference(new ComicReference(hash, -1L))));
+  }
+
+  private static ComicDocument reference(ComicReference reference) {
+    var base = comic().comic();
+    return new ComicDocument(
+        base.volume(), base.readingDirection(), reference, base.pages(), base.chapters());
   }
 
   @Test
@@ -138,7 +153,7 @@ class ComicBoxValidationTest {
     return new ComicDocument(
         base.volume(),
         base.readingDirection(),
-        base.annotationMethod(),
+        base.reference(),
         List.of(
             newPage("a", "001.jpg", null),
             newPage("b", "002.jpg", null),

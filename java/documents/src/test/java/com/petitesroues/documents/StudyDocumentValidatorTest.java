@@ -7,6 +7,7 @@ import com.petitesroues.model.document.Line;
 import com.petitesroues.model.document.StudyDocument;
 import com.petitesroues.model.document.VideoCue;
 import com.petitesroues.model.document.VideoDocument;
+import com.petitesroues.model.document.VideoReference;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 
@@ -14,11 +15,11 @@ class StudyDocumentValidatorTest {
   private static final VideoCue CUE = new VideoCue(Line.of("cue-a", "Bonjour"), 0.0, 1.0, null);
 
   private static StudyDocument document(VideoDocument video) {
-    return new StudyDocument("example", "Example", "fr", "en", "en", null, null, null, video);
+    return new StudyDocument("example", "Example", "fr", "en", "en", null, null, video);
   }
 
   private static StudyDocument document(VideoCue... cues) {
-    return document(new VideoDocument(null, null, null, null, List.of(cues)));
+    return document(new VideoDocument(null, null, null, List.of(cues)));
   }
 
   private static void invalid(StudyDocument document) {
@@ -46,10 +47,29 @@ class StudyDocumentValidatorTest {
   }
 
   @Test
-  void descriptiveMetadataDoesNotNeedARestrictedVocabulary() {
-    var video =
-        new VideoDocument(-1, null, "Whisper large; not independently checked", null, List.of(CUE));
-    assertDoesNotThrow(() -> StudyDocumentValidator.validate(document(video)));
+  void aReferenceHasAV1FingerprintAPositiveSizeAndAPositiveDuration() {
+    String hash = "v1:" + "0123456789abcdef".repeat(4);
+    for (var reference :
+        new VideoReference[] {
+          null,
+          new VideoReference(null, null, null),
+          new VideoReference(hash, 734003200L, 1312.48),
+          new VideoReference(null, null, 62.8)
+        }) assertDoesNotThrow(() -> StudyDocumentValidator.validate(withReference(reference)));
+    for (var reference :
+        new VideoReference[] {
+          new VideoReference("v1:" + "0123456789ABCDEF".repeat(4), null, null),
+          new VideoReference("v2:" + "0123456789abcdef".repeat(4), null, null),
+          new VideoReference(hash.substring(1), null, null),
+          new VideoReference(hash + "0", null, null),
+          new VideoReference(null, 0L, null),
+          new VideoReference(null, null, 0.0),
+          new VideoReference(null, null, Double.NaN)
+        }) invalid(withReference(reference));
+  }
+
+  private static StudyDocument withReference(VideoReference reference) {
+    return document(new VideoDocument(-1, null, reference, List.of(CUE)));
   }
 
   @Test

@@ -24,7 +24,7 @@ public final class TestDocuments {
         null,
         null,
         id + "/document.json",
-        new CatalogueLocation("test-repo", "Tests", root.toString(), false, null, null));
+        new CatalogueLocation("test-repo", "Tests", root.toString(), false, null));
   }
 
   public static VideoCueEdit edit(VideoCue cue) {

@@ -13,6 +13,7 @@ import com.petitesroues.library.persistence.CatalogueStore;
 import com.petitesroues.library.persistence.ContentRepositoryStore;
 import com.petitesroues.model.document.StudyDocument;
 import com.petitesroues.model.document.VideoDocument;
+import com.petitesroues.model.document.VideoReference;
 import com.petitesroues.model.library.ContentRepository;
 import com.petitesroues.model.progress.PlaybackProgress;
 import com.petitesroues.playback.PlaybackProgressStore;
@@ -211,8 +212,8 @@ class ContentRepositoryRefreshIntegrationTest {
             original.notesLanguage(),
             null,
             null,
-            "French edition",
-            new VideoDocument(null, null, null, 120.0, original.video().cues()));
+            new VideoDocument(
+                null, null, new VideoReference(null, null, 120.0), original.video().cues()));
     write("a", changed);
     write("b", document("new-title"));
     byte[] expected = Files.readAllBytes(file);
@@ -227,7 +228,6 @@ class ContentRepositoryRefreshIntegrationTest {
     Instant.parse(result.lastRefreshedAt());
     var entry = catalogue.find("existing").orElseThrow();
     assertEquals("Updated", entry.title());
-    assertEquals("French edition", entry.location().edition());
     assertEquals(120.0, entry.location().durationSeconds());
     assertTrue(catalogue.contains("new-title"));
     assertEquals(reviews, jdbc.queryForList("SELECT * FROM review_queue"));

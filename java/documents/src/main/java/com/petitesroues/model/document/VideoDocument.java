@@ -7,21 +7,24 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.function.UnaryOperator;
 
-/** A video body: optional reference metadata and the timed cues, in playback order. */
+/**
+ * A video body: optional season and episode numbers, the reference copy the cues were timed
+ * against, and the timed cues in playback order.
+ */
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public record VideoDocument(
-    Integer season,
-    Integer episode,
-    String transcriptionMethod,
-    Double durationSeconds,
-    List<VideoCue> cues)
+    Integer season, Integer episode, VideoReference reference, List<VideoCue> cues)
     implements StudyBody {
   public VideoDocument {
     cues = list(cues);
   }
 
   public VideoDocument withCues(List<VideoCue> cues) {
-    return new VideoDocument(season, episode, transcriptionMethod, durationSeconds, cues);
+    return new VideoDocument(season, episode, reference, cues);
+  }
+
+  public VideoDocument withReference(VideoReference reference) {
+    return new VideoDocument(season, episode, reference, cues);
   }
 
   /** Replaces the cue at {@code index} with {@code change} applied to it. */

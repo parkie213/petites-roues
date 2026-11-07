@@ -26,7 +26,6 @@ class ComicDocumentTest {
         "en",
         null,
         null,
-        null,
         new ComicDocument(null, ReadingDirection.RTL, null, pages, List.of()));
   }
 
