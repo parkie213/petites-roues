@@ -47,7 +47,6 @@ export function Documents({ data, onChanged }) {
         No study documents yet. Add a folder that holds them, then Refresh.
       </Text>
     );
-  const what = (entry) => (entry.type === "comic" ? "CBZ" : "video");
   const unlink = (entry) =>
     unlinkMedia({
       repositoryId: entry.mediaRepositoryId,
@@ -161,7 +160,7 @@ export function Documents({ data, onChanged }) {
                           })
                         }
                       >
-                        Locate {what(entry)}…
+                        Locate media…
                       </Button>
                     )}
                 </Table.Td>

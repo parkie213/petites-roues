@@ -61,7 +61,7 @@ export function LinkDialog({ link, repos, onClose, onDone }) {
     <Modal
       opened={Boolean(link)}
       onClose={close}
-      title={forMedia ? "Link to study document" : `Locate ${what}`}
+      title={forMedia ? "Link to study document" : "Locate media"}
       centered
       size="lg"
       closeButtonProps={{ "aria-label": "Close dialog" }}

@@ -193,7 +193,7 @@ documents/
   media until one is recorded (`prepare/new_title.py` or `prepare/reference.py`) or a file is
   linked by hand. When several copies match, one in the document's own folder is preferred.
 - **Linking by hand.** When fingerprints don't match (the document was timed against someone
-  else's copy), choose **Link to study document…** on the media's card, or **Locate video…** on
+  else's copy), choose **Link to study document…** on the media's card, or **Locate media…** on
   the document in the Documents view. The link is kept in the library's SQLite, keyed by the
   media's folder and path; the document is not changed, so another library does not see it
   (record the file as the reference with `prepare/reference.py` to share the fix). A hand link

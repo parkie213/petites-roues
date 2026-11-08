@@ -90,7 +90,7 @@ The second episode still says "No study document". Click the **⋯** beside its 
 **Link to study document…**, and pick **À la recherche de Mr. Dinosaure** (documents without a
 video are listed first). The warning clears and the episode plays with its subtitles. You can
 start from the other side too: the **Documents** view lists the document with
-**Locate video…**.
+**Locate media…**.
 
 The link is kept in your library, not in the document, and it survives **Refresh library**.
 To fix the document itself, so other people's libraries find the file too, record the file as its
