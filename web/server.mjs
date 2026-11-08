@@ -17,6 +17,7 @@ const localHosts = new Set(["localhost", "127.0.0.1", "[::1]"]);
 const pageRoute = (pathname) =>
   pathname === "/" ||
   pathname === "/repositories" ||
+  /^\/quizzes\/?$/.test(pathname) ||
   /^\/(?:player|watch|reader)\/(?:[A-Za-z0-9_-]+\/?)?$/.test(pathname) ||
   /^\/(?:video|comic)\/[^/]+\/?$/.test(pathname) ||
   /^\/notes(?:\/[^/]+\/[^/]+)?\/?$/.test(pathname);

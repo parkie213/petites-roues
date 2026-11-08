@@ -7,7 +7,6 @@ import {
   Loader,
   Menu,
   Select,
-  Slider,
   Text,
   Title,
   Tooltip,
@@ -74,7 +73,6 @@ export function ComicReader({ id }) {
   const boxWrite = useRef(false);
   const [annotateError, setAnnotateError] = useState("");
   const [zoom, setZoom] = useState("page");
-  const [scrub, setScrub] = useState(null);
   const [scale, setScale] = useState(100);
   const writes = useRef(Promise.resolve());
   const active = useRef(true);
@@ -282,7 +280,6 @@ export function ComicReader({ id }) {
   const edge = (side) => (
     <button
       className="comic-turn"
-      tabIndex={-1}
       aria-label={turns[side].label}
       title={turns[side].label}
       disabled={locked || turns[side].target === null}
@@ -291,27 +288,16 @@ export function ComicReader({ id }) {
       {turnIcon(side, 28)}
     </button>
   );
-  const pageName = (i) =>
-    `${i + 1}${document.pages[i]?.label ? ` · ${document.pages[i].label}` : ""} / ${count}`;
   const chapters = document.chapters ?? [];
   const chapter = chapterAt(document.pages, chapters, index);
   const chapterStart = (c) =>
     document.pages.findIndex((p) => p.id === chapters[c].pageId);
-  // The slider's bubble names the chapter too, so scrubbing shows where a chapter starts.
-  const scrubName = (i) => {
-    const c = chapterAt(document.pages, chapters, i);
-    const number = chapters[c]?.number;
-    return c < 0
-      ? pageName(i)
-      : `${number ? `Ch. ${number}` : chapters[c].title} · ${pageName(i)}`;
-  };
-  // Right-to-left comics fill the slider from the right; mirroring the value is its own inverse.
-  const toSlider = (i) => (rtl ? count - 1 - i : i);
   const toggle = (label, pressed, onClick, icon, disabled) => (
     <Tooltip label={label} withArrow>
       <ActionIcon
         variant={pressed ? "light" : "subtle"}
-        size="lg"
+        size="sm"
+        color="coral"
         aria-label={label}
         aria-pressed={pressed}
         disabled={disabled}
@@ -346,11 +332,31 @@ export function ComicReader({ id }) {
                 <Title order={1} size="h6" lineClamp={1}>
                   {document.title}
                 </Title>
-                <Text size="xs" c="dimmed" truncate>
-                  {document.series}
-                </Text>
               </div>
             </div>
+            {chapters.length > 0 && (
+              <select
+                className="comic-page-select comic-chapter-select"
+                aria-label="Chapter"
+                title="Go to a chapter"
+                disabled={locked}
+                value={chapter}
+                onChange={(event) =>
+                  go(chapterStart(Number(event.target.value)))
+                }
+              >
+                {chapter < 0 && (
+                  <option value={-1} disabled>
+                    Before the first chapter
+                  </option>
+                )}
+                {chapters.map((c, i) => (
+                  <option key={c.pageId} value={i}>
+                    {chapterName(c)}
+                  </option>
+                ))}
+              </select>
+            )}
             <div className="comic-toolbar-tools">
               {toggle(
                 "Two-page spread",
@@ -364,24 +370,6 @@ export function ComicReader({ id }) {
                 autoListen,
                 () => setAutoListen((value) => !value),
                 <Headphones size={18} />,
-              )}
-              {toggle(
-                annotate ? "Stop annotating" : "Annotate bubbles",
-                annotate,
-                () => {
-                  setAnnotate((value) => !value);
-                  setDraftRegion(null);
-                  setAnnotateError("");
-                },
-                <SquareDashed size={18} />,
-                savingBox || !!draftRegion,
-              )}
-              {toggle(
-                studyOpen ? "Hide study panel" : "Show study panel",
-                studyOpen,
-                () => setStudyOpen((value) => !value),
-                <PanelRight size={18} />,
-                editing,
               )}
               <span className="comic-toolbar-divider" />
               <Select
@@ -441,6 +429,27 @@ export function ComicReader({ id }) {
                   </Tooltip>
                 </Menu.Target>
                 <Menu.Dropdown>
+                  <Menu.Item
+                    leftSection={<PanelRight size={16} />}
+                    rightSection={studyOpen ? "✓" : null}
+                    disabled={editing}
+                    onClick={() => setStudyOpen((value) => !value)}
+                  >
+                    Study panel
+                  </Menu.Item>
+                  <Menu.Item
+                    leftSection={<SquareDashed size={16} />}
+                    rightSection={annotate ? "✓" : null}
+                    disabled={savingBox || !!draftRegion}
+                    onClick={() => {
+                      setAnnotate((value) => !value);
+                      setDraftRegion(null);
+                      setAnnotateError("");
+                    }}
+                  >
+                    Annotate bubbles
+                  </Menu.Item>
+
                   <Menu.Item
                     leftSection={<ScanText size={16} />}
                     rightSection={debug ? "✓" : null}
@@ -536,6 +545,22 @@ export function ComicReader({ id }) {
                 onPlacement={savePlacement}
               />
               {edge(1)}
+              <nav className="comic-page-overlay" aria-label="Pages">
+                <select
+                  className="comic-page-select"
+                  aria-label="Page"
+                  title={rtl ? "Read right to left" : "Read left to right"}
+                  disabled={locked}
+                  value={document.pages.indexOf(page)}
+                  onChange={(event) => go(Number(event.target.value))}
+                >
+                  {document.pages.map((p, i) => (
+                    <option key={p.id} value={i}>
+                      {`${i + 1} / ${count}`}
+                    </option>
+                  ))}
+                </select>
+              </nav>
             </div>
             {studyOpen && (
               <ComicStudyPanel
@@ -550,82 +575,6 @@ export function ComicReader({ id }) {
               />
             )}
           </div>
-          <nav className="comic-pagebar" aria-label="Pages">
-            <Tooltip label={turns[0].label} withArrow>
-              <ActionIcon
-                variant="subtle"
-                size="lg"
-                aria-label={turns[0].label}
-                disabled={locked || turns[0].target === null}
-                onClick={() => go(turns[0].target)}
-              >
-                {turnIcon(0, 18)}
-              </ActionIcon>
-            </Tooltip>
-            <Slider
-              className="comic-page-slider"
-              aria-label="Page position"
-              min={0}
-              max={Math.max(count - 1, 1)}
-              inverted={rtl}
-              disabled={locked || count < 2}
-              value={toSlider(scrub ?? index)}
-              label={(value) => scrubName(toSlider(value))}
-              onChange={(value) => setScrub(toSlider(value))}
-              onChangeEnd={(value) => {
-                setScrub(null);
-                go(toSlider(value));
-              }}
-            />
-            <Tooltip label={turns[1].label} withArrow>
-              <ActionIcon
-                variant="subtle"
-                size="lg"
-                aria-label={turns[1].label}
-                disabled={locked || turns[1].target === null}
-                onClick={() => go(turns[1].target)}
-              >
-                {turnIcon(1, 18)}
-              </ActionIcon>
-            </Tooltip>
-            {chapters.length > 0 && (
-              <select
-                className="comic-page-select comic-chapter-select"
-                aria-label="Chapter"
-                title="Go to a chapter"
-                disabled={locked}
-                value={chapter}
-                onChange={(event) =>
-                  go(chapterStart(Number(event.target.value)))
-                }
-              >
-                {chapter < 0 && (
-                  <option value={-1} disabled>
-                    Before the first chapter
-                  </option>
-                )}
-                {chapters.map((c, i) => (
-                  <option key={c.pageId} value={i}>
-                    {chapterName(c)}
-                  </option>
-                ))}
-              </select>
-            )}
-            <select
-              className="comic-page-select"
-              aria-label="Page"
-              title={rtl ? "Read right to left" : "Read left to right"}
-              disabled={locked}
-              value={document.pages.indexOf(page)}
-              onChange={(event) => go(Number(event.target.value))}
-            >
-              {document.pages.map((p, i) => (
-                <option key={p.id} value={i}>
-                  {pageName(i)}
-                </option>
-              ))}
-            </select>
-          </nav>
         </main>
       </ReadAloudProvider>
       {quickEdit && (

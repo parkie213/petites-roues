@@ -162,7 +162,7 @@ export function ComicBubbleCard({ cue, document, onKeep, quiet = false }) {
       )}
       <div className="comic-card-actions">
         {document && (
-          <Tooltip label="Ask a chat app about this bubble" withArrow>
+          <Tooltip label="Ask about this" withArrow>
             <ActionIcon
               variant={asking ? "light" : "subtle"}
               aria-label="Ask about this bubble"
