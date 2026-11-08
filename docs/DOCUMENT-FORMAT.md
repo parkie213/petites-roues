@@ -407,7 +407,8 @@ paragraph, a character profile) is split into one line per sentence, each with i
 translation, notes, alignment and checks; readers show a box with several lines a sentence at
 a time or as a list. Text edits, comments and review requests address a line by its ID; moving
 or deleting a box addresses the box's ID and takes all its lines along.
-`prepare/split_block.py` splits an aligned line into its sentences at sentence-ending chunks.
+`prepare/split_block.py` splits an aligned line into its sentences at sentence-ending chunks;
+`--find` lists the lines that need it ([Prepare a title](PREPARE-TITLE.md#split-comic-text-blocks)).
 
 Drawn boxes start with one line whose source may be empty while awaiting OCR or transcription,
 so review/OCR can target it before any text is available.
