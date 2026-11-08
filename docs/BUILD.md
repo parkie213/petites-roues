@@ -70,16 +70,12 @@ mkdir -p content
 java -jar java/server/target/petites-roues-server-0.1.0-SNAPSHOT.jar
 ```
 
-To let a phone pair with this desktop (experimental), also open the phone listener, which
-serves only `/phone/**` on port 8878 on every network interface:
-
-```bash
-java -jar java/server/target/petites-roues-server-0.1.0-SNAPSHOT.jar --petitesroues.phone.enabled=true
-```
-
-Then click the phone icon in the library and scan its QR code from the app's computer icon. The
-phone must be on the same network; allow the port through a firewall (`sudo ufw allow 8878/tcp`).
-Traffic is plain HTTP with a per-phone token for now.
+To let a phone pair with this desktop (experimental), click the phone icon in the library and
+switch on **Allow phones to connect**. That opens the phone listener, which serves only
+`/phone/**` on port 8878 (`--petitesroues.phone.port`) on every network interface; the choice is
+remembered across restarts. Scan the QR code from the app's computer icon. The phone must be on
+the same network; allow the port through a firewall (`sudo ufw allow 8878/tcp`). Traffic is
+plain HTTP with a per-phone token for now.
 
 In a second terminal:
 

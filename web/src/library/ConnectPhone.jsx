@@ -1,5 +1,13 @@
 import { useEffect, useState } from "react";
-import { Button, Code, Group, Modal, Stack, Text, Title } from "@mantine/core";
+import {
+  Button,
+  Group,
+  Modal,
+  Stack,
+  Switch,
+  Text,
+  Title,
+} from "@mantine/core";
 import QRCode from "qrcode";
 import { request, responseError } from "../shared/api.js";
 import "./ConnectPhone.css";
@@ -14,13 +22,13 @@ const when = (iso) =>
 
 /** Seconds left until [expiresAt], never negative. */
 const secondsLeft = (expiresAt, now) =>
-  Math.max(0, Math.round((Date.parse(expiresAt) - now) / 1000));
+  Math.max(0, Math.floor((Date.parse(expiresAt) - now) / 1000));
 
 /**
  * Pairs a phone with this desktop: a QR code holding the phone listener's addresses and a
  * one-time secret (POST /api/phone/pairings), valid for five minutes, and the phones already
- * paired, which can be forgotten. The phone scans the code from its Desktop dialog. When the phone
- * listener is off, says how to turn it on.
+ * paired, which can be forgotten. The phone scans the code from its Desktop dialog. "Allow phones
+ * to connect" opens or closes the phone listener (PUT /api/phone); the server remembers it.
  */
 export function ConnectPhone({ opened, onClose }) {
   const [status, setStatus] = useState(null);
@@ -29,6 +37,7 @@ export function ConnectPhone({ opened, onClose }) {
   const [phones, setPhones] = useState([]);
   const [error, setError] = useState("");
   const [now, setNow] = useState(Date.now());
+  const [switching, setSwitching] = useState(false);
 
   async function newCode() {
     setError("");
@@ -78,6 +87,28 @@ export function ConnectPhone({ opened, onClose }) {
     };
   }, [opened]);
 
+  async function allow(enabled) {
+    setError("");
+    setSwitching(true);
+    try {
+      const next = await request("/api/phone", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ enabled }),
+      });
+      setStatus(next);
+      if (next.enabled) await newCode();
+      else {
+        setPairing(null);
+        setSvg("");
+      }
+    } catch (failure) {
+      setError(failure.message);
+    } finally {
+      setSwitching(false);
+    }
+  }
+
   async function forget(phone) {
     const response = await fetch(
       `/api/phones/${encodeURIComponent(phone.id)}`,
@@ -98,13 +129,18 @@ export function ConnectPhone({ opened, onClose }) {
       closeButtonProps={{ "aria-label": "Close dialog" }}
     >
       <Stack gap="md">
-        {status && !status.enabled && (
-          <Text size="sm">
-            Phones can't connect yet: the phone listener is off, because it
-            opens a port on your network. Start the server with{" "}
-            <Code>--petitesroues.phone.enabled=true</Code>, then open this
-            again.
-          </Text>
+        {status && (
+          <Switch
+            checked={status.enabled}
+            disabled={switching}
+            onChange={(event) => allow(event.currentTarget.checked)}
+            label="Allow phones to connect"
+            description={
+              status.enabled
+                ? `Open on port ${status.port} to devices on your network. Paired phones need their token; others can only pair with a code shown here.`
+                : "Opens a port on your network for paired phones. Off, phones stay paired but can't reach this computer."
+            }
+          />
         )}
         {pairing && (
           <>

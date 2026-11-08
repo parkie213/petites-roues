@@ -1,5 +1,6 @@
 package com.petitesroues.config;
 
+import com.petitesroues.settings.SettingsStore;
 import jakarta.servlet.http.HttpServletRequest;
 import java.net.Inet4Address;
 import java.net.InetAddress;
@@ -10,43 +11,116 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.regex.Pattern;
+import org.apache.catalina.LifecycleException;
+import org.apache.catalina.LifecycleState;
+import org.apache.catalina.Service;
 import org.apache.catalina.connector.Connector;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.tomcat.servlet.TomcatServletWebServerFactory;
-import org.springframework.boot.web.server.WebServerFactoryCustomizer;
+import org.springframework.boot.tomcat.TomcatWebServer;
+import org.springframework.boot.web.server.servlet.context.ServletWebServerInitializedEvent;
+import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
 
 /**
  * The phone listener: a second HTTP port, on every network interface, through which paired phones
  * reach this desktop. It serves only {@code /phone/**} ({@link
- * com.petitesroues.web.LocalRequestFilter}); the browser UI's port stays on 127.0.0.1. Off unless
- * {@code petitesroues.phone.enabled=true}, since it opens a port on the local network; {@code
- * petitesroues.phone.port} (default 8878) chooses the port, 0 any free one.
+ * com.petitesroues.web.LocalRequestFilter}); the browser UI's port stays on 127.0.0.1. Opened and
+ * closed while the server runs, from the "Allow phones to connect" switch; the choice is remembered
+ * ({@link #SETTING}) and restored at startup. Closed until first switched on, since it opens a port
+ * on the local network. {@code petitesroues.phone.port} (default 8878) chooses the port, 0 any free
+ * one.
  */
 @Component
-public class PhoneListener implements WebServerFactoryCustomizer<TomcatServletWebServerFactory> {
-  private final boolean enabled;
+public class PhoneListener {
+  /** The setting remembering whether phones may connect. */
+  public static final String SETTING = "phone.enabled";
+
+  private static final Logger LOG = LoggerFactory.getLogger(PhoneListener.class);
+
+  /**
+   * Interfaces a phone never reaches: container, VM and overlay bridges (Docker, Kubernetes CNI,
+   * libvirt, VirtualBox, VMware). The phone tries every listed address in turn, so each dead one
+   * delays pairing.
+   */
+  private static final Pattern BRIDGE =
+      Pattern.compile(
+          "^(docker|br-|veth|virbr|vxlan|cali|flannel|cni|kube|lxc|lxd|podman|vboxnet|vmnet).*");
+
+  private final SettingsStore settings;
   private final int configuredPort;
+  private Service service;
   private volatile Connector connector;
 
   public PhoneListener(
-      @Value("${petitesroues.phone.enabled:false}") boolean enabled,
-      @Value("${petitesroues.phone.port:8878}") int configuredPort) {
-    this.enabled = enabled;
+      SettingsStore settings, @Value("${petitesroues.phone.port:8878}") int configuredPort) {
+    this.settings = settings;
     this.configuredPort = configuredPort;
   }
 
-  @Override
-  public void customize(TomcatServletWebServerFactory factory) {
-    if (!enabled) return;
+  /** Once the UI port is up, reopens the phone listener if it was left switched on. */
+  @EventListener
+  public synchronized void started(ServletWebServerInitializedEvent event) {
+    if (!(event.getWebServer() instanceof TomcatWebServer tomcat)) return;
+    service = tomcat.getTomcat().getService();
+    if (settings.get(SETTING).map(Boolean::parseBoolean).orElse(false)) {
+      try {
+        open();
+      } catch (IllegalStateException failure) {
+        LOG.warn("Phones cannot connect: {}", failure.getMessage());
+      }
+    }
+  }
+
+  /**
+   * Switches the phone listener on or off and remembers the choice. Paired phones stay paired while
+   * it is off; they just cannot reach this desktop.
+   *
+   * @throws IllegalStateException if it cannot open, e.g. its port is taken; the choice is then not
+   *     remembered
+   */
+  public synchronized void setEnabled(boolean enabled) {
+    if (enabled) open();
+    else close();
+    settings.put(SETTING, Boolean.toString(enabled));
+  }
+
+  private void open() {
+    if (connector != null) return;
+    if (service == null) throw new IllegalStateException("The server is still starting");
     var phone = new Connector();
     phone.setPort(configuredPort);
     phone.setProperty("address", "0.0.0.0");
-    factory.addAdditionalConnectors(phone);
+    service.addConnector(phone);
+    if (phone.getState() != LifecycleState.STARTED) {
+      service.removeConnector(phone);
+      destroy(phone);
+      throw new IllegalStateException(
+          "Port " + configuredPort + " is in use; choose another with petitesroues.phone.port");
+    }
     connector = phone;
+    LOG.info("Phones can connect on port {}", phone.getLocalPort());
   }
 
-  /** Whether the phone listener was started. */
+  private void close() {
+    var phone = connector;
+    if (phone == null) return;
+    connector = null;
+    service.removeConnector(phone);
+    destroy(phone);
+    LOG.info("Phones can no longer connect");
+  }
+
+  private static void destroy(Connector phone) {
+    try {
+      phone.destroy();
+    } catch (LifecycleException e) {
+      LOG.debug("Phone listener did not close cleanly", e);
+    }
+  }
+
+  /** Whether the phone listener is open. */
   public boolean enabled() {
     return connector != null;
   }
@@ -59,17 +133,9 @@ public class PhoneListener implements WebServerFactoryCustomizer<TomcatServletWe
 
   /** Whether the request arrived through the phone listener rather than the UI port. */
   public boolean handles(HttpServletRequest request) {
-    return connector != null && request.getLocalPort() == port();
+    var phone = connector;
+    return phone != null && request.getLocalPort() == phone.getLocalPort();
   }
-
-  /**
-   * Interfaces a phone never reaches: container, VM and overlay bridges (Docker, Kubernetes CNI,
-   * libvirt, VirtualBox, VMware). The phone tries every listed address in turn, so each dead one
-   * delays pairing.
-   */
-  private static final Pattern BRIDGE =
-      Pattern.compile(
-          "^(docker|br-|veth|virbr|vxlan|cali|flannel|cni|kube|lxc|lxd|podman|vboxnet|vmnet).*");
 
   /**
    * The listener's base URLs a phone on the same network can try: one per up, non-loopback IPv4
@@ -77,7 +143,8 @@ public class PhoneListener implements WebServerFactoryCustomizer<TomcatServletWe
    * first, then others such as a Tailscale address. Empty when it is off.
    */
   public List<String> urls() {
-    if (!enabled()) return List.of();
+    int port = port();
+    if (port < 0) return List.of();
     List<InetAddress> local = new ArrayList<>(), other = new ArrayList<>();
     try {
       for (var face : Collections.list(NetworkInterface.getNetworkInterfaces())) {
@@ -93,7 +160,7 @@ public class PhoneListener implements WebServerFactoryCustomizer<TomcatServletWe
       return List.of();
     }
     local.addAll(other);
-    return local.stream().map(a -> "http://" + a.getHostAddress() + ":" + port()).toList();
+    return local.stream().map(a -> "http://" + a.getHostAddress() + ":" + port).toList();
   }
 
   /** This computer's name, for the phone to show; "petites roues" when it has none. */

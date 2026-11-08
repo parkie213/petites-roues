@@ -35,6 +35,28 @@ public class PhonesController {
   }
 
   /**
+   * The "Allow phones to connect" switch.
+   *
+   * @param enabled whether phones may connect
+   */
+  public record Switch(boolean enabled) {}
+
+  /**
+   * Opens or closes the phone listener, remembering the choice; returns the new status. A port that
+   * cannot be opened is a 409.
+   */
+  @PutMapping("/phone")
+  public ResponseEntity<Object> setEnabled(@RequestBody Switch request) {
+    try {
+      listener.setEnabled(request.enabled());
+    } catch (IllegalStateException failure) {
+      return ResponseEntity.status(409)
+          .body(new ApiExceptionHandler.ApiError(failure.getMessage()));
+    }
+    return ResponseEntity.ok(status());
+  }
+
+  /**
    * Starts pairing a phone: a one-time code for the QR code.
    *
    * @throws IllegalArgumentException if the phone listener is off or has no network address
@@ -43,7 +65,7 @@ public class PhonesController {
   public PhonePairing startPairing() {
     if (!listener.enabled())
       throw new IllegalArgumentException(
-          "Phones can't connect: start the server with --petitesroues.phone.enabled=true");
+          "Phones can't connect: switch on Allow phones to connect first");
     var urls = listener.urls();
     if (urls.isEmpty())
       throw new IllegalArgumentException("This computer has no network address a phone can reach");

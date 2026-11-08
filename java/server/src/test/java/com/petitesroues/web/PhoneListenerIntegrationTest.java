@@ -8,11 +8,13 @@ import com.petitesroues.support.HttpClients;
 import com.petitesroues.support.HttpIntegrationTest;
 import java.util.List;
 import java.util.Map;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.web.client.HttpClientErrorException;
+import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestClient;
 import tools.jackson.databind.JsonNode;
 
@@ -26,7 +28,23 @@ class PhoneListenerIntegrationTest extends HttpIntegrationTest {
   @BeforeEach
   void phoneClient() {
     jdbc.update("DELETE FROM phones");
+    jdbc.update("DELETE FROM settings");
+    switchPhones(true);
     phone = HttpClients.client("http://127.0.0.1:" + listener.port());
+  }
+
+  @AfterEach
+  void closeListener() {
+    listener.setEnabled(false);
+  }
+
+  private JsonNode switchPhones(boolean enabled) {
+    return mapper.readTree(
+        http.put()
+            .uri("/api/phone")
+            .body(Map.of("enabled", enabled))
+            .retrieve()
+            .body(String.class));
   }
 
   private int status(Runnable call) {
@@ -89,5 +107,49 @@ class PhoneListenerIntegrationTest extends HttpIntegrationTest {
         .retrieve()
         .toBodilessEntity();
     assertEquals(401, status(() -> hello(token)), "a forgotten phone's token stops working");
+  }
+
+  @Test
+  void theSwitchClosesThePortKeepsPhonesPairedAndIsRemembered() {
+    String secret = pairing.start("desk", List.of("http://192.0.2.1:1")).code().pair();
+    String token =
+        mapper
+            .readTree(
+                phone
+                    .post()
+                    .uri("/phone/pair")
+                    .body(Map.of("secret", secret, "name", "Pixel"))
+                    .retrieve()
+                    .body(String.class))
+            .path("token")
+            .asString();
+    int open = listener.port();
+    assertEquals(
+        "true",
+        jdbc.queryForObject("SELECT value FROM settings WHERE key='phone.enabled'", String.class));
+
+    var off = switchPhones(false);
+    assertFalse(off.path("enabled").asBoolean());
+    assertEquals(-1, off.path("port").asInt());
+    assertThrows(
+        ResourceAccessException.class,
+        () ->
+            HttpClients.client("http://127.0.0.1:" + open)
+                .get()
+                .uri("/phone/hello")
+                .retrieve()
+                .toBodilessEntity(),
+        "the port is closed");
+    assertEquals(
+        400,
+        status(() -> http.post().uri("/api/phone/pairings").retrieve().toBodilessEntity()),
+        "no pairing while phones cannot connect");
+    assertEquals(
+        "false",
+        jdbc.queryForObject("SELECT value FROM settings WHERE key='phone.enabled'", String.class));
+
+    switchPhones(true);
+    phone = HttpClients.client("http://127.0.0.1:" + listener.port());
+    assertEquals(0, hello(token).path("titles").asInt(), "phones stay paired while it is off");
   }
 }

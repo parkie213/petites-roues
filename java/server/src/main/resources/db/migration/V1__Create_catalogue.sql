@@ -69,6 +69,13 @@ CREATE TABLE media_links (
 );
 CREATE INDEX media_links_title ON media_links(title_id);
 
+-- Small application settings chosen in the UI, by key. phone.enabled: "true" when phones may
+-- connect (the phone listener is open).
+CREATE TABLE settings (
+  key TEXT PRIMARY KEY,
+  value TEXT NOT NULL
+);
+
 -- Phones paired with this desktop through the phone listener. Only a hash of each phone's token is
 -- kept; forgetting a phone deletes its row and so revokes the token.
 CREATE TABLE phones (
