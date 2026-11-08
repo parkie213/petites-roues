@@ -69,6 +69,16 @@ CREATE TABLE media_links (
 );
 CREATE INDEX media_links_title ON media_links(title_id);
 
+-- Phones paired with this desktop through the phone listener. Only a hash of each phone's token is
+-- kept; forgetting a phone deletes its row and so revokes the token.
+CREATE TABLE phones (
+  id TEXT PRIMARY KEY,
+  name TEXT NOT NULL,
+  token_sha256 TEXT NOT NULL UNIQUE,
+  paired_at TEXT NOT NULL,
+  last_seen_at TEXT
+);
+
 -- An agent's claim on a title's queued player edits, against the document as it was claimed.
 CREATE TABLE review_batches (
   id INTEGER PRIMARY KEY AUTOINCREMENT,

@@ -1,0 +1,17 @@
+/* Dark on white in both themes: scanners need the contrast. */
+.phone-qr {
+  align-self: center;
+  width: min(260px, 100%);
+  background: #fff;
+  border-radius: var(--mantine-radius-md);
+  line-height: 0;
+}
+
+.phone-qr svg {
+  width: 100%;
+  height: auto;
+}
+
+.phone-qr-expired {
+  opacity: 0.25;
+}

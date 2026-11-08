@@ -1,0 +1,11 @@
+package com.petitesroues.model.phone;
+
+import java.time.Instant;
+
+/**
+ * A pairing in progress, as the desktop shows it.
+ *
+ * @param code what the QR code holds
+ * @param expiresAt when its secret stops working
+ */
+public record PhonePairing(PairingCode code, Instant expiresAt) {}

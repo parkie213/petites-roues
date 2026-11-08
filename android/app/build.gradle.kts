@@ -65,6 +65,7 @@ dependencies {
   implementation(libs.media3.ui.compose)
   implementation(libs.commons.compress)
   implementation(libs.markdown.renderer.m3)
+  implementation(libs.play.services.code.scanner)
   debugImplementation(libs.compose.ui.tooling)
   testImplementation(libs.junit)
 }
