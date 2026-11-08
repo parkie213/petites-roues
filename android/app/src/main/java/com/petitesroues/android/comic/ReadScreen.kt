@@ -1,5 +1,6 @@
 package com.petitesroues.android.comic
 
+import android.widget.Toast
 import android.app.Activity
 import android.content.pm.ActivityInfo
 import android.content.res.Configuration
@@ -42,6 +43,7 @@ import androidx.compose.material.icons.filled.CropFree
 import androidx.compose.material.icons.filled.DeleteSweep
 import androidx.compose.material.icons.filled.Draw
 import androidx.compose.material.icons.filled.FitScreen
+import androidx.compose.material.icons.filled.SpeakerNotes
 import androidx.compose.material.icons.filled.Headphones
 import androidx.compose.material.icons.filled.HeadsetOff
 import androidx.compose.material.icons.filled.ScreenLockLandscape
@@ -119,9 +121,9 @@ import kotlin.math.roundToInt
 
 /**
  * The comic reader: one page in portrait, a two-page spread in landscape, swiped in the comic's
- * reading direction. Bubbles are invisible tap targets that open their study card; with auto-listen
- * on, the first tap reads the bubble aloud and a second tap opens its card. Tapping elsewhere closes
- * the card or shows the top bar with the bubble-outline, auto-listen and landscape toggles, and a bottom bar with
+ * reading direction. Bubble taps open a study card, read aloud before opening on a second tap,
+ * or read aloud and open together, according to the remembered listening mode. Tapping elsewhere
+ * closes the card or shows the top bar with bubble-outline, listening and landscape controls, and a bottom bar with
  * the page and a slider to jump through the book (filled from the right for right-to-left comics). Landscape shows
  * two-page spreads even when the phone's auto-rotate is off. The page may run under the camera
  * cutout, but the top bar, study card and messages keep clear of it.
@@ -172,7 +174,7 @@ fun ReadScreen(
   // The bubble read aloud by an auto-listen tap, whose card opens on the next tap.
   var heard by remember { mutableStateOf<ComicBox?>(null) }
   var chrome by remember { mutableStateOf(false) }
-  var autoListen by remember { mutableStateOf(settings.autoListen) }
+  var listeningMode by remember { mutableStateOf(settings.listeningMode) }
   var outlines by remember { mutableStateOf(settings.comicOutlines) }
   val spread = LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE
   val cutoutSafe = WindowInsets.displayCutout
@@ -195,11 +197,12 @@ fun ReadScreen(
   }
   val tap = { box: ComicBox ->
     if (box.id() != selected?.id()) sentence = 0
-    if (autoListen && box.id() != heard?.id()) {
-      selected = null
+    val alreadyHeard = box.id() == heard?.id()
+    if (listeningMode.readsAloud(alreadyHeard)) {
       heard = box
       readAloud.say(box.lines().firstOrNull()?.source().orEmpty())
-    } else selected = box
+    }
+    selected = box.takeIf { listeningMode.opensCard(alreadyHeard) }
   }
 
   Box(Modifier.fillMaxSize().background(Color.Black)) {
@@ -405,14 +408,21 @@ fun ReadScreen(
             if (chapters.isNotEmpty()) QuizBadge(onClick = { quizzing = true }, description = "Quiz me on a chapter in another app")
             IconButton(
               onClick = {
-                autoListen = !autoListen
-                settings.autoListen = autoListen
+                listeningMode = listeningMode.next()
+                settings.listeningMode = listeningMode
+                heard = null
+                readAloud.stop()
+                Toast.makeText(context, listeningMode.label, Toast.LENGTH_SHORT).show()
               }
             ) {
               Icon(
-                if (autoListen) Icons.Filled.Headphones else Icons.Filled.HeadsetOff,
-                contentDescription = if (autoListen) "Stop reading bubbles aloud" else "Read bubbles aloud",
-                tint = if (autoListen) Coral else Color.White,
+                when (listeningMode) {
+                  ListeningMode.OFF -> Icons.Filled.HeadsetOff
+                  ListeningMode.LISTEN_FIRST -> Icons.Filled.Headphones
+                  ListeningMode.LISTEN_AND_OPEN -> Icons.Filled.SpeakerNotes
+                },
+                contentDescription = "${listeningMode.label}. Switch to: ${listeningMode.next().label}",
+                tint = if (listeningMode != ListeningMode.OFF) Coral else Color.White,
               )
             }
           }
@@ -473,7 +483,7 @@ fun ReadScreen(
     }
 
     readAloud.problem?.let {
-      if (autoListen)
+      if (listeningMode != ListeningMode.OFF)
         Text(
           it,
           color = Color(0xFFFFB4A9),
