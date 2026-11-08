@@ -23,8 +23,9 @@ import java.util.stream.Collectors;
  * Applies one {@link DocumentEdit} to a document, with no I/O. The same function accepts a new
  * player edit and replays queued edits over the file, so both always agree. Invalid or no longer
  * applicable edits throw {@link IllegalArgumentException} or {@link NoSuchElementException}; the
- * input is immutable and never changes. Results are validated and video cues kept in playback
- * order.
+ * input is immutable and never changes. Changed results are validated and video cues kept in
+ * playback order; an edit that changes nothing (a comment, a review request) returns the input as
+ * it is, which is valid because documents are validated when decoded.
  *
  * <p>Edits keep stable identities: wording changes clear phrase links, timing and placement edits
  * keep annotations.
@@ -52,6 +53,9 @@ public final class DocumentEdits {
           case PlaceComicBox place -> placeComicBox(comic(document), place);
           case DeleteComicBox box -> deleteComicBox(comic(document), box);
         };
+    // Comments and review requests change nothing. The input was validated when it was decoded or
+    // last edited, so checking it again would only repeat that work, once per queued request.
+    if (result == document) return document;
     if (result.body() instanceof VideoDocument)
       result =
           withVideoCues(

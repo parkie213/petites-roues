@@ -3,7 +3,6 @@ package com.petitesroues.sync;
 import com.petitesroues.model.sync.Desktop;
 import com.petitesroues.model.sync.DesktopTitle;
 import com.petitesroues.model.sync.Hello;
-import com.petitesroues.model.sync.PairRequest;
 import com.petitesroues.model.sync.PairingCode;
 import com.petitesroues.model.sync.TitleFile;
 import java.io.IOException;
@@ -17,6 +16,7 @@ import java.util.List;
 import java.util.concurrent.CancellationException;
 import java.util.function.BooleanSupplier;
 import java.util.function.LongConsumer;
+import javax.net.ssl.SSLException;
 import tools.jackson.core.JacksonException;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
@@ -24,7 +24,9 @@ import tools.jackson.databind.json.JsonMapper;
 /**
  * The phone's side of the phone listener protocol ({@link PhoneRoutes}). It uses {@link
  * HttpURLConnection} because {@code java.net.http} is missing on Android. Calls block, so Android
- * runs them off the main thread. Every request but pairing carries the phone's bearer token.
+ * runs them off the main thread. Every request goes over HTTPS to a desktop whose certificate has
+ * the pinned key ({@link CertificatePins}), and every one but pairing carries the phone's bearer
+ * token.
  */
 public class DesktopClient {
   private static final int CONNECT_TIMEOUT_MS = 3_000;
@@ -37,16 +39,21 @@ public class DesktopClient {
    * Pairs with the desktop: tries each of the code's URLs in order and pairs through the first that
    * answers. A refusal stops at once, since every address leads to the same desktop.
    *
-   * @throws DesktopException if the desktop refuses (the code expired or was already used)
+   * @throws DesktopException if the desktop refuses (the code expired or was already used), or its
+   *     certificate is not the one the code names
    * @throws IOException the last connection failure, when no address answers
    */
   public Desktop pair(PairingCode code, String phoneName) throws IOException {
-    String body = mapper.writeValueAsString(new PairRequest(code.pair(), phoneName));
+    // A PairRequest, written by hand: Android's D8 compiles records into plain classes, which
+    // Jackson cannot serialise (it writes {}), though it still reads them through their
+    // constructor.
+    String body =
+        mapper.createObjectNode().put("secret", code.pair()).put("name", phoneName).toString();
     IOException failure = new IOException("No address to try");
     for (String url : code.urls()) {
       JsonNode answer;
       try {
-        answer = request("POST", url + PhoneRoutes.PAIR, null, body);
+        answer = request("POST", url + PhoneRoutes.PAIR, code.cert(), null, body);
       } catch (DesktopException refused) {
         throw refused;
       } catch (IOException unreachable) {
@@ -54,7 +61,10 @@ public class DesktopClient {
         continue;
       }
       return new Desktop(
-          answer.path("name").asString(code.name()), url, answer.path("token").asString());
+          answer.path("name").asString(code.name()),
+          url,
+          answer.path("token").asString(),
+          code.cert());
     }
     throw failure;
   }
@@ -65,7 +75,8 @@ public class DesktopClient {
    * @throws DesktopException if the desktop refuses, typically because it forgot this phone (401)
    */
   public Hello hello(Desktop desktop) throws IOException {
-    JsonNode answer = request("GET", desktop.url() + PhoneRoutes.HELLO, desktop.token(), null);
+    JsonNode answer =
+        request("GET", desktop.url() + PhoneRoutes.HELLO, desktop.pin(), desktop.token(), null);
     JsonNode version = answer.path("version");
     return new Hello(
         answer.path("name").asString(desktop.name()),
@@ -80,7 +91,8 @@ public class DesktopClient {
    * @throws DesktopException if the desktop refuses, typically because it forgot this phone (401)
    */
   public List<DesktopTitle> titles(Desktop desktop) throws IOException {
-    String text = text("GET", desktop.url() + PhoneRoutes.TITLES, desktop.token(), null);
+    String text =
+        text("GET", desktop.url() + PhoneRoutes.TITLES, desktop.pin(), desktop.token(), null);
     try {
       return mapper.readerForListOf(DesktopTitle.class).readValue(text);
     } catch (JacksonException garbled) {
@@ -113,11 +125,11 @@ public class DesktopClient {
     have = Math.max(0, have);
     if (have < file.bytes() || file.whole()) {
       String url = desktop.url() + file.source();
-      var connection = open("GET", url, desktop.token(), null);
+      var connection = open("GET", url, desktop.pin(), desktop.token(), null);
       try {
         connection.setRequestProperty("Accept", "*/*");
         if (have > 0) connection.setRequestProperty("Range", "bytes=" + have + "-");
-        int status = connection.getResponseCode();
+        int status = status(connection);
         if (status == 200 && have > 0) {
           // The desktop sent the whole file instead of the rest: start the part again.
           folder.deletePart(path);
@@ -155,9 +167,9 @@ public class DesktopClient {
     folder.commit(path);
   }
 
-  private JsonNode request(String method, String url, String token, String body)
+  private JsonNode request(String method, String url, String pin, String token, String body)
       throws IOException {
-    String text = text(method, url, token, body);
+    String text = text(method, url, pin, token, body);
     try {
       return mapper.readTree(text);
     } catch (JacksonException garbled) {
@@ -165,10 +177,11 @@ public class DesktopClient {
     }
   }
 
-  private String text(String method, String url, String token, String body) throws IOException {
-    var connection = open(method, url, token, body);
+  private String text(String method, String url, String pin, String token, String body)
+      throws IOException {
+    var connection = open(method, url, pin, token, body);
     try {
-      int status = connection.getResponseCode();
+      int status = status(connection);
       boolean ok = status >= 200 && status < 300;
       String text = read(ok ? connection.getInputStream() : connection.getErrorStream());
       if (!ok) throw new DesktopException(status, message(status, text));
@@ -178,10 +191,16 @@ public class DesktopClient {
     }
   }
 
-  /** A connection, not yet sent; without a body, headers can still be set before reading it. */
-  private static HttpURLConnection open(String method, String url, String token, String body)
-      throws IOException {
+  /**
+   * A connection that trusts only the pinned certificate, not yet sent; without a body, headers can
+   * still be set before {@link #status} sends it.
+   *
+   * @throws DesktopException if the desktop's certificate is not the pinned one
+   */
+  private static HttpURLConnection open(
+      String method, String url, String pin, String token, String body) throws IOException {
     var connection = (HttpURLConnection) URI.create(url).toURL().openConnection();
+    CertificatePins.secure(connection, pin);
     connection.setRequestMethod(method);
     connection.setConnectTimeout(CONNECT_TIMEOUT_MS);
     connection.setReadTimeout(READ_TIMEOUT_MS);
@@ -192,9 +211,31 @@ public class DesktopClient {
       connection.setRequestProperty("Content-Type", "application/json");
       try (OutputStream out = connection.getOutputStream()) {
         out.write(body.getBytes(StandardCharsets.UTF_8));
+      } catch (SSLException refused) {
+        throw pinRefused(refused);
       }
     }
     return connection;
+  }
+
+  /**
+   * Sends the request and returns the response's status.
+   *
+   * @throws DesktopException if the desktop's certificate is not the pinned one
+   */
+  private static int status(HttpURLConnection connection) throws IOException {
+    try {
+      return connection.getResponseCode();
+    } catch (SSLException refused) {
+      throw pinRefused(refused);
+    }
+  }
+
+  /** A handshake failure as the phone reports it: a pin mismatch is a refusal, not a glitch. */
+  private static IOException pinRefused(SSLException refused) {
+    if (!CertificatePins.mismatch(refused)) return refused;
+    return new DesktopException(
+        "This is not the desktop this phone paired with. Pair the phone again.", refused);
   }
 
   private static String read(InputStream stream) throws IOException {

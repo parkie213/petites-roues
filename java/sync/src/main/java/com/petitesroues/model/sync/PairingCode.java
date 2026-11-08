@@ -3,16 +3,17 @@ package com.petitesroues.model.sync;
 import java.util.List;
 
 /**
- * What a phone scans to pair: the QR code's content, as JSON. Versioned so HTTPS can add the
- * certificate fingerprint the phone pins ({@code v} 2) without a new flow. Phones read it with
- * {@link com.petitesroues.sync.PairingCodeReader}.
+ * What a phone scans to pair: the QR code's content, as JSON. Phones read it with {@link
+ * com.petitesroues.sync.PairingCodeReader}. Scanning it is what makes the phone trust the desktop:
+ * it carries the pin of the desktop's certificate ({@link com.petitesroues.sync.CertificatePins}).
  *
- * @param v payload version; 1 is plain HTTP
+ * @param v payload version; 2 is HTTPS with a pinned certificate (1, plain HTTP, is no longer read)
  * @param name the desktop's name, shown on the phone
- * @param urls the phone listener's base URLs, one per LAN address, to try in order
+ * @param urls the phone listener's {@code https} base URLs, one per LAN address, to try in order
  * @param pair the one-time pairing secret
+ * @param cert the pin of the phone listener's certificate
  */
-public record PairingCode(int v, String name, List<String> urls, String pair) {
+public record PairingCode(int v, String name, List<String> urls, String pair, String cert) {
   /** The version this build writes and reads. */
-  public static final int VERSION = 1;
+  public static final int VERSION = 2;
 }

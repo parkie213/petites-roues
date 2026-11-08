@@ -55,7 +55,7 @@ class PhoneTransferIntegrationTest extends HttpIntegrationTest {
     jdbc.update("DELETE FROM phones");
     jdbc.update("DELETE FROM settings");
     http.put().uri("/api/phone").body(Map.of("enabled", true)).retrieve().toBodilessEntity();
-    String url = "http://127.0.0.1:" + listener.port();
+    String url = "https://127.0.0.1:" + listener.port();
     desktop = client.pair(pairing.start("desk", List.of(url)).code(), "Pixel");
   }
 
@@ -240,7 +240,7 @@ class PhoneTransferIntegrationTest extends HttpIntegrationTest {
                     bytes -> {},
                     () -> false));
     assertEquals(404, missing.status());
-    var stranger = new Desktop("desk", desktop.url(), "wrong");
+    var stranger = new Desktop("desk", desktop.url(), "wrong", desktop.pin());
     assertEquals(401, assertThrows(DesktopException.class, () -> client.titles(stranger)).status());
     assertEquals("/phone/titles/a%20b/media", PhoneRoutes.titleFile("a b", TitleFile.MEDIA));
   }

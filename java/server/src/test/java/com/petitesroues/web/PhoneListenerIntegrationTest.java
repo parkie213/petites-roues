@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import com.petitesroues.config.PhoneListener;
 import com.petitesroues.model.sync.Desktop;
 import com.petitesroues.model.sync.PairingCode;
+import com.petitesroues.phone.PhoneCertificateService;
 import com.petitesroues.phone.PhonePairingService;
 import com.petitesroues.support.HttpClients;
 import com.petitesroues.support.HttpIntegrationTest;
@@ -23,6 +24,7 @@ import org.springframework.test.context.TestPropertySource;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestClient;
+import org.springframework.web.client.RestClientException;
 import tools.jackson.databind.JsonNode;
 
 /**
@@ -33,6 +35,7 @@ import tools.jackson.databind.JsonNode;
 class PhoneListenerIntegrationTest extends HttpIntegrationTest {
   @Autowired PhoneListener listener;
   @Autowired PhonePairingService pairing;
+  @Autowired PhoneCertificateService certificates;
   RestClient phone;
 
   @BeforeEach
@@ -40,7 +43,11 @@ class PhoneListenerIntegrationTest extends HttpIntegrationTest {
     jdbc.update("DELETE FROM phones");
     jdbc.update("DELETE FROM settings");
     switchPhones(true);
-    phone = HttpClients.client("http://127.0.0.1:" + listener.port());
+    phone = HttpClients.phone("https://127.0.0.1:" + listener.port(), pin());
+  }
+
+  private String pin() {
+    return certificates.certificate().pin();
   }
 
   @AfterEach
@@ -79,7 +86,7 @@ class PhoneListenerIntegrationTest extends HttpIntegrationTest {
   /** A local port nothing listens on: connecting is refused at once. */
   private static String deadUrl() throws IOException {
     try (var socket = new ServerSocket(0)) {
-      return "http://127.0.0.1:" + socket.getLocalPort();
+      return "https://127.0.0.1:" + socket.getLocalPort();
     }
   }
 
@@ -92,14 +99,25 @@ class PhoneListenerIntegrationTest extends HttpIntegrationTest {
     assertEquals(listener.port(), status.path("port").asInt());
 
     // What the phone scans: the desktop's own payload, as the web shows it in the QR code.
-    String phoneUrl = "http://127.0.0.1:" + listener.port();
+    String phoneUrl = "https://127.0.0.1:" + listener.port();
     var offered = pairing.start(listener.desktopName(), List.of(deadUrl(), phoneUrl)).code();
     PairingCode scanned = PairingCodeReader.read(mapper.writeValueAsString(offered));
     assertEquals(offered, scanned);
 
     var client = new DesktopClient();
     Desktop desktop = client.pair(scanned, "Pixel");
-    assertEquals(new Desktop(listener.desktopName(), phoneUrl, desktop.token()), desktop);
+    assertEquals(new Desktop(listener.desktopName(), phoneUrl, desktop.token(), pin()), desktop);
+    assertEquals(pin(), scanned.cert(), "the code carries the listener's pin");
+    assertTrue(listener.urls().stream().allMatch(url -> url.startsWith("https://")));
+    assertThrows(
+        RestClientException.class,
+        () ->
+            HttpClients.client("http://127.0.0.1:" + listener.port())
+                .get()
+                .uri("/phone/hello")
+                .retrieve()
+                .toBodilessEntity(),
+        "the listener speaks only HTTPS");
     assertFalse(desktop.token().isBlank());
     var spent = assertThrows(DesktopException.class, () -> client.pair(scanned, "Pixel"));
     assertEquals(400, spent.status(), "a pairing secret works once");
@@ -133,7 +151,7 @@ class PhoneListenerIntegrationTest extends HttpIntegrationTest {
 
   @Test
   void theSwitchClosesThePortKeepsPhonesPairedAndIsRemembered() {
-    String secret = pairing.start("desk", List.of("http://192.0.2.1:1")).code().pair();
+    String secret = pairing.start("desk", List.of("https://192.0.2.1:1")).code().pair();
     String token =
         mapper
             .readTree(
@@ -156,7 +174,7 @@ class PhoneListenerIntegrationTest extends HttpIntegrationTest {
     assertThrows(
         ResourceAccessException.class,
         () ->
-            HttpClients.client("http://127.0.0.1:" + open)
+            HttpClients.phone("https://127.0.0.1:" + open, pin())
                 .get()
                 .uri("/phone/hello")
                 .retrieve()
@@ -171,7 +189,7 @@ class PhoneListenerIntegrationTest extends HttpIntegrationTest {
         jdbc.queryForObject("SELECT value FROM settings WHERE key='phone.enabled'", String.class));
 
     switchPhones(true);
-    phone = HttpClients.client("http://127.0.0.1:" + listener.port());
+    phone = HttpClients.phone("https://127.0.0.1:" + listener.port(), pin());
     assertEquals(0, hello(token).path("titles").asInt(), "phones stay paired while it is off");
   }
 }
