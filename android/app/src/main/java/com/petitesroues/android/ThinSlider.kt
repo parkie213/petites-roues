@@ -15,7 +15,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 
 /** The accent shared by the player and reader progress lines. */
-val ProgressColor = Color(0xFF89C9B3)
+val ProgressColor = Coral
 
 /**
  * A thin seekable progress line with a small round thumb, quieter than Material's slider. Used for

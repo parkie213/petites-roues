@@ -9,13 +9,14 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -65,7 +66,7 @@ class MainActivity : ComponentActivity() {
   override fun onCreate(savedInstanceState: Bundle?) {
     super.onCreate(savedInstanceState)
     setContent {
-      MaterialTheme(colorScheme = darkColorScheme(primary = Color(0xFF89C9B3))) { App() }
+      AppTheme { App() }
     }
   }
 
@@ -191,8 +192,8 @@ class MainActivity : ComponentActivity() {
         },
       )
     } else
-      TitleScreen(open) {
-        openPath = null
+      AppTheme(dark = true) {
+        TitleScreen(open) { openPath = null }
       }
   }
 
@@ -220,7 +221,10 @@ class MainActivity : ComponentActivity() {
     when {
       loaded == null ->
         Box(Modifier.fillMaxSize().background(Color.Black), contentAlignment = Alignment.Center) {
-          CircularProgressIndicator()
+          Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(18.dp)) {
+            CircularProgressIndicator(color = Coral, strokeWidth = 2.dp)
+            Text("Opening title…", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+          }
         }
       document == null -> {
         androidx.activity.compose.BackHandler(onBack = onBack)

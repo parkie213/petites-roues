@@ -3,6 +3,7 @@ package com.petitesroues.android.comic
 import android.app.Activity
 import android.content.pm.ActivityInfo
 import android.content.res.Configuration
+import com.petitesroues.android.Coral
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -322,7 +323,7 @@ fun ReadScreen(
       val region = box.regions().firstOrNull()
       val atBottom = region == null || region.y() + region.height() / 2 < 0.5
       Surface(
-        color = Color(0xF5161B21),
+        color = Color(0xFA20242A),
         contentColor = Color(0xFF9AA6B2),
         shape = RoundedCornerShape(12.dp),
         shadowElevation = 8.dp,
@@ -374,7 +375,7 @@ fun ReadScreen(
             Icon(
               Icons.Filled.Draw,
               contentDescription = if (pencil) "Stop drawing with a finger" else "Draw with a finger",
-              tint = if (pencil) Color(0xFF89C9B3) else Color.White,
+              tint = if (pencil) Coral else Color.White,
             )
           }
           // A comic without a study document has no bubbles to outline or read aloud, and no
@@ -384,7 +385,7 @@ fun ReadScreen(
               Icon(
                 Icons.Filled.SwapHoriz,
                 contentDescription = if (rtl) "Read left to right" else "Read right to left",
-                tint = if (rtl) Color(0xFF89C9B3) else Color.White,
+                tint = if (rtl) Coral else Color.White,
               )
             }
           else {
@@ -397,7 +398,7 @@ fun ReadScreen(
               Icon(
                 Icons.Filled.CropFree,
                 contentDescription = if (outlines) "Hide bubble outlines" else "Show bubble outlines",
-                tint = if (outlines) Color(0xFF89C9B3) else Color.White,
+                tint = if (outlines) Coral else Color.White,
               )
             }
             // Quizzes are scoped to a chapter, so a volume without chapters offers none.
@@ -411,7 +412,7 @@ fun ReadScreen(
               Icon(
                 if (autoListen) Icons.Filled.Headphones else Icons.Filled.HeadsetOff,
                 contentDescription = if (autoListen) "Stop reading bubbles aloud" else "Read bubbles aloud",
-                tint = if (autoListen) Color(0xFF89C9B3) else Color.White,
+                tint = if (autoListen) Coral else Color.White,
               )
             }
           }
@@ -424,7 +425,7 @@ fun ReadScreen(
             Icon(
               if (landscape) Icons.Filled.ScreenLockLandscape else Icons.Filled.ScreenRotation,
               contentDescription = if (landscape) "Follow the phone's rotation" else "Read in landscape",
-              tint = if (landscape) Color(0xFF89C9B3) else Color.White,
+              tint = if (landscape) Coral else Color.White,
             )
           }
         }
@@ -554,7 +555,7 @@ private fun PageView(
                   .size(maxWidth * region.width().toFloat(), maxHeight * region.height().toFloat())
                   .then(
                     when {
-                      isSelected -> Modifier.border(2.dp, Color(0x8089C9B3), RoundedCornerShape(6.dp))
+                      isSelected -> Modifier.border(2.dp, Color(0xA6EB765C), RoundedCornerShape(6.dp))
                       outlined -> Modifier.border(1.dp, Color(0xC067C5FF), RoundedCornerShape(4.dp))
                       else -> Modifier
                     }

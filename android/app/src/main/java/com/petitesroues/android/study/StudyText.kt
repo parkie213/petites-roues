@@ -131,7 +131,7 @@ fun TranslationContext(
       PhraseSpan(
         chunk.text,
         phraseColor(chunk.link),
-        underline = if (chunk.active) 3.dp else 1.dp,
+        underline = if (chunk.active) 3.dp else 2.dp,
         active = chunk.active,
         tap = chunk.sourcePhrase.takeIf { onTap != null },
       )
@@ -277,7 +277,7 @@ fun LearnerNote(note: String, style: TextStyle, modifier: Modifier = Modifier) {
 }
 
 private val sourceExpression =
-  SpanStyle(fontWeight = FontWeight.SemiBold, background = Color(0x33E8B97E), color = Color(0xFFF2D7A8))
+  SpanStyle(fontWeight = FontWeight.SemiBold, background = Color(0x55E8B97E), color = Color(0xFFFFD58A))
 
 fun noteText(note: String): AnnotatedString = buildAnnotatedString {
   for (segment in noteSegments(note))

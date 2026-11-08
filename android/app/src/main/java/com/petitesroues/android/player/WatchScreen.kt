@@ -112,8 +112,8 @@ private val subtitleStyle =
     lineHeight = 28.sp,
     shadow = Shadow(Color.Black, blurRadius = 6f),
   )
-private val panelStyle = TextStyle(color = Color(0xFFC8D4E0), fontSize = 15.sp, lineHeight = 22.sp)
-private val panelBackground = Color(0xE0101419)
+private val panelStyle = TextStyle(color = Color(0xFFE0E2E6), fontSize = 15.sp, lineHeight = 22.sp)
+private val panelBackground = Color(0xF520242A)
 private val railButton = 42.dp
 private val railPadding = 5.dp
 private val railMargin = 12.dp
@@ -244,11 +244,15 @@ fun WatchScreen(
           TranslationContext(
             exploredAlignment,
             phrase,
-            TextStyle(fontSize = 15.sp, lineHeight = 22.sp),
+            subtitleStyle,
             Modifier.background(Color(0xCC000000), RoundedCornerShape(6.dp))
               .padding(horizontal = 8.dp, vertical = 3.dp),
             centred = true,
             separator = ChunkSeparator.of(document.translationLanguage()),
+            onTap = { index ->
+              playback.pause()
+              explored = Explored(exploredCue.line().id(), index)
+            },
           )
         }
       } else if (help == Help.NOTES) {
@@ -258,16 +262,20 @@ fun WatchScreen(
           sentenceNotes.forEach { LearnerNote("• $it", panelStyle) }
         }
       } else if (help == Help.TRANSLATION) {
-        val translation = showing.mapNotNull { it.line().translation().orEmpty().ifBlank { null } }
-        if (translation.isNotEmpty())
-          Text(
-            translation.joinToString("\n"),
-            style = subtitleStyle.copy(fontSize = 17.sp, color = Color(0xFFDDE6EE)),
-            textAlign = TextAlign.Center,
-            modifier =
-              Modifier.background(Color(0xCC000000), RoundedCornerShape(6.dp))
-                .padding(horizontal = 8.dp, vertical = 3.dp),
+        for (cue in showing) {
+          val line = cue.line()
+          val alignment = readyAlignment(line, document)
+          val translationModifier = Modifier.background(Color(0xDD101216), RoundedCornerShape(4.dp))
+            .padding(horizontal = 8.dp, vertical = 3.dp)
+          if (alignment != null) TranslationContext(
+            alignment, null, subtitleStyle, translationModifier,
+            centred = true, separator = ChunkSeparator.of(document.translationLanguage()),
+            onTap = { index -> playback.pause(); explored = Explored(line.id(), index) },
+          ) else if (!line.translation().isNullOrBlank()) Text(
+            line.translation().orEmpty(), style = subtitleStyle,
+            textAlign = TextAlign.Center, modifier = translationModifier,
           )
+        }
       }
       if (subtitles) for (cue in showing) {
         val line = cue.line()
@@ -381,7 +389,8 @@ private fun Panel(content: @Composable () -> Unit) {
   Column(
     Modifier.widthIn(max = 460.dp)
       .heightIn(max = 170.dp)
-      .background(panelBackground, RoundedCornerShape(10.dp))
+      .background(panelBackground, RoundedCornerShape(8.dp))
+      .border(1.dp, Color(0xFF454A53), RoundedCornerShape(8.dp))
       .verticalScroll(rememberScrollState())
       .padding(horizontal = 14.dp, vertical = 10.dp),
     verticalArrangement = Arrangement.spacedBy(6.dp),
@@ -390,7 +399,7 @@ private fun Panel(content: @Composable () -> Unit) {
   }
 }
 
-/** A round button in the right-hand rail pill; a selected toggle is filled teal. */
+/** A round button in the right-hand rail pill; a selected toggle uses the warm brand accent. */
 @Composable
 private fun RailButton(
   icon: ImageVector,
@@ -406,7 +415,7 @@ private fun RailButton(
       modifier =
         Modifier.size(railButton)
           .alpha(if (dimmed && !selected) 0.4f else 1f)
-          .background(if (selected) Color(0xCC3E6E62) else Color.Transparent, CircleShape),
+          .background(if (selected) Color(0x994B302C) else Color.Transparent, CircleShape),
     ) {
       Icon(icon, contentDescription = label, tint = Color.White.copy(alpha = 0.9f))
     }
