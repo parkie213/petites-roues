@@ -28,6 +28,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.MenuBook
+import androidx.compose.material.icons.filled.Computer
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.FolderOpen
@@ -101,7 +102,8 @@ data class Browse(val group: String? = null, val season: Int? = null)
  * Titles and media from the phone's content folders on shelves grouped by the rules the desktop
  * library's posters use ([Shelves]): shelves a document names, else Comics, Series and Films. A series card opens its tomes or episodes;
  * a title card opens the title where it was left. Refresh rescans the folders; the folder button
- * lists the content folders, where more can be added or removed. A title card shows how far
+ * lists the content folders, where more can be added or removed; the desktop button pairs with the
+ * desktop app ([onDesktop]). A title card shows how far
  * through it the saved position is, which its menu can clear.
  */
 @OptIn(ExperimentalMaterial3Api::class)
@@ -115,6 +117,7 @@ fun LibraryScreen(
   onAddFolder: () -> Unit,
   onRemoveFolder: (Uri) -> Unit,
   onRefresh: () -> Unit,
+  onDesktop: () -> Unit,
   onQuiz: () -> Unit,
   onNotes: () -> Unit,
   onOpen: (Title) -> Unit,
@@ -156,6 +159,9 @@ fun LibraryScreen(
             IconButton(onClick = onRefresh, enabled = !state.refreshing) {
               Icon(Icons.Filled.Refresh, "Refresh library")
             }
+          IconButton(onClick = onDesktop) {
+            Icon(Icons.Filled.Computer, "Desktop")
+          }
           IconButton(onClick = { if (state.folders.isEmpty()) onAddFolder() else managing = true }) {
             Icon(Icons.Filled.FolderOpen, "Content folders")
           }

@@ -14,6 +14,7 @@
   <modules>
     <module>documents</module>
     <module>library</module>
+    <module>sync</module>
     <module>application</module>
     <module>server</module>
   </modules>

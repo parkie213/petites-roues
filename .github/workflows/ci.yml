@@ -21,7 +21,7 @@ jobs:
           cache: maven
           cache-dependency-path: "**/pom.xml"
       - name: Test and install the shared library
-        run: ./java/mvnw -B -f java/pom.xml -pl documents,library -am install
+        run: ./java/mvnw -B -f java/pom.xml -pl documents,library,sync -am install
       - uses: actions/upload-artifact@v4
         with:
           name: library

@@ -16,7 +16,15 @@ import {
   ActionIcon,
   Title,
 } from "@mantine/core";
-import { Search, Check, Plus, RefreshCw, TriangleAlert } from "lucide-react";
+import {
+  Search,
+  Check,
+  Plus,
+  RefreshCw,
+  Smartphone,
+  TriangleAlert,
+} from "lucide-react";
+import { ConnectPhone } from "./ConnectPhone.jsx";
 import { chooseOnComputer, request } from "../shared/api.js";
 import { LibraryBrowser } from "./LibraryBrowser.jsx";
 import { JobProgress } from "./JobProgress.jsx";
@@ -179,12 +187,24 @@ export function Library({ actionsTarget }) {
   const [search, setSearch] = useState("");
   const [mediaFilter, setMediaFilter] = useState("all");
   const [attentionOnly, setAttentionOnly] = useState(false);
+  const [connecting, setConnecting] = useState(false);
   return (
     <>
+      <ConnectPhone opened={connecting} onClose={() => setConnecting(false)} />
       <Stack gap="xl" mt="lg">
         {actionsTarget &&
           createPortal(
             <Group gap="sm" className="library-actions">
+              <ActionIcon
+                variant="subtle"
+                color="navy"
+                size="lg"
+                aria-label="Connect a phone"
+                title="Connect a phone"
+                onClick={() => setConnecting(true)}
+              >
+                <Smartphone size={21} />
+              </ActionIcon>
               {data?.repos.length > 0 && (
                 <ActionIcon
                   variant="subtle"

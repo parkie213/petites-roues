@@ -56,6 +56,7 @@ androidComponents {
 dependencies {
   implementation(libs.petites.roues.documents)
   implementation(libs.petites.roues.library)
+  implementation(libs.petites.roues.sync)
   implementation(platform(libs.compose.bom))
   implementation(libs.compose.material3)
   implementation(libs.compose.icons)
@@ -65,6 +66,7 @@ dependencies {
   implementation(libs.media3.ui.compose)
   implementation(libs.commons.compress)
   implementation(libs.markdown.renderer.m3)
+  implementation(libs.play.services.code.scanner)
   debugImplementation(libs.compose.ui.tooling)
   testImplementation(libs.junit)
 }

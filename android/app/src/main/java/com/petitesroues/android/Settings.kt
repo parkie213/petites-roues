@@ -4,8 +4,9 @@ import android.content.Context
 import android.net.Uri
 import androidx.core.content.edit
 import androidx.core.net.toUri
+import com.petitesroues.model.sync.Desktop
 
-/** Small per-device preferences: the content folders and the players' toggles. */
+/** Small per-device preferences: the content folders, the paired desktop and the players' toggles. */
 class Settings(context: Context) {
   private val prefs = context.getSharedPreferences("settings", Context.MODE_PRIVATE)
 
@@ -18,6 +19,26 @@ class Settings(context: Context) {
       prefs.edit {
         putString("contentTrees", value.joinToString("\n"))
         remove("contentTree")
+      }
+
+  /** The desktop this phone is paired with, or null. Its token is the phone's credential there. */
+  var desktop: Desktop?
+    get() {
+      val url = prefs.getString("desktopUrl", null) ?: return null
+      val token = prefs.getString("desktopToken", null) ?: return null
+      return Desktop(prefs.getString("desktopName", null) ?: "Desktop", url, token)
+    }
+    set(value) =
+      prefs.edit {
+        if (value == null) {
+          remove("desktopUrl")
+          remove("desktopToken")
+          remove("desktopName")
+        } else {
+          putString("desktopUrl", value.url())
+          putString("desktopToken", value.token())
+          putString("desktopName", value.name())
+        }
       }
 
   var autoPause: Boolean

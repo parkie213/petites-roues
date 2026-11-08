@@ -33,6 +33,7 @@ import androidx.compose.foundation.layout.padding
 import com.petitesroues.android.comic.CbzReader
 import com.petitesroues.android.comic.ReadScreen
 import com.petitesroues.android.comic.bareComic
+import com.petitesroues.android.desktop.DesktopDialog
 import com.petitesroues.android.library.Browse
 import com.petitesroues.android.library.CardImages
 import com.petitesroues.android.library.LibraryScreen
@@ -148,6 +149,9 @@ class MainActivity : ComponentActivity() {
       )
     }
 
+    var desktopOpen by remember { mutableStateOf(false) }
+    if (desktopOpen) DesktopDialog(settings) { desktopOpen = false }
+
     // The study notes screen replaces the library while open; its notes are read on opening.
     var notesOpen by rememberSaveable { mutableStateOf(false) }
     var notes by remember { mutableStateOf<List<MarkdownPage>?>(null) }
@@ -177,6 +181,7 @@ class MainActivity : ComponentActivity() {
         onAddFolder = { addFolder.launch(null) },
         onRemoveFolder = ::removeFolder,
         onRefresh = ::refresh,
+        onDesktop = { desktopOpen = true },
         onNotes = { notesOpen = true },
         onQuiz = {
           scope.launch {
