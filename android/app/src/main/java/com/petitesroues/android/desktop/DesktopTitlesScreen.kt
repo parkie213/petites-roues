@@ -111,11 +111,11 @@ fun DesktopTitlesScreen(settings: Settings, onBack: () -> Unit) {
     }
 
   LaunchedEffect(folder, transfer.finished) {
-    val desktop = settings.desktop ?: return@LaunchedEffect
+    if (settings.desktop == null) return@LaunchedEffect
     val result =
       withContext(Dispatchers.IO) {
         runCatching {
-          val titles = DesktopClient().titles(desktop)
+          val titles = reachDesktop(context, settings, DesktopClient()::titles)
           val target = folder?.let { transferFolder(context.contentResolver, it) }
           titles.map { title ->
             if (target == null || title.problem() != null) Listed(title, title.bytes(), upToDate = false, update = false)

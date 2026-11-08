@@ -8,6 +8,19 @@ import java.nio.charset.StandardCharsets;
  * client so neither can drift from the other.
  */
 public final class PhoneRoutes {
+  /**
+   * The DNS-SD service type the desktop announces on the local network while the phone listener is
+   * open, so a paired phone can find it again when its address changes. Without the {@code .local.}
+   * domain, as Android's {@code NsdManager} takes it.
+   */
+  public static final String SERVICE_TYPE = "_petitesroues._tcp";
+
+  /**
+   * The announcement's TXT key holding the pin of the desktop's certificate: the phone keeps only
+   * the announcement of the desktop it paired with, and still checks the pin when it connects.
+   */
+  public static final String SERVICE_PIN = "pin";
+
   /** Everything under here is for phones, and only on the phone listener. */
   public static final String PREFIX = "/phone";
 

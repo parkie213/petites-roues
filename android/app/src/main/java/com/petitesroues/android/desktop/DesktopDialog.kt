@@ -89,7 +89,9 @@ fun DesktopDialog(settings: Settings, onGetTitles: () -> Unit, onDismiss: () -> 
     busy = true
     status = "Connecting to ${paired.url()}…"
     scope.launch {
-      val result = withContext(Dispatchers.IO) { runCatching { client.hello(paired) } }
+      val result = withContext(Dispatchers.IO) { runCatching { reachDesktop(context, settings, client::hello) } }
+      // Finding the desktop at a new address saves it.
+      desktop = settings.desktop
       status =
         result.fold(
           { "Connected to ${it.name()}: ${it.titles()} study documents, ${it.media()} media files." },

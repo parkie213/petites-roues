@@ -33,8 +33,9 @@ import org.springframework.stereotype.Component;
  * {@code /phone/**} ({@link com.petitesroues.web.LocalRequestFilter}); the browser UI's port stays
  * on 127.0.0.1. Opened and closed while the server runs, from the "Allow phones to connect" switch;
  * the choice is remembered ({@link #SETTING}) and restored at startup. Closed until first switched
- * on, since it opens a port on the local network. {@code petitesroues.phone.port} (default 8878)
- * chooses the port, 0 any free one.
+ * on, since it opens a port on the local network. While open it is announced on the network ({@link
+ * PhoneAdvertiser}), so phones find this desktop when its address changes. {@code
+ * petitesroues.phone.port} (default 8878) chooses the port, 0 any free one.
  */
 @Component
 public class PhoneListener {
@@ -57,6 +58,7 @@ public class PhoneListener {
 
   private final SettingsStore settings;
   private final PhoneCertificateService certificates;
+  private final PhoneAdvertiser advertiser;
   private final int configuredPort;
   private Service service;
   private volatile Connector connector;
@@ -64,9 +66,11 @@ public class PhoneListener {
   public PhoneListener(
       SettingsStore settings,
       PhoneCertificateService certificates,
+      PhoneAdvertiser advertiser,
       @Value("${petitesroues.phone.port:8878}") int configuredPort) {
     this.settings = settings;
     this.certificates = certificates;
+    this.advertiser = advertiser;
     this.configuredPort = configuredPort;
   }
 
@@ -113,6 +117,8 @@ public class PhoneListener {
     }
     connector = phone;
     LOG.info("Phones can connect on port {}", phone.getLocalPort());
+    advertiser.start(
+        addresses(), desktopName(), phone.getLocalPort(), certificates.certificate().pin());
   }
 
   /** Makes the connector serve TLS 1.3 only, with this desktop's certificate. */
@@ -136,6 +142,7 @@ public class PhoneListener {
     var phone = connector;
     if (phone == null) return;
     connector = null;
+    advertiser.stop();
     service.removeConnector(phone);
     destroy(phone);
     LOG.info("Phones can no longer connect");
@@ -174,6 +181,11 @@ public class PhoneListener {
   public List<String> urls() {
     int port = port();
     if (port < 0) return List.of();
+    return addresses().stream().map(a -> "https://" + a.getHostAddress() + ":" + port).toList();
+  }
+
+  /** This computer's addresses a phone can reach, in the order {@link #urls} gives. */
+  private static List<InetAddress> addresses() {
     List<InetAddress> local = new ArrayList<>(), other = new ArrayList<>();
     try {
       for (var face : Collections.list(NetworkInterface.getNetworkInterfaces())) {
@@ -189,7 +201,7 @@ public class PhoneListener {
       return List.of();
     }
     local.addAll(other);
-    return local.stream().map(a -> "https://" + a.getHostAddress() + ":" + port).toList();
+    return local;
   }
 
   /** This computer's name, for the phone to show; "petites roues" when it has none. */

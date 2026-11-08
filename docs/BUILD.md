@@ -88,6 +88,12 @@ trust: no certificate authority or host name is involved, and the desktop's addr
 Each phone then authenticates with its own token. A new library has a new certificate, so phones
 pair again.
 
+While the listener is open, the desktop also announces it on the local network with multicast DNS
+(`_petitesroues._tcp`, with the certificate's pin; JmDNS). When the address a phone saved stops
+answering, for example after the router gives the computer a new one, the phone looks for that
+announcement, connects to the new address (still checking the pin) and saves it. A firewall must
+let multicast DNS through (UDP 5353; Ubuntu's ufw allows it by default).
+
 Once paired, **Get titles** in the app's Desktop dialog lists the desktop's titles by series.
 Tick some and **Copy**: each title's media, posters and document (as the player serves it, with
 pending edits) download into `Internal storage/Petites roues`, with a subfolder per desktop
