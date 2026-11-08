@@ -2,6 +2,8 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
   <!-- The paired desktop's phone listener, on the local network. -->
   <uses-permission android:name="android.permission.INTERNET" />
+  <!-- Android 17: reaching devices on the local network (the desktop) is a runtime permission. -->
+  <uses-permission android:name="android.permission.ACCESS_LOCAL_NETWORK" />
   <!-- usesCleartextTraffic: the phone listener is plain HTTP on the LAN until it moves to HTTPS
        with a pinned certificate; no domain list can name "any LAN address". -->
   <application

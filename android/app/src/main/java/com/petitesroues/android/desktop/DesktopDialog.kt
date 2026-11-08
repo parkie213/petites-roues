@@ -1,9 +1,12 @@
 package com.petitesroues.android.desktop
 
 import android.content.Context
+import android.content.pm.PackageManager
 import android.os.Build
 import android.util.Log
 import android.provider.Settings as SystemSettings
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -28,6 +31,15 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
+/**
+ * Android 17's permission to reach devices on the local network, which the desktop is. Without it
+ * every connection to the desktop fails, though the phone and computer share a Wi-Fi.
+ */
+private const val LOCAL_NETWORK = "android.permission.ACCESS_LOCAL_NETWORK"
+
+private fun mayReachLocalNetwork(context: Context): Boolean =
+  Build.VERSION.SDK_INT < 37 || context.checkSelfPermission(LOCAL_NETWORK) == PackageManager.PERMISSION_GRANTED
+
 /** The name this phone gives the desktop when pairing: the one set in its system settings, else its model. */
 private fun phoneName(context: Context): String =
   SystemSettings.Global.getString(context.contentResolver, SystemSettings.Global.DEVICE_NAME)?.ifBlank { null }
@@ -37,7 +49,8 @@ private fun phoneName(context: Context): String =
  * Pairs this phone with a desktop by scanning the QR code from the desktop's "Connect a phone"
  * dialog, then tests the connection. Once paired it shows the desktop, tests the connection again
  * on demand, and can forget it (the desktop keeps listing the phone until it is forgotten there
- * too). Scanning uses Google Play services' scanner, so the app needs no camera permission.
+ * too). Scanning uses Google Play services' scanner, so the app needs no camera permission; it
+ * does need Android 17's local network permission, which it asks for before scanning or testing.
  */
 @Composable
 fun DesktopDialog(settings: Settings, onDismiss: () -> Unit) {
@@ -46,6 +59,26 @@ fun DesktopDialog(settings: Settings, onDismiss: () -> Unit) {
   var desktop by remember { mutableStateOf(settings.desktop) }
   var status by remember { mutableStateOf<String?>(null) }
   var busy by remember { mutableStateOf(false) }
+  // What to do once the local network permission is granted.
+  var afterPermission by remember { mutableStateOf<(() -> Unit)?>(null) }
+  val askPermission =
+    rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+      val then = afterPermission
+      afterPermission = null
+      if (granted) then?.invoke()
+      else
+        status =
+          "petites roues needs permission to find devices on your local network to reach the " +
+            "desktop. Allow it in the app's settings under Permissions."
+    }
+
+  fun withLocalNetwork(action: () -> Unit) {
+    if (mayReachLocalNetwork(context)) action()
+    else {
+      afterPermission = action
+      askPermission.launch(LOCAL_NETWORK)
+    }
+  }
 
   fun test(paired: Desktop) {
     busy = true
@@ -55,7 +88,10 @@ fun DesktopDialog(settings: Settings, onDismiss: () -> Unit) {
       status =
         result.fold(
           { "Connected to ${it.name}: ${it.titles} study documents, ${it.media} media files." },
-          { "Could not connect: ${it.message ?: it.javaClass.simpleName}" },
+          {
+            Log.w("Desktop", "Connection test failed", it)
+            "Could not connect: ${it.message ?: it.javaClass.simpleName}"
+          },
         )
       busy = false
     }
@@ -76,6 +112,7 @@ fun DesktopDialog(settings: Settings, onDismiss: () -> Unit) {
           test(paired)
         },
         {
+          Log.w("Desktop", "Pairing failed", it)
           status = "Could not pair: ${it.message ?: it.javaClass.simpleName}"
           busy = false
         },
@@ -118,8 +155,8 @@ fun DesktopDialog(settings: Settings, onDismiss: () -> Unit) {
       }
     },
     confirmButton = {
-      if (paired == null) TextButton(onClick = ::scan, enabled = !busy) { Text("Scan QR code") }
-      else TextButton(onClick = { test(paired) }, enabled = !busy) { Text("Test connection") }
+      if (paired == null) TextButton(onClick = { withLocalNetwork(::scan) }, enabled = !busy) { Text("Scan QR code") }
+      else TextButton(onClick = { withLocalNetwork { test(paired) } }, enabled = !busy) { Text("Test connection") }
     },
     dismissButton = {
       Row {
