@@ -236,6 +236,14 @@ Machine-written notes got these wrong; check them every time.
   can turn a pun name into an ordinary phrase (`Fais l'artifice` for `Feudartifis`), and it can
   "correct" a deliberately wrong name into the right one. Both are transcription doubts: never
   explain them as plain French.
+- **Accents spelled out.** Comics write a foreign accent phonetically: Astérix's Goths say
+  `ADDENTZION` (attention), `ON REFIENDRA` (on reviendra) and `PON ! PON ! ON S'EN FA` (bon !
+  bon ! on s'en va), turning B into P and V into F. Text recognition "corrects" the spelling, and
+  a first pass then misreads what is left (`PON !` as "Bang!"). Keep the printed spelling,
+  translate what the speaker means, and give the standard French in the note.
+- **A negative reply turned positive.** `On ne peut pas dire` answers "a superior force?" with
+  "you can't say that" (it wasn't); a first pass gave "You could say that", the opposite. Check
+  that a short reply keeps the polarity of the French.
 - **Invented words.** Comic dialogue coins words: `charagiste` blends `char` (chariot) and
   `garagiste` (car mechanic), and `surfemme` is a joke feminine of `surhomme`. Check any word you
   don't know in a dictionary. If it isn't there, say plainly that it is invented, show how it is
