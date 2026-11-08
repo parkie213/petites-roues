@@ -3,7 +3,6 @@ package com.petitesroues.sync;
 import com.petitesroues.model.sync.Desktop;
 import com.petitesroues.model.sync.DesktopTitle;
 import com.petitesroues.model.sync.Hello;
-import com.petitesroues.model.sync.PairRequest;
 import com.petitesroues.model.sync.PairingCode;
 import com.petitesroues.model.sync.TitleFile;
 import java.io.IOException;
@@ -45,7 +44,11 @@ public class DesktopClient {
    * @throws IOException the last connection failure, when no address answers
    */
   public Desktop pair(PairingCode code, String phoneName) throws IOException {
-    String body = mapper.writeValueAsString(new PairRequest(code.pair(), phoneName));
+    // A PairRequest, written by hand: Android's D8 compiles records into plain classes, which
+    // Jackson cannot serialise (it writes {}), though it still reads them through their
+    // constructor.
+    String body =
+        mapper.createObjectNode().put("secret", code.pair()).put("name", phoneName).toString();
     IOException failure = new IOException("No address to try");
     for (String url : code.urls()) {
       JsonNode answer;
