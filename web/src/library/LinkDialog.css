@@ -1,0 +1,15 @@
+.link-choice {
+  display: block;
+  width: 100%;
+  padding: 6px 10px;
+  border-radius: var(--mantine-radius-sm);
+}
+
+.link-choice:hover,
+.link-choice:focus-visible {
+  background: var(--mantine-color-default-hover);
+}
+
+.link-choice:disabled {
+  opacity: 0.6;
+}

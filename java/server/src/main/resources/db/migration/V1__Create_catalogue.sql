@@ -57,6 +57,18 @@ CREATE TABLE media (
 );
 CREATE INDEX media_fingerprint ON media(fingerprint);
 
+-- Media the user linked to a study document by hand. Keyed by path, not by a media row: Refresh
+-- replaces a folder's media rows, and the link survives it. A moved or renamed file loses its link.
+-- A manual link wins over the fingerprint on both sides.
+CREATE TABLE media_links (
+  repository_id TEXT NOT NULL REFERENCES repositories(id) ON DELETE CASCADE,
+  relative_path TEXT NOT NULL,
+  title_id TEXT NOT NULL REFERENCES titles(id) ON DELETE CASCADE,
+  linked_at TEXT NOT NULL,
+  PRIMARY KEY (repository_id, relative_path)
+);
+CREATE INDEX media_links_title ON media_links(title_id);
+
 -- An agent's claim on a title's queued player edits, against the document as it was claimed.
 CREATE TABLE review_batches (
   id INTEGER PRIMARY KEY AUTOINCREMENT,

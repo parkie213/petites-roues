@@ -160,16 +160,14 @@ public class LibraryService {
                         entries.stream()
                             .filter(entry -> repo.id().equals(entry.repositoryId()))
                             .toList(),
-                        index.all().stream()
-                            .filter(item -> repo.id().equals(item.repositoryId()))
+                        index.candidates().stream()
+                            .filter(item -> repo.id().equals(item.media().repositoryId()))
                             .map(
                                 item ->
                                     item(
-                                        item,
-                                        owners.get(
-                                            MediaLinks.key(
-                                                TitleMediaService.kind(item.kind()),
-                                                item.fingerprint()))))
+                                        item.media(),
+                                        MediaLinks.owner(item, owners::get),
+                                        item.linkedTo() != null))
                             .toList()))
             .toList());
   }
@@ -216,7 +214,7 @@ public class LibraryService {
         Posters.of(Shelves.shelves(shown)), List.copyOf(cards.keySet()), languages > 1);
   }
 
-  private static MediaItem item(IndexedMedia item, String titleId) {
+  private static MediaItem item(IndexedMedia item, String titleId, boolean linkedByHand) {
     var warnings = new ArrayList<String>();
     if (titleId == null) warnings.add("No study document");
     if (item.unplayableAudio()) warnings.add(item.audioWarning());
@@ -230,6 +228,7 @@ public class LibraryService {
         item.kind(),
         item.fingerprint(),
         titleId,
+        linkedByHand,
         item.durationSeconds(),
         item.posterPath() != null,
         item.seriesPosterPath() != null,
@@ -264,9 +263,12 @@ public class LibraryService {
       boolean videoAvailable = !comic && mediaAvailable;
       String videoProblem =
           details == null || details.referenceFingerprint() == null
-              ? "No reference media recorded — run prepare/reference.py, then Refresh"
-              : (comic ? "CBZ" : "Video")
-                  + " not found — add the folder that holds it, then Refresh";
+              ? "No reference media recorded — link one by hand, or run prepare/reference.py and"
+                  + " Refresh"
+              : "No "
+                  + (comic ? "CBZ" : "video")
+                  + " matches this document's reference — add the folder that holds it and"
+                  + " Refresh, or link one by hand";
       boolean available = documentAvailable && mediaAvailable;
       var problems = new LinkedHashMap<String, String>();
       if (!available)
@@ -278,9 +280,14 @@ public class LibraryService {
       matched
           .map(IndexedMedia::posterProblem)
           .ifPresent(problem -> problems.put("poster", problem));
+      boolean linkedByHand = matched.map(item -> index.linkedByHand(entry, item)).orElse(false);
+      Double duration = details == null ? null : details.durationSeconds();
+      if (linkedByHand)
+        matched
+            .map(item -> durationMismatch(duration, item.durationSeconds()))
+            .ifPresent(problem -> problems.put("duration", problem));
       boolean poster = matched.map(item -> item.posterPath() != null).orElse(false);
       boolean seriesPoster = matched.map(item -> item.seriesPosterPath() != null).orElse(false);
-      Double duration = details == null ? null : details.durationSeconds();
       Double position = positions.get(entry.id());
       Double progress =
           comic
@@ -313,8 +320,31 @@ public class LibraryService {
               seriesPoster,
               progress,
               matched.map(IndexedMedia::repositoryId).orElse(null),
-              matched.map(IndexedMedia::relativePath).orElse(null)));
+              matched.map(IndexedMedia::relativePath).orElse(null),
+              linkedByHand));
     }
     return List.copyOf(result);
+  }
+
+  /** How far a hand-linked video's length may differ from the document's before it is flagged. */
+  static final double DURATION_TOLERANCE_SECONDS = 2;
+
+  /**
+   * The warning for a hand-linked video whose length differs from the one the document was timed
+   * against, or null when they agree or either is unknown.
+   */
+  static String durationMismatch(Double document, Double media) {
+    if (document == null || media == null) return null;
+    if (Math.abs(document - media) <= DURATION_TOLERANCE_SECONDS) return null;
+    return "Video length differs from the document's ("
+        + clock(media)
+        + " vs "
+        + clock(document)
+        + "): cue timings may be off";
+  }
+
+  private static String clock(double seconds) {
+    long whole = Math.round(seconds);
+    return whole / 60 + ":" + String.format("%02d", whole % 60);
   }
 }

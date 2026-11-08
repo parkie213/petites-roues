@@ -13,7 +13,9 @@ import java.util.List;
  * @param title the episode or file name its path gives, made readable
  * @param kind {@code video} or {@code comic}
  * @param fingerprint its v1 media fingerprint, which names its card images
- * @param titleId the title whose study document references it, or null when none does
+ * @param titleId the title it belongs to: the one it is linked to by hand, else the one whose study
+ *     document references its fingerprint; null when neither
+ * @param linkedByHand whether {@code titleId} comes from a manual link
  * @param durationSeconds a video's duration, or null
  * @param posterAvailable whether it has its own poster
  * @param seriesPosterAvailable whether a series poster covers it
@@ -28,6 +30,7 @@ public record MediaItem(
     String kind,
     String fingerprint,
     String titleId,
+    boolean linkedByHand,
     Double durationSeconds,
     boolean posterAvailable,
     boolean seriesPosterAvailable,

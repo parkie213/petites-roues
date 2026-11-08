@@ -38,7 +38,10 @@ The library should start empty. Click **Add folder** in the middle.
 Select the `example/media-fr` directory in the petites roues repository. Its two Peppa Pig
 episodes and a short comic appear as posters, each with a small **(!)**: "No study document".
 You can already watch the videos. Click **Add folder** again and select `example/documents-fr`:
-each file links to its study document and the warnings clear.
+the first episode and the comic link to their study documents and their warnings clear. The
+second episode keeps its **(!)**: its document was deliberately given a reference that matches
+no file, as happens when a document was timed against someone else's copy. You link it by hand
+below.
 
 A folder can hold videos, comics, study documents, or any mix, and Git is optional. The example
 keeps its study documents and its media apart, as you might with a Plex library, with one pair
@@ -77,7 +80,23 @@ a registered folder. After adding or changing files, click **Refresh library**.
 
 <img src="../images/getting-started/03-example-added-to-library.png" alt="The example added to the library" style="max-width: 100%; height: auto;">
 
-Peppa Pig should be here. Click on it to go through to the episodes. Then click ep01.
+Peppa Pig should be here. Click on it to go through to the episodes.
+
+### Link a video by hand
+
+<img src="../images/getting-started/03b-link-by-hand.png" alt="Link a video to its study document" style="max-width: 100%; height: auto;">
+
+The second episode still says "No study document". Click the **⋯** beside its name, choose
+**Link to study document…**, and pick **À la recherche de Mr. Dinosaure** (documents without a
+video are listed first). The warning clears and the episode plays with its subtitles. You can
+start from the other side too: the **Documents** view lists the document with
+**Locate video…**.
+
+The link is kept in your library, not in the document, and it survives **Refresh library**.
+To fix the document itself, so other people's libraries find the file too, record the file as its
+reference with `prepare/reference.py`.
+
+Now click ep01.
 
 ### Watch and explore phrases
 

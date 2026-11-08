@@ -22,6 +22,9 @@ import java.util.Map;
  * @param unavailable what needs fixing, in display order, as {@link CatalogueItem#unavailable}
  * @param progress how far through the title the local resume position is, or null
  * @param mediaPath the media's path within its folder
+ * @param mediaRepositoryId the folder holding the media
+ * @param linkedByHand whether the title's media was linked by hand; always false for media without
+ *     a document
  */
 public record PosterEntry(
     String id,
@@ -44,7 +47,9 @@ public record PosterEntry(
     Map<String, String> unavailable,
     Double progress,
     String fingerprint,
-    String mediaPath)
+    String mediaPath,
+    String mediaRepositoryId,
+    boolean linkedByHand)
     implements Shelvable {
 
   /** A title with a study document. */
@@ -70,7 +75,9 @@ public record PosterEntry(
         title.unavailable(),
         title.progress(),
         null,
-        title.mediaPath());
+        title.mediaPath(),
+        title.mediaRepositoryId(),
+        title.mediaLinkedByHand());
   }
 
   /** A video or CBZ that no study document references, named from its path. */
@@ -101,7 +108,9 @@ public record PosterEntry(
         unavailable,
         null,
         media.fingerprint(),
-        media.relativePath());
+        media.relativePath(),
+        media.repositoryId(),
+        false);
   }
 
   /**

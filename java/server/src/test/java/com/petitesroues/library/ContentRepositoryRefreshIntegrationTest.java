@@ -11,6 +11,7 @@ import com.petitesroues.documents.StudyDocumentReader;
 import com.petitesroues.library.discovery.ContentRepositoryScanner;
 import com.petitesroues.library.persistence.CatalogueStore;
 import com.petitesroues.library.persistence.ContentRepositoryStore;
+import com.petitesroues.library.persistence.MediaLinkStore;
 import com.petitesroues.library.persistence.MediaStore;
 import com.petitesroues.media.Ffmpeg;
 import com.petitesroues.media.MediaFingerprint;
@@ -158,7 +159,7 @@ class ContentRepositoryRefreshIntegrationTest {
             store,
             new PlaybackProgressStore(jdbc),
             new ReadingProgressStore(jdbc),
-            new TitleMediaService(new MediaStore(jdbc)));
+            new TitleMediaService(new MediaStore(jdbc), new MediaLinkStore(jdbc)));
     var editing = new DocumentEditingService(catalogue, served, queue);
     byte[] originalFirst = Files.readAllBytes(firstFile);
     var cue =

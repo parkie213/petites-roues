@@ -198,8 +198,7 @@ Planned, roughly in this order:
 3. **Videos where they already live.** Add any folder (an existing Plex or Jellyfin library, a
    NAS, an external drive) and Refresh links each video to the study document whose reference
    fingerprint matches it, wherever each lives; unmatched videos and unplayable audio show as
-   warnings. *Built.* Still to come: "Link to study document…" for a copy whose fingerprint
-   differs, such as your own rip.
+   warnings; a copy whose fingerprint differs, such as your own rip, is linked by hand. *Built.*
 4. **Articles.** Read news articles, blog posts and essays sentence by sentence, with the same
    translations and notes as subtitles.
 5. **Magazines.** Laid-out magazine pages, handled like comics, with each article as a chapter.

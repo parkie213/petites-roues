@@ -16,6 +16,8 @@ import { BookOpen, Copy, Ellipsis, Film } from "lucide-react";
 import { clock } from "../player/quiz.js";
 import { request, responseError, titlePath } from "../shared/api.js";
 import { openHref, warnings } from "./cards.js";
+import { LinkDialog } from "./LinkDialog.jsx";
+import { unlinkMedia } from "./media-links.js";
 import { postersHref } from "./navigation.js";
 import { nativeName } from "./language.js";
 import "./Posters.css";
@@ -112,10 +114,21 @@ async function clearProgress(entry) {
   if (!response.ok) throw await responseError(response);
 }
 
-/** A card's own actions; shown only when there is something to do, such as clearing progress. */
-function More({ slot, onChanged }) {
+/**
+ * A card's own actions; shown only when there is something to do: link media without a study
+ * document to one by hand, unlink a title's hand-linked media, or clear progress.
+ */
+function More({ slot, onChanged, onLink }) {
   const entry = slot.entry;
-  if (!(entry.progress > 0)) return null;
+  const unlinked = Boolean(entry.fingerprint);
+  const handLinked = entry.linkedByHand;
+  const progress = entry.progress > 0;
+  if (!unlinked && !handLinked && !progress) return null;
+  const done = (promise) =>
+    promise.then(
+      () => onChanged(),
+      (error) => onChanged(error),
+    );
   return (
     <Menu position="bottom-end" withinPortal>
       <Menu.Target>
@@ -130,16 +143,41 @@ function More({ slot, onChanged }) {
         </ActionIcon>
       </Menu.Target>
       <Menu.Dropdown>
-        <Menu.Item
-          onClick={() =>
-            clearProgress(entry).then(
-              () => onChanged(),
-              (error) => onChanged(error),
-            )
-          }
-        >
-          Clear progress
-        </Menu.Item>
+        {unlinked && (
+          <Menu.Item
+            onClick={() =>
+              onLink({
+                media: {
+                  repositoryId: entry.mediaRepositoryId,
+                  relativePath: entry.mediaPath,
+                  kind: entry.type,
+                  name: slot.label,
+                },
+              })
+            }
+          >
+            Link to study document…
+          </Menu.Item>
+        )}
+        {handLinked && (
+          <Menu.Item
+            onClick={() =>
+              done(
+                unlinkMedia({
+                  repositoryId: entry.mediaRepositoryId,
+                  relativePath: entry.mediaPath,
+                }),
+              )
+            }
+          >
+            Unlink {entry.type === "comic" ? "CBZ" : "video"} (linked by hand)
+          </Menu.Item>
+        )}
+        {progress && (
+          <Menu.Item onClick={() => done(clearProgress(entry))}>
+            Clear progress
+          </Menu.Item>
+        )}
       </Menu.Dropdown>
     </Menu>
   );
@@ -187,6 +225,7 @@ function Card({
   slot,
   repositoryNames,
   onChanged,
+  onLink,
   attention = [],
   language = null,
 }) {
@@ -241,7 +280,7 @@ function Card({
         {slot && (
           <Group gap={0} wrap="nowrap">
             <Copies slot={slot} repositoryNames={repositoryNames} />
-            <More slot={slot} onChanged={onChanged} />
+            <More slot={slot} onChanged={onChanged} onLink={onLink} />
           </Group>
         )}
       </Group>
@@ -249,7 +288,8 @@ function Card({
   );
 }
 
-function groupCard(group, selection, repositoryNames, onChanged, tagged) {
+function groupCard(group, selection, repositoryNames, actions, tagged) {
+  const { onChanged, onLink } = actions;
   const type = group.type;
   const language = tagged ? group.language : null;
   if (group.single) {
@@ -265,6 +305,7 @@ function groupCard(group, selection, repositoryNames, onChanged, tagged) {
         slot={slot}
         repositoryNames={repositoryNames}
         onChanged={onChanged}
+        onLink={onLink}
       />
     );
   }
@@ -291,7 +332,14 @@ function groupCard(group, selection, repositoryNames, onChanged, tagged) {
 }
 
 /** The tomes or episodes of one series, with a season switch when it has several. */
-function SeriesView({ group, selection, follow, repositoryNames, onChanged }) {
+function SeriesView({
+  group,
+  selection,
+  follow,
+  repositoryNames,
+  onChanged,
+  onLink,
+}) {
   const season =
     group.seasons.length > 1
       ? group.seasons.includes(selection.season)
@@ -352,6 +400,7 @@ function SeriesView({ group, selection, follow, repositoryNames, onChanged }) {
             slot={slot}
             repositoryNames={repositoryNames}
             onChanged={onChanged}
+            onLink={onLink}
           />
         ))}
       </div>
@@ -365,7 +414,8 @@ function SeriesView({ group, selection, follow, repositoryNames, onChanged }) {
  * server groups them into shelves and cards (GET /api/library/posters, the rules shared with the
  * Android app), narrowed to the chosen folder chip and [language]; this only renders them. They are
  * fetched again whenever [data], the loaded library, changes. [onChanged] reloads the library after
- * a card action, receiving the error when the action failed.
+ * a card action, receiving the error when the action failed. Media without a study document can be
+ * linked to one by hand from its card.
  */
 export function Posters({
   data,
@@ -379,6 +429,8 @@ export function Posters({
 }) {
   const [posters, setPosters] = useState(null);
   const [error, setError] = useState("");
+  const [linking, setLinking] = useState(null);
+  const actions = { onChanged, onLink: setLinking };
   useEffect(() => {
     const controller = new AbortController();
     const query = new URLSearchParams(
@@ -471,6 +523,7 @@ export function Posters({
           follow={follow}
           repositoryNames={repositoryNames}
           onChanged={onChanged}
+          onLink={setLinking}
         />
       ) : (
         result
@@ -491,7 +544,7 @@ export function Posters({
                 }}
               >
                 {shelf.groups.map((group) =>
-                  groupCard(group, shown, repositoryNames, onChanged, tagged),
+                  groupCard(group, shown, repositoryNames, actions, tagged),
                 )}
               </div>
             </Stack>
@@ -504,6 +557,12 @@ export function Posters({
             : "No titles match these filters."}
         </Text>
       )}
+      <LinkDialog
+        link={linking}
+        repos={data.repos}
+        onClose={() => setLinking(null)}
+        onDone={onChanged}
+      />
     </Stack>
   );
 }
