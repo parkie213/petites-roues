@@ -43,6 +43,8 @@ import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
+import com.petitesroues.android.pages.Section
+import com.petitesroues.android.pages.StudyTabs
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
@@ -121,8 +123,9 @@ fun LibraryScreen(
   onDesktop: () -> Unit,
   onGetTitles: () -> Unit,
   onAllowFiles: () -> Unit,
-  onQuiz: () -> Unit,
-  onNotes: () -> Unit,
+  section: Section,
+  onSection: (Section) -> Unit,
+  study: @Composable () -> Unit,
   onOpen: (Title) -> Unit,
   onClearProgress: (Title) -> Unit,
 ) {
@@ -174,13 +177,10 @@ fun LibraryScreen(
   ) { padding ->
     Column(Modifier.padding(padding).fillMaxSize()) {
       if (state.folders.isNotEmpty() && open == null) {
-        Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
-          horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-          Text("Library", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.background(MaterialTheme.colorScheme.primaryContainer, RoundedCornerShape(8.dp))
-              .padding(horizontal = 14.dp, vertical = 10.dp))
-          TextButton(onClick = onNotes) { Text("Notes", color = MaterialTheme.colorScheme.onSurface) }
-          TextButton(onClick = onQuiz) { Text("Quiz me", color = MaterialTheme.colorScheme.onSurface) }
+        StudyTabs(section, onSection)
+        if (section != Section.LIBRARY) {
+          study()
+          return@Column
         }
       }
       if (state.refreshing) RefreshProgress(state.refreshProgress)

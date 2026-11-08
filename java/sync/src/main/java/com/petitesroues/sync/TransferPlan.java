@@ -1,6 +1,5 @@
 package com.petitesroues.sync;
 
-import com.petitesroues.media.MediaFingerprint;
 import com.petitesroues.model.sync.DesktopTitle;
 import com.petitesroues.model.sync.TitleFile;
 import java.io.IOException;
@@ -9,10 +8,10 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * What copying some desktop titles into a download folder still involves. A media file or poster
- * that is already there whole is skipped: same size and, for media, the same fingerprint. Documents
- * are always fetched, since the desktop serves them with pending edits replayed and they are small.
- * A part left by an earlier attempt counts as already downloaded.
+ * What copying some desktop titles into a download folder still involves. A file already there is
+ * skipped: same size and, when the desktop names one, the same fingerprint ({@link
+ * FileFingerprints}), so an edited document or page is fetched again and nothing else is. A part
+ * left by an earlier attempt counts as already downloaded.
  *
  * @param steps the files to fetch, in order: title by title, media first and the document last
  * @param remaining bytes still to download, the estimate the free-space check uses
@@ -40,9 +39,9 @@ public record TransferPlan(List<Step> steps, long remaining) {
       if (title.problem() != null) continue;
       List<TitleFile> needed = new ArrayList<>();
       for (TitleFile file : title.files()) {
-        if (!file.document() && present(file, folder)) continue;
+        if (present(file, folder)) continue;
         needed.add(file);
-        long part = file.document() ? 0 : Math.max(0, folder.partSize(file.segments()));
+        long part = file.whole() ? 0 : Math.max(0, folder.partSize(file.segments()));
         remaining += Math.max(0, file.bytes() - part);
       }
       for (int i = 0; i < needed.size(); i++)
@@ -57,7 +56,7 @@ public record TransferPlan(List<Step> steps, long remaining) {
     if (folder.size(path) != file.bytes()) return false;
     if (file.fingerprint() == null) return true;
     try (SeekableByteChannel channel = folder.open(path)) {
-      return file.fingerprint().equals(MediaFingerprint.of(channel));
+      return FileFingerprints.matches(file.fingerprint(), channel);
     }
   }
 

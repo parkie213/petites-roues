@@ -36,7 +36,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.petitesroues.android.pages.MarkdownPage
 import com.petitesroues.model.document.StudyDocument
 
 /**
@@ -106,58 +105,6 @@ fun QuizDialog(
       }
     },
     confirmButton = { Button(onClick = { onShare(type, chapter) }) { Text("Share…") } },
-    dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
-  )
-}
-
-/**
- * The library's Quiz me: one of the general [quizzes] from the content folders' `quizzes/`
- * folders, starting at the one keyed [initial]. Share hands the choice to [onShare]. With no
- * quizzes it says how to add some.
- */
-@Composable
-fun GeneralQuizDialog(
-  quizzes: List<MarkdownPage>,
-  initial: String?,
-  onDismiss: () -> Unit,
-  onShare: (MarkdownPage) -> Unit,
-) {
-  var chosen by remember { mutableStateOf(quizzes.firstOrNull { it.key == initial } ?: quizzes.firstOrNull()) }
-  val several = quizzes.map { it.repository }.distinct().size > 1
-  AlertDialog(
-    onDismissRequest = onDismiss,
-    title = { Text("Quiz me") },
-    text = {
-      Column(Modifier.verticalScroll(rememberScrollState())) {
-        if (quizzes.isEmpty())
-          Text(
-            "No quizzes yet. Add Markdown files to a quizzes folder at the top of a content folder.",
-            style = MaterialTheme.typography.bodyMedium,
-          )
-        else {
-          Column(Modifier.selectableGroup(), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-            for (quiz in quizzes)
-              Row(
-                Modifier.fillMaxWidth()
-                  .background(if (chosen == quiz) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surface, RoundedCornerShape(8.dp))
-                  .border(1.dp, if (chosen == quiz) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(8.dp))
-                  .selectable(selected = chosen == quiz, onClick = { chosen = quiz }, role = Role.RadioButton)
-                  .padding(horizontal = 12.dp, vertical = 10.dp),
-                verticalAlignment = Alignment.CenterVertically,
-              ) {
-                RadioButton(selected = chosen == quiz, onClick = null)
-                Text(if (several) "${quiz.title} (${quiz.repository})" else quiz.title, modifier = Modifier.padding(start = 12.dp))
-              }
-          }
-          Text(
-            "Share opens the share sheet: pick ChatGPT or Claude to start a chat with the quiz attached.",
-            style = MaterialTheme.typography.bodySmall,
-            modifier = Modifier.padding(top = 12.dp),
-          )
-        }
-      }
-    },
-    confirmButton = { chosen?.let { quiz -> Button(onClick = { onShare(quiz) }) { Text("Share…") } } },
     dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
   )
 }

@@ -48,7 +48,6 @@ public final class TitleDownloader {
       listener.progress(step.title(), done[0], plan.remaining());
       client.download(
           desktop,
-          step.title().id(),
           step.file(),
           folder,
           bytes -> {

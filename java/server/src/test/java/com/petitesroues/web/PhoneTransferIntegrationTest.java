@@ -120,6 +120,7 @@ class PhoneTransferIntegrationTest extends HttpIntegrationTest {
         .toBodilessEntity();
 
     var titles = client.titles(desktop);
+    assertNotEquals(DesktopTitle.PAGES_ID, titles.get(0).id(), "no notes or quizzes, no entry");
     var lost = title(titles, lostId);
     assertNotNull(lost.problem(), "a hand link does not reach the phone");
     assertEquals(List.of(), lost.files());
@@ -197,10 +198,28 @@ class PhoneTransferIntegrationTest extends HttpIntegrationTest {
     assertEquals(-1, folder.partSize(cbzPath));
 
     var again = TransferPlan.of(client.titles(desktop), folder);
+    assertEquals(List.of(), again.steps(), "nothing is fetched again while nothing changed");
+
+    // The desktop's document changes (a review lands): only it is offered and fetched again.
+    Path document = docs.resolve("comics/demon/t01/document.json");
+    var codec = new StudyDocumentCodec();
+    var edited = codec.decode(Files.readAllBytes(document));
+    Files.writeString(
+        document,
+        codec.encode(
+            edited.withComic(
+                body ->
+                    body.withReference(new ComicReference(body.reference().fingerprint(), 42L)))),
+        StandardCharsets.UTF_8);
+    var update = TransferPlan.of(client.titles(desktop), folder);
     assertEquals(
         List.of(TitleFile.DOCUMENT),
-        again.steps().stream().map(step -> step.file().role()).toList(),
-        "only the document is fetched again");
+        update.steps().stream().map(step -> step.file().role()).toList(),
+        "an edited document is fetched again, alone");
+    new TitleDownloader(client).run(desktop, update, folder, new TitleDownloader.Listener() {});
+    assertEquals(
+        Files.readString(document),
+        Files.readString(phone.resolve("study/comics/demon/t01/document.json")));
   }
 
   @Test
@@ -211,8 +230,12 @@ class PhoneTransferIntegrationTest extends HttpIntegrationTest {
             () ->
                 client.download(
                     desktop,
-                    "nope",
-                    new TitleFile(TitleFile.MEDIA, "x/y.cbz", 1, null),
+                    new TitleFile(
+                        TitleFile.MEDIA,
+                        "x/y.cbz",
+                        1,
+                        null,
+                        PhoneRoutes.titleFile("nope", TitleFile.MEDIA)),
                     new PathTransferFolder(root.resolve("phone")),
                     bytes -> {},
                     () -> false));
@@ -220,5 +243,50 @@ class PhoneTransferIntegrationTest extends HttpIntegrationTest {
     var stranger = new Desktop("desk", desktop.url(), "wrong");
     assertEquals(401, assertThrows(DesktopException.class, () -> client.titles(stranger)).status());
     assertEquals("/phone/titles/a%20b/media", PhoneRoutes.titleFile("a b", TitleFile.MEDIA));
+  }
+
+  @Test
+  void notesAndQuizzesComeFirstAndCopyLikeATitle() throws Exception {
+    Path docs = root.resolve("study");
+    Files.createDirectories(docs.resolve("notes"));
+    Files.createDirectories(docs.resolve("quizzes"));
+    Files.writeString(docs.resolve("notes/verbs.md"), "# Verbs\n");
+    Files.writeString(docs.resolve("quizzes/verbs.md"), "# Verb quiz\n");
+    Files.writeString(docs.resolve("notes/draft.txt"), "not a page");
+    add(docs);
+
+    var titles = client.titles(desktop);
+    var pages = titles.get(0);
+    assertEquals(DesktopTitle.PAGES_ID, pages.id());
+    assertEquals(
+        List.of("study/notes/verbs.md", "study/quizzes/verbs.md"),
+        pages.files().stream().map(TitleFile::path).toList());
+    var folder = new PathTransferFolder(root.resolve("phone"));
+    new TitleDownloader(client)
+        .run(
+            desktop,
+            TransferPlan.of(List.of(pages), folder),
+            folder,
+            new TitleDownloader.Listener() {});
+    assertEquals("# Verb quiz\n", Files.readString(root.resolve("phone/study/quizzes/verbs.md")));
+    assertEquals(
+        List.of(),
+        TransferPlan.of(List.of(client.titles(desktop).get(0)), folder).steps(),
+        "copied pages are up to date");
+
+    var outside =
+        new TitleFile(
+            TitleFile.PAGE,
+            "x/notes/draft.txt",
+            10,
+            null,
+            pages.files().get(0).source().replace("verbs.md", "draft.txt"));
+    assertEquals(
+        404,
+        assertThrows(
+                DesktopException.class,
+                () -> client.download(desktop, outside, folder, bytes -> {}, () -> false))
+            .status(),
+        "only listed pages are served");
   }
 }

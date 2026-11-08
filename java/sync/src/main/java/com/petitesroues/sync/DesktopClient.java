@@ -1,6 +1,5 @@
 package com.petitesroues.sync;
 
-import com.petitesroues.media.MediaFingerprint;
 import com.petitesroues.model.sync.Desktop;
 import com.petitesroues.model.sync.DesktopTitle;
 import com.petitesroues.model.sync.Hello;
@@ -100,7 +99,6 @@ public class DesktopClient {
    */
   public void download(
       Desktop desktop,
-      String titleId,
       TitleFile file,
       TransferFolder folder,
       LongConsumer progress,
@@ -108,13 +106,13 @@ public class DesktopClient {
       throws IOException {
     var path = file.segments();
     long have = folder.partSize(path);
-    if (file.document() || have > file.bytes()) {
+    if (file.whole() || have > file.bytes()) {
       folder.deletePart(path);
       have = 0;
     }
     have = Math.max(0, have);
-    if (have < file.bytes() || file.document()) {
-      String url = desktop.url() + PhoneRoutes.titleFile(titleId, file.role());
+    if (have < file.bytes() || file.whole()) {
+      String url = desktop.url() + file.source();
       var connection = open("GET", url, desktop.token(), null);
       try {
         connection.setRequestProperty("Accept", "*/*");
@@ -141,14 +139,14 @@ public class DesktopClient {
       }
     }
     String name = path.get(path.size() - 1);
-    if (!file.document() && folder.partSize(path) != file.bytes())
+    if (!file.whole() && folder.partSize(path) != file.bytes())
       throw new IOException("The download of " + name + " stopped early. Try again to resume it.");
     if (file.fingerprint() != null) {
-      String fingerprint;
+      boolean same;
       try (SeekableByteChannel channel = folder.openPart(path)) {
-        fingerprint = MediaFingerprint.of(channel);
+        same = FileFingerprints.matches(file.fingerprint(), channel);
       }
-      if (!file.fingerprint().equals(fingerprint)) {
+      if (!same) {
         folder.deletePart(path);
         throw new IOException(
             name + " has changed on the desktop. Refresh the desktop library and try again.");

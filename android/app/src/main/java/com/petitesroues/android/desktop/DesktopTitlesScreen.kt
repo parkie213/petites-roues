@@ -58,16 +58,23 @@ import com.petitesroues.sync.TransferPlan
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
-/** A desktop title as listed here: [onPhone] when every file is already in the download folder. */
-private class Listed(val title: DesktopTitle, val onPhone: Boolean)
+/**
+ * A desktop title as listed here, compared with the download folder: [remaining] bytes still to
+ * fetch, none when it is up to date; [update] when only its document or pages changed.
+ */
+private class Listed(val title: DesktopTitle, val remaining: Long, val upToDate: Boolean, val update: Boolean) {
+  val choosable: Boolean
+    get() = title.problem() == null && !upToDate
+}
 
 /**
  * The paired desktop's titles, grouped by series, to tick and copy into the download folder
  * ([Transfers]): the app's own [AppFolder] once All files access is allowed, or another folder
  * chosen with the picker (granted for writing, and added to the content folders). Copied titles
- * appear in the library as each finishes. A title already there whole is
- * marked "On phone"; one the phone could not link (no matching media, or linked by hand on the
- * desktop) shows why and cannot be ticked.
+ * appear in the library as each finishes. A title already there and unchanged is marked "On
+ * phone"; one whose document (or, for notes and quizzes, a page) changed on the desktop offers an
+ * update, which fetches only what changed. One the phone could not link (no matching media, or
+ * linked by hand on the desktop) shows why and cannot be ticked.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -98,7 +105,7 @@ fun DesktopTitlesScreen(settings: Settings, onBack: () -> Unit) {
   val askNotifications =
     rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) {
       val ids = selected.toSet()
-      val bytes = listed.orEmpty().filter { it.title.id() in ids }.sumOf { it.title.bytes() }
+      val bytes = listed.orEmpty().filter { it.title.id() in ids }.sumOf { it.remaining }
       Transfers.start(context, ids, bytes)
       selected = emptyList()
     }
@@ -111,10 +118,12 @@ fun DesktopTitlesScreen(settings: Settings, onBack: () -> Unit) {
           val titles = DesktopClient().titles(desktop)
           val target = folder?.let { transferFolder(context.contentResolver, it) }
           titles.map { title ->
-            val whole =
-              target != null && title.problem() == null &&
-                TransferPlan.of(listOf(title), target).steps().all { it.file().document() }
-            Listed(title, whole)
+            if (target == null || title.problem() != null) Listed(title, title.bytes(), upToDate = false, update = false)
+            else {
+              val plan = TransferPlan.of(listOf(title), target)
+              val steps = plan.steps()
+              Listed(title, plan.remaining(), steps.isEmpty(), steps.isNotEmpty() && steps.all { it.file().whole() })
+            }
           }
         }
       }
@@ -165,6 +174,11 @@ fun DesktopTitlesScreen(settings: Settings, onBack: () -> Unit) {
             transfer.message?.let { Text(it, style = MaterialTheme.typography.bodyMedium) }
             val ids = selected.toSet()
             val chosen = listed.orEmpty().filter { it.title.id() in ids }
+            val updates = listed.orEmpty().filter { it.update && it.choosable }.map { it.title.id() }
+            if (updates.isNotEmpty() && !ids.containsAll(updates))
+              TextButton(onClick = { selected = (selected + updates).distinct() }) {
+                Text("Tick ${updates.size} ${if (updates.size == 1) "update" else "updates"}")
+              }
             Button(
               onClick = { askNotifications.launch(Manifest.permission.POST_NOTIFICATIONS) },
               enabled = chosen.isNotEmpty() && folder != null,
@@ -172,7 +186,7 @@ fun DesktopTitlesScreen(settings: Settings, onBack: () -> Unit) {
             ) {
               Text(
                 if (chosen.isEmpty()) "Tick titles to copy"
-                else "Copy ${chosen.size} ${if (chosen.size == 1) "title" else "titles"} · ${LibraryUsage.format(chosen.sumOf { it.title.bytes() })}"
+                else "Copy ${chosen.size} ${if (chosen.size == 1) "title" else "titles"} · ${LibraryUsage.format(chosen.sumOf { it.remaining })}"
               )
             }
           }
@@ -189,7 +203,7 @@ fun DesktopTitlesScreen(settings: Settings, onBack: () -> Unit) {
         else ->
           LazyColumn(Modifier.fillMaxSize()) {
             titles.groupBy { it.title.series() ?: it.title.title() }.forEach { (series, group) ->
-              val choosable = group.filter { it.title.problem() == null && !it.onPhone }.map { it.title.id() }
+              val choosable = group.filter { it.choosable }.map { it.title.id() }
               item(key = "series:$series") {
                 val ticked = choosable.count { it in selected }
                 Row(
@@ -228,18 +242,20 @@ fun DesktopTitlesScreen(settings: Settings, onBack: () -> Unit) {
 @Composable
 private fun TitleRow(entry: Listed, ticked: Boolean, onTick: (Boolean) -> Unit) {
   val title = entry.title
-  val choosable = title.problem() == null && !entry.onPhone
+  val choosable = entry.choosable
   Row(
     Modifier.fillMaxWidth().clickable(enabled = choosable) { onTick(!ticked) }.padding(start = 28.dp, end = 16.dp),
     verticalAlignment = Alignment.CenterVertically,
   ) {
-    Checkbox(checked = ticked || entry.onPhone, onCheckedChange = onTick, enabled = choosable)
+    Checkbox(checked = ticked || entry.upToDate, onCheckedChange = onTick, enabled = choosable)
     Column(Modifier.weight(1f).padding(vertical = 6.dp)) {
       Text(title.title(), maxLines = 2, overflow = TextOverflow.Ellipsis)
       Text(
         when {
           title.problem() != null -> title.problem()
-          entry.onPhone -> "On phone"
+          entry.upToDate -> "On phone"
+          entry.update -> "Update available · ${LibraryUsage.format(entry.remaining)}"
+          title.kind() == DesktopTitle.PAGES -> "${title.files().size} pages · ${LibraryUsage.format(title.bytes())}"
           else -> LibraryUsage.format(title.bytes())
         },
         style = MaterialTheme.typography.bodySmall,

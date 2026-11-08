@@ -26,13 +26,24 @@ public final class PhoneRoutes {
    */
   public static final String TITLE_FILE = TITLES + "/{id}/{role}";
 
+  /**
+   * {@code GET} a note or quiz listed in the notes and quizzes entry. Spring's pattern; build URLs
+   * with {@link #page}.
+   */
+  public static final String PAGE = PREFIX + "/pages/{repository}/{folder}/{name}";
+
+  /** The path of a repository's note or quiz page. */
+  public static String page(String repository, String folder, String name) {
+    return PREFIX + "/pages/" + encode(repository) + "/" + encode(folder) + "/" + encode(name);
+  }
+
+  private static String encode(String segment) {
+    return URLEncoder.encode(segment, StandardCharsets.UTF_8).replace("+", "%20");
+  }
+
   /** The path of a title's file. */
   public static String titleFile(String id, String role) {
-    return TITLES
-        + "/"
-        + URLEncoder.encode(id, StandardCharsets.UTF_8).replace("+", "%20")
-        + "/"
-        + role;
+    return TITLES + "/" + encode(id) + "/" + role;
   }
 
   private PhoneRoutes() {}

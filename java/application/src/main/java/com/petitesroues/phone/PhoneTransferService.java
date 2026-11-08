@@ -10,7 +10,11 @@ import com.petitesroues.model.library.ContentRepository;
 import com.petitesroues.model.library.IndexedMedia;
 import com.petitesroues.model.sync.DesktopTitle;
 import com.petitesroues.model.sync.TitleFile;
+import com.petitesroues.pages.MarkdownPageScanner;
+import com.petitesroues.pages.MarkdownPageService;
 import com.petitesroues.study.ReviewQueueService;
+import com.petitesroues.sync.FileFingerprints;
+import com.petitesroues.sync.PhoneRoutes;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -37,23 +41,29 @@ public class PhoneTransferService {
   private final TitleMediaService media;
   private final ContentRepositoryStore repositories;
   private final ReviewQueueService served;
+  private final MarkdownPageScanner pages;
   private final StudyDocumentCodec codec = new StudyDocumentCodec();
 
   public PhoneTransferService(
       CatalogueStore catalogue,
       TitleMediaService media,
       ContentRepositoryStore repositories,
-      ReviewQueueService served) {
+      ReviewQueueService served,
+      MarkdownPageScanner pages) {
     this.catalogue = catalogue;
     this.media = media;
     this.repositories = repositories;
     this.served = served;
+    this.pages = pages;
   }
 
   /** A title as offered, and the desktop file behind each role. */
   private record Offer(DesktopTitle title, Map<String, Path> files) {}
 
-  /** Every title a phone could copy, by series then number then title. */
+  /**
+   * The notes and quizzes entry when there are any pages, then every title a phone could copy, by
+   * series then number then title.
+   */
   public List<DesktopTitle> titles() throws IOException {
     var index = media.index();
     var names = names();
@@ -71,7 +81,64 @@ public class PhoneTransferService {
                 title -> title.volume() != null ? title.volume() : title.episode(),
                 Comparator.nullsFirst(Comparator.naturalOrder()))
             .thenComparing(DesktopTitle::title, String.CASE_INSENSITIVE_ORDER));
+    var notes = pagesEntry(names);
+    if (notes != null) titles.add(0, notes);
     return titles;
+  }
+
+  /** The repositories' notes and quizzes as one entry, or null when there are none. */
+  private DesktopTitle pagesEntry(Map<String, String> names) throws IOException {
+    List<TitleFile> files = new ArrayList<>();
+    for (var repository : repositories.list()) {
+      Path root = Path.of(repository.localPath());
+      if (!Files.isDirectory(root)) continue;
+      String folder = names.getOrDefault(repository.id(), repository.id());
+      for (String kind : List.of(MarkdownPageService.NOTES, MarkdownPageService.QUIZZES))
+        for (Path page : pages.scan(root, kind)) {
+          byte[] bytes = Files.readAllBytes(page);
+          String name = page.getFileName().toString();
+          files.add(
+              new TitleFile(
+                  TitleFile.PAGE,
+                  folder + "/" + kind + "/" + name,
+                  bytes.length,
+                  FileFingerprints.sha256(bytes),
+                  PhoneRoutes.page(repository.id(), kind, name)));
+        }
+    }
+    return files.isEmpty()
+        ? null
+        : new DesktopTitle(
+            DesktopTitle.PAGES_ID,
+            "Notes and quizzes",
+            null,
+            DesktopTitle.PAGES,
+            null,
+            null,
+            null,
+            null,
+            List.copyOf(files));
+  }
+
+  /**
+   * One of a repository's notes or quizzes, as listed in the notes and quizzes entry.
+   *
+   * @throws NoSuchElementException for anything else
+   */
+  public Path page(String repositoryId, String folder, String name) throws IOException {
+    if (!folder.equals(MarkdownPageService.NOTES) && !folder.equals(MarkdownPageService.QUIZZES))
+      throw new NoSuchElementException("No such page");
+    var repository =
+        repositories.list().stream()
+            .filter(candidate -> candidate.id().equals(repositoryId))
+            .findFirst()
+            .orElseThrow(() -> new NoSuchElementException("No such page"));
+    Path root = Path.of(repository.localPath());
+    if (!Files.isDirectory(root)) throw new NoSuchElementException("No such page");
+    return pages.scan(root, folder).stream()
+        .filter(page -> page.getFileName().toString().equals(name))
+        .findFirst()
+        .orElseThrow(() -> new NoSuchElementException("No such page"));
   }
 
   /**
@@ -95,7 +162,7 @@ public class PhoneTransferService {
   public byte[] document(String id) throws IOException {
     var entry = catalogue.find(id).orElseThrow(() -> new NoSuchElementException("Unknown title"));
     offer(id);
-    return codec.encode(served.document(entry)).getBytes(StandardCharsets.UTF_8);
+    return served(entry);
   }
 
   private Offer offer(String id) throws IOException {
@@ -107,8 +174,13 @@ public class PhoneTransferService {
     return offer;
   }
 
+  /** The document's bytes as the player sees it: pending edits replayed, canonical JSON. */
+  private byte[] served(CatalogueEntry entry) throws IOException {
+    return codec.encode(served.document(entry)).getBytes(StandardCharsets.UTF_8);
+  }
+
   /** The offer for a title, or null when its document is not on disk. */
-  private static Offer offer(
+  private Offer offer(
       CatalogueEntry entry, TitleMediaService.Index index, Map<String, String> names)
       throws IOException {
     var location = entry.location();
@@ -133,20 +205,23 @@ public class PhoneTransferService {
               TitleFile.MEDIA,
               folder + "/" + item.relativePath(),
               Files.size(item.file()),
-              item.fingerprint()));
+              item.fingerprint(),
+              PhoneRoutes.titleFile(entry.id(), TitleFile.MEDIA)));
       Path poster = LibraryService.poster(item);
       Path seriesPoster = LibraryService.seriesPoster(item);
-      if (poster != null) add(files, list, TitleFile.POSTER, item, folder, poster);
+      if (poster != null) add(files, list, entry, TitleFile.POSTER, item, folder, poster);
       if (seriesPoster != null && !seriesPoster.equals(poster))
-        add(files, list, TitleFile.SERIES_POSTER, item, folder, seriesPoster);
+        add(files, list, entry, TitleFile.SERIES_POSTER, item, folder, seriesPoster);
+      byte[] document = served(entry);
       list.add(
           new TitleFile(
               TitleFile.DOCUMENT,
               names.getOrDefault(location.repositoryId(), location.repositoryId())
                   + "/"
                   + entry.documentPath(),
-              Files.size(entry.documentFile()),
-              null));
+              document.length,
+              FileFingerprints.sha256(document),
+              PhoneRoutes.titleFile(entry.id(), TitleFile.DOCUMENT)));
     }
     return new Offer(
         new DesktopTitle(
@@ -165,6 +240,7 @@ public class PhoneTransferService {
   private static void add(
       Map<String, Path> files,
       List<TitleFile> list,
+      CatalogueEntry entry,
       String role,
       IndexedMedia item,
       String folder,
@@ -173,7 +249,13 @@ public class PhoneTransferService {
     String relative =
         Path.of(item.repositoryPath()).relativize(image).toString().replace('\\', '/');
     files.put(role, image);
-    list.add(new TitleFile(role, folder + "/" + relative, Files.size(image), null));
+    list.add(
+        new TitleFile(
+            role,
+            folder + "/" + relative,
+            Files.size(image),
+            null,
+            PhoneRoutes.titleFile(entry.id(), role)));
   }
 
   /** Each repository's folder name on the phone: its name, made safe as one path segment. */

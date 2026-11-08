@@ -44,10 +44,12 @@ import com.petitesroues.android.library.LibraryScreen
 import com.petitesroues.android.library.LibraryService
 import com.petitesroues.android.library.LibraryState
 import com.petitesroues.android.library.LibraryUsage
-import com.petitesroues.android.quiz.GeneralQuizDialog
 import com.petitesroues.android.pages.MarkdownPage
 import com.petitesroues.android.pages.MarkdownPageScanner
-import com.petitesroues.android.pages.NotesScreen
+import com.petitesroues.android.pages.Section
+import com.petitesroues.android.pages.StudyPages
+import android.content.ClipData
+import android.content.ClipboardManager
 import com.petitesroues.android.quiz.QuizShare
 import com.petitesroues.android.library.LibraryStore
 import com.petitesroues.android.library.Title
@@ -143,21 +145,6 @@ class MainActivity : ComponentActivity() {
       refresh()
     }
 
-    // The general quizzes, read from the content folders each time Quiz me opens; null when closed.
-    var quizzes by remember { mutableStateOf<List<MarkdownPage>?>(null) }
-    quizzes?.let { found ->
-      GeneralQuizDialog(
-        found,
-        settings.generalQuiz,
-        onDismiss = { quizzes = null },
-        onShare = { quiz ->
-          settings.generalQuiz = quiz.key
-          quizzes = null
-          QuizShare.share(this@MainActivity, quiz)
-        },
-      )
-    }
-
     // Back from the system's All files access page: the app's own folder joins the library if allowed.
     val allowFiles = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) { refresh() }
 
@@ -182,23 +169,18 @@ class MainActivity : ComponentActivity() {
       return
     }
 
-    // The study notes screen replaces the library while open; its notes are read on opening.
-    var notesOpen by rememberSaveable { mutableStateOf(false) }
-    var notes by remember { mutableStateOf<List<MarkdownPage>?>(null) }
-    if (notesOpen) {
-      LaunchedEffect(Unit) {
-        notes = withContext(Dispatchers.IO) { MarkdownPageScanner(contentResolver).scan(settings.libraryFolders, MarkdownPage.NOTES) }
-      }
-      NotesScreen(notes) {
-        notesOpen = false
-        notes = null
-      }
-      return
-    }
+    // Notes and Quiz me are tabs of the library; their pages are read each time a tab opens.
+    var section by rememberSaveable { mutableStateOf(Section.LIBRARY) }
+    var pages by remember { mutableStateOf<List<MarkdownPage>?>(null) }
 
     val open = openPath?.let { path -> state.titles.firstOrNull { it.path == path } }
     if (open == null) {
       LaunchedEffect(Unit) { reload() }
+      LaunchedEffect(section) {
+        pages = null
+        val folder = section.folder ?: return@LaunchedEffect
+        pages = withContext(Dispatchers.IO) { MarkdownPageScanner(contentResolver).scan(settings.libraryFolders, folder) }
+      }
       LibraryScreen(
         state,
         images,
@@ -214,11 +196,21 @@ class MainActivity : ComponentActivity() {
         onDesktop = { desktopOpen = true },
         onGetTitles = { if (settings.desktop == null) desktopOpen = true else titlesOpen = true },
         onAllowFiles = { allowFiles.launch(AppFolder.allowIntent(this@MainActivity)) },
-        onNotes = { notesOpen = true },
-        onQuiz = {
-          scope.launch {
-            quizzes = withContext(Dispatchers.IO) { MarkdownPageScanner(contentResolver).scan(settings.libraryFolders, MarkdownPage.QUIZZES) }
-          }
+        section = section,
+        onSection = { section = it },
+        study = {
+          StudyPages(
+            section,
+            pages,
+            remembered = settings.generalQuiz.takeIf { section == Section.QUIZZES },
+            onBack = { section = Section.LIBRARY },
+            onOpened = { if (section == Section.QUIZZES) settings.generalQuiz = it.key },
+            onChat = { quiz, app -> QuizShare.share(this@MainActivity, quiz, app) },
+            onCopy = { quiz ->
+              getSystemService(ClipboardManager::class.java)
+                .setPrimaryClip(ClipData.newPlainText(quiz.title, QuizShare.prompt(this@MainActivity, quiz)))
+            },
+          )
         },
         onOpen = { openPath = it.path },
         onClearProgress = { title ->

@@ -59,7 +59,18 @@ public class PhoneController {
         contents.stream().mapToInt(folder -> folder.media().size()).sum());
   }
 
-  /** The titles a phone can copy, with the files each needs. */
+  /** A note or quiz from the notes and quizzes entry, served unchanged. */
+  @GetMapping(PhoneRoutes.PAGE)
+  public ResponseEntity<FileSystemResource> page(
+      @PathVariable String repository, @PathVariable String folder, @PathVariable String name)
+      throws IOException {
+    return ResponseEntity.ok()
+        .contentType(MediaType.parseMediaType("text/markdown;charset=UTF-8"))
+        .cacheControl(CacheControl.noStore())
+        .body(new FileSystemResource(transfer.page(repository, folder, name)));
+  }
+
+  /** The notes and quizzes entry, then the titles a phone can copy, with the files each needs. */
   @GetMapping(PhoneRoutes.TITLES)
   public List<DesktopTitle> titles() throws IOException {
     return transfer.titles();

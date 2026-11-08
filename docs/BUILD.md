@@ -91,9 +91,13 @@ when the app is uninstalled. **Change** picks another folder with the system pic
 matches its document's reference fingerprint; hand links do not reach the phone yet. Downloads
 run as a user-initiated job with a notification and keep going with the screen off. They resume
 from a hidden `.part` file after a cut, and are checked against the media's fingerprint before
-they are moved into place. Asking again skips files already there. The listing is
-`GET /phone/titles`, and each file is `GET /phone/titles/{id}/{role}` (media and posters accept
-`Range`).
+they are moved into place. Asking again skips files already there. Documents and the notes and
+quizzes pages carry a hash of the bytes served, so a title whose document changed on the desktop
+shows **Update available** and fetches only the document. The desktop's notes and quizzes are one
+entry at the top of the list, **Notes and quizzes**, copied to `<repository>/notes|quizzes/` and
+read by the app's Notes and Quiz me screens. The listing is
+`GET /phone/titles`, and each file names its own route: `GET /phone/titles/{id}/{role}` (media
+and posters accept `Range`) or `GET /phone/pages/{repository}/{folder}/{name}`.
 
 In a second terminal:
 

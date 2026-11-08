@@ -126,20 +126,31 @@ class DesktopClientTest {
   void aDesktopIgnoringRangeRestartsThePartAndAChangedFileIsDropped() throws Exception {
     var desktop = new Desktop("desk", url, "t0k");
     var folder = new PathTransferFolder(phone);
-    var file = new TitleFile(TitleFile.MEDIA, "fr/film.mp4", media.length, fingerprint(media));
+    var file =
+        new TitleFile(
+            TitleFile.MEDIA,
+            "fr/film.mp4",
+            media.length,
+            fingerprint(media),
+            PhoneRoutes.titleFile("film", TitleFile.MEDIA));
     try (var out = folder.appendPart(file.segments())) {
       out.write("01234".getBytes(StandardCharsets.UTF_8));
     }
-    client.download(desktop, "film", file, folder, bytes -> {}, () -> false);
+    client.download(desktop, file, folder, bytes -> {}, () -> false);
     assertEquals("bytes=5-", range);
     assertArrayEquals(media, Files.readAllBytes(phone.resolve("fr/film.mp4")));
 
     var changed =
-        new TitleFile(TitleFile.MEDIA, "fr/old.mp4", media.length, "v1:" + "0".repeat(64));
+        new TitleFile(
+            TitleFile.MEDIA,
+            "fr/old.mp4",
+            media.length,
+            "v1:" + "0".repeat(64),
+            PhoneRoutes.titleFile("film", TitleFile.MEDIA));
     var error =
         assertThrows(
             IOException.class,
-            () -> client.download(desktop, "film", changed, folder, bytes -> {}, () -> false));
+            () -> client.download(desktop, changed, folder, bytes -> {}, () -> false));
     assertTrue(error.getMessage().contains("has changed on the desktop"));
     assertEquals(-1, folder.partSize(changed.segments()), "a mismatched part is deleted");
     assertEquals(-1, folder.size(changed.segments()));
@@ -150,7 +161,7 @@ class DesktopClientTest {
     for (String path : List.of("../x", "/etc/x", "a//b", "a/./b", "a\\b", ""))
       assertThrows(
           IllegalArgumentException.class,
-          () -> new TitleFile(TitleFile.MEDIA, path, 1, null).segments(),
+          () -> new TitleFile(TitleFile.MEDIA, path, 1, null, "/x").segments(),
           path);
   }
 
