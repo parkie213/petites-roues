@@ -1,5 +1,8 @@
 package com.petitesroues.sync;
 
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
+
 /**
  * The paths the desktop's phone listener serves, shared by the server's controller and the phone's
  * client so neither can drift from the other.
@@ -13,6 +16,24 @@ public final class PhoneRoutes {
 
   /** {@code GET} the connection test, answered with a {@code Hello}. */
   public static final String HELLO = PREFIX + "/hello";
+
+  /** {@code GET} the titles a phone can copy, answered with a list of {@code DesktopTitle}. */
+  public static final String TITLES = PREFIX + "/titles";
+
+  /**
+   * {@code GET} one of a title's files by its {@code TitleFile} role; media and posters honour
+   * {@code Range}. Spring's pattern; build URLs with {@link #titleFile}.
+   */
+  public static final String TITLE_FILE = TITLES + "/{id}/{role}";
+
+  /** The path of a title's file. */
+  public static String titleFile(String id, String role) {
+    return TITLES
+        + "/"
+        + URLEncoder.encode(id, StandardCharsets.UTF_8).replace("+", "%20")
+        + "/"
+        + role;
+  }
 
   private PhoneRoutes() {}
 }

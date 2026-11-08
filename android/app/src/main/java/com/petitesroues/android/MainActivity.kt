@@ -19,6 +19,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -34,6 +35,9 @@ import com.petitesroues.android.comic.CbzReader
 import com.petitesroues.android.comic.ReadScreen
 import com.petitesroues.android.comic.bareComic
 import com.petitesroues.android.desktop.DesktopDialog
+import com.petitesroues.android.library.AppFolder
+import com.petitesroues.android.desktop.DesktopTitlesScreen
+import com.petitesroues.android.desktop.Transfers
 import com.petitesroues.android.library.Browse
 import com.petitesroues.android.library.CardImages
 import com.petitesroues.android.library.LibraryScreen
@@ -81,7 +85,7 @@ class MainActivity : ComponentActivity() {
     val shelvesScroll = rememberLazyGridState()
     var state by remember {
       mutableStateOf(
-        LibraryState(settings.contentTrees, emptyList(), emptyMap(), false, emptyList(), null)
+        LibraryState(settings.libraryFolders, emptyList(), emptyMap(), false, emptyList(), null)
       )
     }
 
@@ -89,7 +93,7 @@ class MainActivity : ComponentActivity() {
       val (titles, progress) = withContext(Dispatchers.IO) { store.titles() to store.progress() }
       val usage =
         withContext(Dispatchers.IO) {
-          runCatching { LibraryUsage.line(settings.libraryBytes, LibraryUsage.free(this@MainActivity, settings.contentTrees)) }
+          runCatching { LibraryUsage.line(settings.libraryBytes, LibraryUsage.free(this@MainActivity, settings.libraryFolders)) }
             .getOrNull()
             ?.ifBlank { null }
         }
@@ -97,7 +101,7 @@ class MainActivity : ComponentActivity() {
     }
 
     fun refresh() {
-      val trees = settings.contentTrees
+      val trees = settings.libraryFolders
       state = state.copy(folders = trees, refreshing = true, message = null)
       scope.launch {
         try {
@@ -130,7 +134,12 @@ class MainActivity : ComponentActivity() {
 
     fun removeFolder(tree: Uri) {
       settings.contentTrees -= tree
-      runCatching { contentResolver.releasePersistableUriPermission(tree, Intent.FLAG_GRANT_READ_URI_PERMISSION) }
+      if (settings.downloadFolder == tree) settings.downloadFolder = null
+      // A folder chosen for downloads was granted for writing too.
+      runCatching {
+        contentResolver.releasePersistableUriPermission(tree, Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION)
+      }
+        .recoverCatching { contentResolver.releasePersistableUriPermission(tree, Intent.FLAG_GRANT_READ_URI_PERMISSION) }
       refresh()
     }
 
@@ -149,15 +158,36 @@ class MainActivity : ComponentActivity() {
       )
     }
 
+    // Back from the system's All files access page: the app's own folder joins the library if allowed.
+    val allowFiles = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) { refresh() }
+
     var desktopOpen by remember { mutableStateOf(false) }
-    if (desktopOpen) DesktopDialog(settings) { desktopOpen = false }
+    var titlesOpen by rememberSaveable { mutableStateOf(false) }
+    if (desktopOpen)
+      DesktopDialog(
+        settings,
+        onGetTitles = {
+          desktopOpen = false
+          titlesOpen = true
+        },
+      ) {
+        desktopOpen = false
+      }
+
+    // Each title copied from the desktop shows up once the library has refreshed.
+    val transfer by Transfers.status.collectAsState()
+    LaunchedEffect(transfer.finished) { if (transfer.finished > 0) refresh() }
+    if (titlesOpen) {
+      DesktopTitlesScreen(settings) { titlesOpen = false }
+      return
+    }
 
     // The study notes screen replaces the library while open; its notes are read on opening.
     var notesOpen by rememberSaveable { mutableStateOf(false) }
     var notes by remember { mutableStateOf<List<MarkdownPage>?>(null) }
     if (notesOpen) {
       LaunchedEffect(Unit) {
-        notes = withContext(Dispatchers.IO) { MarkdownPageScanner(contentResolver).scan(settings.contentTrees, MarkdownPage.NOTES) }
+        notes = withContext(Dispatchers.IO) { MarkdownPageScanner(contentResolver).scan(settings.libraryFolders, MarkdownPage.NOTES) }
       }
       NotesScreen(notes) {
         notesOpen = false
@@ -182,10 +212,12 @@ class MainActivity : ComponentActivity() {
         onRemoveFolder = ::removeFolder,
         onRefresh = ::refresh,
         onDesktop = { desktopOpen = true },
+        onGetTitles = { if (settings.desktop == null) desktopOpen = true else titlesOpen = true },
+        onAllowFiles = { allowFiles.launch(AppFolder.allowIntent(this@MainActivity)) },
         onNotes = { notesOpen = true },
         onQuiz = {
           scope.launch {
-            quizzes = withContext(Dispatchers.IO) { MarkdownPageScanner(contentResolver).scan(settings.contentTrees, MarkdownPage.QUIZZES) }
+            quizzes = withContext(Dispatchers.IO) { MarkdownPageScanner(contentResolver).scan(settings.libraryFolders, MarkdownPage.QUIZZES) }
           }
         },
         onOpen = { openPath = it.path },

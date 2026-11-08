@@ -66,6 +66,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -118,6 +119,8 @@ fun LibraryScreen(
   onRemoveFolder: (Uri) -> Unit,
   onRefresh: () -> Unit,
   onDesktop: () -> Unit,
+  onGetTitles: () -> Unit,
+  onAllowFiles: () -> Unit,
   onQuiz: () -> Unit,
   onNotes: () -> Unit,
   onOpen: (Title) -> Unit,
@@ -184,11 +187,18 @@ fun LibraryScreen(
       state.message?.let {
         Text(it, color = MaterialTheme.colorScheme.error, modifier = Modifier.padding(16.dp))
       }
-      if (state.folders.isEmpty()) {
-        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+      if (state.titles.isEmpty() && !state.refreshing) {
+        val allowed = state.folders.any(AppFolder::isFile)
+        Box(Modifier.fillMaxSize().padding(24.dp), contentAlignment = Alignment.Center) {
           Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            Text("Choose the folder Syncthing keeps your titles in.")
-            Button(onClick = onAddFolder) { Text("Choose content folder") }
+            Text(
+              if (allowed) "Add titles to ${AppFolder.LABEL}, or get them from your desktop."
+              else "Allow file access so petites roues can keep titles in ${AppFolder.LABEL}, or get them from your desktop.",
+              textAlign = TextAlign.Center,
+            )
+            if (!allowed) Button(onClick = onAllowFiles) { Text("Allow file access") }
+            Button(onClick = onGetTitles) { Text("Get from desktop") }
+            TextButton(onClick = onAddFolder) { Text("Add another folder") }
           }
         }
         return@Column
@@ -540,7 +550,9 @@ private fun FoldersDialog(
         for (folder in folders)
           Row(verticalAlignment = Alignment.CenterVertically) {
             Text(label(folder), modifier = Modifier.weight(1f))
-            IconButton(onClick = { onRemove(folder) }) { Icon(Icons.Filled.Delete, "Remove folder") }
+            // The app's own folder is always read; only chosen folders can be removed.
+            if (!AppFolder.isFile(folder))
+              IconButton(onClick = { onRemove(folder) }) { Icon(Icons.Filled.Delete, "Remove folder") }
           }
       }
     },
@@ -551,6 +563,7 @@ private fun FoldersDialog(
 
 /** A folder's path on its storage volume, from the granted tree's document ID. */
 private fun label(tree: Uri): String {
+  if (AppFolder.isFile(tree)) return AppFolder.LABEL
   val id = DocumentsContract.getTreeDocumentId(tree)
   return id.substringAfter(':').ifEmpty { id }
 }

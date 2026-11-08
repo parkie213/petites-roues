@@ -54,9 +54,10 @@ private fun phoneName(context: Context): String =
  * on demand, and can forget it (the desktop keeps listing the phone until it is forgotten there
  * too). Scanning uses Google Play services' scanner, so the app needs no camera permission; it
  * does need Android 17's local network permission, which it asks for before scanning or testing.
+ * Once paired, [onGetTitles] opens the desktop's titles to copy to the phone.
  */
 @Composable
-fun DesktopDialog(settings: Settings, onDismiss: () -> Unit) {
+fun DesktopDialog(settings: Settings, onGetTitles: () -> Unit, onDismiss: () -> Unit) {
   val context = LocalContext.current
   val scope = rememberCoroutineScope()
   val client = remember { DesktopClient() }
@@ -164,6 +165,7 @@ fun DesktopDialog(settings: Settings, onDismiss: () -> Unit) {
     },
     dismissButton = {
       Row {
+        if (paired != null) TextButton(onClick = { withLocalNetwork(onGetTitles) }, enabled = !busy) { Text("Get titles") }
         if (paired != null)
           TextButton(
             onClick = {

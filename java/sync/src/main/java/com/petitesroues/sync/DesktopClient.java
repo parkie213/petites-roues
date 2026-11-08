@@ -1,15 +1,23 @@
 package com.petitesroues.sync;
 
+import com.petitesroues.media.MediaFingerprint;
 import com.petitesroues.model.sync.Desktop;
+import com.petitesroues.model.sync.DesktopTitle;
 import com.petitesroues.model.sync.Hello;
 import com.petitesroues.model.sync.PairRequest;
 import com.petitesroues.model.sync.PairingCode;
+import com.petitesroues.model.sync.TitleFile;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.URI;
+import java.nio.channels.SeekableByteChannel;
 import java.nio.charset.StandardCharsets;
+import java.util.List;
+import java.util.concurrent.CancellationException;
+import java.util.function.BooleanSupplier;
+import java.util.function.LongConsumer;
 import tools.jackson.core.JacksonException;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
@@ -22,6 +30,7 @@ import tools.jackson.databind.json.JsonMapper;
 public class DesktopClient {
   private static final int CONNECT_TIMEOUT_MS = 3_000;
   private static final int READ_TIMEOUT_MS = 10_000;
+  private static final int CHUNK = 64 * 1024;
 
   private final JsonMapper mapper = JsonMapper.builder().build();
 
@@ -66,34 +75,128 @@ public class DesktopClient {
         answer.path("media").asInt());
   }
 
+  /**
+   * The titles the desktop offers, each with the files it needs.
+   *
+   * @throws DesktopException if the desktop refuses, typically because it forgot this phone (401)
+   */
+  public List<DesktopTitle> titles(Desktop desktop) throws IOException {
+    String text = text("GET", desktop.url() + PhoneRoutes.TITLES, desktop.token(), null);
+    try {
+      return mapper.readerForListOf(DesktopTitle.class).readValue(text);
+    } catch (JacksonException garbled) {
+      throw new IOException("The desktop's list of titles was not readable", garbled);
+    }
+  }
+
+  /**
+   * Downloads one of a title's files into {@code folder}, resuming its part with {@code Range} when
+   * the desktop allows it. The part is committed only when complete and, for media, when its
+   * fingerprint matches; a mismatch deletes it, since the desktop's file has changed.
+   *
+   * @param progress told each chunk's size as it is written
+   * @param cancelled checked between chunks; stopping keeps the part for later
+   * @throws CancellationException if {@code cancelled} said to stop
+   */
+  public void download(
+      Desktop desktop,
+      String titleId,
+      TitleFile file,
+      TransferFolder folder,
+      LongConsumer progress,
+      BooleanSupplier cancelled)
+      throws IOException {
+    var path = file.segments();
+    long have = folder.partSize(path);
+    if (file.document() || have > file.bytes()) {
+      folder.deletePart(path);
+      have = 0;
+    }
+    have = Math.max(0, have);
+    if (have < file.bytes() || file.document()) {
+      String url = desktop.url() + PhoneRoutes.titleFile(titleId, file.role());
+      var connection = open("GET", url, desktop.token(), null);
+      try {
+        connection.setRequestProperty("Accept", "*/*");
+        if (have > 0) connection.setRequestProperty("Range", "bytes=" + have + "-");
+        int status = connection.getResponseCode();
+        if (status == 200 && have > 0) {
+          // The desktop sent the whole file instead of the rest: start the part again.
+          folder.deletePart(path);
+          have = 0;
+        } else if (status != 200 && status != 206) {
+          throw new DesktopException(status, message(status, read(connection.getErrorStream())));
+        }
+        try (InputStream in = connection.getInputStream();
+            OutputStream out = folder.appendPart(path)) {
+          byte[] buffer = new byte[CHUNK];
+          for (int n; (n = in.read(buffer)) > 0; ) {
+            if (cancelled.getAsBoolean()) throw new CancellationException();
+            out.write(buffer, 0, n);
+            progress.accept(n);
+          }
+        }
+      } finally {
+        connection.disconnect();
+      }
+    }
+    String name = path.get(path.size() - 1);
+    if (!file.document() && folder.partSize(path) != file.bytes())
+      throw new IOException("The download of " + name + " stopped early. Try again to resume it.");
+    if (file.fingerprint() != null) {
+      String fingerprint;
+      try (SeekableByteChannel channel = folder.openPart(path)) {
+        fingerprint = MediaFingerprint.of(channel);
+      }
+      if (!file.fingerprint().equals(fingerprint)) {
+        folder.deletePart(path);
+        throw new IOException(
+            name + " has changed on the desktop. Refresh the desktop library and try again.");
+      }
+    }
+    folder.commit(path);
+  }
+
   private JsonNode request(String method, String url, String token, String body)
       throws IOException {
-    var connection = (HttpURLConnection) URI.create(url).toURL().openConnection();
+    String text = text(method, url, token, body);
     try {
-      connection.setRequestMethod(method);
-      connection.setConnectTimeout(CONNECT_TIMEOUT_MS);
-      connection.setReadTimeout(READ_TIMEOUT_MS);
-      connection.setRequestProperty("Accept", "application/json");
-      if (token != null) connection.setRequestProperty("Authorization", "Bearer " + token);
-      if (body != null) {
-        connection.setDoOutput(true);
-        connection.setRequestProperty("Content-Type", "application/json");
-        try (OutputStream out = connection.getOutputStream()) {
-          out.write(body.getBytes(StandardCharsets.UTF_8));
-        }
-      }
+      return mapper.readTree(text);
+    } catch (JacksonException garbled) {
+      throw new IOException("The desktop's answer was not JSON", garbled);
+    }
+  }
+
+  private String text(String method, String url, String token, String body) throws IOException {
+    var connection = open(method, url, token, body);
+    try {
       int status = connection.getResponseCode();
       boolean ok = status >= 200 && status < 300;
       String text = read(ok ? connection.getInputStream() : connection.getErrorStream());
       if (!ok) throw new DesktopException(status, message(status, text));
-      try {
-        return mapper.readTree(text);
-      } catch (JacksonException garbled) {
-        throw new IOException("The desktop's answer was not JSON", garbled);
-      }
+      return text;
     } finally {
       connection.disconnect();
     }
+  }
+
+  /** A connection, not yet sent; without a body, headers can still be set before reading it. */
+  private static HttpURLConnection open(String method, String url, String token, String body)
+      throws IOException {
+    var connection = (HttpURLConnection) URI.create(url).toURL().openConnection();
+    connection.setRequestMethod(method);
+    connection.setConnectTimeout(CONNECT_TIMEOUT_MS);
+    connection.setReadTimeout(READ_TIMEOUT_MS);
+    connection.setRequestProperty("Accept", "application/json");
+    if (token != null) connection.setRequestProperty("Authorization", "Bearer " + token);
+    if (body != null) {
+      connection.setDoOutput(true);
+      connection.setRequestProperty("Content-Type", "application/json");
+      try (OutputStream out = connection.getOutputStream()) {
+        out.write(body.getBytes(StandardCharsets.UTF_8));
+      }
+    }
+    return connection;
   }
 
   private static String read(InputStream stream) throws IOException {

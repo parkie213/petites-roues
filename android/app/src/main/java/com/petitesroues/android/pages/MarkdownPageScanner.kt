@@ -3,6 +3,7 @@ package com.petitesroues.android.pages
 import android.content.ContentResolver
 import android.net.Uri
 import android.provider.DocumentsContract
+import com.petitesroues.android.library.AppFolder
 import android.provider.DocumentsContract.Document
 
 /**
@@ -14,7 +15,8 @@ import android.provider.DocumentsContract.Document
 class MarkdownPageScanner(private val resolver: ContentResolver) {
   /** Every page in [trees]' [folder], in content-folder order and then by file name; unreadable folders are skipped. */
   fun scan(trees: List<Uri>, folder: String): List<MarkdownPage> =
-    trees.flatMap { tree -> runCatching { scan(tree, folder) }.getOrDefault(emptyList()) }
+    // Notes and quizzes are read from SAF folders only; the app's own folder holds copied titles.
+    trees.filterNot(AppFolder::isFile).flatMap { tree -> runCatching { scan(tree, folder) }.getOrDefault(emptyList()) }
 
   private fun scan(tree: Uri, folder: String): List<MarkdownPage> {
     val root = DocumentsContract.getTreeDocumentId(tree)

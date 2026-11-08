@@ -82,6 +82,19 @@ remembered across restarts. Scan the QR code from the app's computer icon. The p
 the same network; allow the port through a firewall (`sudo ufw allow 8878/tcp`). Traffic is
 plain HTTP with a per-phone token for now.
 
+Once paired, **Get titles** in the app's Desktop dialog lists the desktop's titles by series.
+Tick some and **Copy**: each title's media, posters and document (as the player serves it, with
+pending edits) download into `Internal storage/Petites roues`, with a subfolder per desktop
+repository. That folder is the app's own content folder: it needs **All files access**
+(`MANAGE_EXTERNAL_STORAGE`), granted once from the empty library or the copy screen, and it stays
+when the app is uninstalled. **Change** picks another folder with the system picker instead. A title is offered only when its media
+matches its document's reference fingerprint; hand links do not reach the phone yet. Downloads
+run as a user-initiated job with a notification and keep going with the screen off. They resume
+from a hidden `.part` file after a cut, and are checked against the media's fingerprint before
+they are moved into place. Asking again skips files already there. The listing is
+`GET /phone/titles`, and each file is `GET /phone/titles/{id}/{role}` (media and posters accept
+`Range`).
+
 In a second terminal:
 
 ```bash
@@ -133,9 +146,10 @@ For Java-only iteration, install sibling modules first:
 ## Android app
 
 `android/` is a standalone, read-only phone app: the video player and comic reader
-without edit mode. It reads a content folder synced to the phone (for example with
-Syncthing) through the Storage Access Framework, never writes documents and keeps its
-own index and progress in a local SQLite database. Kotlin, Jetpack Compose and Media3;
+without edit mode. It reads its own folder, `Internal storage/Petites roues`, where titles copied
+from a paired desktop (above) go, plus any folders added through the Storage Access Framework,
+such as one Syncthing keeps. It never edits documents and keeps its own index and progress in a local SQLite
+database. Kotlin, Jetpack Compose and Media3;
 Android 14 or newer.
 
 It finds and links content with the desktop's rules from `java/library`: every study document

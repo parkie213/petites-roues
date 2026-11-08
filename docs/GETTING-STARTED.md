@@ -142,7 +142,7 @@ Have your agent of choice quiz you.
   document for a video or comic, then transcribing, translating and annotating it.
 - **Quizzes and notes:** [write-quiz.md](../agents/workflows/write-quiz.md) and
   [write-notes.md](../agents/workflows/write-notes.md).
-- **On your phone:** the offline Android app reads the same folders; see
-  [BUILD.md](BUILD.md#android-app).
+- **On your phone:** the offline Android app reads the same folders. Pair it with the desktop
+  and use **Get titles** to copy titles over Wi-Fi; see [BUILD.md](BUILD.md#android-app).
 - **The document format:** [DOCUMENT-FORMAT.md](DOCUMENT-FORMAT.md).
 - **The domain model:** [DOMAIN-MODEL.md](DOMAIN-MODEL.md), documents, editing and the library with diagrams.

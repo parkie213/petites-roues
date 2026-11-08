@@ -4,6 +4,7 @@ import android.content.Context
 import android.net.Uri
 import androidx.core.content.edit
 import androidx.core.net.toUri
+import com.petitesroues.android.library.AppFolder
 import com.petitesroues.model.sync.Desktop
 
 /** Small per-device preferences: the content folders, the paired desktop and the players' toggles. */
@@ -20,6 +21,13 @@ class Settings(context: Context) {
         putString("contentTrees", value.joinToString("\n"))
         remove("contentTree")
       }
+
+  /**
+   * Every content folder the library reads: the app's own ([AppFolder]) when it is allowed, then
+   * the chosen ones.
+   */
+  val libraryFolders: List<Uri>
+    get() = listOfNotNull(AppFolder.ready()) + contentTrees
 
   /** The desktop this phone is paired with, or null. Its token is the phone's credential there. */
   var desktop: Desktop?
@@ -40,6 +48,14 @@ class Settings(context: Context) {
           putString("desktopName", value.name())
         }
       }
+
+  /**
+   * A folder chosen to copy titles from the desktop into instead of the app's own ([AppFolder]),
+   * granted for writing and also one of the content folders; null to use the app's own.
+   */
+  var downloadFolder: Uri?
+    get() = prefs.getString("downloadFolder", null)?.toUri()
+    set(value) = prefs.edit { if (value == null) remove("downloadFolder") else putString("downloadFolder", value.toString()) }
 
   var autoPause: Boolean
     get() = prefs.getBoolean("autoPause", false)
