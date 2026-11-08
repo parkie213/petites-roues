@@ -47,9 +47,8 @@ jobs:
       - uses: actions/download-artifact@v4
         with:
           name: library
-          path: library
-      - name: Use the built library
-        run: mkdir -p ~/.m2/repository/com && cp -r library ~/.m2/repository/com/petitesroues
+          # Straight over the restored Maven cache, whose own copy of the library may be stale.
+          path: ~/.m2/repository/com/petitesroues
       - name: Install media test dependencies
         run: sudo apt-get update && sudo apt-get install -y ffmpeg
       - name: Verify the server against the built library
@@ -77,9 +76,7 @@ jobs:
       - uses: actions/download-artifact@v4
         with:
           name: library
-          path: library
-      - name: Use the built library
-        run: mkdir -p ~/.m2/repository/com && cp -r library ~/.m2/repository/com/petitesroues
+          path: ~/.m2/repository/com/petitesroues
       - name: Test and build the Android app against the built library
         run: ./gradlew --no-daemon -PprebuiltLibrary :app:testDebugUnitTest :app:assembleDebug
         working-directory: android

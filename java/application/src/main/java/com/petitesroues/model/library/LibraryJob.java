@@ -1,5 +1,7 @@
 package com.petitesroues.model.library;
 
+import com.petitesroues.library.progress.LibraryProgress;
+
 /**
  * A snapshot of an Add or Refresh running in the background, as the library shows it.
  *

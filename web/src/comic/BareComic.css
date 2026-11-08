@@ -1,0 +1,15 @@
+/* One page, as large as the window allows below the bar; clicking either half turns the page. */
+.bare-comic-stage {
+  flex: 1 1 0;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  user-select: none;
+}
+.bare-comic-stage img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}

@@ -8,6 +8,9 @@ import java.util.List;
  *
  * @param repositoryId the folder it was found in
  * @param relativePath path below that folder
+ * @param series the series its path names ({@link com.petitesroues.library.shelves.MediaNames}), or
+ *     null
+ * @param title the episode or file name its path gives, made readable
  * @param kind {@code video} or {@code comic}
  * @param fingerprint its v1 media fingerprint, which names its card images
  * @param titleId the title whose study document references it, or null when none does
@@ -20,6 +23,8 @@ import java.util.List;
 public record MediaItem(
     String repositoryId,
     String relativePath,
+    String series,
+    String title,
     String kind,
     String fingerprint,
     String titleId,

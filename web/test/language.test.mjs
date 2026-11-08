@@ -1,10 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import {
-  inLanguage,
-  languagesIn,
-  nativeName,
-} from "../src/library/language.js";
+import { languagesIn, nativeName } from "../src/library/language.js";
 
 const repos = [
   {
@@ -33,17 +29,4 @@ test("languages are named in themselves and listed once each", () => {
     languagesIn(repos).map((item) => item.tag),
     ["de", "fr", "zh-Hans"],
   );
-});
-
-test("choosing a language keeps its documents and drops media without one", () => {
-  const french = inLanguage(repos, "fr");
-  assert.deepEqual(
-    french.flatMap((repo) => repo.entries.map((entry) => entry.id)),
-    ["peppa"],
-  );
-  assert.deepEqual(
-    french.flatMap((repo) => repo.media.map((item) => item.relativePath)),
-    ["peppa.mp4"],
-  );
-  assert.equal(inLanguage(repos, null), repos, "no language shows everything");
 });

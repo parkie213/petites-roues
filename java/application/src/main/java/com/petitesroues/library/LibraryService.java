@@ -4,12 +4,16 @@ import com.petitesroues.comic.ReadingProgressStore;
 import com.petitesroues.library.linking.MediaLinks;
 import com.petitesroues.library.persistence.CatalogueStore;
 import com.petitesroues.library.persistence.ContentRepositoryStore;
+import com.petitesroues.library.shelves.MediaNames;
+import com.petitesroues.library.shelves.Shelves;
 import com.petitesroues.model.document.StudyDocument;
 import com.petitesroues.model.library.CatalogueEntry;
 import com.petitesroues.model.library.CatalogueItem;
 import com.petitesroues.model.library.IndexedMedia;
 import com.petitesroues.model.library.Library;
 import com.petitesroues.model.library.MediaItem;
+import com.petitesroues.model.library.PosterEntry;
+import com.petitesroues.model.library.Posters;
 import com.petitesroues.playback.PlaybackProgressStore;
 import com.petitesroues.study.DocumentStore;
 import com.petitesroues.study.ReviewQueueService;
@@ -170,14 +174,59 @@ public class LibraryService {
             .toList());
   }
 
+  /**
+   * The Posters view, grouped by the shared rules ({@link Shelves}): titles whose media was found,
+   * in the folder holding that media, and media that no study document references, named from its
+   * path. Choosing a language keeps only that language's titles, so media without a document is
+   * hidden then. Choosing a folder keeps its cards; a folder with no cards shows them all.
+   *
+   * @param repositoryId the folder to show, or null for all
+   * @param language a BCP 47 source language to show, or null for all
+   */
+  public Posters posters(String repositoryId, String language) throws IOException {
+    var library = library();
+    var titles =
+        library.repositories().stream()
+            .flatMap(contents -> contents.entries().stream())
+            .filter(CatalogueItem::mediaAvailable)
+            .filter(title -> language == null || language.equals(title.sourceLanguage()))
+            .toList();
+    Map<String, List<PosterEntry>> cards = new LinkedHashMap<>();
+    for (var contents : library.repositories()) {
+      String folder = contents.repository().id();
+      List<PosterEntry> entries = new ArrayList<>();
+      titles.stream()
+          .filter(title -> folder.equals(title.mediaRepositoryId()))
+          .map(PosterEntry::of)
+          .forEach(entries::add);
+      if (language == null)
+        contents.media().stream()
+            .filter(media -> media.titleId() == null)
+            .map(PosterEntry::of)
+            .forEach(entries::add);
+      if (!entries.isEmpty()) cards.put(folder, entries);
+    }
+    var shown =
+        cards.containsKey(repositoryId)
+            ? cards.get(repositoryId)
+            : cards.values().stream().flatMap(List::stream).toList();
+    long languages =
+        shown.stream().map(PosterEntry::sourceLanguage).filter(Objects::nonNull).distinct().count();
+    return new Posters(
+        Posters.of(Shelves.shelves(shown)), List.copyOf(cards.keySet()), languages > 1);
+  }
+
   private static MediaItem item(IndexedMedia item, String titleId) {
     var warnings = new ArrayList<String>();
     if (titleId == null) warnings.add("No study document");
     if (item.unplayableAudio()) warnings.add(item.audioWarning());
     if (item.posterProblem() != null) warnings.add(item.posterProblem());
+    var named = MediaNames.fromPath(item.relativePath());
     return new MediaItem(
         item.repositoryId(),
         item.relativePath(),
+        named.series(),
+        named.title(),
         item.kind(),
         item.fingerprint(),
         titleId,

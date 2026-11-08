@@ -7,7 +7,10 @@ import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import java.io.Closeable
 import java.io.FileInputStream
+import com.petitesroues.library.shelves.Shelves
 import org.apache.commons.compress.archivers.zip.ZipFile
+
+private val IMAGES = listOf(".jpg", ".jpeg", ".png", ".webp", ".gif")
 
 /**
  * Reads page images from a CBZ in place through its file descriptor, so a large archive opens
@@ -37,6 +40,21 @@ class CbzReader(resolver: ContentResolver, archive: Uri) : Closeable {
         ?: error("Page $entry is not a readable image")
     return bitmap.asImageBitmap()
   }
+
+  /**
+   * The page images in natural filename order (page-2 before page-10): the reading order of a CBZ
+   * no study document describes, as the server lists it.
+   */
+  fun pages(): List<String> =
+    synchronized(this) {
+      zip.entries.toList()
+        .map { it.name }
+        .filter { name -> IMAGES.any { name.lowercase().endsWith(it) } }
+        .sortedWith(Shelves.NATURAL)
+    }
+
+  /** The first page image in [pages] order, or null if none. */
+  fun firstPage(): String? = pages().firstOrNull()
 
   override fun close() {
     zip.close()

@@ -1,4 +1,4 @@
-package com.petitesroues.model.library;
+package com.petitesroues.library.progress;
 
 /**
  * Where an Add or Refresh has got to, for showing progress while it runs.

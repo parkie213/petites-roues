@@ -1,3 +1,4 @@
+import { BareComic } from "../comic/BareComic.jsx";
 import { ComicReader } from "../comic/ComicReader.jsx";
 import { Library } from "../library/Library.jsx";
 import { Notes } from "../library/Notes.jsx";
@@ -25,6 +26,11 @@ export function App() {
   if (bare) {
     const fingerprint = decodeURIComponent(bare[1]);
     return <BareVideo key={fingerprint} fingerprint={fingerprint} />;
+  }
+  const comic = url.pathname.match(/^\/comic\/([^/]+)\/?$/);
+  if (comic) {
+    const fingerprint = decodeURIComponent(comic[1]);
+    return <BareComic key={fingerprint} fingerprint={fingerprint} />;
   }
   const match = url.pathname.match(/^\/player\/([A-Za-z0-9_-]+)\/?$/);
   if (match) return <Player key={match[1]} id={match[1]} />;
