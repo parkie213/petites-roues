@@ -1,23 +1,28 @@
 import { useEffect, useState } from "react";
-import { Badge, Button, Group, SegmentedControl, Text } from "@mantine/core";
+import { Alert, Badge, Button, Loader, Text } from "@mantine/core";
+import { ArrowRightLeft } from "lucide-react";
 import { responseError } from "../shared/api.js";
 import { findMedia, mediaName } from "../shared/media.js";
 import { libraryReturnPath } from "../shared/library-return.js";
 import { useStoredState } from "../shared/storage.js";
-import { pageStep } from "./navigation.js";
-import "../player/Watch.css";
-import "./BareComic.css";
-
-const pageUrl = (fingerprint, index) =>
-  `/api/media/${encodeURIComponent(fingerprint)}/pages/${index}`;
+import { ComicPageView } from "./ComicPageView.jsx";
+import {
+  ComicStage,
+  ComicToolbar,
+  ToolbarToggle,
+  ViewTools,
+  useComicView,
+} from "./ComicFrame.jsx";
 
 /**
- * Reads a CBZ that has no study document yet: its pages one at a time, in filename order, with no
- * text, notes or editing until a document references it. Without a document there is no reading
- * direction, so the learner picks it (left to right by default); it and the page are remembered
- * per comic in this browser.
+ * Reads a CBZ that has no study document yet in the same reader frame as an annotated comic
+ * (spreads, zoom, turn edges, page picker), with its pages in filename order and no text, notes
+ * or editing until a document references it. Without a document there is no reading direction,
+ * so the learner picks it (left to right by default); it and the page are remembered per comic in
+ * this browser.
  */
 export function BareComic({ fingerprint }) {
+  const api = `/api/media/${encodeURIComponent(fingerprint)}`;
   const [media, setMedia] = useState(null);
   const [pages, setPages] = useState(null);
   const [error, setError] = useState("");
@@ -26,100 +31,99 @@ export function BareComic({ fingerprint }) {
     direction: "ltr",
   });
   const count = pages?.length ?? 0;
-  const page = Math.min(place.page, Math.max(0, count - 1));
-  const turn = (step) =>
-    setPlace((current) => ({
-      ...current,
-      page: Math.max(0, Math.min(count - 1, page + step)),
-    }));
+  const rtl = place.direction === "rtl";
+  const view = useComicView({
+    count,
+    index: Math.min(place.page, Math.max(0, count - 1)),
+    onIndex: (page) => setPlace((current) => ({ ...current, page })),
+    rtl,
+    locked: false,
+  });
 
   useEffect(() => {
     findMedia(fingerprint).then(setMedia, (failure) =>
       setError(failure.message),
     );
-    fetch(`/api/media/${encodeURIComponent(fingerprint)}/pages`)
+    fetch(`${api}/pages`)
       .then(async (response) => {
         if (!response.ok) throw await responseError(response);
         setPages(await response.json());
       })
       .catch((failure) => setError(failure.message));
-  }, [fingerprint]);
+  }, [api, fingerprint]);
 
+  // Fetch the next view ahead, so turning forward shows it at once (pages cache for a day).
   useEffect(() => {
-    const onKey = (event) => {
-      const step = pageStep(event.key, place.direction);
-      if (!step) return;
-      event.preventDefault();
-      turn(step);
-    };
-    addEventListener("keydown", onKey);
-    return () => removeEventListener("keydown", onKey);
-  });
+    if (view.next !== null)
+      for (const i of [view.next, view.next + 1].filter((i) => i < count))
+        new Image().src = `${api}/pages/${i}?attempt=0`;
+  }, [api, view.next, count]);
 
-  // Fetch the next page ahead, so turning forward shows it at once.
-  useEffect(() => {
-    if (page + 1 < count) new Image().src = pageUrl(fingerprint, page + 1);
-  }, [fingerprint, page, count]);
-
-  const clickSide = (event) => {
-    const box = event.currentTarget.getBoundingClientRect();
-    const left = event.clientX - box.left < box.width / 2;
-    turn(pageStep(left ? "ArrowLeft" : "ArrowRight", place.direction));
+  const title = mediaName(media, "Comic");
+  // The page view only needs a title and page ids; a page's id is its index in the CBZ.
+  const document = {
+    title,
+    pages: (pages ?? []).map((_, i) => ({ id: `${i}` })),
   };
 
-  return (
-    <main className="left watch bare-comic">
-      <Group className="watch-bar" gap="sm" px="md" py="xs" wrap="nowrap">
-        <Button
-          component="a"
-          size="xs"
-          variant="default"
-          href={libraryReturnPath()}
-        >
-          <span aria-hidden="true">←</span> Library
+  if (error)
+    return (
+      <main className="comic-message">
+        <Alert color="red" title="Could not open comic">
+          {error}
+        </Alert>
+        <Button component="a" href={libraryReturnPath()} mt="md">
+          Return to library
         </Button>
-        <Text fw={600} size="sm" truncate style={{ flex: 1 }}>
-          {mediaName(media, "Comic")}
-        </Text>
+      </main>
+    );
+  if (!pages)
+    return (
+      <main className="comic-message">
+        <Loader aria-label="Loading comic" />
+      </main>
+    );
+  return (
+    <main className="comic-reader">
+      <ComicToolbar title={title}>
         {(media?.warnings ?? []).map((warning) => (
           <Badge key={warning} size="sm" variant="light" color="yellow">
             {warning}
           </Badge>
         ))}
-        <SegmentedControl
-          size="xs"
-          aria-label="Reading direction"
-          value={place.direction}
-          onChange={(direction) =>
-            setPlace((current) => ({ ...current, direction }))
+        <ToolbarToggle
+          label={rtl ? "Reading right to left" : "Reading left to right"}
+          pressed={rtl}
+          onClick={() =>
+            setPlace((current) => ({
+              ...current,
+              direction: rtl ? "ltr" : "rtl",
+            }))
           }
-          data={[
-            { value: "ltr", label: "Left to right" },
-            { value: "rtl", label: "Right to left" },
-          ]}
+          icon={<ArrowRightLeft size={18} />}
         />
-        {count > 0 && (
-          <Text size="sm" c="dimmed" style={{ whiteSpace: "nowrap" }}>
-            {page + 1} / {count}
-          </Text>
-        )}
-      </Group>
-      {error && (
-        <Text role="alert" c="red" p="md">
-          {error}
-        </Text>
-      )}
-      {pages && count === 0 && (
+        <ViewTools view={view} />
+      </ComicToolbar>
+      {count === 0 ? (
         <Text p="md" c="dimmed">
           This CBZ has no page images.
         </Text>
-      )}
-      {count > 0 && (
-        <div className="bare-comic-stage" onClick={clickSide}>
-          <img
-            src={pageUrl(fingerprint, page)}
-            alt={`Page ${page + 1} of ${count}`}
-          />
+      ) : (
+        <div className="comic-reading-area">
+          <ComicStage view={view}>
+            <ComicPageView
+              key={view.visible.join("+")}
+              document={document}
+              pages={view.visible.map((i) => document.pages[i])}
+              api={api}
+              zoom={view.zoom}
+              scale={view.scale}
+              boxes={[]}
+              rtl={rtl}
+              onSelect={() => {}}
+              cards={false}
+            />
+          </ComicStage>
         </div>
       )}
     </main>

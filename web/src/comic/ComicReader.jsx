@@ -6,23 +6,15 @@ import {
   Group,
   Loader,
   Menu,
-  Select,
   Text,
-  Title,
   Tooltip,
 } from "@mantine/core";
 import {
-  ArrowLeft,
-  ChevronLeft,
-  ChevronRight,
-  Columns2,
   Ellipsis,
   Headphones,
   PanelRight,
   ScanText,
   SquareDashed,
-  ZoomIn,
-  ZoomOut,
 } from "lucide-react";
 import { request, titlePath } from "../shared/api.js";
 import { ComicPageView } from "./ComicPageView.jsx";
@@ -32,17 +24,16 @@ import { QuickEdit } from "../player/components/QuickEdit.jsx";
 import { boxLines, boxOf, pageBoxes } from "./annotations.js";
 import { chapterQuizBrief, chapterQuizFileName } from "./quiz.js";
 import { QuizShare } from "../player/components/QuizShare.jsx";
-import {
-  adjacentView,
-  chapterAt,
-  chapterName,
-  pageStep,
-  resumePage,
-  spreadPages,
-} from "./navigation.js";
+import { chapterAt, chapterName, resumePage } from "./navigation.js";
 import { useStoredState } from "../shared/storage.js";
 import { ReadAloudKey, ReadAloudProvider } from "./ReadAloud.jsx";
-import "./ComicReader.css";
+import {
+  ComicStage,
+  ComicToolbar,
+  ToolbarToggle,
+  ViewTools,
+  useComicView,
+} from "./ComicFrame.jsx";
 import { libraryReturnPath } from "../shared/library-return.js";
 
 /**
@@ -59,7 +50,6 @@ export function ComicReader({ id }) {
   const [editing, setEditing] = useState(false);
   const [studyOpen, setStudyOpen] = useStoredState("comic:study", false);
   const [debug, setDebug] = useStoredState("comic:debug", false);
-  const [spread, setSpread] = useStoredState("comic:spread", false);
   // How a text block split into sentences opens: one sentence at a time, or as a list.
   const [blockMode, setBlockMode] = useStoredState("comic:block-mode", "step");
   const [autoListen, setAutoListen] = useStoredState(
@@ -72,8 +62,6 @@ export function ComicReader({ id }) {
   const [savingBox, setSavingBox] = useState(false);
   const boxWrite = useRef(false);
   const [annotateError, setAnnotateError] = useState("");
-  const [zoom, setZoom] = useState("page");
-  const [scale, setScale] = useState(100);
   const writes = useRef(Promise.resolve());
   const active = useRef(true);
   useEffect(() => {
@@ -97,41 +85,16 @@ export function ComicReader({ id }) {
   }, [api]);
 
   const count = document?.pages.length || 0;
-  const visible = (document ? spreadPages(index, count, spread) : []).map(
-    (i) => document.pages[i],
-  );
-  const page = visible[0];
-  const boxes = visible.flatMap((p) => pageBoxes(document, p.id));
-  // The selection is a line (a bubble, or one sentence of a text block); its box is for annotating.
-  const lines = boxLines(boxes);
-  const selected = lines.find((line) => line.id === selectedId) || lines[0];
-  const selectedBox = selected && boxOf(boxes, selected.id);
   const rtl = document?.readingDirection === "rtl";
   const locked = editing || savingBox || !!draftRegion;
-  const previous = document ? adjacentView(index, count, spread, -1) : null;
-  const next = document ? adjacentView(index, count, spread, 1) : null;
-  function go(target) {
-    if (!document || locked || target === null) return;
-    const clamped = Math.max(0, Math.min(count - 1, target));
-    if (clamped === index) return;
-    setIndex(clamped);
-  }
-  useEffect(() => {
-    function keydown(event) {
-      if (
-        event.defaultPrevented ||
-        event.altKey ||
-        event.ctrlKey ||
-        event.metaKey ||
-        /INPUT|SELECT|TEXTAREA/.test(event.target.tagName) ||
-        event.target.isContentEditable
-      )
-        return;
-      const step = pageStep(event.key, document?.readingDirection);
-      if (step) {
-        event.preventDefault();
-        go(step > 0 ? next : previous);
-      }
+  // `onKey` runs at key time, after `selected` below is set for this render.
+  const view = useComicView({
+    count,
+    index,
+    onIndex: setIndex,
+    rtl,
+    locked,
+    onKey(event) {
       if (
         event.key.toLowerCase() === "e" &&
         !event.repeat &&
@@ -142,19 +105,15 @@ export function ComicReader({ id }) {
         event.preventDefault();
         setQuickEdit(selected);
       }
-      if (event.key === "Home") {
-        event.preventDefault();
-        go(0);
-      }
-      if (event.key === "End") {
-        event.preventDefault();
-        go(document.pages.length - 1);
-      }
-    }
-    if (!document) return;
-    window.addEventListener("keydown", keydown);
-    return () => window.removeEventListener("keydown", keydown);
-  }, [document, index, spread, locked, annotate, selected]);
+    },
+  });
+  const visible = view.visible.map((i) => document.pages[i]);
+  const page = visible[0];
+  const boxes = visible.flatMap((p) => pageBoxes(document, p.id));
+  // The selection is a line (a bubble, or one sentence of a text block); its box is for annotating.
+  const lines = boxLines(boxes);
+  const selected = lines.find((line) => line.id === selectedId) || lines[0];
+  const selectedBox = selected && boxOf(boxes, selected.id);
 
   function save(pageId) {
     writes.current = writes.current
@@ -175,13 +134,6 @@ export function ComicReader({ id }) {
           setSaveError("Your reading position could not be saved.");
       });
   }
-  function resize(delta) {
-    setScale((value) =>
-      Math.max(50, Math.min(300, (zoom === "custom" ? value : 100) + delta)),
-    );
-    setZoom("custom");
-  }
-
   function annotateRequest(path, options) {
     return request(api + path, {
       headers: { "Content-Type": "application/json" },
@@ -271,42 +223,10 @@ export function ComicReader({ id }) {
         <Loader aria-label="Loading comic" />
       </main>
     );
-  const keys = rtl ? ["←", "→"] : ["→", "←"];
-  const forward = { target: next, label: `Next page (${keys[0]})` };
-  const back = { target: previous, label: `Previous page (${keys[1]})` };
-  const turns = rtl ? [forward, back] : [back, forward];
-  const turnIcon = (side, size) =>
-    side === 0 ? <ChevronLeft size={size} /> : <ChevronRight size={size} />;
-  const edge = (side) => (
-    <button
-      className="comic-turn"
-      aria-label={turns[side].label}
-      title={turns[side].label}
-      disabled={locked || turns[side].target === null}
-      onClick={() => go(turns[side].target)}
-    >
-      {turnIcon(side, 28)}
-    </button>
-  );
   const chapters = document.chapters ?? [];
   const chapter = chapterAt(document.pages, chapters, index);
   const chapterStart = (c) =>
     document.pages.findIndex((p) => p.id === chapters[c].pageId);
-  const toggle = (label, pressed, onClick, icon, disabled) => (
-    <Tooltip label={label} withArrow>
-      <ActionIcon
-        variant={pressed ? "light" : "subtle"}
-        size="sm"
-        color="coral"
-        aria-label={label}
-        aria-pressed={pressed}
-        disabled={disabled}
-        onClick={onClick}
-      >
-        {icon}
-      </ActionIcon>
-    </Tooltip>
-  );
   return (
     <StudyLanguagesProvider document={document}>
       <ReadAloudProvider
@@ -315,152 +235,102 @@ export function ComicReader({ id }) {
       >
         <ReadAloudKey text={locked ? null : selected?.source} />
         <main className="comic-reader">
-          <header className="comic-toolbar">
-            <div className="comic-toolbar-title">
-              <Tooltip label="Library" withArrow>
-                <ActionIcon
-                  component="a"
-                  href={libraryReturnPath()}
-                  variant="subtle"
-                  size="lg"
-                  aria-label="Back to library"
+          <ComicToolbar
+            title={document.title}
+            middle={
+              chapters.length > 0 && (
+                <select
+                  className="comic-page-select comic-chapter-select"
+                  aria-label="Chapter"
+                  title="Go to a chapter"
+                  disabled={locked}
+                  value={chapter}
+                  onChange={(event) =>
+                    go(chapterStart(Number(event.target.value)))
+                  }
                 >
-                  <ArrowLeft size={18} />
-                </ActionIcon>
-              </Tooltip>
-              <div className="comic-title">
-                <Title order={1} size="h6" lineClamp={1}>
-                  {document.title}
-                </Title>
-              </div>
-            </div>
-            {chapters.length > 0 && (
-              <select
-                className="comic-page-select comic-chapter-select"
-                aria-label="Chapter"
-                title="Go to a chapter"
-                disabled={locked}
-                value={chapter}
-                onChange={(event) =>
-                  go(chapterStart(Number(event.target.value)))
-                }
-              >
-                {chapter < 0 && (
-                  <option value={-1} disabled>
-                    Before the first chapter
-                  </option>
-                )}
-                {chapters.map((c, i) => (
-                  <option key={c.pageId} value={i}>
-                    {chapterName(c)}
-                  </option>
-                ))}
-              </select>
-            )}
-            <div className="comic-toolbar-tools">
-              {toggle(
-                "Two-page spread",
-                spread,
-                () => setSpread((value) => !value),
-                <Columns2 size={18} />,
-                locked,
-              )}
-              {toggle(
-                autoListen ? "Stop listening on hover" : "Listen on hover",
-                autoListen,
-                () => setAutoListen((value) => !value),
-                <Headphones size={18} />,
-              )}
-              <span className="comic-toolbar-divider" />
-              <Select
-                aria-label="Page size"
-                size="xs"
-                w={118}
-                allowDeselect={false}
-                value={zoom}
-                onChange={setZoom}
-                data={[
-                  { value: "page", label: "Fit page" },
-                  { value: "width", label: "Fit width" },
-                  { value: "custom", label: `Zoom ${scale}%` },
-                ]}
-              />
-              {toggle(
-                "Zoom out",
-                false,
-                () => resize(-25),
-                <ZoomOut size={18} />,
-                zoom === "custom" && scale <= 50,
-              )}
-              {toggle(
-                "Zoom in",
-                false,
-                () => resize(25),
-                <ZoomIn size={18} />,
-                zoom === "custom" && scale >= 300,
-              )}
-              <QuizShare
-                doc={document}
-                disabled={chapters.length === 0}
-                reason="This volume has no chapters listed yet"
-                scopes={{
-                  label: "Chapter",
-                  initial: String(Math.max(chapter, 0)),
-                  options: chapters.map((c, i) => ({
-                    value: String(i),
-                    label: chapterName(c),
-                  })),
-                }}
-                fileName={(i) => chapterQuizFileName(document, Number(i))}
-                brief={(rules, type, i) =>
-                  chapterQuizBrief(rules, document, Number(i), type)
-                }
-              />
-              <Menu width={230} position="bottom-end" shadow="md">
-                <Menu.Target>
-                  <Tooltip label="More options" withArrow>
-                    <ActionIcon
-                      variant="subtle"
-                      size="lg"
-                      aria-label="More options"
-                    >
-                      <Ellipsis size={18} />
-                    </ActionIcon>
-                  </Tooltip>
-                </Menu.Target>
-                <Menu.Dropdown>
-                  <Menu.Item
-                    leftSection={<PanelRight size={16} />}
-                    rightSection={studyOpen ? "✓" : null}
-                    disabled={editing}
-                    onClick={() => setStudyOpen((value) => !value)}
+                  {chapter < 0 && (
+                    <option value={-1} disabled>
+                      Before the first chapter
+                    </option>
+                  )}
+                  {chapters.map((c, i) => (
+                    <option key={c.pageId} value={i}>
+                      {chapterName(c)}
+                    </option>
+                  ))}
+                </select>
+              )
+            }
+          >
+            <ToolbarToggle
+              label={autoListen ? "Stop listening on hover" : "Listen on hover"}
+              pressed={autoListen}
+              onClick={() => setAutoListen((value) => !value)}
+              icon={<Headphones size={18} />}
+            />
+            <ViewTools view={view} />
+            <QuizShare
+              doc={document}
+              disabled={chapters.length === 0}
+              reason="This volume has no chapters listed yet"
+              scopes={{
+                label: "Chapter",
+                initial: String(Math.max(chapter, 0)),
+                options: chapters.map((c, i) => ({
+                  value: String(i),
+                  label: chapterName(c),
+                })),
+              }}
+              fileName={(i) => chapterQuizFileName(document, Number(i))}
+              brief={(rules, type, i) =>
+                chapterQuizBrief(rules, document, Number(i), type)
+              }
+            />
+            <Menu width={230} position="bottom-end" shadow="md">
+              <Menu.Target>
+                <Tooltip label="More options" withArrow>
+                  <ActionIcon
+                    variant="subtle"
+                    size="lg"
+                    aria-label="More options"
                   >
-                    Study panel
-                  </Menu.Item>
-                  <Menu.Item
-                    leftSection={<SquareDashed size={16} />}
-                    rightSection={annotate ? "✓" : null}
-                    disabled={savingBox || !!draftRegion}
-                    onClick={() => {
-                      setAnnotate((value) => !value);
-                      setDraftRegion(null);
-                      setAnnotateError("");
-                    }}
-                  >
-                    Annotate bubbles
-                  </Menu.Item>
+                    <Ellipsis size={18} />
+                  </ActionIcon>
+                </Tooltip>
+              </Menu.Target>
+              <Menu.Dropdown>
+                <Menu.Item
+                  leftSection={<PanelRight size={16} />}
+                  rightSection={studyOpen ? "✓" : null}
+                  disabled={editing}
+                  onClick={() => setStudyOpen((value) => !value)}
+                >
+                  Study panel
+                </Menu.Item>
+                <Menu.Item
+                  leftSection={<SquareDashed size={16} />}
+                  rightSection={annotate ? "✓" : null}
+                  disabled={savingBox || !!draftRegion}
+                  onClick={() => {
+                    setAnnotate((value) => !value);
+                    setDraftRegion(null);
+                    setAnnotateError("");
+                  }}
+                >
+                  Annotate bubbles
+                </Menu.Item>
 
-                  <Menu.Item
-                    leftSection={<ScanText size={16} />}
-                    rightSection={debug ? "✓" : null}
-                    onClick={() => setDebug((value) => !value)}
-                  >
-                    Show bubble outlines
-                  </Menu.Item>
-                </Menu.Dropdown>
-              </Menu>
-            </div>
-          </header>
+                <Menu.Item
+                  leftSection={<ScanText size={16} />}
+                  rightSection={debug ? "✓" : null}
+                  onClick={() => setDebug((value) => !value)}
+                >
+                  Show bubble outlines
+                </Menu.Item>
+              </Menu.Dropdown>
+            </Menu>
+          </ComicToolbar>
           {saveError && (
             <Alert color="yellow" title="Resume position">
               {saveError}{" "}
@@ -521,15 +391,14 @@ export function ComicReader({ id }) {
             </Alert>
           )}
           <div className="comic-reading-area">
-            <div className="comic-view-frame">
-              {edge(0)}
+            <ComicStage view={view}>
               <ComicPageView
                 key={visible.map((p) => p.id).join("+")}
                 document={document}
                 pages={visible}
                 api={api}
-                zoom={zoom}
-                scale={scale}
+                zoom={view.zoom}
+                scale={view.scale}
                 boxes={boxes}
                 rtl={rtl}
                 selectedId={selected?.id}
@@ -544,24 +413,7 @@ export function ComicReader({ id }) {
                 onDraw={addBubble}
                 onPlacement={savePlacement}
               />
-              {edge(1)}
-              <nav className="comic-page-overlay" aria-label="Pages">
-                <select
-                  className="comic-page-select"
-                  aria-label="Page"
-                  title={rtl ? "Read right to left" : "Read left to right"}
-                  disabled={locked}
-                  value={document.pages.indexOf(page)}
-                  onChange={(event) => go(Number(event.target.value))}
-                >
-                  {document.pages.map((p, i) => (
-                    <option key={p.id} value={i}>
-                      {`${i + 1} / ${count}`}
-                    </option>
-                  ))}
-                </select>
-              </nav>
-            </div>
+            </ComicStage>
             {studyOpen && (
               <ComicStudyPanel
                 key={selected?.id || page.id}
