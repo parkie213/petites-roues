@@ -126,6 +126,12 @@ export function Library({ actionsTarget }) {
     }
   }
 
+  /** Reloads the library after a card or document action, or shows why the action failed. */
+  function changed(failure) {
+    if (failure) setError(failure.message);
+    else load().catch((e) => setError(e.message));
+  }
+
   // Add and Refresh run on the server in the background, streaming their progress.
   const { job, start } = useLibraryJob((finished, body) => {
     load()
@@ -356,7 +362,7 @@ export function Library({ actionsTarget }) {
             </Stack>
           </Paper>
         ) : data && selection.view === "documents" ? (
-          <Documents data={data} />
+          <Documents data={data} onChanged={changed} />
         ) : data && selection.view === "posters" ? (
           <Posters
             data={data}
@@ -366,10 +372,7 @@ export function Library({ actionsTarget }) {
             language={chosen}
             selection={selection}
             go={go}
-            onChanged={(failure) => {
-              if (failure) setError(failure.message);
-              else load().catch((e) => setError(e.message));
-            }}
+            onChanged={changed}
           />
         ) : data ? (
           <LibraryBrowser
@@ -381,6 +384,7 @@ export function Library({ actionsTarget }) {
               startJob({ kind: "refresh", repositoryId })
             }
             onRemove={setRemoving}
+            onChanged={changed}
           />
         ) : (
           !error && (

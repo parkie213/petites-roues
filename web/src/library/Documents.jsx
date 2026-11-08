@@ -1,6 +1,9 @@
-import { Anchor, Group, Stack, Table, Text } from "@mantine/core";
+import { useState } from "react";
+import { Anchor, Button, Group, Stack, Table, Text } from "@mantine/core";
 import { TriangleAlert } from "lucide-react";
 import { openHref } from "./cards.js";
+import { LinkDialog } from "./LinkDialog.jsx";
+import { unlinkMedia } from "./media-links.js";
 
 const collator = new Intl.Collator(undefined, { numeric: true });
 
@@ -21,9 +24,12 @@ const href = (entry) =>
 
 /**
  * Every study document in the library and what it is linked to. Posters show only media, so a
- * document whose video or CBZ was not found appears here, first, with the reason.
+ * document whose video or CBZ was not found appears here, first, with the reason, and can be
+ * linked to one by hand. [onChanged] reloads the library after linking or unlinking, receiving the
+ * error when it failed.
  */
-export function Documents({ data }) {
+export function Documents({ data, onChanged }) {
+  const [linking, setLinking] = useState(null);
   const names = new Map(data.repos.map((repo) => [repo.id, repo.name]));
   const entries = data.repos
     .flatMap((repo) => repo.entries)
@@ -41,6 +47,14 @@ export function Documents({ data }) {
         No study documents yet. Add a folder that holds them, then Refresh.
       </Text>
     );
+  const unlink = (entry) =>
+    unlinkMedia({
+      repositoryId: entry.mediaRepositoryId,
+      relativePath: entry.mediaPath,
+    }).then(
+      () => onChanged(),
+      (error) => onChanged(error),
+    );
   return (
     <Table.ScrollContainer minWidth={640}>
       <Table verticalSpacing="sm" highlightOnHover>
@@ -54,7 +68,11 @@ export function Documents({ data }) {
         <Table.Tbody>
           {entries.map((entry) => {
             const link = href(entry);
-            const problems = Object.values(entry.unavailable ?? {});
+            // A present document without media needs no words: the empty column and its
+            // Locate media button say it. Other problems (missing document, audio) still show.
+            const problems = Object.entries(entry.unavailable ?? {})
+              .filter(([key]) => !(key === "title" && entry.documentAvailable))
+              .map(([, problem]) => problem);
             return (
               <Table.Tr key={entry.id}>
                 <Table.Td>
@@ -115,12 +133,54 @@ export function Documents({ data }) {
                       </Text>
                     </Group>
                   ))}
+                  {entry.mediaLinkedByHand && (
+                    <Group gap={6} wrap="nowrap">
+                      <Text size="xs" c="dimmed">
+                        Linked by hand
+                      </Text>
+                      <Button
+                        variant="subtle"
+                        size="compact-xs"
+                        fz="xs"
+                        onClick={() => unlink(entry)}
+                      >
+                        Unlink
+                      </Button>
+                    </Group>
+                  )}
+                  {!entry.mediaAvailable &&
+                    entry.documentAvailable &&
+                    entry.repositoryId && (
+                      <Button
+                        variant="light"
+                        size="compact-xs"
+                        fz="xs"
+                        mt={4}
+                        onClick={() =>
+                          setLinking({
+                            title: {
+                              id: entry.id,
+                              type: entry.type,
+                              name: entry.title,
+                            },
+                          })
+                        }
+                      >
+                        Locate media…
+                      </Button>
+                    )}
                 </Table.Td>
               </Table.Tr>
             );
           })}
         </Table.Tbody>
       </Table>
+      <LinkDialog
+        link={linking}
+        repos={data.repos}
+        onClose={() => setLinking(null)}
+        onDone={onChanged}
+      />
     </Table.ScrollContainer>
   );
 }

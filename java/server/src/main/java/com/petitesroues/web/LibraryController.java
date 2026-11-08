@@ -2,9 +2,11 @@ package com.petitesroues.web;
 
 import com.petitesroues.library.LibraryService;
 import com.petitesroues.library.LibraryUsageService;
+import com.petitesroues.library.MediaLinkService;
 import com.petitesroues.model.library.CatalogueItem;
 import com.petitesroues.model.library.Library;
 import com.petitesroues.model.library.LibraryUsage;
+import com.petitesroues.model.library.MediaLink;
 import com.petitesroues.model.library.Posters;
 import java.io.IOException;
 import java.util.List;
@@ -17,10 +19,13 @@ import org.springframework.web.bind.annotation.*;
 public class LibraryController {
   private final LibraryService library;
   private final LibraryUsageService usage;
+  private final MediaLinkService links;
 
-  public LibraryController(LibraryService library, LibraryUsageService usage) {
+  public LibraryController(
+      LibraryService library, LibraryUsageService usage, MediaLinkService links) {
     this.library = library;
     this.usage = usage;
+    this.links = links;
   }
 
   /** Registered repositories, each with its indexed title summaries. */
@@ -53,5 +58,22 @@ public class LibraryController {
   @GetMapping("/library/usage")
   public ResponseEntity<LibraryUsage> usage() throws IOException {
     return ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(usage.usage());
+  }
+
+  /**
+   * Links a media file to a title by hand: {@code {repositoryId, relativePath, titleId}}. It wins
+   * over the fingerprint on both sides and survives Refresh; the document is not changed.
+   */
+  @PutMapping("/library/media-links")
+  public ResponseEntity<Void> link(@RequestBody MediaLink link) {
+    links.link(link);
+    return ResponseEntity.noContent().build();
+  }
+
+  /** Removes a media file's manual link. */
+  @DeleteMapping("/library/media-links")
+  public ResponseEntity<Void> unlink(@RequestParam String repository, @RequestParam String path) {
+    links.unlink(repository, path);
+    return ResponseEntity.noContent().build();
   }
 }

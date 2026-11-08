@@ -4,6 +4,7 @@ import com.petitesroues.model.library.IndexedMedia;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.List;
+import java.util.Optional;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
 
@@ -50,6 +51,18 @@ public class MediaStore {
         SELECT + " WHERE m.repository_id=? ORDER BY m.relative_path",
         (row, i) -> map(row),
         repositoryId);
+  }
+
+  /** The media indexed at this path, or empty. */
+  public Optional<IndexedMedia> find(String repositoryId, String relativePath) {
+    return jdbc
+        .query(
+            SELECT + " WHERE m.repository_id=? AND m.relative_path=?",
+            (row, i) -> map(row),
+            repositoryId,
+            relativePath)
+        .stream()
+        .findFirst();
   }
 
   /** Media with this fingerprint in any folder, ordered by folder and path. */

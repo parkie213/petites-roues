@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   ActionIcon,
   Anchor,
@@ -25,12 +25,39 @@ import {
   MoreHorizontal,
   Pencil,
   RefreshCw,
+  Link2,
   Trash2,
 } from "lucide-react";
 import { repositoryColumns, repositoryTree } from "./repository-tree.js";
 import { folderHref } from "./navigation.js";
+import { LinkDialog } from "./LinkDialog.jsx";
+import { unlinkMedia } from "./media-links.js";
 
-function StudyTitle({ entry }) {
+/** "Linked by hand" with its Unlink action, for media linked to a document by hand. */
+function HandLinked({ repositoryId, relativePath, onChanged }) {
+  return (
+    <Group gap={6} wrap="nowrap">
+      <Text size="xs" c="dimmed">
+        Linked by hand
+      </Text>
+      <Button
+        variant="subtle"
+        size="compact-xs"
+        fz="xs"
+        onClick={() =>
+          unlinkMedia({ repositoryId, relativePath }).then(
+            () => onChanged(),
+            (error) => onChanged(error),
+          )
+        }
+      >
+        Unlink
+      </Button>
+    </Group>
+  );
+}
+
+function StudyTitle({ entry, onLink, onChanged }) {
   const comic = entry.type === "comic";
   return (
     <Paper withBorder radius="md" p="md" my="xs">
@@ -80,6 +107,28 @@ function StudyTitle({ entry }) {
             Document missing — refresh repository
           </Text>
         )}
+        {entry.documentAvailable && !entry.mediaAvailable && (
+          <Button
+            variant="default"
+            size="xs"
+            fz="xs"
+            leftSection={<Link2 size={14} />}
+            onClick={() =>
+              onLink({
+                title: { id: entry.id, type: entry.type, name: entry.title },
+              })
+            }
+          >
+            Locate media…
+          </Button>
+        )}
+        {entry.mediaLinkedByHand && (
+          <HandLinked
+            repositoryId={entry.mediaRepositoryId}
+            relativePath={entry.mediaPath}
+            onChanged={onChanged}
+          />
+        )}
       </Stack>
     </Paper>
   );
@@ -93,8 +142,11 @@ function mediaHref(item) {
   return comic ? null : `/video/${encodeURIComponent(item.fingerprint)}/`;
 }
 
-/** A video or CBZ file in the folder, named by its file. */
-function MediaFile({ item }) {
+/**
+ * A video or CBZ file in the folder, named by its file. One that no document has can be linked to
+ * one by hand; a hand-linked one can be unlinked.
+ */
+function MediaFile({ item, onLink, onChanged }) {
   const comic = item.mediaKind === "comic";
   const href = mediaHref(item);
   return (
@@ -124,6 +176,33 @@ function MediaFile({ item }) {
           >
             {comic ? "Read" : "Play"}
           </Button>
+        )}
+        {!item.titleId && (
+          <Button
+            variant="default"
+            size="xs"
+            fz="xs"
+            leftSection={<Link2 size={14} />}
+            onClick={() =>
+              onLink({
+                media: {
+                  repositoryId: item.repositoryId,
+                  relativePath: item.relativePath,
+                  kind: item.mediaKind,
+                  name: item.title,
+                },
+              })
+            }
+          >
+            Link to study document…
+          </Button>
+        )}
+        {item.linkedByHand && (
+          <HandLinked
+            repositoryId={item.repositoryId}
+            relativePath={item.relativePath}
+            onChanged={onChanged}
+          />
         )}
       </Stack>
     </Paper>
@@ -159,7 +238,11 @@ function describe({ documents, videos, comics }) {
   );
 }
 
-/** Renders indexed folders; Mantine owns navigation-row and menu interactions. */
+/**
+ * Renders indexed folders; Mantine owns navigation-row and menu interactions. Media and documents
+ * can be linked by hand here as in Posters and Documents; [onChanged] reloads the library after,
+ * receiving the error when it failed.
+ */
 export function LibraryBrowser({
   data,
   selection,
@@ -167,8 +250,10 @@ export function LibraryBrowser({
   busy,
   refresh,
   onRemove,
+  onChanged,
 }) {
   const strip = useRef(null);
+  const [linking, setLinking] = useState(null);
   const repo = data.repos.find((item) => item.id === selection.repository);
   const columns = repo
     ? repositoryColumns(repo.entries, selection.parts, repo.media)
@@ -329,9 +414,19 @@ export function LibraryBrowser({
             })}
             {node.titles.map((entry) =>
               isMedia(entry) ? (
-                <MediaFile key={entry.id} item={entry} />
+                <MediaFile
+                  key={entry.id}
+                  item={entry}
+                  onLink={setLinking}
+                  onChanged={onChanged}
+                />
               ) : (
-                <StudyTitle key={entry.id} entry={entry} />
+                <StudyTitle
+                  key={entry.id}
+                  entry={entry}
+                  onLink={setLinking}
+                  onChanged={onChanged}
+                />
               ),
             )}
             {!node.folders.length && !node.titles.length && (
@@ -359,6 +454,12 @@ export function LibraryBrowser({
           </Stack>
         )}
       </div>
+      <LinkDialog
+        link={linking}
+        repos={data.repos}
+        onClose={() => setLinking(null)}
+        onDone={onChanged}
+      />
     </Paper>
   );
 }

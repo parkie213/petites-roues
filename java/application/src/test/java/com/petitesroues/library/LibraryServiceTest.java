@@ -7,11 +7,13 @@ import static org.mockito.Mockito.*;
 import com.petitesroues.comic.ReadingProgressStore;
 import com.petitesroues.library.persistence.CatalogueStore;
 import com.petitesroues.library.persistence.ContentRepositoryStore;
+import com.petitesroues.library.persistence.MediaLinkStore;
 import com.petitesroues.library.persistence.MediaStore;
 import com.petitesroues.model.library.CatalogueEntry;
 import com.petitesroues.model.library.CatalogueLocation;
 import com.petitesroues.model.library.ContentRepository;
 import com.petitesroues.model.library.IndexedMedia;
+import com.petitesroues.model.library.MediaLink;
 import com.petitesroues.playback.PlaybackProgressStore;
 import com.petitesroues.study.ReviewQueueService;
 import java.nio.file.Files;
@@ -35,11 +37,18 @@ class LibraryServiceTest {
   @Mock PlaybackProgressStore playback;
   @Mock ReadingProgressStore reading;
   @Mock MediaStore media;
+  @Mock MediaLinkStore links;
   @TempDir Path root;
 
   private LibraryService library() {
     return new LibraryService(
-        repository, documents, repositories, null, playback, reading, new TitleMediaService(media));
+        repository,
+        documents,
+        repositories,
+        null,
+        playback,
+        reading,
+        new TitleMediaService(media, links));
   }
 
   private CatalogueLocation located(String fingerprint, String type) {
@@ -230,10 +239,7 @@ class LibraryServiceTest {
                     "b", "B", null, null, null, null, "a.json", located("v1:x", "comic"))));
     var problems = library().catalogue().stream().map(item -> item.unavailable().get("title"));
     assertEquals(
-        List.of(
-            "No reference media recorded — run prepare/reference.py, then Refresh",
-            "CBZ not found — add the folder that holds it, then Refresh"),
-        problems.toList());
+        List.of("No reference media recorded", "No CBZ matches its reference"), problems.toList());
   }
 
   @Test
@@ -332,5 +338,42 @@ class LibraryServiceTest {
     var item = folders.get(1).media().getFirst();
     assertEquals("film", item.titleId(), "linked media names its title");
     assertTrue(item.warnings().isEmpty());
+  }
+
+  @Test
+  void aHandLinkedVideoWhoseLengthDiffersFromTheDocumentsIsFlagged() throws Exception {
+    Files.write(root.resolve("e2.json"), new byte[] {0});
+    Files.write(root.resolve("e2.mp4"), new byte[] {0});
+    var entry =
+        new CatalogueEntry(
+            "e2",
+            "E2",
+            null,
+            null,
+            null,
+            null,
+            "e2.json",
+            located("v1:" + "0".repeat(64), "video"));
+    var video =
+        new IndexedMedia(
+            "repo", root.toString(), "e2.mp4", "video", 1, 1, "v1:e2", 75.0, "aac", true);
+    when(repository.all()).thenReturn(List.of(entry));
+    when(media.all()).thenReturn(List.of(video));
+    when(links.all()).thenReturn(List.of(new MediaLink("repo", "e2.mp4", "e2")));
+
+    var item = library().catalogue().getFirst();
+    assertTrue(item.mediaLinkedByHand());
+    assertEquals("e2.mp4", item.mediaPath());
+    assertEquals(
+        "Video length differs from the document's (1:15 vs 1:00): cue timings may be off",
+        item.unavailable().get("duration"));
+  }
+
+  @Test
+  void durationsWithinTwoSecondsOrUnknownAgree() {
+    assertNull(LibraryService.durationMismatch(60.0, 62.0));
+    assertNull(LibraryService.durationMismatch(null, 62.0));
+    assertNull(LibraryService.durationMismatch(60.0, null));
+    assertNotNull(LibraryService.durationMismatch(60.0, 62.5));
   }
 }

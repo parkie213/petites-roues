@@ -188,10 +188,18 @@ documents/
   is probed again only when its size or modification time changes. Hidden folders,
   `node_modules` and `content-archive` are skipped.
 - **Linking.** A video or CBZ links to a document whose `reference.fingerprint` equals its
-  fingerprint, in any registered folder. Nothing else links them: not sharing a folder, nor
-  series, episode or duration. A document without a reference fingerprint has no media until
-  one is recorded (`prepare/new_title.py` or `prepare/reference.py`). When several copies match, one in the
-  document's own folder is preferred.
+  fingerprint, in any registered folder. Nothing else links them automatically: not sharing a
+  folder, nor series, episode or duration. A document without a reference fingerprint has no
+  media until one is recorded (`prepare/new_title.py` or `prepare/reference.py`) or a file is
+  linked by hand. When several copies match, one in the document's own folder is preferred.
+- **Linking by hand.** When fingerprints don't match (the document was timed against someone
+  else's copy), choose **Link to study document…** on the media (its card in Posters, or the file in
+  Repositories), or **Locate media…** on the document (in Documents or Repositories). The link is kept in the library's SQLite, keyed by the
+  media's folder and path; the document is not changed, so another library does not see it
+  (record the file as the reference with `prepare/reference.py` to share the fix). A hand link
+  wins over fingerprints on both sides, survives Refresh, and is lost when the file is moved or
+  renamed. A hand-linked video whose duration differs from `reference.durationSeconds` by more
+  than 2 seconds warns that cue timings may be off.
 - **Warnings.** Media that no document references is listed under *Needs attention* as "No study
   document". A video with no browser-playable audio track (AAC, MP3, Opus, Vorbis or FLAC) warns
   "No audio track this player can play"; remux it with your own tools. Refresh clears a warning
