@@ -1,5 +1,10 @@
 package com.petitesroues.android.quiz
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Button
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -79,12 +84,14 @@ fun QuizDialog(
           }
         } else Text(scopeNote, style = MaterialTheme.typography.bodyMedium)
         Text("Quiz type", style = MaterialTheme.typography.labelLarge, modifier = Modifier.padding(top = 16.dp))
-        Column(Modifier.selectableGroup()) {
+        Column(Modifier.selectableGroup(), verticalArrangement = Arrangement.spacedBy(6.dp)) {
           for (option in QuizPack.TYPES)
             Row(
               Modifier.fillMaxWidth()
+                .background(if (type == option.id) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surface, RoundedCornerShape(8.dp))
+                .border(1.dp, if (type == option.id) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(8.dp))
                 .selectable(selected = type == option.id, onClick = { type = option.id }, role = Role.RadioButton)
-                .padding(vertical = 2.dp),
+                .padding(horizontal = 12.dp, vertical = 10.dp),
               verticalAlignment = Alignment.CenterVertically,
             ) {
               RadioButton(selected = type == option.id, onClick = null)
@@ -98,7 +105,7 @@ fun QuizDialog(
         )
       }
     },
-    confirmButton = { TextButton(onClick = { onShare(type, chapter) }) { Text("Share…") } },
+    confirmButton = { Button(onClick = { onShare(type, chapter) }) { Text("Share…") } },
     dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
   )
 }
@@ -128,12 +135,14 @@ fun GeneralQuizDialog(
             style = MaterialTheme.typography.bodyMedium,
           )
         else {
-          Column(Modifier.selectableGroup()) {
+          Column(Modifier.selectableGroup(), verticalArrangement = Arrangement.spacedBy(6.dp)) {
             for (quiz in quizzes)
               Row(
                 Modifier.fillMaxWidth()
+                  .background(if (chosen == quiz) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surface, RoundedCornerShape(8.dp))
+                  .border(1.dp, if (chosen == quiz) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(8.dp))
                   .selectable(selected = chosen == quiz, onClick = { chosen = quiz }, role = Role.RadioButton)
-                  .padding(vertical = 2.dp),
+                  .padding(horizontal = 12.dp, vertical = 10.dp),
                 verticalAlignment = Alignment.CenterVertically,
               ) {
                 RadioButton(selected = chosen == quiz, onClick = null)
@@ -148,7 +157,7 @@ fun GeneralQuizDialog(
         }
       }
     },
-    confirmButton = { chosen?.let { quiz -> TextButton(onClick = { onShare(quiz) }) { Text("Share…") } } },
+    confirmButton = { chosen?.let { quiz -> Button(onClick = { onShare(quiz) }) { Text("Share…") } } },
     dismissButton = { TextButton(onClick = onDismiss) { Text("Cancel") } },
   )
 }

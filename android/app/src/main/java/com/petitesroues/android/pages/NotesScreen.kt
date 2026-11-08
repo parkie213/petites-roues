@@ -1,6 +1,12 @@
 package com.petitesroues.android.pages
 
 import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.ListItemDefaults
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Box
@@ -68,7 +74,7 @@ fun NotesScreen(notes: List<MarkdownPage>?, onBack: () -> Unit) {
       when {
         notes == null -> CircularProgressIndicator(Modifier.align(Alignment.Center))
         open != null ->
-          Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 16.dp, vertical = 8.dp)) {
+          Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 24.dp, vertical = 16.dp)) {
             NoteMarkdown(open.text)
           }
         notes.isEmpty() ->
@@ -78,14 +84,17 @@ fun NotesScreen(notes: List<MarkdownPage>?, onBack: () -> Unit) {
           )
         else -> {
           val several = notes.map { it.repository }.distinct().size > 1
-          LazyColumn {
+          LazyColumn(contentPadding = PaddingValues(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
             items(notes.size) { i ->
               val note = notes[i]
               ListItem(
                 headlineContent = { Text(note.title) },
                 supportingContent = if (several) ({ Text(note.repository) }) else null,
                 leadingContent = { Icon(Icons.Outlined.Description, null, tint = MaterialTheme.colorScheme.primary) },
-                modifier = Modifier.clickable { openKey = note.key },
+                colors = ListItemDefaults.colors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh),
+                modifier = Modifier.border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(10.dp))
+                  .background(MaterialTheme.colorScheme.surfaceContainerHigh, RoundedCornerShape(10.dp))
+                  .clickable { openKey = note.key }.padding(vertical = 6.dp),
               )
             }
           }

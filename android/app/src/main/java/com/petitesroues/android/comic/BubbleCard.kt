@@ -39,7 +39,7 @@ import com.petitesroues.model.document.StudyDocument
 
 private val sourceStyle = TextStyle(color = Color(0xFFE8EDF2), fontSize = 18.sp, lineHeight = 26.sp)
 private val translationStyle = TextStyle(fontSize = 15.sp, lineHeight = 22.sp)
-private val noteStyle = TextStyle(color = Color(0xFFC8D4E0), fontSize = 14.sp, lineHeight = 21.sp)
+private val noteStyle = TextStyle(color = Color(0xFFE0E2E6), fontSize = 14.sp, lineHeight = 21.sp)
 
 /**
  * A bubble's text as a line of phrases with its whole translation and sentence notes beneath, as

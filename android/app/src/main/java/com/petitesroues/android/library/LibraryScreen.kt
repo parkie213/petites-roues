@@ -1,5 +1,6 @@
 package com.petitesroues.android.library
 
+import com.petitesroues.android.Brand
 import android.net.Uri
 import android.provider.DocumentsContract
 import androidx.activity.compose.BackHandler
@@ -146,12 +147,11 @@ fun LibraryScreen(
               Icon(Icons.AutoMirrored.Filled.ArrowBack, "Library")
             }
         },
-        title = { Text(open?.name ?: "petites roues", maxLines = 1, overflow = TextOverflow.Ellipsis) },
+        title = {
+          if (open == null) Brand()
+          else Text(open.name, maxLines = 1, overflow = TextOverflow.Ellipsis)
+        },
         actions = {
-          if (state.folders.isNotEmpty())
-            IconButton(onClick = onNotes) { Icon(Icons.Outlined.Description, "Notes") }
-          if (state.folders.isNotEmpty())
-            IconButton(onClick = onQuiz) { Icon(Icons.Outlined.Lightbulb, "Quiz me") }
           if (state.folders.isNotEmpty())
             IconButton(onClick = onRefresh, enabled = !state.refreshing) {
               Icon(Icons.Filled.Refresh, "Refresh library")
@@ -164,6 +164,16 @@ fun LibraryScreen(
     }
   ) { padding ->
     Column(Modifier.padding(padding).fillMaxSize()) {
+      if (state.folders.isNotEmpty() && open == null) {
+        Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
+          horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+          Text("Library", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.background(MaterialTheme.colorScheme.primaryContainer, RoundedCornerShape(8.dp))
+              .padding(horizontal = 14.dp, vertical = 10.dp))
+          TextButton(onClick = onNotes) { Text("Notes", color = MaterialTheme.colorScheme.onSurface) }
+          TextButton(onClick = onQuiz) { Text("Quiz me", color = MaterialTheme.colorScheme.onSurface) }
+        }
+      }
       if (state.refreshing) RefreshProgress(state.refreshProgress)
       state.message?.let {
         Text(it, color = MaterialTheme.colorScheme.error, modifier = Modifier.padding(16.dp))
@@ -181,7 +191,7 @@ fun LibraryScreen(
       else
         PosterGrid(shelvesScroll) {
           state.usage?.let { usage ->
-            heading { Text(usage, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant) }
+            heading { Text(usage, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }
           }
           if (state.titles.isEmpty() && !state.refreshing)
             heading { Text("No titles yet. Refresh after your content has synced.") }
@@ -234,8 +244,8 @@ private fun PosterGrid(state: LazyGridState, content: LazyGridScope.() -> Unit) 
     columns = GridCells.Adaptive(108.dp),
     state = state,
     contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = 24.dp),
-    horizontalArrangement = Arrangement.spacedBy(12.dp),
-    verticalArrangement = Arrangement.spacedBy(14.dp),
+    horizontalArrangement = Arrangement.spacedBy(14.dp),
+    verticalArrangement = Arrangement.spacedBy(20.dp),
     modifier = Modifier.fillMaxSize(),
     content = content,
   )
@@ -362,7 +372,7 @@ private class Cards(
       Box(
         Modifier.fillMaxWidth()
           .aspectRatio(2f / 3f)
-          .clip(RoundedCornerShape(8.dp))
+          .clip(RoundedCornerShape(5.dp))
           .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
       ) {
         Art(CardSource.of(art), name, comic)
