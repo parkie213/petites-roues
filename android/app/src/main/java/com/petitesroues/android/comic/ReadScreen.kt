@@ -564,8 +564,13 @@ private fun PageView(
                 Modifier.offset(maxWidth * region.x().toFloat(), maxHeight * region.y().toFloat())
                   .size(maxWidth * region.width().toFloat(), maxHeight * region.height().toFloat())
                   .then(
+                    // As in the browser: the open bubble gets only a faint warm wash so its art
+                    // stays readable; a border marks it only while outlines are shown.
                     when {
-                      isSelected -> Modifier.border(2.dp, Color(0xA6EB765C), RoundedCornerShape(6.dp))
+                      isSelected && outlined ->
+                        Modifier.border(2.dp, Color(0xFFFFCE72), RoundedCornerShape(6.dp))
+                          .background(Color(0x1AFFC45D), RoundedCornerShape(6.dp))
+                      isSelected -> Modifier.background(Color(0x24FFC45D), RoundedCornerShape(6.dp))
                       outlined -> Modifier.border(1.dp, Color(0xC067C5FF), RoundedCornerShape(4.dp))
                       else -> Modifier
                     }

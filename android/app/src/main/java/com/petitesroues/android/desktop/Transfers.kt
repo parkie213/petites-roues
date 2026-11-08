@@ -123,11 +123,12 @@ class TransferJobService : JobService() {
     val settings = Settings(this)
     var reschedule = false
     try {
-      val desktop = settings.desktop ?: error("This phone is not paired with a desktop")
       val tree = downloadFolder(settings) ?: error("Allow file access so titles can be copied into ${AppFolder.LABEL}")
       val folder = transferFolder(contentResolver, tree)
       val client = DesktopClient()
-      val plan = TransferPlan.of(client.titles(desktop).filter { it.id() in ids }, folder)
+      // The desktop as reached, at a new address if it moved.
+      val (desktop, titles) = reachDesktop(this, settings) { it to client.titles(it) }
+      val plan = TransferPlan.of(titles.filter { it.id() in ids }, folder)
       val free = runCatching { LibraryUsage.free(this, listOf(tree)).firstOrNull() }.getOrNull()
       if (free != null && plan.remaining() > free)
         error(
