@@ -1,5 +1,6 @@
 package com.petitesroues.config;
 
+import com.petitesroues.phone.PhoneCertificateService;
 import com.petitesroues.settings.SettingsStore;
 import jakarta.servlet.http.HttpServletRequest;
 import java.net.Inet4Address;
@@ -15,6 +16,8 @@ import org.apache.catalina.LifecycleException;
 import org.apache.catalina.LifecycleState;
 import org.apache.catalina.Service;
 import org.apache.catalina.connector.Connector;
+import org.apache.tomcat.util.net.SSLHostConfig;
+import org.apache.tomcat.util.net.SSLHostConfigCertificate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -24,13 +27,14 @@ import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
 
 /**
- * The phone listener: a second HTTP port, on every network interface, through which paired phones
- * reach this desktop. It serves only {@code /phone/**} ({@link
- * com.petitesroues.web.LocalRequestFilter}); the browser UI's port stays on 127.0.0.1. Opened and
- * closed while the server runs, from the "Allow phones to connect" switch; the choice is remembered
- * ({@link #SETTING}) and restored at startup. Closed until first switched on, since it opens a port
- * on the local network. {@code petitesroues.phone.port} (default 8878) chooses the port, 0 any free
- * one.
+ * The phone listener: a second port, on every network interface, through which paired phones reach
+ * this desktop. It speaks only HTTPS (TLS 1.3) with this desktop's self-signed certificate ({@link
+ * PhoneCertificateService}), which phones trust by the pin the pairing code carries. It serves only
+ * {@code /phone/**} ({@link com.petitesroues.web.LocalRequestFilter}); the browser UI's port stays
+ * on 127.0.0.1. Opened and closed while the server runs, from the "Allow phones to connect" switch;
+ * the choice is remembered ({@link #SETTING}) and restored at startup. Closed until first switched
+ * on, since it opens a port on the local network. {@code petitesroues.phone.port} (default 8878)
+ * chooses the port, 0 any free one.
  */
 @Component
 public class PhoneListener {
@@ -48,14 +52,21 @@ public class PhoneListener {
       Pattern.compile(
           "^(docker|br-|veth|virbr|vxlan|cali|flannel|cni|kube|lxc|lxd|podman|vboxnet|vmnet).*");
 
+  /** The certificate's name in the listener's in-memory key store. */
+  private static final String ALIAS = "phone";
+
   private final SettingsStore settings;
+  private final PhoneCertificateService certificates;
   private final int configuredPort;
   private Service service;
   private volatile Connector connector;
 
   public PhoneListener(
-      SettingsStore settings, @Value("${petitesroues.phone.port:8878}") int configuredPort) {
+      SettingsStore settings,
+      PhoneCertificateService certificates,
+      @Value("${petitesroues.phone.port:8878}") int configuredPort) {
     this.settings = settings;
+    this.certificates = certificates;
     this.configuredPort = configuredPort;
   }
 
@@ -92,6 +103,7 @@ public class PhoneListener {
     var phone = new Connector();
     phone.setPort(configuredPort);
     phone.setProperty("address", "0.0.0.0");
+    secure(phone);
     service.addConnector(phone);
     if (phone.getState() != LifecycleState.STARTED) {
       service.removeConnector(phone);
@@ -101,6 +113,23 @@ public class PhoneListener {
     }
     connector = phone;
     LOG.info("Phones can connect on port {}", phone.getLocalPort());
+  }
+
+  /** Makes the connector serve TLS 1.3 only, with this desktop's certificate. */
+  private void secure(Connector phone) {
+    // The store lives only in memory, so its password guards nothing.
+    char[] password = ALIAS.toCharArray();
+    var tls = new SSLHostConfig();
+    tls.setProtocols("TLSv1.3");
+    var certificate = new SSLHostConfigCertificate(tls, SSLHostConfigCertificate.Type.EC);
+    certificate.setCertificateKeystore(certificates.certificate().keyStore(ALIAS, password));
+    certificate.setCertificateKeyAlias(ALIAS);
+    certificate.setCertificateKeyPassword(new String(password));
+    tls.addCertificate(certificate);
+    phone.addSslHostConfig(tls);
+    phone.setScheme("https");
+    phone.setSecure(true);
+    phone.setProperty("SSLEnabled", "true");
   }
 
   private void close() {
@@ -138,9 +167,9 @@ public class PhoneListener {
   }
 
   /**
-   * The listener's base URLs a phone on the same network can try: one per up, non-loopback IPv4
-   * address outside container and VM bridges, site-local (192.168/16, 10/8, 172.16/12, as on Wi-Fi)
-   * first, then others such as a Tailscale address. Empty when it is off.
+   * The listener's {@code https} base URLs a phone on the same network can try: one per up,
+   * non-loopback IPv4 address outside container and VM bridges, site-local (192.168/16, 10/8,
+   * 172.16/12, as on Wi-Fi) first, then others such as a Tailscale address. Empty when it is off.
    */
   public List<String> urls() {
     int port = port();
@@ -160,7 +189,7 @@ public class PhoneListener {
       return List.of();
     }
     local.addAll(other);
-    return local.stream().map(a -> "http://" + a.getHostAddress() + ":" + port).toList();
+    return local.stream().map(a -> "https://" + a.getHostAddress() + ":" + port).toList();
   }
 
   /** This computer's name, for the phone to show; "petites roues" when it has none. */

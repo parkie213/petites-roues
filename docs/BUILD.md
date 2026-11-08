@@ -36,8 +36,9 @@ Storage Access Framework on Android), what counts as a document, video or comic,
 posters are, and the v1 media fingerprint. Like documents it has no Spring and targets
 Java 17, and the Android app uses its jar.
 `java/sync` is how the phone and the desktop talk: the wire records (`com.petitesroues.model.sync`),
-the phone listener's routes, the QR pairing code reader and the phone's `DesktopClient`, on
-`HttpURLConnection` because `java.net.http` is missing on Android. The server answers with the
+the phone listener's routes, the QR pairing code reader, certificate pinning (`CertificatePins`)
+and the phone's `DesktopClient`, on `HttpURLConnection` because `java.net.http` is missing on
+Android. The server answers with the
 same records and its integration test pairs through the same client, so the two sides cannot drift.
 It depends only on Jackson and targets Java 17.
 `java/application` depends on documents, library and sync, and owns services, stores, media
@@ -79,8 +80,13 @@ To let a phone pair with this desktop (experimental), click the phone icon in th
 switch on **Allow phones to connect**. That opens the phone listener, which serves only
 `/phone/**` on port 8878 (`--petitesroues.phone.port`) on every network interface; the choice is
 remembered across restarts. Scan the QR code from the app's computer icon. The phone must be on
-the same network; allow the port through a firewall (`sudo ufw allow 8878/tcp`). Traffic is
-plain HTTP with a per-phone token for now.
+the same network; allow the port through a firewall (`sudo ufw allow 8878/tcp`). The listener
+speaks only HTTPS (TLS 1.3) with a self-signed certificate the desktop creates the first time and
+keeps in its SQLite library. The QR code carries the SHA-256 of the certificate's public key, and
+the phone trusts only a desktop presenting that key, so scanning the code is what establishes
+trust: no certificate authority or host name is involved, and the desktop's address can change.
+Each phone then authenticates with its own token. A new library has a new certificate, so phones
+pair again.
 
 Once paired, **Get titles** in the app's Desktop dialog lists the desktop's titles by series.
 Tick some and **Copy**: each title's media, posters and document (as the player serves it, with

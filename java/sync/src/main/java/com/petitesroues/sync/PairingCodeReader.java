@@ -34,17 +34,19 @@ public final class PairingCodeReader {
     int version = json.path("v").asInt(0);
     if (version > PairingCode.VERSION)
       throw new IllegalArgumentException("Update the app to pair with this desktop");
+    if (version >= 1 && version < PairingCode.VERSION)
+      throw new IllegalArgumentException("Update petites roues on the desktop to pair with it");
     if (version != PairingCode.VERSION)
       throw new IllegalArgumentException("This QR code is not from petites roues");
     List<String> urls = new ArrayList<>();
     for (JsonNode url : json.path("urls")) {
-      // Version 1 is plain HTTP; HTTPS comes with the certificate to pin.
-      if (url.isString() && url.asString().startsWith("http://")) urls.add(url.asString());
+      if (url.isString() && url.asString().startsWith("https://")) urls.add(url.asString());
     }
     String secret = json.path("pair").asString("");
-    if (urls.isEmpty() || secret.isEmpty())
+    String cert = json.path("cert").asString("");
+    if (urls.isEmpty() || secret.isEmpty() || !CertificatePins.valid(cert))
       throw new IllegalArgumentException("This pairing code is incomplete");
     return new PairingCode(
-        version, json.path("name").asString("Desktop"), List.copyOf(urls), secret);
+        version, json.path("name").asString("Desktop"), List.copyOf(urls), secret, cert);
   }
 }

@@ -34,23 +34,25 @@ public class PhonePairingService {
   public static final Duration SECRET_LIFETIME = Duration.ofMinutes(5);
 
   private final PhoneStore phones;
+  private final PhoneCertificateService certificates;
   private final Clock clock;
   private final SecureRandom random = new SecureRandom();
   private final Map<String, Instant> secrets = new ConcurrentHashMap<>();
 
   @Autowired
-  public PhonePairingService(PhoneStore phones) {
-    this(phones, Clock.systemUTC());
+  public PhonePairingService(PhoneStore phones, PhoneCertificateService certificates) {
+    this(phones, certificates, Clock.systemUTC());
   }
 
-  PhonePairingService(PhoneStore phones, Clock clock) {
+  PhonePairingService(PhoneStore phones, PhoneCertificateService certificates, Clock clock) {
     this.phones = phones;
+    this.certificates = certificates;
     this.clock = clock;
   }
 
   /**
    * Starts a pairing: a new secret, valid for {@link #SECRET_LIFETIME}, in a code naming this
-   * desktop and the phone listener's URLs.
+   * desktop, the phone listener's URLs and the pin of its certificate.
    */
   public PhonePairing start(String desktopName, List<String> urls) {
     Instant now = clock.instant();
@@ -59,7 +61,13 @@ public class PhonePairingService {
     Instant expiry = now.plus(SECRET_LIFETIME);
     secrets.put(secret, expiry);
     return new PhonePairing(
-        new PairingCode(PairingCode.VERSION, desktopName, List.copyOf(urls), secret), expiry);
+        new PairingCode(
+            PairingCode.VERSION,
+            desktopName,
+            List.copyOf(urls),
+            secret,
+            certificates.certificate().pin()),
+        expiry);
   }
 
   /**

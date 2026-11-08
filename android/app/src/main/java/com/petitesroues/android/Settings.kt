@@ -4,6 +4,7 @@ import android.content.Context
 import android.net.Uri
 import androidx.core.content.edit
 import androidx.core.net.toUri
+import com.petitesroues.android.comic.ListeningMode
 import com.petitesroues.android.library.AppFolder
 import com.petitesroues.model.sync.Desktop
 
@@ -34,7 +35,8 @@ class Settings(context: Context) {
     get() {
       val url = prefs.getString("desktopUrl", null) ?: return null
       val token = prefs.getString("desktopToken", null) ?: return null
-      return Desktop(prefs.getString("desktopName", null) ?: "Desktop", url, token)
+      val pin = prefs.getString("desktopPin", null) ?: return null
+      return Desktop(prefs.getString("desktopName", null) ?: "Desktop", url, token, pin)
     }
     set(value) =
       prefs.edit {
@@ -42,10 +44,12 @@ class Settings(context: Context) {
           remove("desktopUrl")
           remove("desktopToken")
           remove("desktopName")
+          remove("desktopPin")
         } else {
           putString("desktopUrl", value.url())
           putString("desktopToken", value.token())
           putString("desktopName", value.name())
+          putString("desktopPin", value.pin())
         }
       }
 
@@ -61,9 +65,14 @@ class Settings(context: Context) {
     get() = prefs.getBoolean("autoPause", false)
     set(value) = prefs.edit { putBoolean("autoPause", value) }
 
-  var autoListen: Boolean
-    get() = prefs.getBoolean("autoListen", false)
-    set(value) = prefs.edit { putBoolean("autoListen", value) }
+  /** Bubble tap mode, retaining the former two-state listening preference on upgrade. */
+  var listeningMode: ListeningMode
+    get() = ListeningMode.entries.firstOrNull { it.name == prefs.getString("listeningMode", null) }
+      ?: if (prefs.getBoolean("autoListen", false)) ListeningMode.LISTEN_FIRST else ListeningMode.OFF
+    set(value) = prefs.edit {
+      putString("listeningMode", value.name)
+      remove("autoListen")
+    }
 
   var comicLandscape: Boolean
     get() = prefs.getBoolean("comicLandscape", false)

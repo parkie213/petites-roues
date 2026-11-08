@@ -9,6 +9,7 @@ import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneOffset;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicReference;
@@ -32,13 +33,17 @@ class PhonePairingServiceTest {
           return now.get();
         }
       };
-  private final PhonePairingService pairing = new PhonePairingService(store, clock);
+  private final PhoneCertificateService certificates =
+      new PhoneCertificateService(PhoneCertificateServiceTest.settings(new HashMap<>()));
+  private final PhonePairingService pairing = new PhonePairingService(store, certificates, clock);
 
   @Test
   void aSecretPairsOncePhoneKeepsOnlyTheTokensHash() {
-    var started = pairing.start("desk", List.of("http://192.168.1.5:8878"));
-    assertEquals(1, started.code().v());
-    assertEquals(List.of("http://192.168.1.5:8878"), started.code().urls());
+    var started = pairing.start("desk", List.of("https://192.168.1.5:8878"));
+    assertEquals(2, started.code().v());
+    assertEquals(List.of("https://192.168.1.5:8878"), started.code().urls());
+    assertEquals(
+        certificates.certificate().pin(), started.code().cert(), "the code carries the pin");
     assertEquals(now.get().plus(PhonePairingService.SECRET_LIFETIME), started.expiresAt());
 
     var token = pairing.pair(started.code().pair(), " Pixel ", "desk");

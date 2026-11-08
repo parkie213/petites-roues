@@ -25,6 +25,12 @@
       <version>${project.version}</version>
     </dependency>
     <dependency>
+      <!-- Creates the phone listener's self-signed certificate; the JDK has no public API for it. -->
+      <groupId>org.bouncycastle</groupId>
+      <artifactId>bcpkix-jdk18on</artifactId>
+      <version>1.81</version>
+    </dependency>
+    <dependency>
       <groupId>org.springframework</groupId>
       <artifactId>spring-context</artifactId>
     </dependency>
