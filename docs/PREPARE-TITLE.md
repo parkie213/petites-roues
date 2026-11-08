@@ -211,6 +211,20 @@ python3 prepare/phrase_report.py --document DOC --out phrase-report.md \
 The report prints chunk sizes for the current breakdowns and each run, and writes every cue's
 breakdowns side by side.
 
+### Split comic text blocks
+
+A printed text block (a recap, a character profile, an author's note) is one line per sentence
+([comic boxes](DOCUMENT-FORMAT.md#comic-boxes)), but text finding returns it as one line.
+Once its breakdown is reviewed and before notes, list the candidates and split each block:
+
+```bash
+python3 prepare/split_block.py --document content/my-comic/document.json --find
+python3 prepare/split_block.py --document content/my-comic/document.json --line LINE_ID
+```
+
+`--find` lists lines of 150 or more characters (`--min-length`) holding several sentences.
+Split the printed blocks; a speech balloon of a few short sentences can stay whole.
+
 ### Notes
 
 ```bash

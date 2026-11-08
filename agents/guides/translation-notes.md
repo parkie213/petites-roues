@@ -261,6 +261,22 @@ Machine-written notes got these wrong; check them every time.
   to, or which balloon a fragment completes, check the page: on Demon Slayer T01 p. 116 the
   `il` that "gets in the way" is the katana in the balloon read just before, not a person.
   Hedge ("presumably…") when the page doesn't settle it, and never invent scene details.
+- **A reflexive pronoun waved away.** "The pronoun is part of the verb" explains nothing. Give the
+  plain verb's meaning, then the pronominal one: `calmer` calms someone else, `se calmer` is
+  calm down; `pousser` is push, `pousse-toi` is move over; `passer` is pass, `se passer` is
+  happen; `charger` is load, `se charger de` is take care of. Reflexive verbs form the passé
+  composé with `être`, so the `t'es` in `tu t'es fait mal` is `te` + `es`, not the spoken
+  shortening of `tu es`.
+- **Pronouns in commands.** In a positive command the object pronoun follows the verb with a
+  hyphen (`coupe-le`, `dépêche-toi`, `vas-y`), and in a negative one it goes before it
+  (`ne le coupe pas`). Check the note says which, rather than repeating the statement rule.
+- **A pronoun that only involves the listener.** In boasts and stories, colloquial French adds a
+  `vous` or `te` that nobody receives: `je vous laboure tout ça` (I'll plough all that, I tell
+  you), `il te fait la totale`. Don't make it the object; the object is elsewhere in the
+  sentence, and English leaves the pronoun out.
+- **A printed slip.** Comics have typos: `j'aurais` (I would have) where the sense is the future
+  `j'aurai`, which sounds the same. Say the sense is the future and that the two are confused in
+  writing; don't explain why a conditional appears.
 
 ## Worked example: a manga balloon
 

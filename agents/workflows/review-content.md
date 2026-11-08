@@ -55,6 +55,14 @@ differently from neighbouring cues, a word that makes no sense in the scene. For
   `textCheck` (comic), for example "`les chevaux` or `les cheveux`? She is brushing her hair";
 - teach only what is clear in a doubtful line; delete notes that explain the doubtful words.
 
+## Comic text blocks
+
+The queue only shows lines with requests, so check the whole comic once its breakdown review is
+done: `python3 prepare/split_block.py --document DOC --find` lists long lines holding several
+sentences. A printed block (a recap, a character profile, an author's note) is one line per
+sentence; split each with `--line LINE_ID`, then validate, commit and push as for a batch.
+Splitting before notes are written saves moving them.
+
 ## Checks
 
 Keep uncertainty out of teaching notes:
