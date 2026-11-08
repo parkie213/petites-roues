@@ -141,6 +141,7 @@ export function Documents({ data, onChanged }) {
                       <Button
                         variant="subtle"
                         size="compact-xs"
+                        fz="xs"
                         onClick={() => unlink(entry)}
                       >
                         Unlink
@@ -153,6 +154,7 @@ export function Documents({ data, onChanged }) {
                       <Button
                         variant="light"
                         size="compact-xs"
+                        fz="xs"
                         mt={4}
                         onClick={() =>
                           setLinking({

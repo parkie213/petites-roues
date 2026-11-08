@@ -384,6 +384,7 @@ export function Library({ actionsTarget }) {
               startJob({ kind: "refresh", repositoryId })
             }
             onRemove={setRemoving}
+            onChanged={changed}
           />
         ) : (
           !error && (
