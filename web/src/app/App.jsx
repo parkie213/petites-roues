@@ -8,7 +8,6 @@ import { Library } from "../library/Library.jsx";
 import { QuizPage } from "../library/QuizPage.jsx";
 import { Notes } from "../library/Notes.jsx";
 import { BareVideo } from "../player/BareVideo.jsx";
-import { Player } from "../player/Player.jsx";
 import { Watch } from "../player/Watch.jsx";
 
 export function App() {
@@ -58,7 +57,7 @@ export function App() {
     return <BareComic key={fingerprint} fingerprint={fingerprint} />;
   }
   const match = url.pathname.match(/^\/player\/([A-Za-z0-9_-]+)\/?$/);
-  if (match) return <Player key={match[1]} id={match[1]} />;
+  if (match) return <Watch key={match[1]} id={match[1]} />;
   const oldId = url.searchParams.get("title");
   if (url.pathname === "/player/" && oldId && /^[A-Za-z0-9_-]+$/.test(oldId)) {
     location.replace("/player/" + oldId + "/" + url.search);

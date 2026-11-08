@@ -140,34 +140,6 @@
   padding: 16px;
   border-radius: 5px;
 }
-.quiz-launch {
-  margin: 24px 0 32px;
-  padding: 22px;
-  background: #fffcf7;
-  border: 1px solid var(--bd);
-  border-radius: 8px;
-}
-.quiz-launch h2 {
-  font-size: 16px;
-  margin: 0 0 16px;
-}
-.quiz-launch > .study-muted {
-  margin: 12px 0 16px;
-}
-.quiz-secondary {
-  border-top: 1px solid var(--bd);
-  padding-top: 10px;
-}
-.quiz-secondary .mantine-Button-root {
-  font-size: 12px;
-  padding: 0 8px;
-}
-.quiz-status {
-  font-size: 13px;
-  line-height: 1.6;
-  color: #9e3f31;
-  margin-bottom: 0;
-}
 .study-browse {
   display: none;
 }

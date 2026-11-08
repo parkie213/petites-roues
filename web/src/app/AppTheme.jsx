@@ -6,7 +6,7 @@ const libraryPage =
   /^\/(notes|quizzes)(\/|$)/.test(location.pathname);
 
 const theme = createTheme({
-  primaryColor: libraryPage ? "coral" : "sage",
+  primaryColor: "coral",
   primaryShade: libraryPage ? 6 : 4,
   autoContrast: true,
   defaultRadius: "md",
