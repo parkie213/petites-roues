@@ -1,20 +1,24 @@
 package com.petitesroues.web;
 
 import com.petitesroues.phone.PhonePairingService;
+import com.petitesroues.sync.PhoneRoutes;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import org.springframework.core.annotation.Order;
+import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
+import tools.jackson.databind.json.JsonMapper;
 
 /**
  * Admits only paired phones to {@code /phone/**}: every request but {@code POST /phone/pair} needs
- * {@code Authorization: Bearer <token>} for a phone that is still paired, else 401. The paired
- * phone is left in the request attribute {@link #PHONE}. Runs after {@link LocalRequestFilter},
- * which keeps these routes to the phone listener.
+ * {@code Authorization: Bearer <token>} for a phone that is still paired, else 401 with the API's
+ * {@code {"error": message}} body, which the phone shows. The paired phone is left in the request
+ * attribute {@link #PHONE}. Runs after {@link LocalRequestFilter}, which keeps these routes to the
+ * phone listener.
  */
 @Component
 @Order(2)
@@ -23,21 +27,23 @@ public class PhoneRequestFilter extends OncePerRequestFilter {
   public static final String PHONE = "petitesroues.phone";
 
   private final PhonePairingService pairing;
+  private final JsonMapper mapper;
 
-  public PhoneRequestFilter(PhonePairingService pairing) {
+  public PhoneRequestFilter(PhonePairingService pairing, JsonMapper mapper) {
     this.pairing = pairing;
+    this.mapper = mapper;
   }
 
   static boolean isPhonePath(HttpServletRequest request) {
     String path = request.getRequestURI().substring(request.getContextPath().length());
-    return path.equals("/phone") || path.startsWith("/phone/");
+    return path.equals(PhoneRoutes.PREFIX) || path.startsWith(PhoneRoutes.PREFIX + "/");
   }
 
   @Override
   protected boolean shouldNotFilter(HttpServletRequest request) {
     return !isPhonePath(request)
         || ("POST".equals(request.getMethod())
-            && request.getRequestURI().equals(request.getContextPath() + "/phone/pair"));
+            && request.getRequestURI().equals(request.getContextPath() + PhoneRoutes.PAIR));
   }
 
   @Override
@@ -52,7 +58,14 @@ public class PhoneRequestFilter extends OncePerRequestFilter {
     var phone = pairing.authenticate(token);
     if (phone.isEmpty()) {
       response.setHeader("WWW-Authenticate", "Bearer");
-      response.sendError(401, "Pair this phone with the desktop again");
+      response.setStatus(401);
+      response.setContentType(MediaType.APPLICATION_JSON_VALUE);
+      response.setCharacterEncoding("UTF-8");
+      response
+          .getWriter()
+          .write(
+              mapper.writeValueAsString(
+                  new ApiExceptionHandler.ApiError("Pair this phone with the desktop again")));
       return;
     }
     request.setAttribute(PHONE, phone.get());

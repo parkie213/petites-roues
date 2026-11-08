@@ -16,6 +16,11 @@
     </dependency>
     <dependency>
       <groupId>com.petitesroues</groupId>
+      <artifactId>petites-roues-sync</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>com.petitesroues</groupId>
       <artifactId>petites-roues-documents</artifactId>
       <version>${project.version}</version>
     </dependency>

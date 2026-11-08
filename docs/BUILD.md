@@ -35,10 +35,15 @@ registered folder through a small `ContentTree` interface (java.nio on the deskt
 Storage Access Framework on Android), what counts as a document, video or comic, where
 posters are, and the v1 media fingerprint. Like documents it has no Spring and targets
 Java 17, and the Android app uses its jar.
-`java/application` depends on documents and library, and owns services, stores, media
+`java/sync` is how the phone and the desktop talk: the wire records (`com.petitesroues.model.sync`),
+the phone listener's routes, the QR pairing code reader and the phone's `DesktopClient`, on
+`HttpURLConnection` because `java.net.http` is missing on Android. The server answers with the
+same records and its integration test pairs through the same client, so the two sides cannot drift.
+It depends only on Jackson and targets Java 17.
+`java/application` depends on documents, library and sync, and owns services, stores, media
 readers and local application models. `java/server` depends on application
 and supplies HTTP controllers, framework wiring, database migrations and startup.
-The dependency direction is `server → application → documents, library`.
+The dependency direction is `server → application → documents, library, sync`.
 
 Unit tests live beside their owning module. Documents tests load examples from
 `java/documents/src/test/resources/documents/` and publish a test-only fixtures JAR for application/server tests. HTTP
@@ -139,8 +144,8 @@ folder, and posters beside the media. Sync the media folder and the documents fo
 phone and choose both. Media is fingerprinted once (8 MiB read per file) and again only when it
 changes.
 
-The app uses the shared Java library (`java/documents`) as a jar from `~/.m2`, the same
-jar the server builds against. Gradle installs it with Maven whenever it configures the
+The app uses the shared Java jars (`java/documents`, `java/library`, `java/sync`) from `~/.m2`,
+the same jars the server builds against. Gradle installs it with Maven whenever it configures the
 build, including an Android Studio sync, so the app never compiles against a stale jar; Maven
 skips work that is up to date. Jackson comes with the jar, at the version Spring Boot manages.
 Keep `petitesRoues` in `android/gradle/libs.versions.toml` equal to the project version in

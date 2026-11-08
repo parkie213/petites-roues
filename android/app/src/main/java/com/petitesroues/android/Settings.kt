@@ -4,7 +4,7 @@ import android.content.Context
 import android.net.Uri
 import androidx.core.content.edit
 import androidx.core.net.toUri
-import com.petitesroues.android.desktop.Desktop
+import com.petitesroues.model.sync.Desktop
 
 /** Small per-device preferences: the content folders, the paired desktop and the players' toggles. */
 class Settings(context: Context) {
@@ -35,9 +35,9 @@ class Settings(context: Context) {
           remove("desktopToken")
           remove("desktopName")
         } else {
-          putString("desktopUrl", value.url)
-          putString("desktopToken", value.token)
-          putString("desktopName", value.name)
+          putString("desktopUrl", value.url())
+          putString("desktopToken", value.token())
+          putString("desktopName", value.name())
         }
       }
 

@@ -1,9 +1,9 @@
 package com.petitesroues.phone;
 
 import com.petitesroues.model.phone.PairedPhone;
-import com.petitesroues.model.phone.PairingCode;
 import com.petitesroues.model.phone.PhonePairing;
-import com.petitesroues.model.phone.PhoneToken;
+import com.petitesroues.model.sync.PairingCode;
+import com.petitesroues.model.sync.PhoneToken;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -58,7 +58,8 @@ public class PhonePairingService {
     String secret = randomText(18);
     Instant expiry = now.plus(SECRET_LIFETIME);
     secrets.put(secret, expiry);
-    return new PhonePairing(new PairingCode(1, desktopName, List.copyOf(urls), secret), expiry);
+    return new PhonePairing(
+        new PairingCode(PairingCode.VERSION, desktopName, List.copyOf(urls), secret), expiry);
   }
 
   /**

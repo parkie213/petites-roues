@@ -1,5 +1,6 @@
 package com.petitesroues.model.phone;
 
+import com.petitesroues.model.sync.PairingCode;
 import java.time.Instant;
 
 /**

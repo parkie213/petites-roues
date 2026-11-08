@@ -4,6 +4,9 @@ import android.content.Context
 import android.content.pm.PackageManager
 import android.os.Build
 import android.util.Log
+import com.petitesroues.model.sync.Desktop
+import com.petitesroues.sync.DesktopClient
+import com.petitesroues.sync.PairingCodeReader
 import android.provider.Settings as SystemSettings
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -56,6 +59,7 @@ private fun phoneName(context: Context): String =
 fun DesktopDialog(settings: Settings, onDismiss: () -> Unit) {
   val context = LocalContext.current
   val scope = rememberCoroutineScope()
+  val client = remember { DesktopClient() }
   var desktop by remember { mutableStateOf(settings.desktop) }
   var status by remember { mutableStateOf<String?>(null) }
   var busy by remember { mutableStateOf(false) }
@@ -82,12 +86,12 @@ fun DesktopDialog(settings: Settings, onDismiss: () -> Unit) {
 
   fun test(paired: Desktop) {
     busy = true
-    status = "Connecting to ${paired.url}…"
+    status = "Connecting to ${paired.url()}…"
     scope.launch {
-      val result = withContext(Dispatchers.IO) { runCatching { DesktopClient.hello(paired) } }
+      val result = withContext(Dispatchers.IO) { runCatching { client.hello(paired) } }
       status =
         result.fold(
-          { "Connected to ${it.name}: ${it.titles} study documents, ${it.media} media files." },
+          { "Connected to ${it.name()}: ${it.titles()} study documents, ${it.media()} media files." },
           {
             Log.w("Desktop", "Connection test failed", it)
             "Could not connect: ${it.message ?: it.javaClass.simpleName}"
@@ -103,7 +107,7 @@ fun DesktopDialog(settings: Settings, onDismiss: () -> Unit) {
     scope.launch {
       val result =
         withContext(Dispatchers.IO) {
-          runCatching { DesktopClient.pair(PairingCode.parse(scanned), phoneName(context)) }
+          runCatching { client.pair(PairingCodeReader.read(scanned), phoneName(context)) }
         }
       result.fold(
         { paired ->
@@ -148,8 +152,8 @@ fun DesktopDialog(settings: Settings, onDismiss: () -> Unit) {
               "be on the same Wi-Fi."
           )
         else {
-          Text(paired.name, style = MaterialTheme.typography.titleMedium)
-          Text(paired.url, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+          Text(paired.name(), style = MaterialTheme.typography.titleMedium)
+          Text(paired.url(), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
         status?.let { Text(it, style = MaterialTheme.typography.bodyMedium) }
       }

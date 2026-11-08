@@ -3,9 +3,16 @@ package com.petitesroues.web;
 import static org.junit.jupiter.api.Assertions.*;
 
 import com.petitesroues.config.PhoneListener;
+import com.petitesroues.model.sync.Desktop;
+import com.petitesroues.model.sync.PairingCode;
 import com.petitesroues.phone.PhonePairingService;
 import com.petitesroues.support.HttpClients;
 import com.petitesroues.support.HttpIntegrationTest;
+import com.petitesroues.sync.DesktopClient;
+import com.petitesroues.sync.DesktopException;
+import com.petitesroues.sync.PairingCodeReader;
+import java.io.IOException;
+import java.net.ServerSocket;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.AfterEach;
@@ -18,7 +25,10 @@ import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestClient;
 import tools.jackson.databind.JsonNode;
 
-/** Pairing a phone and its authenticated requests, through a real phone listener. */
+/**
+ * Pairing a phone and its authenticated requests, through a real phone listener and the phone's own
+ * client ({@link DesktopClient}), so the two sides of the protocol are tested together.
+ */
 @TestPropertySource(properties = {"petitesroues.phone.enabled=true", "petitesroues.phone.port=0"})
 class PhoneListenerIntegrationTest extends HttpIntegrationTest {
   @Autowired PhoneListener listener;
@@ -66,26 +76,36 @@ class PhoneListenerIntegrationTest extends HttpIntegrationTest {
             .body(String.class));
   }
 
+  /** A local port nothing listens on: connecting is refused at once. */
+  private static String deadUrl() throws IOException {
+    try (var socket = new ServerSocket(0)) {
+      return "http://127.0.0.1:" + socket.getLocalPort();
+    }
+  }
+
   @Test
-  void aPhonePairsOnceThenItsTokenOpensOnlyPhoneRoutes() {
+  void aPhonePairsOnceThenItsTokenOpensOnlyPhoneRoutes() throws IOException {
     assertTrue(listener.enabled());
     assertNotEquals(port, listener.port());
     var status = mapper.readTree(http.get().uri("/api/phone").retrieve().body(String.class));
     assertTrue(status.path("enabled").asBoolean());
     assertEquals(listener.port(), status.path("port").asInt());
 
-    String secret = pairing.start("desk", List.of("http://192.0.2.1:1")).code().pair();
-    var pair = Map.of("secret", secret, "name", "Pixel");
-    var paired =
-        mapper.readTree(phone.post().uri("/phone/pair").body(pair).retrieve().body(String.class));
-    String token = paired.path("token").asString();
-    assertFalse(token.isBlank());
-    assertEquals(
-        400,
-        status(() -> phone.post().uri("/phone/pair").body(pair).retrieve().toBodilessEntity()),
-        "a pairing secret works once");
+    // What the phone scans: the desktop's own payload, as the web shows it in the QR code.
+    String phoneUrl = "http://127.0.0.1:" + listener.port();
+    var offered = pairing.start(listener.desktopName(), List.of(deadUrl(), phoneUrl)).code();
+    PairingCode scanned = PairingCodeReader.read(mapper.writeValueAsString(offered));
+    assertEquals(offered, scanned);
 
-    assertEquals(0, hello(token).path("titles").asInt());
+    var client = new DesktopClient();
+    Desktop desktop = client.pair(scanned, "Pixel");
+    assertEquals(new Desktop(listener.desktopName(), phoneUrl, desktop.token()), desktop);
+    assertFalse(desktop.token().isBlank());
+    var spent = assertThrows(DesktopException.class, () -> client.pair(scanned, "Pixel"));
+    assertEquals(400, spent.status(), "a pairing secret works once");
+
+    assertEquals(0, client.hello(desktop).titles());
+    String token = desktop.token();
     assertEquals(401, status(() -> hello("wrong")));
     assertEquals(401, status(() -> phone.get().uri("/phone/hello").retrieve().toBodilessEntity()));
 
@@ -106,7 +126,9 @@ class PhoneListenerIntegrationTest extends HttpIntegrationTest {
         .uri("/api/phones/{id}", phones.get(0).path("id").asString())
         .retrieve()
         .toBodilessEntity();
-    assertEquals(401, status(() -> hello(token)), "a forgotten phone's token stops working");
+    var forgotten = assertThrows(DesktopException.class, () -> client.hello(desktop));
+    assertEquals(401, forgotten.status(), "a forgotten phone's token stops working");
+    assertEquals("Pair this phone with the desktop again", forgotten.getMessage());
   }
 
   @Test
