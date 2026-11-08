@@ -114,9 +114,7 @@ class MediaLinkIntegrationTest extends HttpIntegrationTest {
     var stray = title("stray");
     assertFalse(stray.path("mediaAvailable").asBoolean());
     assertEquals(
-        "No CBZ matches this document's reference — add the folder that holds it and Refresh,"
-            + " or link one by hand",
-        stray.path("unavailable").path("title").asString());
+        "No CBZ matches its reference", stray.path("unavailable").path("title").asString());
     assertEquals(List.of("No study document"), warnings(media("lost.cbz")));
     String strayId = stray.path("id").asString();
 

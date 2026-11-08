@@ -68,7 +68,11 @@ export function Documents({ data, onChanged }) {
         <Table.Tbody>
           {entries.map((entry) => {
             const link = href(entry);
-            const problems = Object.values(entry.unavailable ?? {});
+            // A present document without media needs no words: the empty column and its
+            // Locate media button say it. Other problems (missing document, audio) still show.
+            const problems = Object.entries(entry.unavailable ?? {})
+              .filter(([key]) => !(key === "title" && entry.documentAvailable))
+              .map(([, problem]) => problem);
             return (
               <Table.Tr key={entry.id}>
                 <Table.Td>

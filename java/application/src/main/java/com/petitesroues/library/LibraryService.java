@@ -263,12 +263,8 @@ public class LibraryService {
       boolean videoAvailable = !comic && mediaAvailable;
       String videoProblem =
           details == null || details.referenceFingerprint() == null
-              ? "No reference media recorded — link one by hand, or run prepare/reference.py and"
-                  + " Refresh"
-              : "No "
-                  + (comic ? "CBZ" : "video")
-                  + " matches this document's reference — add the folder that holds it and"
-                  + " Refresh, or link one by hand";
+              ? "No reference media recorded"
+              : "No " + (comic ? "CBZ" : "video") + " matches its reference";
       boolean available = documentAvailable && mediaAvailable;
       var problems = new LinkedHashMap<String, String>();
       if (!available)

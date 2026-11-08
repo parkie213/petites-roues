@@ -239,12 +239,7 @@ class LibraryServiceTest {
                     "b", "B", null, null, null, null, "a.json", located("v1:x", "comic"))));
     var problems = library().catalogue().stream().map(item -> item.unavailable().get("title"));
     assertEquals(
-        List.of(
-            "No reference media recorded — link one by hand, or run prepare/reference.py and"
-                + " Refresh",
-            "No CBZ matches this document's reference — add the folder that holds it and Refresh,"
-                + " or link one by hand"),
-        problems.toList());
+        List.of("No reference media recorded", "No CBZ matches its reference"), problems.toList());
   }
 
   @Test
