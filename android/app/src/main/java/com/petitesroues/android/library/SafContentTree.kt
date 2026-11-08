@@ -14,7 +14,7 @@ import java.nio.channels.SeekableByteChannel
  * URIs beneath [tree]. Each folder costs one provider query, which is why the scanner skips hidden
  * folders and `content-archive` before descending.
  */
-class SafContentTree(private val resolver: ContentResolver, private val tree: Uri) : ContentTree<Uri> {
+class SafContentTree(private val resolver: ContentResolver, private val tree: Uri) : ContentFolder {
   private val rootId = DocumentsContract.getTreeDocumentId(tree)
 
   override fun root(): Uri = DocumentsContract.buildDocumentUriUsingTree(tree, rootId)
@@ -62,8 +62,7 @@ class SafContentTree(private val resolver: ContentResolver, private val tree: Ur
 
   override fun open(file: Uri): SeekableByteChannel = open(resolver, file)
 
-  /** The display name of the content folder itself. */
-  fun name(): String =
+  override fun name(): String =
     resolver.query(root(), arrayOf(Document.COLUMN_DISPLAY_NAME), null, null, null)?.use {
       if (it.moveToFirst()) it.getString(0) else null
     } ?: error("Cannot open $tree")

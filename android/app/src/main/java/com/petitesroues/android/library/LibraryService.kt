@@ -57,7 +57,7 @@ class LibraryService(
     var measured = true
     val previous by lazy { store.titles() }
     for (tree in trees) {
-      val folder = SafContentTree(resolver, tree)
+      val folder: ContentFolder = if (AppFolder.isFile(tree)) FileContentTree(tree) else SafContentTree(resolver, tree)
       try {
         val root = folder.name()
         if (!roots.add(root)) {

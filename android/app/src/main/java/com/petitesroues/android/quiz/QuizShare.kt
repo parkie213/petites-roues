@@ -1,5 +1,6 @@
 package com.petitesroues.android.quiz
 
+import android.content.ActivityNotFoundException
 import android.content.ClipData
 import com.petitesroues.android.pages.MarkdownPage
 import android.content.Context
@@ -34,14 +35,20 @@ object QuizShare {
     send(context, fileName, document.title(), build(rules(context), QuizPack.type(types, typeId, document)))
   }
 
-  /** Shares a general quiz from a content folder's `quizzes/`. */
-  fun share(context: Context, quiz: MarkdownPage) =
-    send(context, QuizPack.fileName(quiz), quiz.title, QuizPack.general(rules(context), quiz))
+  /**
+   * Shares a general quiz from a content folder's `quizzes/`: straight to the app [app] names (a
+   * package) when it is installed, otherwise through the share sheet.
+   */
+  fun share(context: Context, quiz: MarkdownPage, app: String? = null) =
+    send(context, QuizPack.fileName(quiz), quiz.title, prompt(context, quiz), app)
+
+  /** A general quiz's whole prompt, as shared. */
+  fun prompt(context: Context, quiz: MarkdownPage): String = QuizPack.general(rules(context), quiz)
 
   private fun rules(context: Context): String =
     context.assets.open("quiz/subtitle-quiz.md").bufferedReader().use { it.readText() }
 
-  private fun send(context: Context, fileName: String, subject: String, pack: String) {
+  private fun send(context: Context, fileName: String, subject: String, pack: String, app: String? = null) {
     val folder = File(context.cacheDir, "quiz").apply { mkdirs() }
     folder.listFiles()?.forEach { it.delete() }
     val file = File(folder, fileName).apply { writeText(pack) }
@@ -57,6 +64,10 @@ object QuizShare {
         clipData = ClipData.newRawUri(file.name, uri)
         addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
       }
+    if (app != null)
+      try {
+        return context.startActivity(Intent(send).setPackage(app))
+      } catch (_: ActivityNotFoundException) {}
     context.startActivity(Intent.createChooser(send, "Quiz me with…"))
   }
 }

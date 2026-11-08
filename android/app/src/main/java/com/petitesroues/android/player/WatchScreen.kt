@@ -33,6 +33,9 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Notes
 import androidx.compose.material.icons.filled.Pause
+import androidx.compose.material.icons.filled.ExpandMore
+import androidx.compose.material.icons.filled.Tune
+import androidx.compose.material.icons.filled.FindInPage
 import androidx.compose.material.icons.filled.PauseCircleOutline
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Replay
@@ -93,6 +96,7 @@ import com.petitesroues.android.study.SubtitleLook
 import com.petitesroues.android.study.TranslationContext
 import com.petitesroues.android.study.phraseNotes
 import com.petitesroues.model.document.StudyDocument
+import kotlinx.coroutines.delay
 import kotlin.math.abs
 
 private val speeds = listOf(0.5f, 0.6f, 0.8f, 1f, 1.25f, 1.5f)
@@ -120,10 +124,11 @@ private val railMargin = 12.dp
 
 /**
  * The full-screen landscape player: the video with tappable phrase subtitles, a pill of line
- * shortcuts and study toggles on the right, and transport controls when the learner pauses (not
- * when auto-pause or a phrase tap stops the video). Tapping the video plays or pauses; swiping it
- * steps between lines like the previous/next buttons. The transport bar can hide the source
- * subtitles (remembered per device); the translation and notes toggles still work without them.
+ * shortcuts and study toggles on the right. Tapping the video reveals transport controls without
+ * changing playback; a central button and a thumb button in the second rail column play/pause.
+ * Both rail columns collapse together. Phrase cycling pauses on each explanation in source order.
+ * Horizontal swipes step between lines. Translation appears above the source subtitles.
+ * The transport bar can hide source subtitles (remembered per device).
  * Its quiz button shares the lines just watched with a chat app such as Claude ([QuizShare]).
  * Controls keep clear of the camera cutout.
  * Read-only: no editing on the phone.
@@ -145,11 +150,15 @@ fun WatchScreen(
   var quizzing by remember { mutableStateOf(false) }
   var help by remember { mutableStateOf<Help?>(null) }
   var explored by remember { mutableStateOf<Explored?>(null) }
-  // Whether the learner paused, which shows the transport bar; auto-pause and phrase taps do not.
-  var paused by remember { mutableStateOf(true) }
-  val toggle = {
-    if (playback.playing) paused = true
-    playback.toggle()
+  var controlsVisible by remember { mutableStateOf(true) }
+  var railExpanded by remember { mutableStateOf(true) }
+  val toggle = { playback.toggle() }
+
+  LaunchedEffect(controlsVisible, playback.playing) {
+    if (controlsVisible && playback.playing) {
+      delay(3500)
+      controlsVisible = false
+    }
   }
 
   FullScreenLandscape(keepScreenOn = playback.playing)
@@ -186,7 +195,6 @@ fun WatchScreen(
     if (playback.playing) {
       help = null
       explored = null
-      paused = false
     } else store.savePosition(title.path, playback.position, playback.fraction)
   }
   LifecycleStartEffect(playback) { onStopOrDispose { playback.pause() } }
@@ -200,17 +208,12 @@ fun WatchScreen(
   Box(Modifier.fillMaxSize().background(Color.Black)) {
     ContentFrame(player = playback.player, modifier = Modifier.fillMaxSize())
 
-    // Taps toggle playback (or dismiss an explanation); horizontal swipes step between lines.
+    // Background taps only reveal or hide controls; horizontal swipes step between lines.
     Box(
       Modifier.fillMaxSize()
         .pointerInput(playback) {
           detectTapGestures(
-            onTap = {
-              if (explored != null || help != null) {
-                explored = null
-                help = null
-              } else toggle()
-            }
+            onTap = { controlsVisible = !controlsVisible }
           )
         }
         .pointerInput(playback) {
@@ -230,7 +233,8 @@ fun WatchScreen(
     Column(
       Modifier.align(Alignment.BottomCenter)
         .fillMaxWidth()
-        .padding(start = 84.dp, end = 84.dp, bottom = 12.dp),
+        .windowInsetsPadding(WindowInsets.displayCutout.only(WindowInsetsSides.Horizontal))
+        .padding(start = 24.dp, end = 140.dp, bottom = 12.dp),
       horizontalAlignment = Alignment.CenterHorizontally,
       verticalArrangement = Arrangement.spacedBy(6.dp),
     ) {
@@ -306,48 +310,78 @@ fun WatchScreen(
     }
 
     Column(
-      Modifier.align(Alignment.CenterEnd)
-        .windowInsetsPadding(WindowInsets.displayCutout.only(WindowInsetsSides.Horizontal))
-        .padding(end = railMargin)
-        .background(Color(0x99101419), RoundedCornerShape(28.dp))
-        .border(1.dp, Color(0x1FFFFFFF), RoundedCornerShape(28.dp))
-        .padding(railPadding),
-      horizontalAlignment = Alignment.CenterHorizontally,
-      verticalArrangement = Arrangement.spacedBy(2.dp),
+      Modifier.align(Alignment.BottomEnd)
+        .windowInsetsPadding(WindowInsets.displayCutout.only(WindowInsetsSides.Horizontal + WindowInsetsSides.Bottom))
+        .padding(end = railMargin, bottom = 6.dp),
+      horizontalAlignment = Alignment.End,
+      verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {
-      RailButton(Icons.Filled.SkipPrevious, "Previous line") {
-        explored = null
-        playback.step(-1)
-      }
-      RailButton(Icons.Filled.Replay, "Replay line") {
-        explored = null
-        playback.replay(maxOf(0, timeline.current(time)))
-      }
-      RailButton(Icons.Filled.SkipNext, "Next line") {
-        explored = null
-        playback.step(1)
-      }
-      Box(Modifier.padding(vertical = 4.dp).size(width = 22.dp, height = 1.dp).background(Color(0x40FFFFFF)))
-      RailButton(Icons.Filled.PauseCircleOutline, "Auto-pause", selected = autoPause) {
-        autoPause = !autoPause
-      }
-      RailButton(Icons.Filled.Translate, "Line translation", selected = help == Help.TRANSLATION) {
-        explored = null
-        help = if (help == Help.TRANSLATION) null else Help.TRANSLATION
-      }
-      RailButton(
-        Icons.AutoMirrored.Filled.Notes,
-        "Sentence notes",
-        selected = help == Help.NOTES,
-        dimmed = sentenceNotes.isEmpty(),
-        badge = sentenceNotes.isNotEmpty(),
+      if (railExpanded) Row(
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
+        verticalAlignment = Alignment.Bottom,
       ) {
-        explored = null
-        help = if (help == Help.NOTES) null else Help.NOTES
+        RailPill {
+          RailButton(
+            if (playback.playing) Icons.Filled.Pause else Icons.Filled.PlayArrow,
+            if (playback.playing) "Pause" else "Resume",
+            onClick = toggle,
+          )
+          val phrases = showing.flatMap { cue ->
+            readyAlignment(cue.line(), document)?.source().orEmpty().indices.map {
+              Explored(cue.line().id(), it)
+            }
+          }
+          RailButton(Icons.Filled.FindInPage, "Next phrase explanation", dimmed = phrases.isEmpty()) {
+            if (phrases.isNotEmpty()) {
+              playback.pause()
+              help = null
+              controlsVisible = false
+              explored = phrases[(phrases.indexOf(explored) + 1) % phrases.size]
+            }
+          }
+        }
+        RailPill {
+          RailButton(Icons.Filled.SkipPrevious, "Previous line") {
+            explored = null
+            playback.step(-1)
+          }
+          RailButton(Icons.Filled.Replay, "Replay line") {
+            explored = null
+            playback.replay(maxOf(0, timeline.current(time)))
+          }
+          RailButton(Icons.Filled.SkipNext, "Next line") {
+            explored = null
+            playback.step(1)
+          }
+          Box(Modifier.padding(vertical = 4.dp).size(width = 22.dp, height = 1.dp).background(Color(0x40FFFFFF)))
+          RailButton(Icons.Filled.PauseCircleOutline, "Auto-pause", selected = autoPause) {
+            autoPause = !autoPause
+          }
+          RailButton(Icons.Filled.Translate, "Line translation", selected = help == Help.TRANSLATION) {
+            explored = null
+            help = if (help == Help.TRANSLATION) null else Help.TRANSLATION
+          }
+          RailButton(
+            Icons.AutoMirrored.Filled.Notes,
+            "Sentence notes",
+            selected = help == Help.NOTES,
+            dimmed = sentenceNotes.isEmpty(),
+            badge = sentenceNotes.isNotEmpty(),
+          ) {
+            explored = null
+            help = if (help == Help.NOTES) null else Help.NOTES
+          }
+        }
+      }
+      Surface(color = Color(0xCC101419), shape = CircleShape) {
+        RailButton(
+          if (railExpanded) Icons.Filled.ExpandMore else Icons.Filled.Tune,
+          if (railExpanded) "Minimise player controls" else "Expand player controls",
+        ) { railExpanded = !railExpanded }
       }
     }
 
-    if (!playback.playing && (paused || playback.error != null))
+    if (controlsVisible || playback.error != null)
       TransportBar(
         title = title.name,
         time = time,
@@ -355,9 +389,7 @@ fun WatchScreen(
         speed = speed,
         subtitles = subtitles,
         status = playback.error,
-        playing = playback.playing,
         onBack = onBack,
-        onToggle = toggle,
         onSeek = playback::seek,
         onSpeed = { speed = it },
         onQuiz = { quizzing = true },
@@ -366,8 +398,21 @@ fun WatchScreen(
           settings.showSubtitles = subtitles
           explored = null
         },
-        modifier = Modifier.align(Alignment.TopCenter),
+        modifier = Modifier.fillMaxSize(),
       )
+
+    if (controlsVisible) IconButton(
+      onClick = toggle,
+      modifier = Modifier.align(Alignment.Center).size(80.dp)
+        .background(Color(0x88000000), CircleShape),
+    ) {
+      Icon(
+        if (playback.playing) Icons.Filled.Pause else Icons.Filled.PlayArrow,
+        contentDescription = if (playback.playing) "Pause" else "Play",
+        tint = Color.White,
+        modifier = Modifier.size(48.dp),
+      )
+    }
 
     if (quizzing)
       QuizDialog(
@@ -397,6 +442,18 @@ private fun Panel(content: @Composable () -> Unit) {
   ) {
     content()
   }
+}
+
+/** One column of persistent shortcuts; both columns share the minimise button beneath them. */
+@Composable
+private fun RailPill(content: @Composable () -> Unit) {
+  Column(
+    Modifier.background(Color(0xCC101419), RoundedCornerShape(28.dp))
+      .border(1.dp, Color(0x1FFFFFFF), RoundedCornerShape(28.dp))
+      .padding(railPadding),
+    horizontalAlignment = Alignment.CenterHorizontally,
+    verticalArrangement = Arrangement.spacedBy(2.dp),
+  ) { content() }
 }
 
 /** A round button in the right-hand rail pill; a selected toggle uses the warm brand accent. */
@@ -437,9 +494,7 @@ private fun TransportBar(
   speed: Float,
   subtitles: Boolean,
   status: String?,
-  playing: Boolean,
   onBack: () -> Unit,
-  onToggle: () -> Unit,
   onSeek: (Double) -> Unit,
   onSpeed: (Float) -> Unit,
   onSubtitles: () -> Unit,
@@ -448,11 +503,11 @@ private fun TransportBar(
 ) {
   var speedMenu by remember { mutableStateOf(false) }
   Column(
-    modifier.fillMaxWidth()
+    modifier
       .background(Brush.verticalGradient(listOf(Color(0xCC000000), Color(0x66000000), Color.Transparent)))
       .windowInsetsPadding(WindowInsets.displayCutout.only(WindowInsetsSides.Horizontal + WindowInsetsSides.Top))
       // Stops short of the rail pill, so the two sit side by side instead of overlapping.
-      .padding(start = 8.dp, end = railMargin + railButton + railPadding * 2 + 8.dp, top = 2.dp, bottom = 14.dp)
+      .padding(start = 8.dp, end = 140.dp, top = 2.dp, bottom = 8.dp)
   ) {
     Row(verticalAlignment = Alignment.CenterVertically) {
       IconButton(onClick = onBack) {
@@ -464,11 +519,6 @@ private fun TransportBar(
         fontSize = 15.sp,
         maxLines = 1,
         modifier = Modifier.weight(1f),
-      )
-      Text(
-        "${clock(time)} / ${clock(duration)}",
-        color = Color(0xFFC8D4E0),
-        fontSize = 13.sp,
       )
       QuizBadge(onQuiz)
       IconButton(onClick = onSubtitles) {
@@ -494,6 +544,7 @@ private fun TransportBar(
         }
       }
     }
+    Spacer(Modifier.weight(1f))
     Row(verticalAlignment = Alignment.CenterVertically) {
       if (duration > 0)
         ThinSlider(
@@ -503,14 +554,13 @@ private fun TransportBar(
           modifier = Modifier.weight(1f).padding(horizontal = 12.dp),
         )
       else Box(Modifier.weight(1f))
-      IconButton(onClick = onToggle) {
-        Icon(
-          if (playing) Icons.Filled.Pause else Icons.Filled.PlayArrow,
-          contentDescription = if (playing) "Pause" else "Play",
-          tint = Color.White,
-        )
-      }
     }
+    Text(
+      "${clock(time)} / ${clock(duration)}",
+      color = Color(0xFFC8D4E0),
+      fontSize = 13.sp,
+      modifier = Modifier.padding(start = 12.dp),
+    )
   }
 }
 

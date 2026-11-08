@@ -33,6 +33,7 @@ object LibraryUsage {
     val volumes = context.getSystemService(StorageManager::class.java).storageVolumes
     return trees
       .mapNotNull { tree ->
+        if (AppFolder.isFile(tree)) return@mapNotNull File(checkNotNull(tree.path))
         val volume = DocumentsContract.getTreeDocumentId(tree).substringBefore(':')
         if (volume == "primary") Environment.getExternalStorageDirectory()
         else volumes.firstOrNull { it.uuid == volume }?.directory

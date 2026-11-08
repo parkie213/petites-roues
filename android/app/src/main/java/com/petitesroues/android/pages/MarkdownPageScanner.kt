@@ -3,6 +3,8 @@ package com.petitesroues.android.pages
 import android.content.ContentResolver
 import android.net.Uri
 import android.provider.DocumentsContract
+import com.petitesroues.android.library.AppFolder
+import java.io.File
 import android.provider.DocumentsContract.Document
 
 /**
@@ -14,7 +16,25 @@ import android.provider.DocumentsContract.Document
 class MarkdownPageScanner(private val resolver: ContentResolver) {
   /** Every page in [trees]' [folder], in content-folder order and then by file name; unreadable folders are skipped. */
   fun scan(trees: List<Uri>, folder: String): List<MarkdownPage> =
-    trees.flatMap { tree -> runCatching { scan(tree, folder) }.getOrDefault(emptyList()) }
+    trees.flatMap { tree ->
+      runCatching { if (AppFolder.isFile(tree)) scanFiles(tree, folder) else scan(tree, folder) }.getOrDefault(emptyList())
+    }
+
+  /**
+   * The app's own folder holds one subfolder per desktop repository (as copied from the desktop),
+   * each with its own `notes/` and `quizzes/`.
+   */
+  private fun scanFiles(tree: Uri, folder: String): List<MarkdownPage> =
+    File(checkNotNull(tree.path)).listFiles().orEmpty().filter { it.isDirectory && !it.name.startsWith(".") }.sortedBy { it.name }.flatMap { repository ->
+      File(repository, folder).listFiles().orEmpty()
+        .filter { it.isFile && it.name.endsWith(".md") && !it.name.startsWith(".") }
+        .sortedBy { it.name }
+        .map { file ->
+          val id = file.name.removeSuffix(".md")
+          val text = file.readText()
+          MarkdownPage("${tree.path}/${repository.name}/$folder/$id", repository.name, MarkdownPage.title(text, id), text)
+        }
+    }
 
   private fun scan(tree: Uri, folder: String): List<MarkdownPage> {
     val root = DocumentsContract.getTreeDocumentId(tree)
