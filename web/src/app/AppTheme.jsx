@@ -1,13 +1,41 @@
 import { createTheme, MantineProvider } from "@mantine/core";
 import "@mantine/core/styles.layer.css";
 
+const libraryPage =
+  location.pathname === "/" ||
+  /^\/(notes|quizzes)(\/|$)/.test(location.pathname);
+
 const theme = createTheme({
-  primaryColor: "sage",
-  primaryShade: 4,
+  primaryColor: "coral",
+  primaryShade: libraryPage ? 6 : 4,
   autoContrast: true,
   defaultRadius: "md",
-  fontFamily: '"Segoe UI", system-ui, sans-serif',
+  fontFamily: 'Manrope, "Segoe UI", system-ui, sans-serif',
   colors: {
+    coral: [
+      "#fff1ed",
+      "#fce0d8",
+      "#f7beaf",
+      "#f19781",
+      "#eb765c",
+      "#e55e44",
+      "#d94b3a",
+      "#bd3b2b",
+      "#a73124",
+      "#90291e",
+    ],
+    navy: [
+      "#edf3f9",
+      "#d9e3ef",
+      "#afc5de",
+      "#83a5cd",
+      "#608abd",
+      "#4779b4",
+      "#356aa8",
+      "#285b94",
+      "#1e487a",
+      "#142d4e",
+    ],
     sage: [
       "#f0f7f2",
       "#dfede3",
@@ -39,7 +67,10 @@ const theme = createTheme({
 /** Provides the shared Mantine theme for the application and portalled controls. */
 export function AppTheme({ children }) {
   return (
-    <MantineProvider theme={theme} forceColorScheme="dark">
+    <MantineProvider
+      theme={theme}
+      forceColorScheme={libraryPage ? "light" : "dark"}
+    >
       {children}
     </MantineProvider>
   );

@@ -19,6 +19,7 @@ import { openHref, warnings } from "./cards.js";
 import { postersHref } from "./navigation.js";
 import { nativeName } from "./language.js";
 import "./Posters.css";
+import { filterShelves } from "./poster-filter.js";
 
 const artUrl = (art) => art?.url;
 
@@ -145,7 +146,7 @@ function More({ slot, onChanged }) {
 }
 
 /**
- * A small (!) on the corner of the art; hovering or focusing it lists what needs attention.
+ * A quiet marker beside the caption; hovering or focusing it lists what needs attention.
  */
 function Attention({ lines }) {
   return (
@@ -172,7 +173,7 @@ function Attention({ lines }) {
 
 /**
  * One card: a whole series (opens its tomes/episodes), or a single title/slot (opens it).
- * Anything that needs the user shows as a (!) on the art. A card that cannot be opened (no study
+ * Anything that needs the user has an accessible attention marker beside the caption. A card that cannot be opened (no study
  * document yet) or whose media is missing is dimmed.
  * A title's reading or viewing progress is a thin bar along the bottom of its art. [language], when
  * given, is a pill on the art's top-left corner.
@@ -224,9 +225,10 @@ function Card({
       ) : (
         <div className="poster-link">{content}</div>
       )}
-      {lines.length > 0 && <Attention lines={lines} />}
+
       <Group gap={4} wrap="nowrap" justify="space-between" align="flex-start">
         <div className="poster-caption">
+          {lines.length > 0 && <Attention lines={lines} />}
           <Text size="sm" fw={600} lineClamp={2} title={name}>
             {name}
           </Text>
@@ -365,7 +367,16 @@ function SeriesView({ group, selection, follow, repositoryNames, onChanged }) {
  * fetched again whenever [data], the loaded library, changes. [onChanged] reloads the library after
  * a card action, receiving the error when the action failed.
  */
-export function Posters({ data, language, selection, go, onChanged }) {
+export function Posters({
+  data,
+  language,
+  selection,
+  go,
+  onChanged,
+  search,
+  mediaFilter,
+  attentionOnly,
+}) {
   const [posters, setPosters] = useState(null);
   const [error, setError] = useState("");
   useEffect(() => {
@@ -404,7 +415,11 @@ export function Posters({ data, language, selection, go, onChanged }) {
   const filter = folders.some((repo) => repo.id === selection.repository)
     ? selection.repository
     : null;
-  const result = posters.shelves;
+  const result = filterShelves(posters.shelves, {
+    search,
+    mediaFilter,
+    attentionOnly,
+  });
   // Cards name their language only when the posters show more than one.
   const tagged = posters.multilingual;
   const follow = (event, href) => {
@@ -417,7 +432,7 @@ export function Posters({ data, language, selection, go, onChanged }) {
     go(href);
   };
   const open = selection.group
-    ? result
+    ? posters.shelves
         .flatMap((shelf) => shelf.groups)
         .find((g) => g.key === selection.group)
     : null;
@@ -486,7 +501,7 @@ export function Posters({ data, language, selection, go, onChanged }) {
         <Text c="dimmed">
           {filter
             ? "Nothing in this folder yet. Refresh after adding videos, comics or study documents."
-            : "Nothing here yet."}
+            : "No titles match these filters."}
         </Text>
       )}
     </Stack>

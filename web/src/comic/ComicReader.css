@@ -5,10 +5,12 @@
 }
 .comic-toolbar {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-columns: minmax(100px, 1fr) auto auto;
   align-items: center;
   gap: 12px;
-  padding: 6px 12px;
+  padding: 4px 16px;
+  min-height: 44px;
+  background: #20242a;
   border-bottom: 1px solid var(--mantine-color-default-border);
   flex-shrink: 0;
 }
@@ -21,19 +23,6 @@
 .comic-title {
   min-width: 0;
   line-height: 1.2;
-}
-.comic-pagebar {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 4px 12px;
-  border-top: 1px solid var(--mantine-color-default-border);
-  flex-shrink: 0;
-}
-.comic-page-slider {
-  flex: 1;
-  min-width: 0;
-  margin: 0 6px;
 }
 .comic-toolbar-tools {
   display: flex;
@@ -51,9 +40,10 @@
   flex: 1;
   min-height: 0;
   display: flex;
-  background: #1a1a1e;
+  background: #181c21;
 }
 .comic-view-frame {
+  position: relative;
   flex: 1;
   min-width: 0;
   min-height: 0;
@@ -65,7 +55,7 @@
   min-height: 0;
   overflow: auto;
   position: relative;
-  padding: 8px 0;
+  padding: 2px 0;
 }
 .comic-spread {
   display: flex;
@@ -275,9 +265,6 @@
     grid-template-columns: minmax(0, 1fr);
     padding: 4px 8px;
   }
-  .comic-pagebar {
-    padding: 4px 8px;
-  }
   .comic-toolbar-tools {
     grid-column: 1 / -1;
     justify-content: flex-start;
@@ -299,6 +286,7 @@
     flex-direction: column;
   }
   .comic-view-frame {
+    position: relative;
     min-height: 200px;
   }
   .comic-study-panel {
@@ -490,4 +478,255 @@ ul.comic-card-help {
 .comic-block-context [data-active] {
   color: var(--mantine-color-text);
   background: var(--mantine-color-default-hover);
+}
+
+/* Compact chrome leaves the full remaining height to the comic. */
+.comic-reader {
+  background: #181c21;
+  color: #e9e7e2;
+}
+.comic-toolbar .mantine-ActionIcon-root {
+  width: 28px;
+  height: 28px;
+  min-width: 28px;
+  color: #c8cdd3;
+}
+.comic-toolbar .mantine-ActionIcon-root[aria-pressed="true"] {
+  color: #e58b7a;
+  background: #df796714;
+}
+.comic-toolbar .mantine-Button-root {
+  height: 28px;
+  padding: 0 8px;
+  background: transparent;
+  border-color: transparent;
+  color: #e9e7e2;
+  font-size: 12px;
+  font-weight: 500;
+}
+.comic-toolbar .mantine-Select-input {
+  height: 28px;
+  min-height: 28px;
+  background: transparent;
+  font-size: 12px;
+  border-color: #42464d;
+}
+.comic-toolbar .mantine-Select-root {
+  width: 100px;
+}
+.comic-title h1 {
+  font-size: 13px;
+  font-weight: 500;
+}
+.comic-toolbar > .comic-chapter-select {
+  height: 28px;
+  max-width: 180px;
+  font-size: 12px;
+  background: transparent;
+  border: 0;
+  color: #9aa0a8;
+}
+.comic-page-overlay {
+  position: absolute;
+  right: 18px;
+  bottom: 14px;
+  z-index: 4;
+}
+.comic-page-overlay .comic-page-select {
+  height: 28px;
+  max-width: 110px;
+  border: 1px solid #ffffff14;
+  border-radius: 20px;
+  background: #292d33e8;
+  color: #e9e7e2;
+  padding: 0 12px;
+  font-size: 12px;
+  cursor: pointer;
+  box-shadow: 0 2px 8px #0002;
+}
+.comic-reader :is(button, a, select):focus-visible {
+  outline-color: #df7967;
+}
+.comic-turn {
+  flex-basis: 44px;
+}
+.comic-turn svg {
+  width: 21px;
+  height: 21px;
+}
+@media (max-width: 900px) {
+  .comic-toolbar {
+    gap: 6px;
+    padding: 4px 8px;
+  }
+  .comic-toolbar > .comic-chapter-select {
+    max-width: 120px;
+  }
+  .comic-toolbar-divider {
+    margin: 0 3px;
+  }
+}
+@media (max-width: 600px) {
+  .comic-toolbar {
+    grid-template-columns: minmax(0, 1fr) auto;
+    min-height: 44px;
+  }
+  .comic-toolbar-title {
+    min-height: 28px;
+  }
+  .comic-toolbar > .comic-chapter-select {
+    max-width: 130px;
+    width: 100%;
+  }
+  .comic-toolbar-tools {
+    grid-column: 1/-1;
+    justify-content: flex-end;
+    gap: 2px;
+  }
+  .comic-turn {
+    flex-basis: 24px;
+  }
+  .comic-page-overlay {
+    right: 10px;
+    bottom: 10px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .comic-turn {
+    transition: none;
+  }
+}
+
+/* Let the source lead; colour explains a phrase only while it is explored. */
+.comic-bubble-popover {
+  padding: 16px 18px 10px;
+  border: 1px solid #ffffff20;
+  border-radius: 9px;
+  background: #20242a;
+  box-shadow: 0 10px 32px #0004;
+}
+.comic-bubble-popover .comic-card-line {
+  font-size: 19px;
+  line-height: 1.65;
+  font-weight: 500;
+  color: #f0eeea;
+}
+.comic-bubble-popover .comic-card-phrase {
+  padding: 1px 2px;
+  border-bottom-width: 1px;
+  border-bottom-color: color-mix(in srgb, var(--phrase-color) 45%, transparent);
+}
+.comic-bubble-popover .comic-card-phrase[data-active],
+.comic-bubble-popover .comic-card-phrase:focus-visible {
+  background: transparent;
+  border-bottom-color: var(--phrase-color);
+  border-bottom-width: 2px;
+}
+.comic-bubble-popover .comic-card-translation {
+  margin: 7px 0 0;
+  font-size: 15px;
+  line-height: 1.65;
+  color: #bec5ce;
+}
+.comic-bubble-popover .comic-card-chunk {
+  text-decoration: none;
+}
+.comic-bubble-popover .comic-card-chunk[data-active],
+.comic-bubble-popover .comic-card-chunk:focus-visible {
+  background: transparent;
+  box-shadow: none;
+  color: #f0eeea;
+  text-decoration: underline 2px var(--phrase-color);
+  text-underline-offset: 4px;
+  border-radius: 0;
+}
+.comic-bubble-popover .comic-card-help,
+.comic-bubble-popover .comic-card-notes {
+  margin-top: 12px;
+  padding-top: 11px;
+  font-size: 14px;
+  line-height: 1.75;
+  color: #c2c8d0;
+  border-top-color: #ffffff0d;
+}
+.comic-bubble-popover .comic-card-notes p {
+  color: #c2c8d0;
+}
+.comic-bubble-popover .comic-card-notes p.comic-card-hint {
+  color: #9da6b2;
+  font-size: 12px;
+}
+.comic-bubble-popover .comic-card-notes p + p {
+  margin-top: 7px;
+}
+.comic-bubble-popover .source-expression {
+  background: none;
+  color: #e8e7e3;
+  font-weight: 500;
+  text-decoration: none;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+}
+.comic-bubble-popover .comic-card-actions {
+  margin-top: 5px;
+  gap: 3px;
+}
+.comic-bubble-popover .comic-card-actions .mantine-ActionIcon-root {
+  color: #b8c1cc;
+  width: 28px;
+  height: 28px;
+}
+.comic-bubble-popover .comic-card-actions .mantine-ActionIcon-root:hover {
+  color: #f0eeea;
+  background: #ffffff0a;
+}
+
+/* An opened help card should teach clearly, even though the reader around it stays quiet. */
+.comic-bubble-popover .comic-card-help,
+.comic-bubble-popover .comic-card-notes,
+.comic-bubble-popover .comic-card-notes p {
+  color: #e0e4e9;
+  font-size: 14px;
+  line-height: 1.8;
+}
+.comic-bubble-popover .source-expression {
+  color: #ffdda5;
+  font-weight: 600;
+  background: #e7b66f18;
+  padding: 1px 4px;
+  border-radius: 3px;
+  text-decoration: underline 2px #e7b66fc0;
+  text-underline-offset: 3px;
+  -webkit-box-decoration-break: clone;
+  box-decoration-break: clone;
+}
+.comic-bubble-popover .comic-card-phrase[data-active],
+.comic-bubble-popover .comic-card-phrase:focus-visible {
+  background: color-mix(in srgb, var(--phrase-color) 13%, transparent);
+  border-bottom-width: 2px;
+}
+.comic-bubble-popover .comic-card-chunk[data-active],
+.comic-bubble-popover .comic-card-chunk:focus-visible {
+  background: color-mix(in srgb, var(--phrase-color) 10%, transparent);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--phrase-color) 10%, transparent);
+  border-radius: 2px;
+}
+
+/* Phrase boundaries are teaching information, visible before any interaction. */
+.comic-bubble-popover .comic-card-line {
+  line-height: 2;
+}
+.comic-bubble-popover .comic-card-phrase {
+  padding: 3px 6px;
+  margin: 0 2px;
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--phrase-color) 17%, transparent);
+  border-bottom: 3px solid
+    color-mix(in srgb, var(--phrase-color) 85%, transparent);
+}
+.comic-bubble-popover .comic-card-phrase[data-active],
+.comic-bubble-popover .comic-card-phrase:focus-visible {
+  background: color-mix(in srgb, var(--phrase-color) 30%, transparent);
+  border-bottom: 3px solid var(--phrase-color);
 }

@@ -1,10 +1,9 @@
+import { createPortal } from "react-dom";
 import { useEffect, useState } from "react";
 import {
   Alert,
   Anchor,
-  Box,
   Button,
-  Container,
   Group,
   Loader,
   Modal,
@@ -13,23 +12,16 @@ import {
   SegmentedControl,
   Stack,
   Text,
-  ThemeIcon,
+  TextInput,
+  ActionIcon,
   Title,
 } from "@mantine/core";
-import {
-  BookOpen,
-  Check,
-  NotebookText,
-  Plus,
-  RefreshCw,
-  TriangleAlert,
-} from "lucide-react";
+import { Search, Check, Plus, RefreshCw, TriangleAlert } from "lucide-react";
 import { chooseOnComputer, request } from "../shared/api.js";
 import { LibraryBrowser } from "./LibraryBrowser.jsx";
 import { JobProgress } from "./JobProgress.jsx";
 import { jobSucceeded } from "./library-job.js";
 import { useLibraryJob } from "./useLibraryJob.js";
-import { LibraryQuiz } from "./LibraryQuiz.jsx";
 import { usageLine } from "./usage.js";
 import { Posters } from "./Posters.jsx";
 import {
@@ -46,7 +38,10 @@ import { languagesIn, rememberLanguage, storedLanguage } from "./language.js";
 import { rememberLibraryPage } from "../shared/library-return.js";
 import { Documents } from "./Documents.jsx";
 
-export function Library() {
+export function Library({ actionsTarget }) {
+  useEffect(() => {
+    document.title = "petites roues";
+  }, []);
   const [selection, setSelection] = useState(() => {
     // A bare library URL opens the last chosen view.
     if (!location.search && storedView() !== "columns")
@@ -175,208 +170,233 @@ export function Library() {
   // Only Posters follow the language. Documents is the master list and Repositories shows folders
   // as they are, so neither hides anything; the summary describes the whole library.
   const summary = data && librarySummary(data.repos);
+  const [search, setSearch] = useState("");
+  const [mediaFilter, setMediaFilter] = useState("all");
+  const [attentionOnly, setAttentionOnly] = useState(false);
   return (
-    <Box component="main" className="mantine-library">
-      <Container size="xl" py={{ base: 28, sm: 48 }}>
-        <Stack gap="xl">
-          <Group justify="space-between" align="center" gap="lg">
-            <Group gap="md" wrap="nowrap">
-              <ThemeIcon size={52} radius="lg" variant="light">
-                <BookOpen size={26} />
-              </ThemeIcon>
-              <Title order={1} size={32} lts={-1}>
-                Petites Roues
-              </Title>
-            </Group>
-            <Group gap="sm">
+    <>
+      <Stack gap="xl" mt="lg">
+        {actionsTarget &&
+          createPortal(
+            <Group gap="sm" className="library-actions">
               {data?.repos.length > 0 && (
-                <Button
-                  component="a"
-                  href="/notes"
-                  variant="default"
-                  size="xs"
-                  leftSection={<NotebookText size={14} />}
-                >
-                  Notes
-                </Button>
-              )}
-              {data?.repos.length > 0 && <LibraryQuiz />}
-              {data?.repos.length > 0 && (
-                <Button
-                  variant="default"
-                  leftSection={<RefreshCw size={16} />}
+                <ActionIcon
+                  variant="subtle"
+                  color="navy"
+                  size="lg"
+                  aria-label="Refresh library"
+                  title="Refresh library"
                   loading={working}
                   onClick={refreshLibrary}
                 >
-                  Refresh library
-                </Button>
+                  <RefreshCw size={21} />
+                </ActionIcon>
               )}
               <Button
-                variant="default"
+                color="navy"
                 leftSection={<Plus size={17} />}
                 disabled={working}
                 onClick={addFolder}
               >
                 Add folder
               </Button>
-            </Group>
-          </Group>
-          <Group justify="space-between" mt="lg">
-            <div>
-              <Title order={2} size="h3">
-                Your library
-              </Title>
-              {summary && (
-                <Text size="sm" mt={4}>
-                  {summary.counts}
-                  {summary.attention && (
-                    <Text span c="yellow.5">
-                      {summary.counts && " · "}
-                      {summary.attention}
-                    </Text>
-                  )}
-                  {summary.unlinked && (
-                    <>
-                      {(summary.counts || summary.attention) && " · "}
-                      <Anchor
-                        href={documentsHref()}
-                        c="yellow.5"
-                        onClick={(event) => {
-                          event.preventDefault();
-                          switchView("documents");
-                        }}
-                      >
-                        {summary.unlinked}
-                      </Anchor>
-                    </>
-                  )}
-                </Text>
-              )}
-              {usage && (
-                <Text size="sm" c="dimmed" mt={2}>
-                  {usage}
-                </Text>
-              )}
-            </div>
-            {data && (
-              <Group gap="xs">
-                {data.repos.length > 0 && (
-                  <SegmentedControl
-                    size="xs"
-                    value={selection.view}
-                    onChange={switchView}
-                    data={[
-                      { value: "columns", label: "Repositories" },
-                      { value: "posters", label: "Posters" },
-                      { value: "documents", label: "Documents" },
-                    ]}
-                    aria-label="Library view"
-                  />
-                )}
-              </Group>
+            </Group>,
+            actionsTarget,
+          )}
+        <section className="library-toolbar" aria-label="Library controls">
+          <div className="library-search-row">
+            {selection.view === "posters" && (
+              <TextInput
+                className="library-search"
+                placeholder="Search your library"
+                aria-label="Search your library"
+                leftSection={<Search size={18} />}
+                value={search}
+                onChange={(event) => setSearch(event.currentTarget.value)}
+              />
             )}
-          </Group>
-          {languages.length > 1 && selection.view === "posters" && (
-            <Chip.Group
-              value={chosen ?? ""}
-              onChange={(value) => {
-                rememberLanguage(value || null);
-                setLanguage(value || null);
-              }}
-            >
-              <Group gap="xs" role="group" aria-label="Language">
-                <Chip value="" size="sm" variant="light">
-                  All languages
-                </Chip>
-                {languages.map((item) => (
-                  <Chip
-                    key={item.tag}
-                    value={item.tag}
-                    size="sm"
-                    variant="light"
-                    lang={item.tag}
-                  >
-                    {item.label}
-                  </Chip>
-                ))}
-              </Group>
-            </Chip.Group>
-          )}
-          {job && <JobProgress job={job} />}
-          {error && (
-            <Alert
-              color="red"
-              icon={<TriangleAlert size={18} />}
-              title="Something went wrong"
-              role="alert"
-            >
-              {error}
-            </Alert>
-          )}
-          {message && (
-            <Alert color="sage" icon={<Check size={18} />} role="status">
-              {message}
-            </Alert>
-          )}
-          {data?.repos.length === 0 ? (
-            <Paper withBorder p={{ base: "xl", sm: 64 }} radius="lg">
-              <Stack align="center" gap="md" ta="center">
-                <Title order={2}>There's nothing here</Title>
-                <Text c="dimmed" maw={460}>
-                  Add a folder of videos, comics or study documents, or one
-                  holding all three. Videos link to their study documents by
-                  fingerprint, wherever each one lives.
-                </Text>
-                <Button
-                  mt="sm"
-                  leftSection={<Plus size={17} />}
-                  disabled={working}
-                  onClick={addFolder}
+            {summary && (
+              <Text
+                size="xs"
+                c="dimmed"
+                className="library-counts"
+                title={usage || undefined}
+              >
+                {summary.counts}
+              </Text>
+            )}
+            {data?.repos.length > 0 && (
+              <SegmentedControl
+                className="library-views"
+                size="xs"
+                value={selection.view}
+                onChange={switchView}
+                data={[
+                  { value: "posters", label: "Posters" },
+                  { value: "documents", label: "Documents" },
+                  { value: "columns", label: "Repositories" },
+                ]}
+                aria-label="Library view"
+              />
+            )}
+          </div>
+          <div className="library-filter-row">
+            {selection.view === "posters" && (
+              <>
+                <div
+                  className="library-filters"
+                  role="group"
+                  aria-label="Media type"
                 >
-                  Add folder
-                </Button>
-              </Stack>
-            </Paper>
-          ) : data && selection.view === "documents" ? (
-            <Documents data={data} />
-          ) : data && selection.view === "posters" ? (
-            <Posters
-              data={data}
-              language={chosen}
-              selection={selection}
-              go={go}
-              onChanged={(failure) => {
-                if (failure) setError(failure.message);
-                else load().catch((e) => setError(e.message));
-              }}
-            />
-          ) : data ? (
-            <LibraryBrowser
-              data={data}
-              selection={selection}
-              navigate={navigate}
-              busy={working}
-              refresh={(repositoryId) =>
-                startJob({ kind: "refresh", repositoryId })
-              }
-              onRemove={setRemoving}
-            />
-          ) : (
-            !error && (
-              <Group justify="center" py={80} role="status">
-                <Loader size="sm" />
-                <Text c="dimmed">Loading library…</Text>
-              </Group>
-            )
-          )}
-          {data?.repos.length > 0 && selection.view === "columns" && (
-            <Text size="xs" c="dimmed">
-              Browse each repository's folders to find your titles and study
-              notes.
-            </Text>
-          )}
-        </Stack>
-      </Container>
+                  {[
+                    ["all", "All"],
+                    ["comic", "Comics"],
+                    ["video", "Films"],
+                  ].map(([value, label]) => (
+                    <button
+                      key={value}
+                      type="button"
+                      aria-pressed={mediaFilter === value}
+                      onClick={() => setMediaFilter(value)}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+                {summary?.attention && (
+                  <button
+                    type="button"
+                    className="library-attention-filter"
+                    aria-pressed={attentionOnly}
+                    onClick={() => setAttentionOnly(!attentionOnly)}
+                  >
+                    <span
+                      aria-hidden="true"
+                      className="library-attention-dot"
+                    />
+                    Needs attention · {parseInt(summary.attention, 10)}
+                  </button>
+                )}
+              </>
+            )}
+            {summary?.unlinked && (
+              <Anchor
+                size="xs"
+                className="library-unlinked"
+                href={documentsHref()}
+                onClick={(event) => {
+                  event.preventDefault();
+                  switchView("documents");
+                }}
+              >
+                {summary.unlinked}
+              </Anchor>
+            )}
+          </div>
+        </section>
+        {languages.length > 1 && selection.view === "posters" && (
+          <Chip.Group
+            value={chosen ?? ""}
+            onChange={(value) => {
+              rememberLanguage(value || null);
+              setLanguage(value || null);
+            }}
+          >
+            <Group gap="xs" role="group" aria-label="Language">
+              <Chip value="" size="sm" variant="light">
+                All languages
+              </Chip>
+              {languages.map((item) => (
+                <Chip
+                  key={item.tag}
+                  value={item.tag}
+                  size="sm"
+                  variant="light"
+                  lang={item.tag}
+                >
+                  {item.label}
+                </Chip>
+              ))}
+            </Group>
+          </Chip.Group>
+        )}
+        {job && <JobProgress job={job} />}
+        {error && (
+          <Alert
+            color="red"
+            icon={<TriangleAlert size={18} />}
+            title="Something went wrong"
+            role="alert"
+          >
+            {error}
+          </Alert>
+        )}
+        {message && (
+          <Alert color="sage" icon={<Check size={18} />} role="status">
+            {message}
+          </Alert>
+        )}
+        {data?.repos.length === 0 ? (
+          <Paper withBorder p={{ base: "xl", sm: 64 }} radius="lg">
+            <Stack align="center" gap="md" ta="center">
+              <Title order={2}>There's nothing here</Title>
+              <Text c="dimmed" maw={460}>
+                Add a folder of videos, comics or study documents, or one
+                holding all three. Videos link to their study documents by
+                fingerprint, wherever each one lives.
+              </Text>
+              <Button
+                mt="sm"
+                leftSection={<Plus size={17} />}
+                disabled={working}
+                onClick={addFolder}
+              >
+                Add folder
+              </Button>
+            </Stack>
+          </Paper>
+        ) : data && selection.view === "documents" ? (
+          <Documents data={data} />
+        ) : data && selection.view === "posters" ? (
+          <Posters
+            data={data}
+            search={search}
+            mediaFilter={mediaFilter}
+            attentionOnly={attentionOnly}
+            language={chosen}
+            selection={selection}
+            go={go}
+            onChanged={(failure) => {
+              if (failure) setError(failure.message);
+              else load().catch((e) => setError(e.message));
+            }}
+          />
+        ) : data ? (
+          <LibraryBrowser
+            data={data}
+            selection={selection}
+            navigate={navigate}
+            busy={working}
+            refresh={(repositoryId) =>
+              startJob({ kind: "refresh", repositoryId })
+            }
+            onRemove={setRemoving}
+          />
+        ) : (
+          !error && (
+            <Group justify="center" py={80} role="status">
+              <Loader size="sm" />
+              <Text c="dimmed">Loading library…</Text>
+            </Group>
+          )
+        )}
+        {data?.repos.length > 0 && selection.view === "columns" && (
+          <Text size="xs" c="dimmed">
+            Browse each repository's folders to find your titles and study
+            notes.
+          </Text>
+        )}
+      </Stack>
       <Modal
         opened={Boolean(removing)}
         onClose={() => {
@@ -422,6 +442,6 @@ export function Library() {
           </Group>
         </Stack>
       </Modal>
-    </Box>
+    </>
   );
 }

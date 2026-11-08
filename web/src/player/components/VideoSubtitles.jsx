@@ -14,6 +14,8 @@ export function VideoSubtitles({
   lineOffset = 0,
   helpMode = "",
   onActiveChange,
+  showTranslation = false,
+  hideSource = false,
   definitionIndex = null,
 }) {
   const { sourceLanguage, translationLanguage, sourceName } =
@@ -22,13 +24,14 @@ export function VideoSubtitles({
   // Crossing the gap between two phrases briefly hovers neither; wait before clearing so the
   // translation strip and explanation stay put instead of flickering.
   const leaveTimer = useRef(null);
+  const keepHelp = () => clearTimeout(leaveTimer.current);
   const hover = (index) => {
-    clearTimeout(leaveTimer.current);
+    keepHelp();
     setHovered(index);
   };
   const leave = () => {
     clearTimeout(leaveTimer.current);
-    leaveTimer.current = setTimeout(() => setHovered(null), 150);
+    leaveTimer.current = setTimeout(() => setHovered(null), 350);
   };
   useEffect(() => () => clearTimeout(leaveTimer.current), []);
   const [focused, setFocused] = useState(null);
@@ -58,7 +61,9 @@ export function VideoSubtitles({
     const clearOutside = (event) => {
       if (
         root.current?.contains(event.target) &&
-        event.target.closest?.(".video-subtitle-phrase, .video-subtitle-notes")
+        event.target.closest?.(
+          ".video-subtitle-phrase, .video-subtitle-context-chunk, .video-subtitle-notes",
+        )
       )
         return;
       setPinned(null);
@@ -80,7 +85,7 @@ export function VideoSubtitles({
         ]
       : [];
   useLayoutEffect(() => {
-    if (active === null || !alignment) return;
+    if (active === null && !showTranslation) return;
     const update = () => {
       const bounds = root.current.getBoundingClientRect();
       const phrase = phrases.current.get(active)?.getBoundingClientRect();
@@ -103,13 +108,7 @@ export function VideoSubtitles({
       setNotesPosition(
         maxHeight >= 40
           ? {
-              left: Math.max(
-                8,
-                Math.min(
-                  bounds.width - note.width - 8,
-                  phrase.left - bounds.left + (phrase.width - note.width) / 2,
-                ),
-              ),
+              left: Math.max(8, (bounds.width - note.width) / 2),
               top: Math.max(8, ceiling - Math.min(note.height, maxHeight)),
               maxHeight,
             }
@@ -127,7 +126,7 @@ export function VideoSubtitles({
       )
       .forEach((line) => observer.observe(line));
     return () => observer.disconnect();
-  }, [active, alignment, lineOffset, helpMode]);
+  }, [active, alignment, lineOffset, helpMode, showTranslation]);
   return (
     <div
       ref={root}
@@ -144,11 +143,13 @@ export function VideoSubtitles({
         }
       }}
     >
-      {active !== null && alignment && (
+      {((active !== null && alignment) ||
+        (showTranslation && cue.translation)) && (
         <div
           ref={english}
           id={description}
-          role="tooltip"
+          role="group"
+          aria-label="Translation"
           className="video-subtitle-english"
           lang={translationLanguage}
           style={
@@ -157,24 +158,70 @@ export function VideoSubtitles({
               : { bottom: englishBottom }
           }
         >
-          <span className="video-subtitle-english-line">
-            {translationContext(alignment, active).map((chunk, index) => (
-              <span key={index}>
-                {index > 0 && (cue.translationSeparator ?? " ")}
-                <span
-                  className="video-subtitle-context-chunk"
-                  data-active={chunk.active || undefined}
-                  style={{
-                    "--phrase-color":
-                      chunk.link < 0
-                        ? "transparent"
-                        : alignmentColors[chunk.link % alignmentColors.length],
-                  }}
-                >
-                  {chunk.text}
-                </span>
-              </span>
-            ))}
+          <span
+            className="video-subtitle-english-line"
+            onMouseEnter={keepHelp}
+            onMouseLeave={leave}
+          >
+            {alignment
+              ? translationContext(alignment, active).map((chunk, index) => (
+                  <span key={index}>
+                    {index > 0 && (cue.translationSeparator ?? " ")}
+                    <span
+                      className="video-subtitle-context-chunk"
+                      data-active={chunk.active || undefined}
+                      role={
+                        alignment.links[chunk.link]?.source.length
+                          ? "button"
+                          : undefined
+                      }
+                      tabIndex={
+                        alignment.links[chunk.link]?.source.length
+                          ? 0
+                          : undefined
+                      }
+                      aria-pressed={alignment.links[
+                        chunk.link
+                      ]?.source.includes(pinned)}
+                      onMouseEnter={() => {
+                        const source = alignment.links[chunk.link]?.source[0];
+                        if (source !== undefined) hover(source);
+                      }}
+                      onMouseLeave={leave}
+                      onFocus={() =>
+                        setFocused(
+                          alignment.links[chunk.link]?.source[0] ?? null,
+                        )
+                      }
+                      onBlur={() => setFocused(null)}
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        const source = alignment.links[chunk.link]?.source[0];
+                        if (source !== undefined)
+                          setPinned(pinned === source ? null : source);
+                      }}
+                      onKeyDown={(event) => {
+                        if (event.key !== "Enter" && event.key !== " ") return;
+                        event.preventDefault();
+                        event.stopPropagation();
+                        const source = alignment.links[chunk.link]?.source[0];
+                        if (source !== undefined)
+                          setPinned(pinned === source ? null : source);
+                      }}
+                      style={{
+                        "--phrase-color":
+                          chunk.link < 0
+                            ? "transparent"
+                            : alignmentColors[
+                                chunk.link % alignmentColors.length
+                              ],
+                      }}
+                    >
+                      {chunk.text}
+                    </span>
+                  </span>
+                ))
+              : cue.translation}
           </span>
         </div>
       )}
@@ -183,6 +230,8 @@ export function VideoSubtitles({
           ref={notesBox}
           style={notesPosition || { visibility: "hidden" }}
           className="video-subtitle-notes"
+          onMouseEnter={keepHelp}
+          onMouseLeave={leave}
           aria-label="Phrase explanation"
           onClick={(event) => event.stopPropagation()}
         >
@@ -196,8 +245,13 @@ export function VideoSubtitles({
       <div
         ref={line}
         className="video-subtitle-line"
+        onMouseEnter={keepHelp}
+        onMouseLeave={leave}
         lang={sourceLanguage}
-        style={{ bottom: `calc(4% + ${lineOffset * 3}em)` }}
+        style={{
+          bottom: `calc(var(--subtitle-bottom, 4%) + ${lineOffset * 3}em)`,
+          visibility: hideSource ? "hidden" : undefined,
+        }}
       >
         {alignment ? (
           alignment.source.map((phrase, index) => {

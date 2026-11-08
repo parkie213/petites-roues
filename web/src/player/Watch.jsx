@@ -1,6 +1,21 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { ActionIcon, Button, Group, Loader, Switch, Text } from "@mantine/core";
-import { Pencil } from "lucide-react";
+import {
+  ActionIcon,
+  Button,
+  Group,
+  Loader,
+  Menu,
+  Switch,
+  Text,
+} from "@mantine/core";
+import {
+  ArrowLeft,
+  Ellipsis,
+  Pencil,
+  Play,
+  Pause,
+  Lightbulb,
+} from "lucide-react";
 import { titlePath } from "../shared/api.js";
 import { useStoredState } from "../shared/storage.js";
 import { activeCues, currentCue } from "./model.js";
@@ -14,8 +29,8 @@ import {
 } from "./playback.js";
 import { isComposing } from "./languages.js";
 import { PlayerShortcuts } from "./components/PlayerShortcuts.jsx";
-import { QuickEdit } from "./components/QuickEdit.jsx";
-import { VideoQuizShare } from "./components/QuizShare.jsx";
+import { SubtitleEditPanel } from "./components/SubtitleEditPanel.jsx";
+import { VideoQuizPanel } from "./components/VideoQuizPanel.jsx";
 import { VideoControls } from "./components/VideoControls.jsx";
 import { VideoStudyHelp } from "./components/VideoStudyHelp.jsx";
 import { VideoSubtitles } from "./components/VideoSubtitles.jsx";
@@ -43,6 +58,8 @@ export function Watch({ id }) {
   );
   const [videoHelp, setVideoHelp] = useState(null);
   const [quickEdit, setQuickEdit] = useState(null);
+  const [quizOpen, setQuizOpen] = useState(false);
+  const closeEditor = useRef(null);
   const [activePhraseCues, setActivePhraseCues] = useState(() => new Set());
   const setPhraseHelp = useCallback((cueId, visible) => {
     setActivePhraseCues((current) => {
@@ -73,19 +90,55 @@ export function Watch({ id }) {
     api,
     doc,
     cues,
-    autoPause,
+    autoPause: quickEdit ? false : autoPause,
     speed: 1,
     setSelected: () => {},
     setStatus,
   });
+  const [controlsVisible, setControlsVisible] = useState(false);
+  const controlsTimer = useRef(null);
+  const wakeControls = useCallback(() => {
+    setControlsVisible(true);
+    clearTimeout(controlsTimer.current);
+    controlsTimer.current = setTimeout(() => setControlsVisible(false), 2500);
+  }, []);
+  useEffect(() => () => clearTimeout(controlsTimer.current), []);
+  function handlePlayerPointer(event) {
+    const exploring = Boolean(
+      event.target.closest?.(
+        ".video-subtitle-line, .video-subtitle-english, .video-subtitle-notes, .video-full-translation, .video-sentence-notes",
+      ),
+    );
+    const bounds = event.currentTarget.getBoundingClientRect();
+    const edgeSize = 48;
+    const atEdge =
+      event.clientY <= bounds.top + edgeSize ||
+      event.clientY >= bounds.bottom - edgeSize;
+    // Touch has no hover; an intentional tap remains a way to reveal playback controls.
+    const touchTap =
+      event.pointerType === "touch" && event.type === "pointerdown";
+    if (exploring || (!atEdge && !touchTap)) {
+      clearTimeout(controlsTimer.current);
+      setControlsVisible(false);
+    } else wakeControls();
+  }
   const active = currentCue(cues, time);
   const showing = activeCues(cues, time);
 
   function openQuickEdit() {
-    const line = cues[Math.max(0, active)];
-    if (!line) return;
+    if (quickEdit) return;
+    setQuizOpen(false);
+    const position = video.current?.currentTime ?? time;
+    const line = cues.find(
+      (line) => line.start <= position && position < line.end,
+    );
     pause();
-    setQuickEdit(line);
+    setQuickEdit({ cue: line || null });
+  }
+  function openQuiz() {
+    if (quickEdit && !closeEditor.current?.()) return;
+    pause();
+    setQuizOpen(true);
   }
   const keys = useRef({});
   keys.current = {
@@ -158,31 +211,69 @@ export function Watch({ id }) {
     );
   if (!doc)
     return (
-      <Group justify="center" py="xl" role="status">
-        <Loader size="sm" />
-        <Text>Loading…</Text>
-      </Group>
+      <main className="watch-loading" role="status" aria-live="polite">
+        <Loader size={30} color="coral.4" />
+        <Text size="sm" c="dimmed">
+          Opening video…
+        </Text>
+      </main>
     );
   return (
     <StudyLanguagesProvider document={doc}>
       <main className="left watch">
-        <Group className="watch-bar" gap="sm" px="md" py="xs" wrap="nowrap">
-          <Button component="a" size="xs" variant="default" href={returnPath}>
-            <span aria-hidden="true">←</span> Library
-          </Button>
-          <Text fw={600} size="sm" truncate style={{ flex: 1 }}>
-            {doc.title}
-          </Text>
-          <Button
-            component="a"
-            size="xs"
-            variant="default"
-            href={`/player/${encodeURIComponent(id)}/`}
-          >
-            Edit
-          </Button>
-        </Group>
-        <div className="video-player" ref={container}>
+        <div
+          className={`video-player${quickEdit || quizOpen ? " watch-editing" : ""}`}
+          ref={container}
+          data-controls-visible={controlsVisible || undefined}
+          onPointerMove={handlePlayerPointer}
+          onPointerDown={handlePlayerPointer}
+          onKeyDownCapture={wakeControls}
+        >
+          <Group className="watch-bar" gap="sm" wrap="nowrap">
+            <ActionIcon
+              component="a"
+              variant="subtle"
+              href={returnPath}
+              aria-label="Back to library"
+              title="Library"
+            >
+              <ArrowLeft size={19} />
+            </ActionIcon>
+            <Text size="sm" truncate style={{ flex: 1 }}>
+              {doc.title}
+            </Text>
+            <Button
+              size="xs"
+              variant="default"
+              leftSection={<Lightbulb size={14} />}
+              aria-expanded={quizOpen}
+              aria-controls="video-quiz-dock"
+              onClick={openQuiz}
+            >
+              Quiz me
+            </Button>
+            <Menu position="bottom-end" withinPortal={false}>
+              <Menu.Target>
+                <ActionIcon
+                  variant="subtle"
+                  aria-label="More options"
+                  title="More options"
+                >
+                  <Ellipsis size={19} />
+                </ActionIcon>
+              </Menu.Target>
+              <Menu.Dropdown>
+                <Menu.Item
+                  leftSection={<Pencil size={14} />}
+                  onClick={openQuickEdit}
+                >
+                  Fix or comment on this line
+                </Menu.Item>
+                <Menu.Divider />
+                <PlayerShortcuts viewing />
+              </Menu.Dropdown>
+            </Menu>
+          </Group>
           <div className="video-stage">
             <video
               ref={video}
@@ -223,21 +314,22 @@ export function Watch({ id }) {
                 )
               }
             />
-            {overlay &&
+            {(overlay || videoHelp === "translation") &&
               showing.map((cue, index) => (
                 <VideoSubtitles
                   key={cue.id}
                   cue={cue}
                   lineOffset={index}
                   helpMode={activePhraseCues.size ? "phrase" : videoHelp}
+                  showTranslation={videoHelp === "translation"}
+                  hideSource={!overlay}
                   onActiveChange={setPhraseHelp}
                 />
               ))}
-            {videoHelp && activePhraseCues.size === 0 && (
+            {videoHelp === "notes" && activePhraseCues.size === 0 && (
               <VideoStudyHelp
                 cues={showing}
                 notes={cues[Math.max(0, active)]?.notes}
-                showTranslation={videoHelp === "translation"}
                 showNotes={videoHelp === "notes"}
               />
             )}
@@ -255,7 +347,7 @@ export function Watch({ id }) {
               onClick={() => (video.current.paused ? play() : pause())}
               aria-label={playing ? "Pause" : "Play"}
             >
-              {playing ? "Ⅱ" : "▶"}
+              {playing ? <Pause size={17} /> : <Play size={17} />}
             </Button>
             <VideoControls
               videoRef={video}
@@ -266,39 +358,51 @@ export function Watch({ id }) {
             />
             <Switch
               size="xs"
-              label="Auto Pause"
+              color="coral"
+              label="Auto-pause"
               title="Pause after each subtitle (A)"
               styles={{ label: { fontSize: "var(--mantine-font-size-sm)" } }}
               checked={autoPause}
               onChange={(event) => setAutoPause(event.currentTarget.checked)}
             />
-            <ActionIcon
-              variant="default"
-              size={26}
-              title="Fix or comment on this line (E)"
-              aria-label="Fix or comment on this line"
-              onClick={openQuickEdit}
-            >
-              <Pencil size={14} />
-            </ActionIcon>
-            <VideoQuizShare doc={doc} cues={cues} time={time} />
-            <PlayerShortcuts viewing />
             {status && (
               <Text size="xs" c="dimmed" className="watch-status" role="status">
                 {status}
               </Text>
             )}
           </Group>
+          {quickEdit && (
+            <SubtitleEditPanel
+              closeRef={closeEditor}
+              api={api}
+              cue={quickEdit.cue}
+              cues={cues}
+              video={video}
+              time={time}
+              seek={seek}
+              play={play}
+              pause={pause}
+              onSaved={(saved) => {
+                setCues(saved.cues);
+                heldCue.current = -1;
+                heldTime.current = -1;
+              }}
+              onClose={() => {
+                pause();
+                setQuickEdit(null);
+              }}
+            />
+          )}
+          {quizOpen && (
+            <VideoQuizPanel
+              doc={doc}
+              cues={cues}
+              video={video}
+              time={time}
+              onClose={() => setQuizOpen(false)}
+            />
+          )}
         </div>
-        {quickEdit && (
-          <QuickEdit
-            api={api}
-            cue={quickEdit}
-            portalTarget={container.current}
-            onSaved={(saved) => saved && setCues(saved.cues)}
-            onClose={() => setQuickEdit(null)}
-          />
-        )}
       </main>
     </StudyLanguagesProvider>
   );

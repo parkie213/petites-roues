@@ -1,18 +1,10 @@
-import { useStudyLanguages } from "../StudyLanguages.jsx";
 import { useLayoutEffect, useRef, useState } from "react";
 import { LearnerNote } from "./LearnerNote.jsx";
 
 // Keep whole-sentence help inside fullscreen and immediately above the source subtitles.
-export function VideoStudyHelp({ cues, notes, showTranslation, showNotes }) {
-  const { translationLanguage } = useStudyLanguages();
+export function VideoStudyHelp({ cues, notes, showNotes }) {
   const root = useRef(null);
   const [position, setPosition] = useState(null);
-  const translation = showTranslation
-    ? cues
-        .map((cue) => cue.translation)
-        .filter(Boolean)
-        .join("\n")
-    : "";
   useLayoutEffect(() => {
     const element = root.current;
     const stage = element.parentElement;
@@ -33,7 +25,7 @@ export function VideoStudyHelp({ cues, notes, showTranslation, showNotes }) {
     observer.observe(stage);
     lines.forEach((line) => observer.observe(line));
     return () => observer.disconnect();
-  }, [translation, showNotes, cues.map((cue) => cue.id).join(",")]);
+  }, [showNotes, cues.map((cue) => cue.id).join(",")]);
   return (
     <div
       ref={root}
@@ -61,11 +53,6 @@ export function VideoStudyHelp({ cues, notes, showTranslation, showNotes }) {
             <p>No sentence notes for this subtitle.</p>
           )}
         </section>
-      )}
-      {translation && (
-        <div className="video-full-translation" lang={translationLanguage}>
-          {translation}
-        </div>
       )}
     </div>
   );

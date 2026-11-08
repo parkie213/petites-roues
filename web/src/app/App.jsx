@@ -1,22 +1,46 @@
+import { useEffect, useState } from "react";
+import { Container } from "@mantine/core";
+import { LibraryHeader } from "../library/LibraryHeader.jsx";
+import "../library/Library.css";
 import { BareComic } from "../comic/BareComic.jsx";
 import { ComicReader } from "../comic/ComicReader.jsx";
 import { Library } from "../library/Library.jsx";
+import { QuizPage } from "../library/QuizPage.jsx";
 import { Notes } from "../library/Notes.jsx";
 import { BareVideo } from "../player/BareVideo.jsx";
-import { Player } from "../player/Player.jsx";
 import { Watch } from "../player/Watch.jsx";
 
 export function App() {
+  const [path, setPath] = useState(location.pathname);
+  const [actionsTarget, setActionsTarget] = useState(null);
+  useEffect(() => {
+    const update = () => setPath(location.pathname);
+    window.addEventListener("popstate", update);
+    return () => window.removeEventListener("popstate", update);
+  }, []);
   const url = new URL(location.href);
-  if (url.pathname === "/") return <Library />;
-  if (/^\/notes\/?$/.test(url.pathname)) return <Notes />;
-  const note = url.pathname.match(/^\/notes\/([^/]+)\/([^/]+)\/?$/);
-  if (note)
+  const section =
+    path === "/"
+      ? "library"
+      : /^\/quizzes\/?$/.test(path)
+        ? "quizzes"
+        : /^\/notes(?:\/[^/]+\/[^/]+)?\/?$/.test(path)
+          ? "notes"
+          : null;
+  if (section)
     return (
-      <Notes
-        repository={decodeURIComponent(note[1])}
-        id={decodeURIComponent(note[2])}
-      />
+      <main className="mantine-library">
+        <Container size={1320} py={0}>
+          <LibraryHeader active={section} actionsRef={setActionsTarget} />
+          {section === "library" ? (
+            <Library actionsTarget={actionsTarget} />
+          ) : section === "notes" ? (
+            <Notes />
+          ) : (
+            <QuizPage />
+          )}
+        </Container>
+      </main>
     );
   const reader = url.pathname.match(/^\/reader\/([A-Za-z0-9_-]+)\/?$/);
   if (reader) return <ComicReader key={reader[1]} id={reader[1]} />;
@@ -33,7 +57,7 @@ export function App() {
     return <BareComic key={fingerprint} fingerprint={fingerprint} />;
   }
   const match = url.pathname.match(/^\/player\/([A-Za-z0-9_-]+)\/?$/);
-  if (match) return <Player key={match[1]} id={match[1]} />;
+  if (match) return <Watch key={match[1]} id={match[1]} />;
   const oldId = url.searchParams.get("title");
   if (url.pathname === "/player/" && oldId && /^[A-Za-z0-9_-]+$/.test(oldId)) {
     location.replace("/player/" + oldId + "/" + url.search);

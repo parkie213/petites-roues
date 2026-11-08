@@ -189,3 +189,39 @@
 .video-player:fullscreen .video-sentence-notes {
   font-size: clamp(16px, 1.5vh, 22px);
 }
+
+/* T exposes the same phrase mapping as the source, in translation word order. */
+.video-translation-phrase {
+  text-decoration: underline 2px var(--phrase-color);
+  text-underline-offset: 4px;
+  background: color-mix(in srgb, var(--phrase-color) 12%, transparent);
+  border-radius: 2px;
+  -webkit-box-decoration-break: clone;
+  box-decoration-break: clone;
+}
+
+/* T and phrase exploration use the very same translation strip and interactions. */
+.video-subtitle-english-line {
+  font-size: clamp(16px, 1.5vw, 24px);
+  color: #f0eeea;
+}
+.video-subtitle-context-chunk {
+  background: color-mix(in srgb, var(--phrase-color) 12%, transparent);
+  text-decoration: underline 2px var(--phrase-color);
+  border-radius: 2px;
+  -webkit-box-decoration-break: clone;
+  box-decoration-break: clone;
+}
+.video-subtitle-context-chunk[role="button"] {
+  pointer-events: auto;
+  cursor: pointer;
+}
+.video-subtitle-context-chunk:focus-visible {
+  outline: 2px solid var(--phrase-color);
+  outline-offset: 3px;
+}
+
+/* Keep help alive across the spaces between translated phrases as well. */
+.video-subtitle-english-line {
+  pointer-events: auto;
+}

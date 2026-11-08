@@ -1,3 +1,14 @@
+.watch-loading {
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+  background: #101216;
+  color: #e8e6e3;
+}
+
 /* The viewing page gives the whole window to the video. */
 .watch {
   display: flex;
@@ -28,4 +39,237 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+/* Watching is a full-height canvas; chrome overlays it rather than shrinking it. */
+.watch .video-player {
+  position: relative;
+  flex: 1 1 0;
+  isolation: isolate;
+}
+.watch .video-stage {
+  flex: 1 1 0;
+  min-height: 0;
+}
+.watch .watch-bar,
+.watch .playback-toolbar {
+  position: absolute;
+  left: 0;
+  right: 0;
+  z-index: 5;
+  border: 0;
+  transition: opacity 180ms ease;
+  opacity: 0;
+  pointer-events: none;
+  color: #e9e7e2;
+}
+.watch .watch-bar {
+  top: 0;
+  min-height: 38px;
+  padding: 4px 14px;
+  background: linear-gradient(#13171de8, #13171d70, transparent);
+}
+.watch .playback-toolbar {
+  bottom: 0;
+  min-height: 38px;
+  padding: 7px 16px 5px;
+  background: linear-gradient(transparent, #13171da8);
+  gap: 8px;
+  flex-wrap: nowrap;
+}
+.watch [data-controls-visible] > .watch-bar,
+.watch [data-controls-visible] > .playback-toolbar,
+.watch .watch-bar:focus-within,
+.watch .playback-toolbar:focus-within,
+.watch .watch-bar:hover,
+.watch .playback-toolbar:hover {
+  opacity: 1;
+  pointer-events: auto;
+}
+.watch .watch-bar .mantine-Button-root,
+.watch .playback-toolbar .mantine-Button-root {
+  height: 26px;
+  padding: 0 7px;
+  background: transparent;
+  border-color: transparent;
+  color: #e9e7e2;
+  font-size: 12px;
+}
+.watch .mantine-ActionIcon-root {
+  color: #e9e7e2;
+  background: transparent;
+}
+.watch .playback-toolbar > .mantine-Button-root {
+  color: #df7967;
+}
+.watch .playback-toolbar .mantine-Slider-root {
+  --slider-color: #df7967;
+  --slider-thumb-size: 9px;
+}
+.watch .playback-toolbar .video-position {
+  position: absolute;
+  top: -7px;
+  left: 16px;
+  right: 16px;
+  height: 12px;
+}
+.watch .playback-toolbar .video-position .mantine-Slider-root {
+  --slider-size: 2px;
+}
+.watch .playback-toolbar .video-controls > .mantine-Text-root {
+  margin-right: auto;
+  color: #e0e2e6;
+  font-size: 11px;
+}
+.watch .playback-toolbar .mantine-Switch-label {
+  font-size: 11px !important;
+  color: #e0e2e6;
+}
+.watch .video-subtitles {
+  font:
+    400 clamp(18px, 1.35vw, 23px)/1.45 Manrope,
+    "Segoe UI",
+    sans-serif;
+}
+.watch .video-subtitle-line {
+  --subtitle-bottom: max(58px, 8%);
+  bottom: max(58px, 8%);
+  gap: 4px;
+}
+.watch .video-subtitle-phrase {
+  border-bottom-width: 2px;
+  background: #12161be8;
+  padding: 3px 7px;
+}
+.watch .video-subtitle-phrase[data-active],
+.watch .video-subtitle-phrase:focus-visible {
+  outline-width: 1px;
+  background: color-mix(in srgb, var(--phrase-color) 22%, #20242a);
+}
+.watch .video-subtitle-english-line {
+  font-size: 0.76em;
+  color: #e0e2e6;
+}
+.watch .video-subtitle-notes {
+  width: min(420px, calc(100% - 24px));
+  border-radius: 6px;
+  background: #20242af5;
+  border-color: #ffffff30;
+  backdrop-filter: none;
+  font:
+    400 13px/1.65 Manrope,
+    "Segoe UI",
+    sans-serif;
+  color: #e0e4e9;
+  padding: 9px 13px;
+  box-shadow: 0 4px 14px #0003;
+}
+.watch .video-subtitle-notes .source-expression {
+  color: #ffdda5;
+  background: #e7b66f18;
+  font-weight: 600;
+  text-decoration: underline 1px #e7b66fc0;
+  text-underline-offset: 3px;
+  border-radius: 3px;
+  padding: 1px 3px;
+}
+.watch .video-player:fullscreen .video-subtitles {
+  font-size: clamp(18px, 1.35vw, 23px);
+}
+.watch .video-player:fullscreen .video-subtitle-notes {
+  font-size: 13px;
+  width: min(420px, calc(100% - 24px));
+}
+@media (max-width: 600px) {
+  .watch .watch-bar {
+    padding: 3px 6px;
+  }
+  .watch .playback-toolbar {
+    padding: 6px 8px;
+    gap: 5px;
+  }
+  .watch .video-subtitle-line {
+    --subtitle-bottom: max(58px, 8%);
+    --subtitle-bottom: 62px;
+  }
+  .watch .video-subtitle-notes {
+    font-size: 12px;
+  }
+  .watch .watch-bar .mantine-Button-root {
+    font-size: 11px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .watch .watch-bar,
+  .watch .playback-toolbar {
+    transition: none;
+  }
+}
+
+/* Deliberately revealed navigation can be easy to read and easy to hit. */
+.watch .watch-bar {
+  min-height: 44px;
+  padding: 6px 16px;
+  background: #20242af2;
+  border-bottom: 1px solid #ffffff1a;
+  box-shadow: 0 3px 12px #0003;
+}
+.watch .watch-bar > .mantine-Text-root {
+  color: #f4f2ed;
+  font-size: 15px;
+  font-weight: 500;
+}
+.watch .watch-bar .mantine-ActionIcon-root {
+  width: 32px;
+  height: 32px;
+  color: #f4f2ed;
+}
+.watch .watch-bar .mantine-Button-root {
+  height: 32px;
+  padding: 0 11px;
+  font-size: 13px;
+  color: #f4f2ed;
+  background: #ffffff0a;
+  border: 1px solid #ffffff12;
+  border-radius: 5px;
+}
+.watch .watch-bar .mantine-ActionIcon-root:hover,
+.watch .watch-bar .mantine-Button-root:hover {
+  background: #ffffff16;
+}
+.watch .watch-bar .mantine-Button-section {
+  color: #df7967;
+}
+@media (max-width: 600px) {
+  .watch .watch-bar {
+    padding: 5px 8px;
+  }
+  .watch .watch-bar > .mantine-Text-root {
+    font-size: 13px;
+  }
+}
+.watch .video-subtitle-english-line,
+.watch .video-player:fullscreen .video-subtitle-english-line {
+  font-size: clamp(16px, 1.5vw, 24px);
+}
+
+/* Explanations belong to the subtitle stack, with comfortable reading type. */
+.watch .video-subtitle-notes,
+.watch .video-player:fullscreen .video-subtitle-notes {
+  width: min(520px, calc(100% - 24px));
+  font-size: 15px;
+  line-height: 1.65;
+  padding: 12px 16px;
+}
+.watch .video-subtitle-notes p {
+  margin: 8px 0 0;
+}
+.watch .video-subtitle-notes p:first-child {
+  margin-top: 0;
+}
+@media (max-width: 600px) {
+  .watch .video-subtitle-notes {
+    font-size: 14px;
+    padding: 10px 13px;
+  }
 }
