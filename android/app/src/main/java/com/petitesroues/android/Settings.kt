@@ -61,6 +61,15 @@ class Settings(context: Context) {
     get() = prefs.getString("downloadFolder", null)?.toUri()
     set(value) = prefs.edit { if (value == null) remove("downloadFolder") else putString("downloadFolder", value.toString()) }
 
+  /**
+   * The desktop's series and standalone titles this phone follows, by
+   * [com.petitesroues.model.sync.DesktopTitle.group]: syncing fetches their new titles as well as
+   * updates to what is already on the phone.
+   */
+  var followed: Set<String>
+    get() = prefs.getStringSet("followed", null)?.toSet().orEmpty()
+    set(value) = prefs.edit { putStringSet("followed", value) }
+
   var autoPause: Boolean
     get() = prefs.getBoolean("autoPause", false)
     set(value) = prefs.edit { putBoolean("autoPause", value) }

@@ -38,6 +38,7 @@ import com.petitesroues.android.desktop.DesktopDialog
 import com.petitesroues.android.library.AppFolder
 import com.petitesroues.android.desktop.DesktopTitlesScreen
 import com.petitesroues.android.desktop.Transfers
+import com.petitesroues.android.desktop.mayReachLocalNetwork
 import com.petitesroues.android.library.Browse
 import com.petitesroues.android.library.CardImages
 import com.petitesroues.android.library.LibraryScreen
@@ -159,13 +160,21 @@ class MainActivity : ComponentActivity() {
         },
       ) {
         desktopOpen = false
+        // Forgetting the desktop leaves nothing to sync with.
+        if (settings.desktop == null) titlesOpen = false
       }
 
     // Each title copied from the desktop shows up once the library has refreshed.
     val transfer by Transfers.status.collectAsState()
     LaunchedEffect(transfer.finished) { if (transfer.finished > 0) refresh() }
+    // What a sync would fetch badges the desktop button; an unreachable desktop just leaves it as it was.
+    val pending by Transfers.pending.collectAsState()
+    LaunchedEffect(transfer.finished) {
+      if (settings.desktop != null && mayReachLocalNetwork(this@MainActivity))
+        withContext(Dispatchers.IO) { runCatching { Transfers.check(this@MainActivity, settings) } }
+    }
     if (titlesOpen) {
-      DesktopTitlesScreen(settings) { titlesOpen = false }
+      DesktopTitlesScreen(settings, onDesktop = { desktopOpen = true }) { titlesOpen = false }
       return
     }
 
@@ -193,7 +202,9 @@ class MainActivity : ComponentActivity() {
         onAddFolder = { addFolder.launch(null) },
         onRemoveFolder = ::removeFolder,
         onRefresh = ::refresh,
-        onDesktop = { desktopOpen = true },
+        desktopPending = pending,
+        // Paired, the desktop button goes straight to syncing; pairing is a button there.
+        onDesktop = { if (settings.desktop != null && mayReachLocalNetwork(this@MainActivity)) titlesOpen = true else desktopOpen = true },
         onGetTitles = { if (settings.desktop == null) desktopOpen = true else titlesOpen = true },
         onAllowFiles = { allowFiles.launch(AppFolder.allowIntent(this@MainActivity)) },
         section = section,

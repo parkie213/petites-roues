@@ -34,6 +34,14 @@ public record DesktopTitle(
   /** The ID of the entry holding the desktop's notes and quizzes. */
   public static final String PAGES_ID = "notes-and-quizzes";
 
+  /**
+   * What a phone follows this title by: its series, or its own ID when it stands alone. Following a
+   * group fetches every title in it, including ones the desktop adds later.
+   */
+  public String group() {
+    return series != null ? series : id;
+  }
+
   /** The files' total size in bytes. */
   public long bytes() {
     return files.stream().mapToLong(TitleFile::bytes).sum();
