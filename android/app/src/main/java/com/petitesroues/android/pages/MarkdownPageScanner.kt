@@ -6,6 +6,7 @@ import android.provider.DocumentsContract
 import android.provider.DocumentsContract.Document
 import com.petitesroues.android.library.AppFolder
 import java.io.File
+import javax.inject.Inject
 
 /**
  * Finds the Markdown pages in content folders granted through the Storage Access Framework: the
@@ -13,7 +14,7 @@ import java.io.File
  * each content folder's root. The folder name says what they are, so other Markdown is never
  * listed. The files are small, so their text is read here.
  */
-class MarkdownPageScanner(private val resolver: ContentResolver) {
+class MarkdownPageScanner @Inject constructor(private val resolver: ContentResolver) {
   /**
    * Every page in [trees]' [folder], in content-folder order and then by file name; unreadable
    * folders are skipped.

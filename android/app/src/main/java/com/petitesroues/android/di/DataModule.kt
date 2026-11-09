@@ -15,7 +15,9 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import javax.inject.Qualifier
 import javax.inject.Singleton
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 
 /**
@@ -23,6 +25,12 @@ import kotlinx.coroutines.SupervisorJob
  * it.
  */
 @Qualifier @Retention(AnnotationRetention.BINARY) annotation class ApplicationScope
+
+/**
+ * The dispatcher for blocking work (files, the index, the content resolver). Injected rather than
+ * named, so tests can run that work on their own scheduler.
+ */
+@Qualifier @Retention(AnnotationRetention.BINARY) annotation class IoDispatcher
 
 /** The app's databases and the platform and shared-library objects that need providing. */
 @Module
@@ -56,4 +64,6 @@ object DataModule {
   @Singleton
   @ApplicationScope
   fun applicationScope(): CoroutineScope = CoroutineScope(SupervisorJob())
+
+  @Provides @IoDispatcher fun ioDispatcher(): CoroutineDispatcher = Dispatchers.IO
 }
