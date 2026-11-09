@@ -7,6 +7,7 @@ import com.petitesroues.android.data.ProgressDatabase
 import com.petitesroues.android.data.ProgressStore
 import com.petitesroues.android.library.Title
 import com.petitesroues.android.library.TitleKind
+import com.petitesroues.android.pages.MarkdownPage
 import com.petitesroues.documents.StudyDocumentReader
 import com.petitesroues.model.document.StudyDocument
 import java.io.File
@@ -19,6 +20,15 @@ import kotlinx.coroutines.Dispatchers
  */
 object Examples {
   private val root = File(System.getProperty("examples") ?: error("Run through Gradle"))
+
+  /** An example media file, as a file URI. */
+  fun media(path: String): Uri = Uri.fromFile(File(root, "media-fr/$path"))
+
+  /** An example note or quiz ([folder] is `notes` or `quizzes`), as the page scanner reads it. */
+  fun page(folder: String, name: String): MarkdownPage {
+    val text = File(root, "documents-fr/$folder/$name.md").readText()
+    return MarkdownPage("example/$folder/$name", "example", MarkdownPage.title(text, name), text)
+  }
 
   fun document(path: String): StudyDocument =
     StudyDocumentReader().read(File(root, "documents-fr/$path/document.json").toPath())

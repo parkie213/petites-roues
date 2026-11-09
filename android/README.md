@@ -38,10 +38,11 @@ turn on StrictMode, which logs disk, database and network access on the main thr
 resources: `adb logcat -s StrictMode`.
 
 JVM tests run on Robolectric, so they draw real screens without a phone. The screenshot tests
-(`app/src/test/.../screens/`) draw the library, the comic reader and the player and compare them
-with the PNGs committed in `app/src/test/screenshots/`. The library uses a small made-up
-catalogue (`Fixtures`); the reader and the player open the repository's `example/` comic and
-episode. `verifyRoborazziDebug` fails when a screen no longer matches, and writes a
+(`app/src/test/.../screens/`) draw the library, Notes and Quiz me, the comic reader and the
+player and compare them with the PNGs committed in `app/src/test/screenshots/`. The library uses
+a small made-up catalogue (`Fixtures`) with the `example/` comic and poster as card art, and the
+example note and quiz beside a couple of made-up ones; the reader and the player open the
+`example/` comic and episode. `verifyRoborazziDebug` fails when a screen no longer matches, and writes a
 before/after/diff image to `app/build/outputs/roborazzi/` (CI keeps it as the `screenshot-diffs`
 artifact). When a change is meant to alter a screen, re-record and commit the new images with the
 code, so the review shows them:
@@ -51,7 +52,7 @@ code, so the review shows them:
 ./gradlew :app:verifyRoborazziDebug     # compare against them
 ```
 
-Screens that load on a background thread (comic pages, the video's length) wait for it before
+Screens that load on a background thread (card images, comic pages, Markdown, the video's length) wait for it before
 capturing, so the images don't depend on timing. The tests run on Robolectric's Android 15 image
 (`SDK` in `LibraryScreenshotTest.kt`): its Android 16 image carries an old commons-compress that
 hides the app's, so the reader can't open a CBZ there.
