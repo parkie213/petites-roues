@@ -4,17 +4,24 @@ import android.app.Application
 import android.net.Uri
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.ui.test.junit4.v2.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
+import androidx.compose.ui.test.performClick
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.github.takahirom.roborazzi.captureRoboImage
 import com.petitesroues.android.AppTheme
 import com.petitesroues.android.library.Browse
 import com.petitesroues.android.library.CardImages
+import com.petitesroues.android.library.CardSource
 import com.petitesroues.android.library.LibraryScreen
 import com.petitesroues.android.library.LibraryState
+import com.petitesroues.android.pages.MarkdownPage
 import com.petitesroues.android.pages.Section
+import com.petitesroues.android.pages.StudyPages
 import com.petitesroues.library.shelves.Shelves
+import kotlinx.coroutines.runBlocking
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -28,8 +35,18 @@ import org.robolectric.annotation.GraphicsMode
 class LibraryScreenshotTest {
   @get:Rule val compose = createComposeRule()
 
-  private fun library(state: LibraryState, browse: Browse = Browse()) {
+  private fun library(
+    state: LibraryState,
+    browse: Browse = Browse(),
+    section: Section = Section.LIBRARY,
+    pages: List<MarkdownPage> = emptyList(),
+  ) {
     val images = CardImages(ApplicationProvider.getApplicationContext())
+    // Cards decode their images on a background thread; load them first so they're drawn.
+    runBlocking {
+      images.load(CardSource.Poster(Fixtures.poster))
+      images.load(CardSource.Page(Fixtures.comic, null))
+    }
     compose.setContent {
       AppTheme {
         LibraryScreen(
@@ -45,9 +62,19 @@ class LibraryScreenshotTest {
           onDesktop = {},
           onGetTitles = {},
           onAllowFiles = {},
-          section = Section.LIBRARY,
+          section = section,
           onSection = {},
-          study = {},
+          study = {
+            StudyPages(
+              section,
+              pages,
+              remembered = null,
+              onBack = {},
+              onOpened = {},
+              onChat = { _, _ -> },
+              onCopy = {},
+            )
+          },
           onOpen = {},
           onClearProgress = {},
         )
@@ -57,6 +84,9 @@ class LibraryScreenshotTest {
   }
 
   private val folders = listOf(Uri.parse("file:///fixtures"))
+
+  private val stocked =
+    LibraryState(folders, Fixtures.titles, Fixtures.progress, false, emptyList(), null)
 
   @Test
   fun empty() {
@@ -83,12 +113,49 @@ class LibraryScreenshotTest {
   @Test
   fun series() {
     library(
-      LibraryState(folders, Fixtures.titles, Fixtures.progress, false, emptyList(), null),
+      stocked,
       Browse(
         Shelves.shelves(Fixtures.titles).flatMap { it.groups }.single { it.name == "Le phare" }.key,
         1,
       ),
     )
+    compose.onRoot().captureRoboImage()
+  }
+
+  /**
+   * Opens [page] from the list. Its Markdown is parsed on a background thread, so this waits until
+   * [bodyText], a line from its body, is drawn.
+   */
+  private fun open(page: MarkdownPage, bodyText: String) {
+    compose.onNodeWithText(page.title).performClick()
+    compose.waitUntil(timeoutMillis = 10_000) {
+      compose.onAllNodesWithText(bodyText).fetchSemanticsNodes().isNotEmpty()
+    }
+  }
+
+  @Test
+  fun notes() {
+    library(stocked, section = Section.NOTES, pages = Fixtures.notes)
+    compose.onRoot().captureRoboImage()
+  }
+
+  @Test
+  fun note() {
+    library(stocked, section = Section.NOTES, pages = Fixtures.notes)
+    open(Fixtures.notes.first(), "Only the first verb is conjugated")
+    compose.onRoot().captureRoboImage()
+  }
+
+  @Test
+  fun quizzes() {
+    library(stocked, section = Section.QUIZZES, pages = Fixtures.quizzes)
+    compose.onRoot().captureRoboImage()
+  }
+
+  @Test
+  fun quiz() {
+    library(stocked, section = Section.QUIZZES, pages = Fixtures.quizzes)
+    open(Fixtures.quizzes.first(), "Exercise")
     compose.onRoot().captureRoboImage()
   }
 }
