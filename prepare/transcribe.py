@@ -4,7 +4,7 @@
   transcribe.py --document content/my-title/document.json --run-dir DIR [--media FILE] [--chunks 1]
 
 Extracts compact mono audio from the video (--media, else the one beside the document; its first
-audio track, as the browser plays) and transcribes it in the document's source language in chunks of
+audio track, as the browser plays, refused when tagged with another language) and transcribes it in the document's source language in chunks of
 about ten minutes that overlap their neighbours by a few seconds. Each chunk's request and raw
 response are saved under DIR/chunk-NNN; a chunk that already has a response is not sent again,
 so rerunning the same command resumes after a failure.
@@ -23,6 +23,7 @@ import subprocess
 from pathlib import Path
 
 from openrouter import cost, load, post, save
+from reference import check_audio_language
 
 MODEL = "mistralai/voxtral-small-transcribe-3-0"
 VIDEOS = {".mp4", ".mkv", ".webm", ".mov", ".m4v", ".avi", ".ogv"}
@@ -74,6 +75,8 @@ def main():
     parser.add_argument("--media", type=Path, help="the video; defaults to the one beside the document")
     parser.add_argument("--chunks", type=int, help="transcribe only the first N chunks (a sample)")
     parser.add_argument("--model", default=MODEL)
+    parser.add_argument("--ignore-track-language", action="store_true",
+                        help="transcribe a first audio track tagged with another language")
     args = parser.parse_args()
 
     document = load(args.document)
@@ -88,6 +91,7 @@ def main():
     if len(videos) != 1:
         raise SystemExit(f"Expected one video beside the document, found {len(videos)}")
 
+    check_audio_language(videos[0], document["sourceLanguage"], args.ignore_track_language)
     args.run_dir.mkdir(parents=True, exist_ok=True)
     audio = args.run_dir / "audio.mp3"
     if not audio.exists():

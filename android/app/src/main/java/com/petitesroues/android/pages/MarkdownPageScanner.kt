@@ -21,8 +21,8 @@ class MarkdownPageScanner(private val resolver: ContentResolver) {
     }
 
   /**
-   * The app's own folder holds one subfolder per desktop repository (as copied from the desktop),
-   * each with its own `notes/` and `quizzes/`.
+   * The app's own folder holds titles copied from the desktop, and one subfolder per desktop
+   * repository with its own `notes/` and `quizzes/`.
    */
   private fun scanFiles(tree: Uri, folder: String): List<MarkdownPage> =
     File(checkNotNull(tree.path)).listFiles().orEmpty().filter { it.isDirectory && !it.name.startsWith(".") }.sortedBy { it.name }.flatMap { repository ->

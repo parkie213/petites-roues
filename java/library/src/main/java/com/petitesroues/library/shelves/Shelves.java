@@ -16,6 +16,7 @@ import java.util.Set;
 import java.util.TreeSet;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 /**
  * Groups library entries into shelves of cards, the same in the browser and on Android. A document
@@ -29,6 +30,10 @@ import java.util.regex.Pattern;
  *   <li>Series: videos with a season or episode, grouped by series. A series whose videos have no
  *       numbers at all (a channel such as Le Parisien) is a series too, ordered by title.
  *   <li>Films: other videos, one card each, even when they name a series that has episodes.
+ *   <li>Unsorted: videos nothing says anything about yet: no study document, no season or episode
+ *       in their path, and no series a documented video belongs to. A folder name alone does not
+ *       make a series (a film often sits in a folder of its own name), so each is a card of its
+ *       own, named by its file, until a document says what it is.
  * </ul>
  *
  * <p>A series in several source languages is one card per language, since a learner follows one
@@ -43,6 +48,9 @@ import java.util.regex.Pattern;
  */
 public final class Shelves {
   private Shelves() {}
+
+  /** The shelf for videos nothing describes yet. */
+  public static final String UNSORTED = "Unsorted";
 
   private static final Pattern PARTS = Pattern.compile("\\d+|\\D+");
 
@@ -130,6 +138,24 @@ public final class Shelves {
       placed.add(place(seriesGroup(MediaKind.COMIC, group.getKey(), group.getValue()), "Comics"));
     for (var group : singleGroups(MediaKind.COMIC, withSeries(comics, false)))
       placed.add(place(group, "Comics"));
+
+    Set<String> documented =
+        videos.stream()
+            .filter(e -> e.item.documentAvailable() && hasText(e.series))
+            .map(e -> seriesKey(e.series))
+            .collect(Collectors.toSet());
+    Map<Boolean, List<Entry<T>>> known =
+        videos.stream()
+            .collect(
+                Collectors.partitioningBy(
+                    e ->
+                        e.item.documentAvailable()
+                            || numbered(e.item)
+                            || (hasText(e.series) && documented.contains(seriesKey(e.series)))));
+    List<Entry<T>> unsorted =
+        known.get(false).stream().map(e -> new Entry<>(e.item, null)).toList();
+    for (var group : singleGroups(MediaKind.VIDEO, unsorted)) placed.add(place(group, UNSORTED));
+    videos = known.get(true);
 
     List<Entry<T>> loose = new ArrayList<>(withSeries(videos, false));
     for (var series : bySeries(withSeries(videos, true)).entrySet()) {

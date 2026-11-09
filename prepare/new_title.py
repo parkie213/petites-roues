@@ -7,7 +7,8 @@
 
 The document's ID is the title in lowercase with dashes (naruto-t02) unless --id is given; it must
 be unique in its documents folder. A comic lists the CBZ's page images in natural filename
-order and reads right to left unless --ltr is given; a video starts with no cues. The media stays
+order and reads right to left unless --ltr is given; a video starts with no cues, and is refused
+when its first audio track, the one browsers play, is tagged with another language than --source. The media stays
 where it is: the library links the two by the reference fingerprint once both folders are
 registered and refreshed. An existing document is never replaced.
 """
@@ -17,7 +18,7 @@ import zipfile
 from pathlib import Path
 
 from openrouter import save
-from reference import VIDEO, duration, fingerprint
+from reference import VIDEO, check_audio_language, duration, fingerprint
 
 IMAGES = (".jpg", ".jpeg", ".png", ".webp")
 
@@ -51,6 +52,8 @@ def main():
     parser.add_argument("--translation", default="en")
     parser.add_argument("--notes", default="en")
     parser.add_argument("--ltr", action="store_true", help="a comic read left to right")
+    parser.add_argument("--ignore-track-language", action="store_true",
+                        help="start a video whose first audio track is tagged with another language")
     args = parser.parse_args()
 
     if args.document.exists():
@@ -63,6 +66,8 @@ def main():
     if args.volume is not None and not comic:
         raise SystemExit("--volume is for comics.")
 
+    if not comic:
+        check_audio_language(media, args.source, args.ignore_track_language)
     ident = args.id or re.sub(r"[^a-z0-9]+", "-", args.title.lower()).strip("-")
     reference = {"fingerprint": fingerprint(media), "sizeBytes": media.stat().st_size}
     document = {

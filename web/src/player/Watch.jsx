@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActionIcon,
+  Badge,
   Button,
   Group,
   Loader,
@@ -11,12 +12,14 @@ import {
 import {
   ArrowLeft,
   Ellipsis,
+  Volume2,
   Pencil,
   Play,
   Pause,
   Lightbulb,
 } from "lucide-react";
 import { titlePath } from "../shared/api.js";
+import { findMedia, mediaName } from "../shared/media.js";
 import { useStoredState } from "../shared/storage.js";
 import { activeCues, currentCue } from "./model.js";
 import { useStudyDocument } from "./useStudyDocument.js";
@@ -39,18 +42,46 @@ import "./Player.css";
 import "./Watch.css";
 
 /**
+ * A video without a study document, as the player shows it: named from its path, with no lines.
+ * Its warnings (such as no playable audio) show in the bar.
+ */
+function useBareVideo(fingerprint) {
+  const [media, setMedia] = useState(null);
+  const [error, setError] = useState("");
+  useEffect(() => {
+    if (!fingerprint) return;
+    findMedia(fingerprint).then(
+      (found) => {
+        setMedia({
+          title: mediaName(found, "Video"),
+          cues: [],
+          warnings: found?.warnings ?? [],
+        });
+        window.document.title = `Petites Roues · ${mediaName(found, "Video")}`;
+      },
+      (failure) => setError(failure.message),
+    );
+  }, [fingerprint]);
+  return { media, error };
+}
+
+/**
  * The plain viewing page: the video with interactive subtitles and whole-sentence help, and none
  * of the editing tools. Shares playback position with the editor, which opens at the same place.
+ * Given a {@code fingerprint} instead of a title {@code id}, it plays a video that has no study
+ * document yet with the same controls, and without what needs a document: subtitles, Quiz me,
+ * line fixes, auto-pause and saved position.
  */
-export function Watch({ id }) {
-  const api = titlePath(id),
-    prefix = `sacre-bleu:${id}`;
+export function Watch({ id, fingerprint }) {
+  const bare = !id;
+  const api = bare ? null : titlePath(id),
+    prefix = `sacre-bleu:${id ?? "video:" + fingerprint}`;
   const [status, setStatus] = useState("");
-  const { doc, cues, setCues, error, returnPath } = useStudyDocument({
-    id,
-    api,
-    setStatus,
-  });
+  const study = useStudyDocument({ id, api, setStatus });
+  const bareVideo = useBareVideo(bare ? fingerprint : null);
+  const { cues, setCues, returnPath } = study;
+  const doc = bare ? bareVideo.media : study.doc;
+  const error = bare ? bareVideo.error : study.error;
   const [overlay, setOverlay] = useStoredState(prefix + ":overlay", true);
   const [autoPause, setAutoPause] = useStoredState(
     prefix + ":watch:autoPause",
@@ -86,6 +117,8 @@ export function Watch({ id }) {
     play,
     pause,
     replay,
+    mutedForAutoplay,
+    unmute,
   } = usePlayerPlayback({
     api,
     doc,
@@ -94,6 +127,8 @@ export function Watch({ id }) {
     speed: 1,
     setSelected: () => {},
     setStatus,
+    saveProgress: !bare,
+    autoPlay: true,
   });
   const [controlsVisible, setControlsVisible] = useState(false);
   const controlsTimer = useRef(null);
@@ -176,7 +211,9 @@ export function Watch({ id }) {
         video.current?.paused ? play() : pause();
       } else if (event.key === "ArrowLeft" || event.key === "ArrowRight") {
         event.preventDefault();
-        if (event.shiftKey) seek(time + (event.key === "ArrowLeft" ? -2 : 2));
+        if (!cues.length) seek(time + (event.key === "ArrowLeft" ? -5 : 5));
+        else if (event.shiftKey)
+          seek(time + (event.key === "ArrowLeft" ? -2 : 2));
         else {
           const target = subtitleSeekTime(
             cues,
@@ -186,6 +223,11 @@ export function Watch({ id }) {
           );
           if (target != null) seek(target);
         }
+      } else if (!cues.length) {
+        if (key === "f" && !event.repeat && container.current)
+          toggleFullscreen(container.current).catch((e) =>
+            setStatus(e.message),
+          );
       } else if (key === "r" && !event.repeat) replay(Math.max(0, active));
       else if (key === "e" && !event.repeat) {
         event.preventDefault();
@@ -218,30 +260,35 @@ export function Watch({ id }) {
         </Text>
       </main>
     );
-  return (
-    <StudyLanguagesProvider document={doc}>
-      <main className="left watch">
-        <div
-          className={`video-player${quickEdit || quizOpen ? " watch-editing" : ""}`}
-          ref={container}
-          data-controls-visible={controlsVisible || undefined}
-          onPointerMove={handlePlayerPointer}
-          onPointerDown={handlePlayerPointer}
-          onKeyDownCapture={wakeControls}
-        >
-          <Group className="watch-bar" gap="sm" wrap="nowrap">
-            <ActionIcon
-              component="a"
-              variant="subtle"
-              href={returnPath}
-              aria-label="Back to library"
-              title="Library"
-            >
-              <ArrowLeft size={19} />
-            </ActionIcon>
-            <Text size="sm" truncate style={{ flex: 1 }}>
-              {doc.title}
-            </Text>
+  const page = (
+    <main className="left watch">
+      <div
+        className={`video-player${quickEdit || quizOpen ? " watch-editing" : ""}`}
+        ref={container}
+        data-controls-visible={controlsVisible || undefined}
+        onPointerMove={handlePlayerPointer}
+        onPointerDown={handlePlayerPointer}
+        onKeyDownCapture={wakeControls}
+      >
+        <Group className="watch-bar" gap="sm" wrap="nowrap">
+          <ActionIcon
+            component="a"
+            variant="subtle"
+            href={returnPath}
+            aria-label="Back to library"
+            title="Library"
+          >
+            <ArrowLeft size={19} />
+          </ActionIcon>
+          <Text size="sm" truncate style={{ flex: 1 }}>
+            {doc.title}
+          </Text>
+          {(doc.warnings ?? []).map((warning) => (
+            <Badge key={warning} size="sm" variant="light" color="yellow">
+              {warning}
+            </Badge>
+          ))}
+          {!bare && (
             <Button
               size="xs"
               variant="default"
@@ -252,6 +299,8 @@ export function Watch({ id }) {
             >
               Quiz me
             </Button>
+          )}
+          {!bare && (
             <Menu position="bottom-end" withinPortal={false}>
               <Menu.Target>
                 <ActionIcon
@@ -273,89 +322,106 @@ export function Watch({ id }) {
                 <PlayerShortcuts viewing />
               </Menu.Dropdown>
             </Menu>
-          </Group>
-          <div className="video-stage">
-            <video
-              ref={video}
-              preload="metadata"
-              src={api + "/media"}
-              onClick={(event) => {
-                // Wait briefly so a double click goes fullscreen without toggling playback.
-                if (event.detail > 1) return;
-                clearTimeout(clickTimer.current);
-                clickTimer.current = setTimeout(() => {
-                  if (video.current) video.current.paused ? play() : pause();
-                }, 300);
-              }}
-              onDoubleClick={() => {
-                clearTimeout(clickTimer.current);
-                toggleFullscreen(container.current).catch((e) =>
-                  setStatus(e.message),
-                );
-              }}
-              onPlay={() => {
-                setVideoHelp(null);
+          )}
+        </Group>
+        <div className="video-stage">
+          <video
+            ref={video}
+            preload="metadata"
+            src={
+              bare
+                ? `/api/media/${encodeURIComponent(fingerprint)}/video`
+                : api + "/media"
+            }
+            onClick={(event) => {
+              // Wait briefly so a double click goes fullscreen without toggling playback.
+              if (event.detail > 1) return;
+              clearTimeout(clickTimer.current);
+              clickTimer.current = setTimeout(() => {
+                if (video.current) video.current.paused ? play() : pause();
+              }, 300);
+            }}
+            onDoubleClick={() => {
+              clearTimeout(clickTimer.current);
+              toggleFullscreen(container.current).catch((e) =>
+                setStatus(e.message),
+              );
+            }}
+            onPlay={() => {
+              setVideoHelp(null);
+              heldTime.current = -1;
+              setPlaying(true);
+            }}
+            onPause={() => setPlaying(false)}
+            onSeeking={() => {
+              const value = video.current.currentTime;
+              if (Math.abs(value - heldTime.current) > 0.0001) {
+                heldCue.current = -1;
                 heldTime.current = -1;
-                setPlaying(true);
-              }}
-              onPause={() => setPlaying(false)}
-              onSeeking={() => {
-                const value = video.current.currentTime;
-                if (Math.abs(value - heldTime.current) > 0.0001) {
-                  heldCue.current = -1;
-                  heldTime.current = -1;
-                }
-                lastTime.current = value;
-                setTime(value);
-              }}
-              onError={() =>
-                setStatus(
-                  "This browser cannot play the video. Re-add the title to convert it.",
-                )
               }
-            />
-            {(overlay || videoHelp === "translation") &&
-              showing.map((cue, index) => (
-                <VideoSubtitles
-                  key={cue.id}
-                  cue={cue}
-                  lineOffset={index}
-                  helpMode={activePhraseCues.size ? "phrase" : videoHelp}
-                  showTranslation={videoHelp === "translation"}
-                  hideSource={!overlay}
-                  onActiveChange={setPhraseHelp}
-                />
-              ))}
-            {videoHelp === "notes" && activePhraseCues.size === 0 && (
-              <VideoStudyHelp
-                cues={showing}
-                notes={cues[Math.max(0, active)]?.notes}
-                showNotes={videoHelp === "notes"}
-              />
-            )}
-          </div>
-          <Group
-            className="playback-toolbar"
-            gap={6}
-            px="sm"
-            py={6}
-            aria-label="Playback controls"
-          >
+              lastTime.current = value;
+              setTime(value);
+            }}
+            onError={() =>
+              setStatus(
+                "This browser cannot play the video. Re-add the title to convert it.",
+              )
+            }
+          />
+          {mutedForAutoplay && (
             <Button
-              size="xs"
-              variant="light"
-              onClick={() => (video.current.paused ? play() : pause())}
-              aria-label={playing ? "Pause" : "Play"}
+              className="watch-unmute"
+              size="md"
+              color="coral"
+              leftSection={<Volume2 size={18} />}
+              onClick={unmute}
             >
-              {playing ? <Pause size={17} /> : <Play size={17} />}
+              Click for sound
             </Button>
-            <VideoControls
-              videoRef={video}
-              containerRef={container}
-              time={time}
-              onSeek={seek}
-              onError={setStatus}
+          )}
+          {(overlay || videoHelp === "translation") &&
+            showing.map((cue, index) => (
+              <VideoSubtitles
+                key={cue.id}
+                cue={cue}
+                lineOffset={index}
+                helpMode={activePhraseCues.size ? "phrase" : videoHelp}
+                showTranslation={videoHelp === "translation"}
+                hideSource={!overlay}
+                onActiveChange={setPhraseHelp}
+              />
+            ))}
+          {videoHelp === "notes" && activePhraseCues.size === 0 && (
+            <VideoStudyHelp
+              cues={showing}
+              notes={cues[Math.max(0, active)]?.notes}
+              showNotes={videoHelp === "notes"}
             />
+          )}
+        </div>
+        <Group
+          className="playback-toolbar"
+          gap={6}
+          px="sm"
+          py={6}
+          aria-label="Playback controls"
+        >
+          <Button
+            size="xs"
+            variant="light"
+            onClick={() => (video.current.paused ? play() : pause())}
+            aria-label={playing ? "Pause" : "Play"}
+          >
+            {playing ? <Pause size={17} /> : <Play size={17} />}
+          </Button>
+          <VideoControls
+            videoRef={video}
+            containerRef={container}
+            time={time}
+            onSeek={seek}
+            onError={setStatus}
+          />
+          {!bare && (
             <Switch
               size="xs"
               color="coral"
@@ -365,45 +431,50 @@ export function Watch({ id }) {
               checked={autoPause}
               onChange={(event) => setAutoPause(event.currentTarget.checked)}
             />
-            {status && (
-              <Text size="xs" c="dimmed" className="watch-status" role="status">
-                {status}
-              </Text>
-            )}
-          </Group>
-          {quickEdit && (
-            <SubtitleEditPanel
-              closeRef={closeEditor}
-              api={api}
-              cue={quickEdit.cue}
-              cues={cues}
-              video={video}
-              time={time}
-              seek={seek}
-              play={play}
-              pause={pause}
-              onSaved={(saved) => {
-                setCues(saved.cues);
-                heldCue.current = -1;
-                heldTime.current = -1;
-              }}
-              onClose={() => {
-                pause();
-                setQuickEdit(null);
-              }}
-            />
           )}
-          {quizOpen && (
-            <VideoQuizPanel
-              doc={doc}
-              cues={cues}
-              video={video}
-              time={time}
-              onClose={() => setQuizOpen(false)}
-            />
+          {status && (
+            <Text size="xs" c="dimmed" className="watch-status" role="status">
+              {status}
+            </Text>
           )}
-        </div>
-      </main>
-    </StudyLanguagesProvider>
+        </Group>
+        {quickEdit && (
+          <SubtitleEditPanel
+            closeRef={closeEditor}
+            api={api}
+            cue={quickEdit.cue}
+            cues={cues}
+            video={video}
+            time={time}
+            seek={seek}
+            play={play}
+            pause={pause}
+            onSaved={(saved) => {
+              setCues(saved.cues);
+              heldCue.current = -1;
+              heldTime.current = -1;
+            }}
+            onClose={() => {
+              pause();
+              setQuickEdit(null);
+            }}
+          />
+        )}
+        {quizOpen && (
+          <VideoQuizPanel
+            doc={doc}
+            cues={cues}
+            video={video}
+            time={time}
+            onClose={() => setQuizOpen(false)}
+          />
+        )}
+      </div>
+    </main>
+  );
+  return bare ? (
+    page
+  ) : (
+    <StudyLanguagesProvider document={doc}>{page}</StudyLanguagesProvider>
   );
 }

@@ -9,6 +9,11 @@ variants seen in the transcript:
 
   {"Bigweld": ["Bigwell", "Big Web"], "Rodney": ["René"]}
 
+Write the list before reading the transcript: every character, place and invented name in the
+title, from its cast list or credits, each with no variants yet ({"Bigweld": []}). --suggest then
+prints the words and word pairs in the transcript that look like a listed name without being it,
+with the cues they are in, so the variants can be added; it changes nothing.
+
 Variants are replaced as whole words, case-sensitively, longest first, in cue source text. Each
 change is printed. Cues that already have a translation, notes or phrase links are skipped and
 listed, because changing their source would leave the annotation describing other words. Running
@@ -16,6 +21,8 @@ it again changes nothing new, so add variants as later chunks reveal them and re
 """
 import argparse
 import re
+from collections import defaultdict
+from difflib import SequenceMatcher
 from pathlib import Path
 
 from batches import cues_of
@@ -36,6 +43,36 @@ def pattern(spellings):
     return re.compile(rf"(?<!\w)(?:{words})(?!\w)"), variants
 
 
+def suggestions(cues, spellings, threshold=0.75):
+    """Runs of words that resemble a listed name but are neither it nor a known variant, as
+    {(name, words): [line IDs]}. A run has as many words as the name, or one more ("Big Web")."""
+    known = {v.casefold() for heard in spellings.values() for v in heard}
+    known |= {name.casefold() for name in spellings}
+    found = defaultdict(list)
+    for cue in cues:
+        line = cue["line"]
+        # Elided articles and prepositions come off: "d'Harold" is Harold.
+        words = [re.sub(r"^\w{1,3}['’](?=\w)", "", w)
+                 for w in re.findall(r"\w+(?:['’-]\w+)*", line.get("source", ""))]
+        for name in spellings:
+            target = name.casefold()
+            size = len(name.split())
+            # Short names match too many ordinary words, so they must be closer.
+            needed = threshold if len(target) > 4 else 0.85
+            matched = set()  # word positions already in a match, so a longer run adds nothing
+            for n in (size, size + 1):
+                for i in range(len(words) - n + 1):
+                    run = " ".join(words[i:i + n])
+                    folded = run.casefold()
+                    if (matched & set(range(i, i + n)) or abs(len(folded) - len(target)) > 3
+                            or any(w.casefold() in known for w in words[i:i + n]) or folded in known):
+                        continue
+                    if SequenceMatcher(None, folded.replace(" ", ""), target).ratio() >= needed:
+                        found[(name, run)].append(line["id"])
+                        matched |= set(range(i, i + n))
+    return found
+
+
 def annotated(line):
     return bool(line.get("translation") or line.get("notes") or line.get("alignment"))
 
@@ -45,10 +82,18 @@ def main():
     parser.add_argument("--document", type=Path, required=True)
     parser.add_argument("--spellings", type=Path, required=True)
     parser.add_argument("--dry-run", action="store_true", help="print the changes without writing")
+    parser.add_argument("--suggest", action="store_true",
+                        help="list transcript words resembling a listed name, and change nothing")
     args = parser.parse_args()
     document = load(args.document)
     if not (document.get("video") or document.get("comic")):
         raise SystemExit("Not a video or comic document")
+    if args.suggest:
+        found = suggestions(cues_of(document), load(args.spellings))
+        for (name, run), lines in sorted(found.items()):
+            print(f"{name} ← {run!r} ×{len(lines)}: {', '.join(lines[:5])}{' …' if len(lines) > 5 else ''}")
+        print(f"{len(found)} possible variants; add the misheard ones to {args.spellings} and run without --suggest")
+        return
     names, variants = pattern(load(args.spellings))
     changed, skipped = 0, []
     for cue in cues_of(document):

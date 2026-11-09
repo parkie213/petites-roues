@@ -21,6 +21,7 @@ import json
 import subprocess
 from pathlib import Path
 
+from languages import primary
 from openrouter import load, save
 
 END = 4 * 1024 * 1024
@@ -45,6 +46,33 @@ def duration(path):
         ["ffprobe", "-v", "error", "-show_format", "-of", "json", str(path)],
         check=True, capture_output=True, text=True).stdout
     return float(json.loads(out)["format"]["duration"])
+
+
+def audio_languages(path):
+    """The language tag of each audio track in order, "" where a track has none."""
+    out = subprocess.run(
+        ["ffprobe", "-v", "error", "-select_streams", "a", "-show_entries", "stream_tags=language",
+         "-of", "json", str(path)], check=True, capture_output=True, text=True).stdout
+    return [s.get("tags", {}).get("language", "") for s in json.loads(out).get("streams", [])]
+
+
+def check_audio_language(path, source, ignore=False):
+    """Refuses a video whose first audio track, the one browsers play and transcription hears, is
+    tagged with another language than the document's source. An untagged track is only reported.
+    `ignore` lets a mislabelled track through."""
+    tracks = audio_languages(path)
+    if not tracks:
+        raise SystemExit(f"{path.name} has no audio track.")
+    first = primary(tracks[0])
+    if not first:
+        print(f"{path.name}: the first audio track has no language tag; check it is in {source}.")
+    elif first != primary(source) and not ignore:
+        listing = ", ".join(f"0:a:{i} {t or 'untagged'}" for i, t in enumerate(tracks))
+        wanted = [i for i, t in enumerate(tracks) if primary(t) == primary(source)]
+        fix = (f"Put 0:a:{wanted[0]} first (see 'Start the document' in docs/PREPARE-TITLE.md)"
+               if wanted else f"It has no {source} track")
+        raise SystemExit(f"{path.name} plays {tracks[0]} audio first, not {source} ({listing}). {fix}, "
+                         "or pass --ignore-track-language if the tag is wrong.")
 
 
 def media_beside(document, comic):

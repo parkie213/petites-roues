@@ -9,7 +9,10 @@ import java.util.List;
  * @param role what the file is: {@link #DOCUMENT}, {@link #MEDIA}, {@link #POSTER}, {@link
  *     #SERIES_POSTER} or {@link #PAGE}
  * @param path where it goes on the phone, relative to the download folder, with {@code /} between
- *     segments: the desktop repository's name, then the file's path in that repository
+ *     segments, chosen by the title rather than by where the desktop keeps the file: {@code
+ *     <series>/<title id>.<extension>} for a title's own files (no series folder without a series),
+ *     {@code <series>/poster.<extension>} for the series poster, or the repository's name then
+ *     {@code notes/} or {@code quizzes/} for a page
  * @param bytes its size on the desktop; a document's is the size it is served at, pending edits
  *     replayed
  * @param fingerprint how to recognise the same file on the phone ({@link FileFingerprints}): the

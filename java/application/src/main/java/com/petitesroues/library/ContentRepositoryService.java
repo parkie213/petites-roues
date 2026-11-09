@@ -213,7 +213,11 @@ public class ContentRepositoryService {
                   && old.kind().equals(kind)
                   && file.unchangedSince(old.sizeBytes(), old.modifiedMillis())
               ? new MediaProbe.Probe(
-                  old.fingerprint(), old.durationSeconds(), old.audioCodecs(), old.audioPlayable())
+                  old.fingerprint(),
+                  old.durationSeconds(),
+                  old.audioCodecs(),
+                  old.audioPlayable(),
+                  old.audioLanguages())
               : file.kind() == MediaKind.VIDEO
                   ? probe.video(file.handle())
                   : probe.comic(file.handle());
@@ -230,6 +234,7 @@ public class ContentRepositoryService {
               result.durationSeconds(),
               result.audioCodecs(),
               result.audioPlayable(),
+              result.audioLanguages(),
               file.poster() == null ? null : file.poster().relativePath(),
               file.seriesPoster() == null ? null : file.seriesPoster().relativePath(),
               file.posterProblem()));

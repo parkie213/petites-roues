@@ -15,8 +15,9 @@ import tools.jackson.databind.ObjectMapper;
 
 /**
  * Lists a video's audio tracks and duration with ffprobe and writes thumbnails with ffmpeg. Both
- * tools must be on the PATH. Browsers play only a file's default audio track and cannot decode AC3,
- * E-AC3 or DTS, so each track records whether a browser could play it.
+ * tools must be on the PATH. Browsers play only a file's first audio track, whichever the file
+ * marks as default, and cannot decode AC3, E-AC3 or DTS, so each track records whether a browser
+ * could play it.
  */
 @Component
 public class Ffmpeg {

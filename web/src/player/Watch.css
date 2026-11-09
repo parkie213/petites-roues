@@ -273,3 +273,13 @@
     padding: 10px 13px;
   }
 }
+
+/* Shown when the browser only let the video start muted; one click turns the sound on. */
+.watch .watch-unmute {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 6;
+  box-shadow: 0 4px 18px #0008;
+}

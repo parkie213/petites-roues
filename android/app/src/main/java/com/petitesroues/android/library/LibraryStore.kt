@@ -9,19 +9,23 @@ import androidx.core.net.toUri
 
 /**
  * The phone's title index and reading/playback progress in a local SQLite database. Progress is
- * keyed by title path ([TitlePaths]), so it survives refreshes, and is never synced to the desktop.
+ * keyed by [Title.progressKey], the document's ID, so it survives refreshes and files moving, and
+ * is never synced to the desktop.
  */
 class LibraryStore(context: Context) :
-  SQLiteOpenHelper(context, "library.sqlite", null, 6) {
+  SQLiteOpenHelper(context, "library.sqlite", null, 7) {
   override fun onCreate(db: SQLiteDatabase) {
     createTitles(db)
     createFingerprints(db)
+    createProgress(db)
+  }
+
+  private fun createProgress(db: SQLiteDatabase) =
     db.execSQL(
       """CREATE TABLE progress (
-           path TEXT PRIMARY KEY, position_seconds REAL, page_id TEXT,
+           title TEXT PRIMARY KEY, position_seconds REAL, page_id TEXT,
            updated_at INTEGER NOT NULL, fraction REAL)"""
     )
-  }
 
   /**
    * The title table is only an index of the content folders, so an upgrade empties it until the
@@ -29,13 +33,35 @@ class LibraryStore(context: Context) :
    * indexes the reference duration in place of the edition, version 5 caches media
    * fingerprints, as titles link to media by fingerprint from any folder, and version 6 indexes
    * media without a document and the shelf, language and media path the shared shelves use.
+   * Version 7 keys progress by document ID instead of path, moved over through the old index
+   * before it is emptied; when one document had progress in two places, the latest wins.
    */
   override fun onUpgrade(db: SQLiteDatabase, oldVersion: Int, newVersion: Int) {
+    emptied = true
+    if (oldVersion < 3) db.execSQL("ALTER TABLE progress ADD COLUMN fraction REAL")
+    if (oldVersion < 7) {
+      db.execSQL("ALTER TABLE progress RENAME TO progress_by_path")
+      createProgress(db)
+      db.execSQL(
+        """INSERT OR REPLACE INTO progress (title, position_seconds, page_id, updated_at, fraction)
+           SELECT t.document_id, p.position_seconds, p.page_id, p.updated_at, p.fraction
+           FROM progress_by_path p JOIN title t ON t.path = p.path
+           ORDER BY p.updated_at"""
+      )
+      db.execSQL("DROP TABLE progress_by_path")
+    }
     db.execSQL("DROP TABLE IF EXISTS title")
     createTitles(db)
     if (oldVersion < 5) createFingerprints(db)
-    if (oldVersion < 3) db.execSQL("ALTER TABLE progress ADD COLUMN fraction REAL")
   }
+
+  @Volatile private var emptied = false
+
+  /**
+   * Whether opening the database just upgraded it, which empties the title index, so the library
+   * must be refreshed to show anything; true once, then false.
+   */
+  fun takeEmptied(): Boolean = emptied.also { emptied = false }
 
   private fun createTitles(db: SQLiteDatabase) =
     db.execSQL(
@@ -162,9 +188,9 @@ class LibraryStore(context: Context) :
     }
   }
 
-  /** Progress for every title that has any, keyed by path. */
+  /** Progress for every title that has any, keyed by [Title.progressKey]. */
   fun progress(): Map<String, Progress> =
-    readableDatabase.rawQuery("SELECT path, position_seconds, page_id, fraction FROM progress", null).use {
+    readableDatabase.rawQuery("SELECT title, position_seconds, page_id, fraction FROM progress", null).use {
       buildMap {
         while (it.moveToNext())
           put(
@@ -178,25 +204,25 @@ class LibraryStore(context: Context) :
       }
     }
 
-  fun progress(path: String): Progress? = progress()[path]
+  fun progress(key: String): Progress? = progress()[key]
 
   /** Saves a video position and, when the duration is known, how far through the video it is. */
-  fun savePosition(path: String, seconds: Double, fraction: Double?) =
-    save(path, "position_seconds" to seconds, "fraction" to fraction)
+  fun savePosition(key: String, seconds: Double, fraction: Double?) =
+    save(key, "position_seconds" to seconds, "fraction" to fraction)
 
   /** Saves a comic page and how far through the comic it is, (page index + 1) / page count. */
-  fun savePage(path: String, pageId: String, fraction: Double) =
-    save(path, "page_id" to pageId, "fraction" to fraction)
+  fun savePage(key: String, pageId: String, fraction: Double) =
+    save(key, "page_id" to pageId, "fraction" to fraction)
 
   /** Forgets where a title was left: it opens at the start and its card shows no progress. */
-  fun clearProgress(path: String) {
-    writableDatabase.delete("progress", "path = ?", arrayOf(path))
+  fun clearProgress(key: String) {
+    writableDatabase.delete("progress", "title = ?", arrayOf(key))
   }
 
-  private fun save(path: String, vararg columns: Pair<String, Any?>) {
+  private fun save(key: String, vararg columns: Pair<String, Any?>) {
     val values =
       ContentValues().apply {
-        put("path", path)
+        put("title", key)
         for ((column, value) in columns)
           when (value) {
             null -> putNull(column)
@@ -206,7 +232,7 @@ class LibraryStore(context: Context) :
         put("updated_at", System.currentTimeMillis())
       }
     val db = writableDatabase
-    if (db.update("progress", values, "path = ?", arrayOf(path)) == 0)
+    if (db.update("progress", values, "title = ?", arrayOf(key)) == 0)
       db.insertOrThrow("progress", null, values)
   }
 }

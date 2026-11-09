@@ -23,6 +23,7 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.stream.Collectors;
@@ -34,6 +35,14 @@ import org.springframework.stereotype.Service;
  * the document). A phone fetches files by title and role, never by path, so only files the
  * catalogue lists can be read. Media matched only by a hand link is offered with a problem instead:
  * the phone links media by fingerprint, so it would not find it.
+ *
+ * <p>Where each file goes on the phone depends only on the title, never on where the desktop keeps
+ * it, so moving media, renaming folders or registering them again changes nothing there. A title's
+ * files are named by its ID, side by side in its series' folder, or at the top without a series:
+ * {@code <id>.<media extension>}, its poster {@code <id>.<image extension>} and its document {@code
+ * <id>.json}, with the series poster as {@code poster.*} in the series' folder. That is how the
+ * library's scan pairs posters with media. Notes and quizzes keep a folder per repository, which is
+ * how the phone groups them.
  */
 @Service
 public class PhoneTransferService {
@@ -198,27 +207,28 @@ public class PhoneTransferService {
     List<TitleFile> list = new ArrayList<>();
     if (problem == null) {
       IndexedMedia item = matched.get();
-      String folder = names.getOrDefault(item.repositoryId(), item.repositoryId());
+      String series = entry.series() == null ? null : segment(entry.series(), "series");
+      String base = (series == null ? "" : series + "/") + segment(entry.id(), "title");
       files.put(TitleFile.MEDIA, item.file());
       list.add(
           new TitleFile(
               TitleFile.MEDIA,
-              folder + "/" + item.relativePath(),
+              base + extension(item.file()),
               Files.size(item.file()),
               item.fingerprint(),
               PhoneRoutes.titleFile(entry.id(), TitleFile.MEDIA)));
       Path poster = LibraryService.poster(item);
       Path seriesPoster = LibraryService.seriesPoster(item);
-      if (poster != null) add(files, list, entry, TitleFile.POSTER, item, folder, poster);
-      if (seriesPoster != null && !seriesPoster.equals(poster))
-        add(files, list, entry, TitleFile.SERIES_POSTER, item, folder, seriesPoster);
+      // A film's only poster is often its folder's, which the desktop counts as a series poster.
+      if (series == null && poster == null) poster = seriesPoster;
+      if (poster != null) add(files, list, entry, TitleFile.POSTER, base, poster);
+      if (series != null && seriesPoster != null && !seriesPoster.equals(poster))
+        add(files, list, entry, TitleFile.SERIES_POSTER, series + "/poster", seriesPoster);
       byte[] document = served(entry);
       list.add(
           new TitleFile(
               TitleFile.DOCUMENT,
-              names.getOrDefault(location.repositoryId(), location.repositoryId())
-                  + "/"
-                  + entry.documentPath(),
+              base + ".json",
               document.length,
               FileFingerprints.sha256(document),
               PhoneRoutes.titleFile(entry.id(), TitleFile.DOCUMENT)));
@@ -237,25 +247,40 @@ public class PhoneTransferService {
         files);
   }
 
+  /** Adds a poster, at {@code name} on the phone with the image's extension. */
   private static void add(
       Map<String, Path> files,
       List<TitleFile> list,
       CatalogueEntry entry,
       String role,
-      IndexedMedia item,
-      String folder,
+      String name,
       Path image)
       throws IOException {
-    String relative =
-        Path.of(item.repositoryPath()).relativize(image).toString().replace('\\', '/');
     files.put(role, image);
     list.add(
         new TitleFile(
             role,
-            folder + "/" + relative,
+            name + extension(image),
             Files.size(image),
             null,
             PhoneRoutes.titleFile(entry.id(), role)));
+  }
+
+  /** The file's extension in lower case with its dot, or nothing. */
+  private static String extension(Path file) {
+    String name = file.getFileName().toString();
+    int dot = name.lastIndexOf('.');
+    return dot > 0 ? name.substring(dot).toLowerCase(Locale.ROOT) : "";
+  }
+
+  /**
+   * {@code name} made safe as one folder name on a phone: no separators or characters Android's
+   * shared storage refuses, and not hidden (the library scan skips hidden folders); {@code
+   * fallback} when nothing is left.
+   */
+  static String segment(String name, String fallback) {
+    String safe = name.replaceAll("[\\\\/:*?\"<>|\\p{Cntrl}]", "-").strip().replaceAll("^\\.+", "");
+    return safe.isEmpty() ? fallback : safe;
   }
 
   /** Each repository's folder name on the phone: its name, made safe as one path segment. */

@@ -184,7 +184,8 @@ documents/
   a `video` or `comic` body, whatever its name. Other JSON is ignored. A file that claims to be a
   study document but doesn't validate fails the Refresh with its path.
 - **Media.** Refresh indexes every video (`.mp4`, `.mkv`, `.webm`, `.mov`, `.m4v`, `.avi`,
-  `.ogv`) and `.cbz`, with its [fingerprint](#reference-media), duration and audio codecs. A file
+  `.ogv`) and `.cbz`, with its [fingerprint](#reference-media), duration and the codec and
+  language of each audio track, in order. A file
   is probed again only when its size or modification time changes. Hidden folders,
   `node_modules` and `content-archive` are skipped.
 - **Linking.** A video or CBZ links to a document whose `reference.fingerprint` equals its
@@ -201,9 +202,14 @@ documents/
   renamed. A hand-linked video whose duration differs from `reference.durationSeconds` by more
   than 2 seconds warns that cue timings may be off.
 - **Warnings.** Media that no document references is listed under *Needs attention* as "No study
-  document". A video with no browser-playable audio track (AAC, MP3, Opus, Vorbis or FLAC) warns
-  "No audio track this player can play"; remux it with your own tools. Refresh clears a warning
-  once it is fixed.
+  document". Browsers play only a video's first audio track, so a video whose first track isn't
+  browser-playable (AAC, MP3, Opus, Vorbis or FLAC) warns "The first audio track (AC3) won't play
+  in a browser", or "No audio track this player can play" when it has only one. When the first
+  track's language tag isn't the document's `sourceLanguage`, it warns, for example, "Plays English
+  audio, not French: make the French track the first"; an untagged track isn't judged. A video
+  without a document that has several languages says which plays: "Plays English audio of
+  English, French and Dutch". Remux it with your own tools
+  ([preparing a title](PREPARE-TITLE.md)); Refresh clears a warning once it is fixed.
 
 ### Card images
 

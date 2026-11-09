@@ -218,6 +218,8 @@ public class LibraryService {
     var warnings = new ArrayList<String>();
     if (titleId == null) warnings.add("No study document");
     if (item.unplayableAudio()) warnings.add(item.audioWarning());
+    // Without a document nothing says which language is wanted, so say which one plays.
+    if (titleId == null && item.languagesNote() != null) warnings.add(item.languagesNote());
     if (item.posterProblem() != null) warnings.add(item.posterProblem());
     var named = MediaNames.fromPath(item.relativePath());
     return new MediaItem(
@@ -273,6 +275,9 @@ public class LibraryService {
       matched
           .filter(IndexedMedia::unplayableAudio)
           .ifPresent(item -> problems.put("audio", item.audioWarning()));
+      matched
+          .map(item -> item.languageWarning(entry.sourceLanguage()))
+          .ifPresent(warning -> problems.put("language", warning));
       matched
           .map(IndexedMedia::posterProblem)
           .ifPresent(problem -> problems.put("poster", problem));

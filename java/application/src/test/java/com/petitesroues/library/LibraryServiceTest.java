@@ -195,6 +195,7 @@ class LibraryServiceTest {
             60.0,
             "aac",
             true,
+            null,
             "film.jpg",
             null,
             null);
@@ -210,6 +211,7 @@ class LibraryServiceTest {
             60.0,
             "aac",
             true,
+            null,
             null,
             null,
             problem);

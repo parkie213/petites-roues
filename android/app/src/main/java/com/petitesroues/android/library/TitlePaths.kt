@@ -6,9 +6,9 @@ package com.petitesroues.android.library
  */
 object TitlePaths {
   /**
-   * A title's path, which keys its saved progress: its document's folder for a `document.json`, so
-   * progress saved before documents could have any name is kept, else the document's path without
-   * `.json`, so two documents in one folder stay distinct. Prefixed with the content folder's name.
+   * A title's path, which identifies its library entry (progress is keyed by document ID instead):
+   * its document's folder for a `document.json`, else the document's path without `.json`, so two
+   * documents in one folder stay distinct. Prefixed with the content folder's name.
    */
   fun of(root: String, documentPath: String): String {
     val path =

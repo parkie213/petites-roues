@@ -35,6 +35,7 @@ public class MediaStore {
         (Double) row.getObject("duration_seconds"),
         row.getString("audio_codecs"),
         playable == null ? null : ((Number) playable).intValue() != 0,
+        row.getString("audio_languages"),
         row.getString("poster_path"),
         row.getString("series_poster_path"),
         row.getString("poster_problem"));
@@ -83,9 +84,9 @@ public class MediaStore {
       jdbc.update(
           """
           INSERT INTO media (repository_id, relative_path, kind, size_bytes, modified_millis,
-            fingerprint, duration_seconds, audio_codecs, audio_playable, poster_path,
-            series_poster_path, poster_problem)
-          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            fingerprint, duration_seconds, audio_codecs, audio_playable, audio_languages,
+            poster_path, series_poster_path, poster_problem)
+          VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
           """,
           repositoryId,
           item.relativePath(),
@@ -96,6 +97,7 @@ public class MediaStore {
           item.durationSeconds(),
           item.audioCodecs(),
           item.audioPlayable() == null ? null : item.audioPlayable() ? 1 : 0,
+          item.audioLanguages(),
           item.posterPath(),
           item.seriesPosterPath(),
           item.posterProblem());
