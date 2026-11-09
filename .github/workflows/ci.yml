@@ -14,10 +14,10 @@ permissions:
 # Android app are then built against that same jar.
 jobs:
   library:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-java@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-java@v6
         with:
           distribution: temurin
           java-version-file: .java-version
@@ -25,7 +25,7 @@ jobs:
           cache-dependency-path: "**/pom.xml"
       - name: Test and install the shared library
         run: ./java/mvnw -B -f java/pom.xml -pl documents,library,sync -am install
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: library
           path: ~/.m2/repository/com/petitesroues
@@ -33,21 +33,21 @@ jobs:
 
   server:
     needs: library
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-java@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-java@v6
         with:
           distribution: temurin
           java-version-file: .java-version
           cache: maven
           cache-dependency-path: "**/pom.xml"
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version-file: .nvmrc
           cache: npm
           cache-dependency-path: web/package-lock.json
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v8
         with:
           name: library
           # Straight over the restored Maven cache, whose own copy of the library may be stale.
@@ -74,15 +74,21 @@ jobs:
 
   android:
     needs: library
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-26.04
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-java@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-java@v6
         with:
           distribution: temurin
           java-version-file: .java-version
-      - uses: gradle/actions/setup-gradle@v4
-      - uses: actions/download-artifact@v4
+          # setup-java's own Gradle cache: gradle/actions' caching needs Gradle's proprietary terms
+          # since v6. The default key looks for the version catalogue at the root, so name ours.
+          cache: gradle
+          cache-dependency-path: |
+            android/**/*.gradle.kts
+            android/gradle/libs.versions.toml
+            android/gradle/wrapper/gradle-wrapper.properties
+      - uses: actions/download-artifact@v8
         with:
           name: library
           path: ~/.m2/repository/com/petitesroues
@@ -91,7 +97,7 @@ jobs:
         working-directory: android
       - name: Keep the screenshot comparisons when a screen changed
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: screenshot-diffs
           path: android/app/build/outputs/roborazzi
