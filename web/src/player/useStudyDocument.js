@@ -3,7 +3,7 @@ import { request } from "../shared/api.js";
 import { libraryReturnPath } from "../shared/library-return.js";
 
 /** Loads the study document and review queue, with the library page to return to. */
-export function useStudyDocument({ id, api, setStatus }) {
+export function useStudyDocument({ api, setStatus }) {
   const [doc, setDoc] = useState(null);
   const [cues, setCues] = useState([]);
   const [changes, setChanges] = useState([]);
@@ -29,6 +29,6 @@ export function useStudyDocument({ id, api, setStatus }) {
           setStatus("Review queue unavailable: " + e.message);
       });
     return () => controller.abort();
-  }, [api]);
+  }, [api, setStatus]);
   return { doc, cues, setCues, changes, setChanges, error, returnPath };
 }

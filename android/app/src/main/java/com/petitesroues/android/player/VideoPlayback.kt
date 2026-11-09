@@ -3,6 +3,7 @@ package com.petitesroues.android.player
 import android.content.Context
 import android.net.Uri
 import android.os.Looper
+import androidx.annotation.OptIn
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableDoubleStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -10,6 +11,7 @@ import androidx.compose.runtime.setValue
 import androidx.media3.common.C
 import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
+import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
 
 /**
@@ -20,6 +22,8 @@ import androidx.media3.exoplayer.ExoPlayer
  * Line ends are ExoPlayer messages at each cue's end position, delivered on the main thread every
  * time playback crosses them.
  */
+// Cue-end messages (createMessage) are Media3 API still marked unstable.
+@OptIn(UnstableApi::class)
 class VideoPlayback(context: Context, media: Uri, val timeline: CueTimeline) {
   val player: ExoPlayer = ExoPlayer.Builder(context).build()
 

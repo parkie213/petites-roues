@@ -246,7 +246,7 @@ export function ComicReader({ id }) {
                   disabled={locked}
                   value={chapter}
                   onChange={(event) =>
-                    go(chapterStart(Number(event.target.value)))
+                    view.go(chapterStart(Number(event.target.value)))
                   }
                 >
                   {chapter < 0 && (

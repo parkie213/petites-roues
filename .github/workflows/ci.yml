@@ -56,6 +56,12 @@ jobs:
       - name: Install frontend dependencies
         run: npm ci
         working-directory: web
+      - name: Check frontend formatting
+        run: npm run format:check
+        working-directory: web
+      - name: Lint frontend
+        run: npm run lint
+        working-directory: web
       - name: Build frontend
         run: npm run build
         working-directory: web
@@ -77,6 +83,6 @@ jobs:
         with:
           name: library
           path: ~/.m2/repository/com/petitesroues
-      - name: Check formatting, test and build the Android app against the built library
-        run: ./gradlew --no-daemon -PprebuiltLibrary spotlessCheck :app:testDebugUnitTest :app:assembleDebug
+      - name: Check formatting, lint, test and build the Android app against the built library
+        run: ./gradlew --no-daemon -PprebuiltLibrary spotlessCheck :app:lintDebug :app:testDebugUnitTest :app:assembleDebug
         working-directory: android

@@ -38,6 +38,7 @@ import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.SpeakerNotes
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.CropFree
 import androidx.compose.material.icons.filled.DeleteSweep
@@ -47,7 +48,6 @@ import androidx.compose.material.icons.filled.Headphones
 import androidx.compose.material.icons.filled.HeadsetOff
 import androidx.compose.material.icons.filled.ScreenLockLandscape
 import androidx.compose.material.icons.filled.ScreenRotation
-import androidx.compose.material.icons.filled.SpeakerNotes
 import androidx.compose.material.icons.filled.SwapHoriz
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
@@ -88,6 +88,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
@@ -350,7 +351,11 @@ fun ReadScreen(
             .padding(10.dp)
             .widthIn(max = 560.dp)
             .fillMaxWidth()
-            .heightIn(max = LocalConfiguration.current.screenHeightDp.dp * 0.45f),
+            .heightIn(
+              max =
+                with(LocalDensity.current) { LocalWindowInfo.current.containerSize.height.toDp() } *
+                  0.45f
+            ),
       ) {
         Column {
           if (lines.size > 1)
@@ -441,7 +446,7 @@ fun ReadScreen(
                 when (listeningMode) {
                   ListeningMode.OFF -> Icons.Filled.HeadsetOff
                   ListeningMode.LISTEN_FIRST -> Icons.Filled.Headphones
-                  ListeningMode.LISTEN_AND_OPEN -> Icons.Filled.SpeakerNotes
+                  ListeningMode.LISTEN_AND_OPEN -> Icons.AutoMirrored.Filled.SpeakerNotes
                 },
                 contentDescription =
                   "${listeningMode.label}. Switch to: ${listeningMode.next().label}",

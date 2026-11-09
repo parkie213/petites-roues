@@ -35,6 +35,6 @@ Component styles beside the alignment and listening views describe their
 specialized visualizations and answer feedback. Avoid blanket button or input
 rules: standard controls should use Mantine props and the shared theme.
 
-Run `npm test`, `npm run build` and `npm run format:check` from `web/`.
+Run `npm test`, `npm run build`, `npm run format:check` and `npm run lint` from `web/`; CI runs all four. ESLint checks the React hooks rules (hooks in a fixed order, effects listing what they read).
 Use isolated fixtures for browser testing so checks do not change the user's
 saved playback position or study content.

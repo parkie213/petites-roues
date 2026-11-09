@@ -22,6 +22,15 @@ android {
 
   buildFeatures { compose = true }
 
+  lint {
+    // Every warning fails the build, as errors do, so the report stays empty.
+    warningsAsErrors = true
+    abortOnError = true
+    // New releases of Gradle, the plugin and libraries are not faults in the code; updating them
+    // is a separate job, and these checks would fail builds whenever something is released.
+    disable += setOf("NewerVersionAvailable", "AndroidGradlePluginVersion", "GradleDependency")
+  }
+
   compileOptions {
     sourceCompatibility = JavaVersion.VERSION_17
     targetCompatibility = JavaVersion.VERSION_17
@@ -58,6 +67,9 @@ val quizAssets =
 
 // Room writes each version of the progress database's schema here, to review and migrate from.
 room { schemaDirectory("$projectDir/schemas") }
+
+// The compiler reports no warnings; keep it that way.
+kotlin { compilerOptions { allWarningsAsErrors = true } }
 
 androidComponents {
   onVariants { variant ->

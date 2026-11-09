@@ -77,7 +77,7 @@ export function Watch({ id, fingerprint }) {
   const api = bare ? null : titlePath(id),
     prefix = `sacre-bleu:${id ?? "video:" + fingerprint}`;
   const [status, setStatus] = useState("");
-  const study = useStudyDocument({ id, api, setStatus });
+  const study = useStudyDocument({ api, setStatus });
   const bareVideo = useBareVideo(bare ? fingerprint : null);
   const { cues, setCues, returnPath } = study;
   const doc = bare ? bareVideo.media : study.doc;
