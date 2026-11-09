@@ -7,6 +7,7 @@ import android.util.Log
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -17,12 +18,15 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Computer
 import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Button
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CircularProgressIndicator
@@ -32,6 +36,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -48,6 +53,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -55,6 +61,7 @@ import com.petitesroues.android.Settings
 import com.petitesroues.android.library.AppFolder
 import com.petitesroues.android.library.LibraryUsage
 import com.petitesroues.sync.SyncStatus
+import java.text.Normalizer
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
@@ -82,6 +89,7 @@ fun DesktopTitlesScreen(settings: Settings, onDesktop: () -> Unit, onBack: () ->
   var opened by rememberSaveable { mutableStateOf(listOf<String>()) }
   // Bumped by following a series or choosing a title, to check again.
   var changes by remember { mutableIntStateOf(0) }
+  var search by rememberSaveable { mutableStateOf("") }
   var sync by remember { mutableStateOf<SyncStatus?>(null) }
   var problem by remember { mutableStateOf<String?>(null) }
   // Set by ticking a series: start once the check has counted what it adds.
@@ -137,6 +145,23 @@ fun DesktopTitlesScreen(settings: Settings, onDesktop: () -> Unit, onBack: () ->
     startAfterCheck = choose
     changes++
   }
+
+  /** Each group's row, its titles when opened, and a divider. */
+  fun LazyListScope.groups(list: List<SyncStatus.Group>) =
+    list.forEach { group ->
+      val series = group.entries().size > 1
+      val open = series && group.key() in opened
+      item(key = group.key()) {
+        GroupRow(group, open = if (series) open else null, onOpen = { opened = if (open) opened - group.key() else opened + group.key() }) {
+          follow(group, it)
+        }
+      }
+      if (open)
+        items(group.entries(), key = { "title:" + it.title().id() }) { entry ->
+          EntryRow(entry, group.followed()) { choose(entry, it) }
+        }
+      item(key = "divider:" + group.key()) { HorizontalDivider() }
+    }
 
   Scaffold(
     topBar = {
@@ -199,43 +224,77 @@ fun DesktopTitlesScreen(settings: Settings, onDesktop: () -> Unit, onBack: () ->
         problem != null -> Text(problem!!, Modifier.padding(24.dp))
         groups == null -> CircularProgressIndicator(Modifier.align(Alignment.Center))
         groups.isEmpty() -> Text("The desktop has no titles to copy yet.", Modifier.padding(24.dp))
-        else ->
-          LazyColumn(Modifier.fillMaxSize()) {
-            groups.forEach { group ->
-              val series = group.entries().size > 1
-              val open = series && group.key() in opened
-              item(key = group.key()) {
-                GroupRow(
-                  group,
-                  open = if (series) open else null,
-                  onOpen = { opened = if (open) opened - group.key() else opened + group.key() },
-                ) {
-                  follow(group, it)
-                }
-              }
-              if (open)
-                items(group.entries(), key = { "title:" + it.title().id() }) { entry ->
-                  EntryRow(entry, group.followed()) { choose(entry, it) }
-                }
-              item(key = "divider:" + group.key()) { HorizontalDivider() }
+        else -> {
+          val shown = groups.filter { matches(it, search) }
+          // What a sync would fetch comes first, so the badge leads straight to it.
+          val (waiting, rest) = shown.partition { it.toSync().isNotEmpty() }
+          Column(Modifier.fillMaxSize()) {
+            OutlinedTextField(
+              search,
+              { search = it },
+              Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+              placeholder = { Text("Search titles") },
+              leadingIcon = { Icon(Icons.Filled.Search, null) },
+              trailingIcon = {
+                if (search.isNotEmpty()) IconButton(onClick = { search = "" }) { Icon(Icons.Filled.Close, "Clear search") }
+              },
+              singleLine = true,
+            )
+            LazyColumn(Modifier.fillMaxSize()) {
+              if (shown.isEmpty()) item { Text("No titles match “$search”.", Modifier.padding(24.dp)) }
+              if (waiting.isNotEmpty()) item(key = "heading:waiting") { Heading("To sync") }
+              if (waiting.isNotEmpty() && rest.isNotEmpty()) {
+                groups(waiting)
+                item(key = "heading:rest") { Heading("Everything else") }
+                groups(rest)
+              } else groups(shown)
             }
           }
+        }
       }
     }
   }
 }
+
+/** A heading above part of the list. */
+@Composable
+private fun Heading(text: String) {
+  Text(
+    text,
+    Modifier.padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 4.dp),
+    style = MaterialTheme.typography.labelLarge,
+    color = MaterialTheme.colorScheme.primary,
+  )
+}
+
+/**
+ * Whether a series or standalone title matches the search: its name or any of its titles contains
+ * every word, ignoring case and accents.
+ */
+private fun matches(group: SyncStatus.Group, search: String): Boolean {
+  val words = fold(search).split(' ').filter { it.isNotEmpty() }
+  if (words.isEmpty()) return true
+  val names = (listOf(group.name()) + group.entries().map { it.title().title() }).map(::fold)
+  return names.any { name -> words.all { it in name } }
+}
+
+private fun fold(text: String): String =
+  Normalizer.normalize(text, Normalizer.Form.NFD).replace(Regex("\\p{M}+"), "").lowercase()
 
 private fun titles(count: Int) = "$count ${if (count == 1) "title" else "titles"}"
 
 /**
  * A series or standalone title: its follow checkbox, its name and where it stands on the phone. A
  * series ([open] not null) opens and closes its titles when tapped; a standalone title is ticked.
+ * One with something to sync is tinted, with its summary in the accent colour.
  */
 @Composable
 private fun GroupRow(group: SyncStatus.Group, open: Boolean?, onOpen: () -> Unit, onFollow: (Boolean) -> Unit) {
   val followable = group.followable()
+  val waiting = group.toSync().isNotEmpty()
   Row(
     Modifier.fillMaxWidth()
+      .background(if (waiting) MaterialTheme.colorScheme.secondaryContainer else Color.Transparent)
       .clickable(enabled = open != null || followable) { if (open != null) onOpen() else onFollow(!group.followed()) }
       .padding(start = 4.dp, end = 16.dp),
     verticalAlignment = Alignment.CenterVertically,
@@ -247,7 +306,12 @@ private fun GroupRow(group: SyncStatus.Group, open: Boolean?, onOpen: () -> Unit
       Text(
         problem ?: summary(group),
         style = MaterialTheme.typography.bodySmall,
-        color = if (problem != null) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
+        color =
+          when {
+            problem != null -> MaterialTheme.colorScheme.error
+            waiting -> MaterialTheme.colorScheme.primary
+            else -> MaterialTheme.colorScheme.onSurfaceVariant
+          },
       )
     }
     if (open != null) Icon(if (open) Icons.Filled.ExpandLess else Icons.Filled.ExpandMore, if (open) "Hide titles" else "Show titles")
