@@ -83,6 +83,13 @@ jobs:
         with:
           name: library
           path: ~/.m2/repository/com/petitesroues
-      - name: Check formatting, lint, test and build the Android app against the built library
-        run: ./gradlew --no-daemon -PprebuiltLibrary spotlessCheck :app:lintDebug :app:testDebugUnitTest :app:assembleDebug
+      - name: Check formatting, lint, test (screenshots included) and build the Android app against the built library
+        run: ./gradlew --no-daemon -PprebuiltLibrary spotlessCheck :app:lintDebug :app:verifyRoborazziDebug :app:assembleDebug
         working-directory: android
+      - name: Keep the screenshot comparisons when a screen changed
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: screenshot-diffs
+          path: android/app/build/outputs/roborazzi
+          if-no-files-found: ignore

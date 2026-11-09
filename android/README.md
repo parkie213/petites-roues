@@ -22,7 +22,7 @@ Java formatting check, so unformatted Java fails the sync until you run
 
 ```bash
 ./gradlew spotlessApply                               # format the Kotlin
-./gradlew :app:lintDebug :app:testDebugUnitTest :app:assembleDebug   # lint, JVM tests, APK
+./gradlew :app:lintDebug :app:verifyRoborazziDebug :app:assembleDebug  # lint, JVM tests, APK
 ./gradlew :app:connectedDebugAndroidTest              # database tests, on a connected phone
 adb install -r app/build/outputs/apk/debug/app-debug.apk
 ```
@@ -36,6 +36,25 @@ name (`size(width = …)`) survives it; Android Studio's **Code → Optimize Imp
 fail the build too. Lint's notices about newer library versions are switched off. Debug builds
 turn on StrictMode, which logs disk, database and network access on the main thread and leaked
 resources: `adb logcat -s StrictMode`.
+
+JVM tests run on Robolectric, so they draw real screens without a phone. The screenshot tests
+(`app/src/test/.../screens/`) draw the library, the comic reader and the player and compare them
+with the PNGs committed in `app/src/test/screenshots/`. The library uses a small made-up
+catalogue (`Fixtures`); the reader and the player open the repository's `example/` comic and
+episode. `verifyRoborazziDebug` fails when a screen no longer matches, and writes a
+before/after/diff image to `app/build/outputs/roborazzi/` (CI keeps it as the `screenshot-diffs`
+artifact). When a change is meant to alter a screen, re-record and commit the new images with the
+code, so the review shows them:
+
+```bash
+./gradlew :app:recordRoborazziDebug     # rewrite the screenshots
+./gradlew :app:verifyRoborazziDebug     # compare against them
+```
+
+Screens that load on a background thread (comic pages, the video's length) wait for it before
+capturing, so the images don't depend on timing. The tests run on Robolectric's Android 15 image
+(`SDK` in `LibraryScreenshotTest.kt`): its Android 16 image carries an old commons-compress that
+hides the app's, so the reader can't open a CBZ there.
 
 Device tests leave the app installed with its data (`gradle.properties`), so running them
 doesn't wipe the phone's pairing, folders or progress.

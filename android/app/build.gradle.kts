@@ -4,6 +4,7 @@ plugins {
   alias(libs.plugins.ksp)
   alias(libs.plugins.hilt)
   alias(libs.plugins.room)
+  alias(libs.plugins.roborazzi)
 }
 
 android {
@@ -21,6 +22,22 @@ android {
   }
 
   buildFeatures { compose = true }
+
+  // Robolectric needs the app's resources and manifest to draw screens in JVM tests.
+  testOptions {
+    unitTests {
+      isIncludeAndroidResources = true
+      // Robolectric reaches into JDK internals (java.io, jdk.internal.access) that Java 25 closes.
+      all {
+        it.jvmArgs(
+          "--add-opens=java.base/java.io=ALL-UNNAMED",
+          "--add-exports=java.base/jdk.internal.access=ALL-UNNAMED",
+        )
+        // Screenshot tests open the repository's example comic and episodes.
+        it.systemProperty("examples", rootProject.file("../example").absolutePath)
+      }
+    }
+  }
 
   lint {
     // Every warning fails the build, as errors do, so the report stays empty.
@@ -65,6 +82,11 @@ val quizAssets =
     )
   }
 
+// Screenshot tests (Roborazzi on Robolectric) keep their reference images beside the tests, so a
+// change in what a screen draws shows up in review. `./gradlew recordRoborazziDebug` records them;
+// `verifyRoborazziDebug` (run in CI) fails when a screen no longer matches.
+roborazzi { outputDir.set(file("src/test/screenshots")) }
+
 // Room writes each version of the progress database's schema here, to review and migrate from.
 room { schemaDirectory("$projectDir/schemas") }
 
@@ -96,6 +118,15 @@ dependencies {
   implementation(libs.room.runtime)
   ksp(libs.room.compiler)
   testImplementation(libs.junit)
+  testImplementation(libs.robolectric)
+  testImplementation(libs.roborazzi)
+  testImplementation(libs.roborazzi.compose)
+  testImplementation(libs.roborazzi.junit.rule)
+  testImplementation(platform(libs.compose.bom))
+  testImplementation(libs.compose.ui.test.junit4)
+  testImplementation(libs.androidx.test.ext.junit)
+  debugImplementation(platform(libs.compose.bom))
+  debugImplementation(libs.compose.ui.test.manifest)
   androidTestImplementation(libs.junit)
   androidTestImplementation(libs.androidx.test.runner)
   androidTestImplementation(libs.androidx.test.ext.junit)
