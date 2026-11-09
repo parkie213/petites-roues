@@ -45,7 +45,6 @@ constructor(
   /** One chosen folder's walk, named by the folder. */
   private class Scanned(val root: String, val discovery: ContentScanner.Discovery<Uri>)
 
-
   /**
    * Rescans [trees], replaces the index with every readable title and reports the rest, with the
    * folders' total size. Titles are keyed under their content folder's name, so a second folder
@@ -55,7 +54,10 @@ constructor(
    * references is indexed too, named from its path, so it gets a card. [progress] hears each
    * folder's scan, each media file and each document as the refresh reaches it.
    */
-  fun refresh(trees: List<Uri>, progress: LibraryProgress.Listener = LibraryProgress.Listener.NONE): Refreshed {
+  fun refresh(
+    trees: List<Uri>,
+    progress: LibraryProgress.Listener = LibraryProgress.Listener.NONE,
+  ): Refreshed {
     val titles = mutableListOf<Title>()
     val problems = mutableListOf<Problem>()
     val scanned = mutableListOf<Scanned>()
@@ -64,7 +66,8 @@ constructor(
     var measured = true
     val previous by lazy { index.titles() }
     for (tree in trees) {
-      val folder: ContentFolder = if (AppFolder.isFile(tree)) FileContentTree(tree) else SafContentTree(resolver, tree)
+      val folder: ContentFolder =
+        if (AppFolder.isFile(tree)) FileContentTree(tree) else SafContentTree(resolver, tree)
       try {
         val root = folder.name()
         if (!roots.add(root)) {
@@ -77,9 +80,12 @@ constructor(
         bytes += discovery.bytes()
       } catch (failure: Exception) {
         // Titles' document URIs are built beneath their folder's tree URI.
-        val kept = previous.filter { (it.documentUri ?: it.mediaUri).toString().startsWith("$tree/") }
+        val kept = previous.filter {
+          (it.documentUri ?: it.mediaUri).toString().startsWith("$tree/")
+        }
         val name = kept.firstOrNull()?.folder ?: tree.lastPathSegment ?: tree.toString()
-        val keeping = if (kept.isEmpty()) "" else " (kept its ${kept.size} titles from the last refresh)"
+        val keeping =
+          if (kept.isEmpty()) "" else " (kept its ${kept.size} titles from the last refresh)"
         problems += Problem(name, (failure.message ?: failure.toString()) + keeping)
         titles += kept
         measured = false
@@ -91,12 +97,16 @@ constructor(
     for (folder in scanned) {
       val documents = folder.discovery.documents()
       documents.forEachIndexed { done, found ->
-        progress.report(LibraryProgress(folder.root, "documents", done, documents.size, found.relativePath()))
+        progress.report(
+          LibraryProgress(folder.root, "documents", done, documents.size, found.relativePath())
+        )
         index(folder.root, found, byKey, referenced, problems)?.let(titles::add)
       }
     }
-    for (candidate in candidates)
-      if (MediaLinks.key(candidate.kind(), candidate.fingerprint()) !in referenced) titles += unreferenced(candidate)
+    for (candidate in candidates) if (
+      MediaLinks.key(candidate.kind(), candidate.fingerprint()) !in referenced
+    )
+      titles += unreferenced(candidate)
     progress.report(LibraryProgress(null, "saving", 0, 0, null))
     index.replaceTitles(titles)
     return Refreshed(problems, bytes.takeIf { measured })
@@ -118,14 +128,17 @@ constructor(
     for (folder in scanned) {
       val files = folder.discovery.media()
       files.forEachIndexed { done, media ->
-        progress.report(LibraryProgress(folder.root, "media", done, files.size, media.relativePath()))
+        progress.report(
+          LibraryProgress(folder.root, "media", done, files.size, media.relativePath())
+        )
         val path = "${folder.root}/${media.relativePath()}"
         media.posterProblem()?.let { problems += Problem(path, it) }
         try {
           val uri = media.handle().toString()
           val cached = cache[uri]
           val fingerprint =
-            if (cached != null && media.unchangedSince(cached.size, cached.modifiedMillis)) cached.fingerprint
+            if (cached != null && media.unchangedSince(cached.size, cached.modifiedMillis))
+              cached.fingerprint
             else SafContentTree.open(resolver, media.handle()).use(MediaFingerprint::of)
           seen[uri] = CachedFingerprint(uri, media.size(), media.modifiedMillis(), fingerprint)
           result += MediaLinks.Candidate(media, media.kind(), fingerprint, folder.root)

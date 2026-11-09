@@ -1,5 +1,7 @@
 package com.petitesroues.android
 
+import android.content.ClipData
+import android.content.ClipboardManager
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
@@ -9,13 +11,14 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -30,34 +33,31 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
-import androidx.compose.foundation.layout.padding
 import com.petitesroues.android.comic.CbzReader
 import com.petitesroues.android.comic.ReadScreen
 import com.petitesroues.android.comic.bareComic
+import com.petitesroues.android.data.IndexDao
+import com.petitesroues.android.data.Progress
+import com.petitesroues.android.data.ProgressStore
 import com.petitesroues.android.desktop.DesktopDialog
-import com.petitesroues.android.library.AppFolder
 import com.petitesroues.android.desktop.DesktopTitlesScreen
 import com.petitesroues.android.desktop.Transfers
 import com.petitesroues.android.desktop.mayReachLocalNetwork
+import com.petitesroues.android.library.AppFolder
 import com.petitesroues.android.library.Browse
 import com.petitesroues.android.library.CardImages
 import com.petitesroues.android.library.LibraryScreen
 import com.petitesroues.android.library.LibraryService
 import com.petitesroues.android.library.LibraryState
 import com.petitesroues.android.library.LibraryUsage
+import com.petitesroues.android.library.Title
+import com.petitesroues.android.library.TitleKind
 import com.petitesroues.android.pages.MarkdownPage
 import com.petitesroues.android.pages.MarkdownPageScanner
 import com.petitesroues.android.pages.Section
 import com.petitesroues.android.pages.StudyPages
-import android.content.ClipData
-import android.content.ClipboardManager
-import com.petitesroues.android.quiz.QuizShare
-import com.petitesroues.android.library.Title
-import com.petitesroues.android.library.TitleKind
 import com.petitesroues.android.player.WatchScreen
-import com.petitesroues.android.data.IndexDao
-import com.petitesroues.android.data.Progress
-import com.petitesroues.android.data.ProgressStore
+import com.petitesroues.android.quiz.QuizShare
 import com.petitesroues.model.document.StudyDocument
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
@@ -66,8 +66,8 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 /**
- * The single activity: the library, and the player or comic reader for the open title. The app
- * only reads the content folder; documents are written on the desktop by agents. Hilt injects the
+ * The single activity: the library, and the player or comic reader for the open title. The app only
+ * reads the content folder; documents are written on the desktop by agents. Hilt injects the
  * app-wide objects it works with.
  */
 @AndroidEntryPoint
@@ -104,7 +104,12 @@ class MainActivity : ComponentActivity() {
       val saved = progress.all()
       val usage =
         withContext(Dispatchers.IO) {
-          runCatching { LibraryUsage.line(settings.libraryBytes, LibraryUsage.free(this@MainActivity, settings.libraryFolders)) }
+          runCatching {
+            LibraryUsage.line(
+              settings.libraryBytes,
+              LibraryUsage.free(this@MainActivity, settings.libraryFolders),
+            )
+          }
             .getOrNull()
             ?.ifBlank { null }
         }
@@ -120,10 +125,15 @@ class MainActivity : ComponentActivity() {
           val refreshed =
             withContext(Dispatchers.IO) {
               library
-                .refresh(trees) { progress -> scope.launch { state = state.copy(refreshProgress = progress) } }
+                .refresh(trees) { progress ->
+                  scope.launch { state = state.copy(refreshProgress = progress) }
+                }
                 .also { images.clear() }
             }
-          Log.i("Library", "Refreshed ${trees.size} folders in ${(System.nanoTime() - started) / 1_000_000} ms")
+          Log.i(
+            "Library",
+            "Refreshed ${trees.size} folders in ${(System.nanoTime() - started) / 1_000_000} ms",
+          )
           settings.libraryBytes = refreshed.bytes
           state = state.copy(problems = refreshed.problems)
           reload()
@@ -148,14 +158,26 @@ class MainActivity : ComponentActivity() {
       if (settings.downloadFolder == tree) settings.downloadFolder = null
       // A folder chosen for downloads was granted for writing too.
       runCatching {
-        contentResolver.releasePersistableUriPermission(tree, Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION)
+        contentResolver.releasePersistableUriPermission(
+          tree,
+          Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION,
+        )
       }
-        .recoverCatching { contentResolver.releasePersistableUriPermission(tree, Intent.FLAG_GRANT_READ_URI_PERMISSION) }
+        .recoverCatching {
+          contentResolver.releasePersistableUriPermission(
+            tree,
+            Intent.FLAG_GRANT_READ_URI_PERMISSION,
+          )
+        }
       refresh()
     }
 
-    // Back from the system's All files access page: the app's own folder joins the library if allowed.
-    val allowFiles = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) { refresh() }
+    // Back from the system's All files access page: the app's own folder joins the library if
+    // allowed.
+    val allowFiles =
+      rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) {
+        refresh()
+      }
 
     var desktopOpen by remember { mutableStateOf(false) }
     var titlesOpen by rememberSaveable { mutableStateOf(false) }
@@ -175,7 +197,8 @@ class MainActivity : ComponentActivity() {
     // Each title copied from the desktop shows up once the library has refreshed.
     val transfer by Transfers.status.collectAsState()
     LaunchedEffect(transfer.finished) { if (transfer.finished > 0) refresh() }
-    // What a sync would fetch badges the desktop button; an unreachable desktop just leaves it as it was.
+    // What a sync would fetch badges the desktop button; an unreachable desktop just leaves it as
+    // it was.
     val pending by Transfers.pending.collectAsState()
     LaunchedEffect(transfer.finished) {
       if (settings.desktop != null && mayReachLocalNetwork(this@MainActivity))
@@ -201,7 +224,10 @@ class MainActivity : ComponentActivity() {
       LaunchedEffect(section) {
         pages = null
         val folder = section.folder ?: return@LaunchedEffect
-        pages = withContext(Dispatchers.IO) { MarkdownPageScanner(contentResolver).scan(settings.libraryFolders, folder) }
+        pages =
+          withContext(Dispatchers.IO) {
+            MarkdownPageScanner(contentResolver).scan(settings.libraryFolders, folder)
+          }
       }
       LibraryScreen(
         state,
@@ -217,7 +243,10 @@ class MainActivity : ComponentActivity() {
         onRefresh = ::refresh,
         desktopPending = pending,
         // Paired, the desktop button goes straight to syncing; pairing is a button there.
-        onDesktop = { if (settings.desktop != null && mayReachLocalNetwork(this@MainActivity)) titlesOpen = true else desktopOpen = true },
+        onDesktop = {
+          if (settings.desktop != null && mayReachLocalNetwork(this@MainActivity)) titlesOpen = true
+          else desktopOpen = true
+        },
         onGetTitles = { if (settings.desktop == null) desktopOpen = true else titlesOpen = true },
         onAllowFiles = { allowFiles.launch(AppFolder.allowIntent(this@MainActivity)) },
         section = section,
@@ -232,7 +261,9 @@ class MainActivity : ComponentActivity() {
             onChat = { quiz, app -> QuizShare.share(this@MainActivity, quiz, app) },
             onCopy = { quiz ->
               getSystemService(ClipboardManager::class.java)
-                .setPrimaryClip(ClipData.newPlainText(quiz.title, QuizShare.prompt(this@MainActivity, quiz)))
+                .setPrimaryClip(
+                  ClipData.newPlainText(quiz.title, QuizShare.prompt(this@MainActivity, quiz))
+                )
             },
           )
         },
@@ -263,32 +294,48 @@ class MainActivity : ComponentActivity() {
     var saved by remember(title) { mutableStateOf<Progress?>(null) }
     LaunchedEffect(title, rtl) {
       saved = progress.find(title.progressKey)
-      loaded = withContext(Dispatchers.IO) {
-        runCatching {
-          if (bare)
-            CbzReader(contentResolver, checkNotNull(title.mediaUri) { "its CBZ is missing" }).use {
-              bareComic(title, it.pages(), rtl)
-            }
-          else library.read(checkNotNull(title.documentUri) { "it has no study document" })
+      loaded =
+        withContext(Dispatchers.IO) {
+          runCatching {
+            if (bare)
+              CbzReader(contentResolver, checkNotNull(title.mediaUri) { "its CBZ is missing" })
+                .use {
+                  bareComic(title, it.pages(), rtl)
+                }
+            else library.read(checkNotNull(title.documentUri) { "it has no study document" })
+          }
         }
-      }
     }
     val document = loaded?.getOrNull()
     when {
       loaded == null ->
         Box(Modifier.fillMaxSize().background(Color.Black), contentAlignment = Alignment.Center) {
-          Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(18.dp)) {
+          Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(18.dp),
+          ) {
             CircularProgressIndicator(color = Coral, strokeWidth = 2.dp)
-            Text("Opening title…", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(
+              "Opening title…",
+              style = MaterialTheme.typography.bodyMedium,
+              color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
           }
         }
       document == null -> {
         androidx.activity.compose.BackHandler(onBack = onBack)
-        Box(Modifier.fillMaxSize().background(Color.Black).padding(24.dp), contentAlignment = Alignment.Center) {
-          Text("Cannot open ${title.name}: ${loaded!!.exceptionOrNull()?.message}", color = Color(0xFFFFB4A9))
+        Box(
+          Modifier.fillMaxSize().background(Color.Black).padding(24.dp),
+          contentAlignment = Alignment.Center,
+        ) {
+          Text(
+            "Cannot open ${title.name}: ${loaded!!.exceptionOrNull()?.message}",
+            color = Color(0xFFFFB4A9),
+          )
         }
       }
-      title.kind == TitleKind.VIDEO -> WatchScreen(title, document, saved, progress, settings, onBack)
+      title.kind == TitleKind.VIDEO ->
+        WatchScreen(title, document, saved, progress, settings, onBack)
       bare ->
         ReadScreen(title, document, saved, progress, settings, onBack) {
           rtl = !rtl

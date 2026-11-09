@@ -1,6 +1,5 @@
 package com.petitesroues.android.library
 
-import com.petitesroues.android.Brand
 import android.net.Uri
 import android.provider.DocumentsContract
 import androidx.activity.compose.BackHandler
@@ -13,8 +12,10 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.grid.GridCells
@@ -32,10 +33,9 @@ import androidx.compose.material.icons.filled.Computer
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.FolderOpen
+import androidx.compose.material.icons.filled.MoreHoriz
 import androidx.compose.material.icons.filled.Movie
 import androidx.compose.material.icons.filled.Refresh
-import androidx.compose.material.icons.outlined.Description
-import androidx.compose.material.icons.outlined.Lightbulb
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Badge
@@ -45,8 +45,6 @@ import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
-import com.petitesroues.android.pages.Section
-import com.petitesroues.android.pages.StudyTabs
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
@@ -74,8 +72,11 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.petitesroues.android.Brand
 import com.petitesroues.android.ProgressColor
 import com.petitesroues.android.data.Progress
+import com.petitesroues.android.pages.Section
+import com.petitesroues.android.pages.StudyTabs
 import com.petitesroues.library.discovery.MediaKind
 import com.petitesroues.library.progress.LibraryProgress
 import com.petitesroues.library.shelves.Shelves
@@ -83,9 +84,6 @@ import com.petitesroues.library.shelves.Shelves.CardArt
 import com.petitesroues.library.shelves.Shelves.Group
 import com.petitesroues.library.shelves.Shelves.Slot
 import java.util.Locale
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.fillMaxHeight
-import androidx.compose.material.icons.filled.MoreHoriz
 
 /** What the library screen shows; the activity owns loading and refreshing. */
 data class LibraryState(
@@ -106,12 +104,12 @@ data class Browse(val group: String? = null, val season: Int? = null)
 
 /**
  * Titles and media from the phone's content folders on shelves grouped by the rules the desktop
- * library's posters use ([Shelves]): shelves a document names, else Comics, Series and Films. A series card opens its tomes or episodes;
- * a title card opens the title where it was left. Refresh rescans the folders; the folder button
- * lists the content folders, where more can be added or removed; the desktop button pairs with the
- * desktop app or syncs with it ([onDesktop]), badged with how many titles a sync would fetch
- * ([desktopPending]). A title card shows how far
- * through it the saved position is, which its menu can clear.
+ * library's posters use ([Shelves]): shelves a document names, else Comics, Series and Films. A
+ * series card opens its tomes or episodes; a title card opens the title where it was left. Refresh
+ * rescans the folders; the folder button lists the content folders, where more can be added or
+ * removed; the desktop button pairs with the desktop app or syncs with it ([onDesktop]), badged
+ * with how many titles a sync would fetch ([desktopPending]). A title card shows how far through it
+ * the saved position is, which its menu can clear.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -147,8 +145,10 @@ fun LibraryScreen(
     )
   val shelves = remember(state.titles) { Shelves.shelves(state.titles) }
   // Cards name their language only when the library has more than one.
-  val multilingual = remember(state.titles) { state.titles.mapNotNull { it.sourceLanguage }.distinct().size > 1 }
-  val open = browse.group?.let { key -> shelves.flatMap { it.groups }.firstOrNull { it.key == key } }
+  val multilingual =
+    remember(state.titles) { state.titles.mapNotNull { it.sourceLanguage }.distinct().size > 1 }
+  val open =
+    browse.group?.let { key -> shelves.flatMap { it.groups }.firstOrNull { it.key == key } }
   BackHandler(enabled = open != null) { onBrowse(Browse()) }
   val cards = Cards(images, state.progress, onOpen, onClearProgress)
 
@@ -172,10 +172,15 @@ fun LibraryScreen(
             }
           IconButton(onClick = onDesktop) {
             BadgedBox(badge = { if (desktopPending > 0) Badge { Text("$desktopPending") } }) {
-              Icon(Icons.Filled.Computer, if (desktopPending > 0) "Desktop, $desktopPending to sync" else "Desktop")
+              Icon(
+                Icons.Filled.Computer,
+                if (desktopPending > 0) "Desktop, $desktopPending to sync" else "Desktop",
+              )
             }
           }
-          IconButton(onClick = { if (state.folders.isEmpty()) onAddFolder() else managing = true }) {
+          IconButton(
+            onClick = { if (state.folders.isEmpty()) onAddFolder() else managing = true }
+          ) {
             Icon(Icons.Filled.FolderOpen, "Content folders")
           }
         },
@@ -197,10 +202,14 @@ fun LibraryScreen(
       if (state.titles.isEmpty() && !state.refreshing) {
         val allowed = state.folders.any(AppFolder::isFile)
         Box(Modifier.fillMaxSize().padding(24.dp), contentAlignment = Alignment.Center) {
-          Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(12.dp)) {
+          Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+          ) {
             Text(
               if (allowed) "Add titles to ${AppFolder.LABEL}, or get them from your desktop."
-              else "Allow file access so petites roues can keep titles in ${AppFolder.LABEL}, or get them from your desktop.",
+              else
+                "Allow file access so petites roues can keep titles in ${AppFolder.LABEL}, or get them from your desktop.",
               textAlign = TextAlign.Center,
             )
             if (!allowed) Button(onClick = onAllowFiles) { Text("Allow file access") }
@@ -210,18 +219,28 @@ fun LibraryScreen(
         }
         return@Column
       }
-      if (open != null) SeriesView(open, browse.season, cards, multilingual) { onBrowse(browse.copy(season = it)) }
+      if (open != null)
+        SeriesView(open, browse.season, cards, multilingual) { onBrowse(browse.copy(season = it)) }
       else
         PosterGrid(shelvesScroll) {
           state.usage?.let { usage ->
-            heading { Text(usage, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }
+            heading {
+              Text(
+                usage,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+              )
+            }
           }
           if (state.titles.isEmpty() && !state.refreshing)
             heading { Text("No titles yet. Refresh after your content has synced.") }
           for (shelf in shelves) {
             if (shelf.groups.isEmpty()) continue
             heading {
-              Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+              Row(
+                verticalAlignment = Alignment.Bottom,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+              ) {
                 Text(shelf.label, style = MaterialTheme.typography.titleLarge)
                 Text(
                   "${shelf.groups.size}",
@@ -248,12 +267,18 @@ fun LibraryScreen(
           }
           if (state.problems.isNotEmpty()) {
             heading {
-              Text("Not indexed", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.error)
+              Text(
+                "Not indexed",
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.error,
+              )
             }
-            for (problem in state.problems)
-              heading {
-                ListItem(headlineContent = { Text(problem.path) }, supportingContent = { Text(problem.message) })
-              }
+            for (problem in state.problems) heading {
+              ListItem(
+                headlineContent = { Text(problem.path) },
+                supportingContent = { Text(problem.message) },
+              )
+            }
           }
         }
     }
@@ -295,25 +320,47 @@ private fun RefreshProgress(progress: LibraryProgress?) {
     when (progress?.phase) {
       null -> "Starting…"
       "scanning" -> "Looking through $folder…"
-      "media" -> "Checking media in $folder · ${minOf(progress.done + 1, progress.total)} of ${progress.total}"
-      "documents" -> "Reading study documents in $folder · ${minOf(progress.done + 1, progress.total)} of ${progress.total}"
+      "media" ->
+        "Checking media in $folder · ${minOf(progress.done + 1, progress.total)} of ${progress.total}"
+      "documents" ->
+        "Reading study documents in $folder · ${minOf(progress.done + 1, progress.total)} of ${progress.total}"
       else -> "Saving…"
     }
-  Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+  Column(
+    Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+    verticalArrangement = Arrangement.spacedBy(4.dp),
+  ) {
     Text(label, style = MaterialTheme.typography.bodySmall, fontWeight = FontWeight.SemiBold)
     if (progress != null && progress.total > 0)
-      LinearProgressIndicator(progress = { progress.done.toFloat() / progress.total }, modifier = Modifier.fillMaxWidth())
+      LinearProgressIndicator(
+        progress = { progress.done.toFloat() / progress.total },
+        modifier = Modifier.fillMaxWidth(),
+      )
     else LinearProgressIndicator(Modifier.fillMaxWidth())
     progress?.current?.let {
-      Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.StartEllipsis)
+      Text(
+        it,
+        style = MaterialTheme.typography.bodySmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        maxLines = 1,
+        overflow = TextOverflow.StartEllipsis,
+      )
     }
   }
 }
 
 /** The tomes or episodes of one series, with season chips when it has several. */
 @Composable
-private fun SeriesView(group: Group<Title>, chosen: Int?, cards: Cards, multilingual: Boolean, onSeason: (Int) -> Unit) {
-  val season = if (group.seasons.size > 1) chosen?.takeIf { it in group.seasons } ?: group.seasons.first() else null
+private fun SeriesView(
+  group: Group<Title>,
+  chosen: Int?,
+  cards: Cards,
+  multilingual: Boolean,
+  onSeason: (Int) -> Unit,
+) {
+  val season =
+    if (group.seasons.size > 1) chosen?.takeIf { it in group.seasons } ?: group.seasons.first()
+    else null
   val slots = if (season != null) group.slots.filter { it.entry.season == season } else group.slots
   PosterGrid(rememberLazyGridState()) {
     heading {
@@ -324,8 +371,11 @@ private fun SeriesView(group: Group<Title>, chosen: Int?, cards: Cards, multilin
           ?.let { Text(it, color = MaterialTheme.colorScheme.onSurfaceVariant) }
         if (season != null)
           Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            for (option in group.seasons)
-              FilterChip(selected = option == season, onClick = { onSeason(option) }, label = { Text("Season $option") })
+            for (option in group.seasons) FilterChip(
+              selected = option == season,
+              onClick = { onSeason(option) },
+              label = { Text("Season $option") },
+            )
           }
       }
     }
@@ -355,14 +405,19 @@ private class Cards(
     val resume = saved?.positionSeconds?.takeIf { entry.kind == TitleKind.VIDEO && it >= 1 }
     Card(
       name,
-      listOfNotNull(detail, resume?.let { "Resume ${clock(it)}" }).joinToString(" · ").ifEmpty { null },
+      listOfNotNull(detail, resume?.let { "Resume ${clock(it)}" }).joinToString(" · ").ifEmpty {
+        null
+      },
       slot.art,
       entry.kind == TitleKind.COMIC,
       problem,
       slot.copies,
       // A comic without a study document still reads, pages only; its card keeps the warning.
       onClick =
-        if (problem == null || (entry.documentUri == null && entry.kind == TitleKind.COMIC && entry.mediaUri != null))
+        if (
+          problem == null ||
+            (entry.documentUri == null && entry.kind == TitleKind.COMIC && entry.mediaUri != null)
+        )
           ({ onOpen(entry) })
         else null,
       progress = saved?.fraction?.takeIf { it > 0 }?.toFloat(),
@@ -421,13 +476,25 @@ private class Cards(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(3.dp),
           ) {
-            Icon(Icons.Filled.Warning, null, tint = Color(0xFFFFB4A9), modifier = Modifier.size(12.dp))
+            Icon(
+              Icons.Filled.Warning,
+              null,
+              tint = Color(0xFFFFB4A9),
+              modifier = Modifier.size(12.dp),
+            )
             Text(it, color = Color(0xFFFFB4A9), fontSize = 11.sp)
           }
         }
         progress?.let {
-          Box(Modifier.align(Alignment.BottomStart).fillMaxWidth().height(4.dp).background(Color(0x8C000000))) {
-            Box(Modifier.fillMaxWidth(it.coerceIn(0f, 1f)).fillMaxHeight().background(ProgressColor))
+          Box(
+            Modifier.align(Alignment.BottomStart)
+              .fillMaxWidth()
+              .height(4.dp)
+              .background(Color(0x8C000000))
+          ) {
+            Box(
+              Modifier.fillMaxWidth(it.coerceIn(0f, 1f)).fillMaxHeight().background(ProgressColor)
+            )
           }
         }
       }
@@ -488,41 +555,49 @@ private class Cards(
         Icon(Icons.Filled.ContentCopy, "${copies.size} copies", modifier = Modifier.size(16.dp))
       }
       DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
-        for (copy in copies)
-          DropdownMenuItem(
-            enabled = copy.mediaUri != null,
-            text = {
-              Column {
-                Text(copy.folder)
-                Text(
-                  listOfNotNull(
-                      copy.durationSeconds?.let(::clock),
-                      if (copy.mediaUri == null) "No media" else null,
-                    )
-                    .joinToString(" · ")
-                    .ifEmpty { "Available" },
-                  style = MaterialTheme.typography.bodySmall,
-                  color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-              }
-            },
-            onClick = {
-              expanded = false
-              onOpen(copy)
-            },
-          )
+        for (copy in copies) DropdownMenuItem(
+          enabled = copy.mediaUri != null,
+          text = {
+            Column {
+              Text(copy.folder)
+              Text(
+                listOfNotNull(
+                    copy.durationSeconds?.let(::clock),
+                    if (copy.mediaUri == null) "No media" else null,
+                  )
+                  .joinToString(" · ")
+                  .ifEmpty { "Available" },
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+              )
+            }
+          },
+          onClick = {
+            expanded = false
+            onOpen(copy)
+          },
+        )
       }
     }
   }
 
   @Composable
   private fun Art(source: CardSource?, name: String, comic: Boolean) {
-    val image by produceState<ImageBitmap?>(null, source) { value = source?.let { images.load(it) } }
+    val image by
+      produceState<ImageBitmap?>(null, source) { value = source?.let { images.load(it) } }
     val bitmap = image
     if (bitmap != null)
-      Image(bitmap, contentDescription = null, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize())
+      Image(
+        bitmap,
+        contentDescription = null,
+        contentScale = ContentScale.Crop,
+        modifier = Modifier.fillMaxSize(),
+      )
     else
-      Box(Modifier.fillMaxSize().background(placeholder(name)), contentAlignment = Alignment.Center) {
+      Box(
+        Modifier.fillMaxSize().background(placeholder(name)),
+        contentAlignment = Alignment.Center,
+      ) {
         Icon(
           if (comic) Icons.AutoMirrored.Filled.MenuBook else Icons.Filled.Movie,
           contentDescription = null,
@@ -554,13 +629,14 @@ private fun FoldersDialog(
     text = {
       Column {
         if (folders.isEmpty()) Text("No content folders.")
-        for (folder in folders)
-          Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(label(folder), modifier = Modifier.weight(1f))
-            // The app's own folder is always read; only chosen folders can be removed.
-            if (!AppFolder.isFile(folder))
-              IconButton(onClick = { onRemove(folder) }) { Icon(Icons.Filled.Delete, "Remove folder") }
-          }
+        for (folder in folders) Row(verticalAlignment = Alignment.CenterVertically) {
+          Text(label(folder), modifier = Modifier.weight(1f))
+          // The app's own folder is always read; only chosen folders can be removed.
+          if (!AppFolder.isFile(folder))
+            IconButton(onClick = { onRemove(folder) }) {
+              Icon(Icons.Filled.Delete, "Remove folder")
+            }
+        }
       }
     },
     confirmButton = { TextButton(onClick = onAdd) { Text("Add folder") } },

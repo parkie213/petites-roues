@@ -1,6 +1,8 @@
 package com.petitesroues.android.comic
 
-/** Per-device bubble tap behaviour; cycling follows off, listen first, then listen with the card. */
+/**
+ * Per-device bubble tap behaviour; cycling follows off, listen first, then listen with the card.
+ */
 enum class ListeningMode(val label: String) {
   OFF("Read aloud off"),
   LISTEN_FIRST("First tap reads aloud; second tap opens notes"),

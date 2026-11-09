@@ -8,17 +8,17 @@ import com.petitesroues.model.document.StudyDocument
 import java.util.Locale
 
 /**
- * A short, self-contained message asking a chat app (Claude, ChatGPT) about one speech bubble:
- * the learner's question, the bubble with its translation and notes, the phrase they were
- * exploring, and the page's other bubbles for context. Plain text, so it can start a new chat or
- * be pasted into an existing one.
+ * A short, self-contained message asking a chat app (Claude, ChatGPT) about one speech bubble: the
+ * learner's question, the bubble with its translation and notes, the phrase they were exploring,
+ * and the page's other bubbles for context. Plain text, so it can start a new chat or be pasted
+ * into an existing one.
  */
 object AskPack {
   /**
-   * The message for [line] on [pageName] of [document]: a bubble's text, or the sentence of a
-   * text block being read. [pageBoxes] are the page's boxes in reading order (including the one
-   * holding [line]), whose bubbles and sentences give the context; [phrase] is the source phrase
-   * the learner was exploring, if any; a blank [question] asks for a deeper explanation.
+   * The message for [line] on [pageName] of [document]: a bubble's text, or the sentence of a text
+   * block being read. [pageBoxes] are the page's boxes in reading order (including the one holding
+   * [line]), whose bubbles and sentences give the context; [phrase] is the source phrase the
+   * learner was exploring, if any; a blank [question] asks for a deeper explanation.
    */
   fun build(
     document: StudyDocument,
@@ -45,16 +45,24 @@ object AskPack {
       appendLine("Bubble: ${line.source()}")
       line.translation()?.takeIf { it.isNotBlank() }?.let { appendLine("Translation: $it") }
       val phrases =
-        alignment?.let {
-          it.source().indices.mapNotNull { index ->
-            val links = it.links().filter { link -> index in link.source() }
-            if (links.isEmpty()) return@mapNotNull null
-            val translation =
-              links.flatMap { link -> link.translation() }.distinct().sorted().joinToString(" … ") { chunk -> it.translation()[chunk] }
-            val notesText = it.phraseNotes(index).filter { note -> note.isNotBlank() }.joinToString(" ")
-            "- “${it.source()[index]}” → $translation" + if (notesText.isEmpty()) "" else ": $notesText"
+        alignment
+          ?.let {
+            it.source().indices.mapNotNull { index ->
+              val links = it.links().filter { link -> index in link.source() }
+              if (links.isEmpty()) return@mapNotNull null
+              val translation =
+                links
+                  .flatMap { link -> link.translation() }
+                  .distinct()
+                  .sorted()
+                  .joinToString(" … ") { chunk -> it.translation()[chunk] }
+              val notesText =
+                it.phraseNotes(index).filter { note -> note.isNotBlank() }.joinToString(" ")
+              "- “${it.source()[index]}” → $translation" +
+                if (notesText.isEmpty()) "" else ": $notesText"
+            }
           }
-        }.orEmpty()
+          .orEmpty()
       if (phrases.isNotEmpty()) {
         appendLine()
         appendLine("Phrase notes from my reader:")

@@ -46,7 +46,8 @@ private val noteStyle = TextStyle(color = Color(0xFFE0E2E6), fontSize = 14.sp, l
  * the browser's bubble card. Tapping a phrase, or a translation chunk, highlights its part of the
  * translation and shows its explanation in place of the sentence notes; tapping again clears it.
  * The ask and listen buttons sit at the bottom of the card; listen reads the pinned phrase alone
- * when one is pinned. The ask button hands [onAsk] the phrase being explored, if any, to ask a chat app about it.
+ * when one is pinned. The ask button hands [onAsk] the phrase being explored, if any, to ask a chat
+ * app about it.
  */
 @Composable
 fun BubbleCard(
@@ -65,7 +66,8 @@ fun BubbleCard(
     modifier.verticalScroll(rememberScrollState()).padding(14.dp),
     verticalArrangement = Arrangement.spacedBy(8.dp),
   ) {
-    if (alignment != null) PhraseParagraphLine(alignment, pinned, sourceStyle, explore, separator = sourceSeparator)
+    if (alignment != null)
+      PhraseParagraphLine(alignment, pinned, sourceStyle, explore, separator = sourceSeparator)
     else Text(cue.source(), style = sourceStyle)
     if (alignment != null)
       TranslationContext(
@@ -95,7 +97,11 @@ fun BubbleCard(
     // Ask and Listen sit in a short row under the notes, leaving the source line the card's width.
     Row(Modifier.align(Alignment.End), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
       IconButton(onClick = { onAsk(pinned) }, modifier = Modifier.size(36.dp)) {
-        Icon(Icons.AutoMirrored.Filled.Chat, contentDescription = "Ask about this bubble", modifier = Modifier.size(20.dp))
+        Icon(
+          Icons.AutoMirrored.Filled.Chat,
+          contentDescription = "Ask about this bubble",
+          modifier = Modifier.size(20.dp),
+        )
       }
       IconButton(onClick = { readAloud.toggle(listen) }, modifier = Modifier.size(36.dp)) {
         Icon(
@@ -120,10 +126,18 @@ fun SentenceSteps(index: Int, count: Int, onStep: (Int) -> Unit) {
     verticalAlignment = Alignment.CenterVertically,
   ) {
     Text("Sentence ${index + 1} of $count", fontSize = 13.sp, modifier = Modifier.weight(1f))
-    IconButton(onClick = { onStep(index - 1) }, enabled = index > 0, modifier = Modifier.size(40.dp)) {
+    IconButton(
+      onClick = { onStep(index - 1) },
+      enabled = index > 0,
+      modifier = Modifier.size(40.dp),
+    ) {
       Icon(Icons.AutoMirrored.Filled.KeyboardArrowLeft, contentDescription = "Previous sentence")
     }
-    IconButton(onClick = { onStep(index + 1) }, enabled = index < count - 1, modifier = Modifier.size(40.dp)) {
+    IconButton(
+      onClick = { onStep(index + 1) },
+      enabled = index < count - 1,
+      modifier = Modifier.size(40.dp),
+    ) {
       Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = "Next sentence")
     }
   }

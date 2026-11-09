@@ -22,7 +22,9 @@ class ProgressStoreTest {
   private val scope = CoroutineScope(SupervisorJob())
   private val store = ProgressStore(database.progress(), scope)
 
-  @get:Rule val migrations = MigrationTestHelper(InstrumentationRegistry.getInstrumentation(), ProgressDatabase::class.java)
+  @get:Rule
+  val migrations =
+    MigrationTestHelper(InstrumentationRegistry.getInstrumentation(), ProgressDatabase::class.java)
 
   @After
   fun close() {

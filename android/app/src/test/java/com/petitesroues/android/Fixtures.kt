@@ -1,8 +1,8 @@
 package com.petitesroues.android
 
+import com.petitesroues.model.document.Line
 import com.petitesroues.model.document.PhraseAlignment
 import com.petitesroues.model.document.PhraseLink
-import com.petitesroues.model.document.Line
 import com.petitesroues.model.document.VideoCue
 
 fun cue(

@@ -11,9 +11,9 @@ import androidx.room.Upsert
 
 /**
  * Where each title was left: the only data on the phone that a refresh cannot rebuild. Its schema
- * is exported to `app/schemas/`, one JSON file per version. Change it rarely; when it changes,
- * bump [version][Database.version] and declare the step, an `@AutoMigration` where Room can work
- * it out or a hand-written `Migration` where it can't (a rename), so progress survives app updates.
+ * is exported to `app/schemas/`, one JSON file per version. Change it rarely; when it changes, bump
+ * [version][Database.version] and declare the step, an `@AutoMigration` where Room can work it out
+ * or a hand-written `Migration` where it can't (a rename), so progress survives app updates.
  */
 @Database(entities = [Progress::class], version = 1, exportSchema = true)
 abstract class ProgressDatabase : RoomDatabase() {
@@ -47,7 +47,8 @@ data class Progress(
 interface ProgressDao {
   @Query("SELECT * FROM progress") fun all(): List<Progress>
 
-  @Query("SELECT * FROM progress WHERE document_id = :documentId") fun find(documentId: String): Progress?
+  @Query("SELECT * FROM progress WHERE document_id = :documentId")
+  fun find(documentId: String): Progress?
 
   @Upsert fun save(progress: Progress)
 

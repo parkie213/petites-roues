@@ -27,9 +27,9 @@ import com.petitesroues.sync.TitleDownloader
 import com.petitesroues.sync.TransferFolder
 import com.petitesroues.sync.TransferPlan
 import dagger.hilt.android.AndroidEntryPoint
-import javax.inject.Inject
 import java.io.IOException
 import java.util.concurrent.CancellationException
+import javax.inject.Inject
 import kotlin.concurrent.thread
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -69,7 +69,10 @@ object Transfers {
 
   private val pendingTitles = MutableStateFlow(0)
 
-  /** How many titles the last [check] found a sync would fetch; the library badges its desktop button. */
+  /**
+   * How many titles the last [check] found a sync would fetch; the library badges its desktop
+   * button.
+   */
   val pending: StateFlow<Int> = pendingTitles
 
   /**
@@ -79,9 +82,17 @@ object Transfers {
    * @throws IllegalStateException without a download folder
    */
   fun check(context: Context, settings: Settings): SyncStatus {
-    val tree = downloadFolder(settings) ?: error("Allow file access so titles can be copied into ${AppFolder.LABEL}")
+    val tree =
+      downloadFolder(settings)
+        ?: error("Allow file access so titles can be copied into ${AppFolder.LABEL}")
     val titles = reachDesktop(context, settings, DesktopClient()::titles)
-    val sync = SyncStatus.of(titles, settings.followed, settings.chosen, transferFolder(context.contentResolver, tree))
+    val sync =
+      SyncStatus.of(
+        titles,
+        settings.followed,
+        settings.chosen,
+        transferFolder(context.contentResolver, tree),
+      )
     settings.chosen = sync.stillChosen()
     pendingTitles.value = sync.toSync().size
     return sync
@@ -99,9 +110,12 @@ object Transfers {
         .setRequiredNetworkType(JobInfo.NETWORK_TYPE_UNMETERED)
         .setEstimatedNetworkBytes(bytes, 0)
         .build()
-    val scheduled = context.getSystemService(JobScheduler::class.java).schedule(job) == JobScheduler.RESULT_SUCCESS
+    val scheduled =
+      context.getSystemService(JobScheduler::class.java).schedule(job) ==
+        JobScheduler.RESULT_SUCCESS
     state.update {
-      if (scheduled) it.copy(running = true, title = null, done = 0, total = 0, message = "Waiting for Wi-Fi…")
+      if (scheduled)
+        it.copy(running = true, title = null, done = 0, total = 0, message = "Waiting for Wi-Fi…")
       else it.copy(running = false, message = "Android refused to start the download")
     }
   }
@@ -124,21 +138,37 @@ class TransferJobService : JobService() {
 
   override fun onStartJob(params: JobParameters): Boolean {
     stopped = false
-    notifications.createNotificationChannel(NotificationChannel(CHANNEL, "Downloads from the desktop", NotificationManager.IMPORTANCE_LOW))
-    setNotification(params, NOTIFICATION, notification("Preparing…", 0, 0), JOB_END_NOTIFICATION_POLICY_REMOVE)
+    notifications.createNotificationChannel(
+      NotificationChannel(CHANNEL, "Downloads from the desktop", NotificationManager.IMPORTANCE_LOW)
+    )
+    setNotification(
+      params,
+      NOTIFICATION,
+      notification("Preparing…", 0, 0),
+      JOB_END_NOTIFICATION_POLICY_REMOVE,
+    )
     thread(name = "transfer") { download(params) }
     return true
   }
 
   override fun onStopJob(params: JobParameters): Boolean {
     stopped = true
-    val byApp = params.stopReason == JobParameters.STOP_REASON_CANCELLED_BY_APP || params.stopReason == JobParameters.STOP_REASON_USER
-    if (!byApp) Transfers.state.update { it.copy(message = "Paused until the phone is back on Wi-Fi") }
+    val byApp =
+      params.stopReason == JobParameters.STOP_REASON_CANCELLED_BY_APP ||
+        params.stopReason == JobParameters.STOP_REASON_USER
+    if (!byApp)
+      Transfers.state.update { it.copy(message = "Paused until the phone is back on Wi-Fi") }
     return !byApp
   }
 
   private fun notification(text: String, done: Long, total: Long): Notification {
-    val open = PendingIntent.getActivity(this, 0, Intent(this, MainActivity::class.java), PendingIntent.FLAG_IMMUTABLE)
+    val open =
+      PendingIntent.getActivity(
+        this,
+        0,
+        Intent(this, MainActivity::class.java),
+        PendingIntent.FLAG_IMMUTABLE,
+      )
     val percent = if (total > 0) (done * 100 / total).toInt() else 0
     return Notification.Builder(this, CHANNEL)
       .setSmallIcon(android.R.drawable.stat_sys_download)
@@ -153,11 +183,14 @@ class TransferJobService : JobService() {
   private fun download(params: JobParameters) {
     var reschedule = false
     try {
-      val tree = downloadFolder(settings) ?: error("Allow file access so titles can be copied into ${AppFolder.LABEL}")
+      val tree =
+        downloadFolder(settings)
+          ?: error("Allow file access so titles can be copied into ${AppFolder.LABEL}")
       val folder = transferFolder(contentResolver, tree)
       val client = DesktopClient()
       var count = 0
-      // Following a series or choosing a title during a round changes what to fetch, so it goes round again.
+      // Following a series or choosing a title during a round changes what to fetch, so it goes
+      // round again.
       do {
         val followed = settings.followed
         val chosen = settings.chosen
@@ -171,7 +204,9 @@ class TransferJobService : JobService() {
         it.copy(
           running = false,
           title = null,
-          message = if (count == 0) "Everything is up to date" else "Copied $count ${if (count == 1) "title" else "titles"}",
+          message =
+            if (count == 0) "Everything is up to date"
+            else "Copied $count ${if (count == 1) "title" else "titles"}",
         )
       }
     } catch (_: CancellationException) {
@@ -194,30 +229,49 @@ class TransferJobService : JobService() {
   }
 
   /** Downloads one round's [plan], after checking it fits in the phone's free space. */
-  private fun download(client: DesktopClient, desktop: Desktop, plan: TransferPlan, folder: TransferFolder, tree: Uri) {
+  private fun download(
+    client: DesktopClient,
+    desktop: Desktop,
+    plan: TransferPlan,
+    folder: TransferFolder,
+    tree: Uri,
+  ) {
     val free = runCatching { LibraryUsage.free(this, listOf(tree)).firstOrNull() }.getOrNull()
     if (free != null && plan.remaining() > free)
-      error("This needs ${LibraryUsage.format(plan.remaining())} but only ${LibraryUsage.format(free)} is free on the phone")
+      error(
+        "This needs ${LibraryUsage.format(plan.remaining())} but only ${LibraryUsage.format(free)} is free on the phone"
+      )
     var shown = 0L
-    TitleDownloader(client).run(
-      desktop,
-      plan,
-      folder,
-      object : TitleDownloader.Listener {
-        override fun progress(title: DesktopTitle, done: Long, total: Long) {
-          val now = SystemClock.elapsedRealtime()
-          if (now - shown < 500 && done < total) return
-          shown = now
-          Transfers.state.update { it.copy(running = true, title = title.title(), done = done, total = total, message = null) }
-          val text = "${title.title()} · ${LibraryUsage.format(done)} of ${LibraryUsage.format(total)}"
-          notifications.notify(NOTIFICATION, notification(text, done, total))
-        }
+    TitleDownloader(client)
+      .run(
+        desktop,
+        plan,
+        folder,
+        object : TitleDownloader.Listener {
+          override fun progress(title: DesktopTitle, done: Long, total: Long) {
+            val now = SystemClock.elapsedRealtime()
+            if (now - shown < 500 && done < total) return
+            shown = now
+            Transfers.state.update {
+              it.copy(
+                running = true,
+                title = title.title(),
+                done = done,
+                total = total,
+                message = null,
+              )
+            }
+            val text =
+              "${title.title()} · ${LibraryUsage.format(done)} of ${LibraryUsage.format(total)}"
+            notifications.notify(NOTIFICATION, notification(text, done, total))
+          }
 
-        override fun finished(title: DesktopTitle) = Transfers.state.update { it.copy(finished = it.finished + 1) }
+          override fun finished(title: DesktopTitle) =
+            Transfers.state.update { it.copy(finished = it.finished + 1) }
 
-        override fun cancelled(): Boolean = stopped
-      },
-    )
+          override fun cancelled(): Boolean = stopped
+        },
+      )
   }
 
   private companion object {

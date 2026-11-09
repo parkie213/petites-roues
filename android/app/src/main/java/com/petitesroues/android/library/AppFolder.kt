@@ -26,12 +26,18 @@ object AppFolder {
   fun allowed(): Boolean = Environment.isExternalStorageManager()
 
   /** The folder, created if needed; null without All files access. */
-  fun ready(): Uri? = if (allowed() && (dir.isDirectory || dir.mkdirs())) Uri.fromFile(dir) else null
+  fun ready(): Uri? =
+    if (allowed() && (dir.isDirectory || dir.mkdirs())) Uri.fromFile(dir) else null
 
-  /** Whether [tree] is a folder reached with file access, as this one is, rather than a SAF grant. */
+  /**
+   * Whether [tree] is a folder reached with file access, as this one is, rather than a SAF grant.
+   */
   fun isFile(tree: Uri): Boolean = tree.scheme == ContentResolver.SCHEME_FILE
 
   /** The system settings page where the person grants this app All files access. */
   fun allowIntent(context: Context): Intent =
-    Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION, Uri.parse("package:${context.packageName}"))
+    Intent(
+      Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION,
+      Uri.parse("package:${context.packageName}"),
+    )
 }

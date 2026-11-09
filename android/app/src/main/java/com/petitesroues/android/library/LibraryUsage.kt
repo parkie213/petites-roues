@@ -18,12 +18,15 @@ object LibraryUsage {
       value /= 1000
       unit++
     }
-    return if (unit == 0 || value >= 100) "%.0f %s".format(value, units[unit]) else "%.1f %s".format(value, units[unit])
+    return if (unit == 0 || value >= 100) "%.0f %s".format(value, units[unit])
+    else "%.1f %s".format(value, units[unit])
   }
 
   /** "Library 4.1 GB · 18.3 GB free"; the size is left out until a refresh has measured it. */
   fun line(libraryBytes: Long?, freeBytes: List<Long>): String =
-    (listOfNotNull(libraryBytes?.let { "Library ${format(it)}" }) + freeBytes.map { "${format(it)} free" }).joinToString(" · ")
+    (listOfNotNull(libraryBytes?.let { "Library ${format(it)}" }) +
+        freeBytes.map { "${format(it)} free" })
+      .joinToString(" · ")
 
   /**
    * Free bytes on each distinct storage volume holding one of [trees] (the shared storage, or a

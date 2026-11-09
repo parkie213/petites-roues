@@ -18,7 +18,10 @@ import javax.inject.Singleton
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
 
-/** A scope that lives as long as the app process, for work that must outlast the screen that started it. */
+/**
+ * A scope that lives as long as the app process, for work that must outlast the screen that started
+ * it.
+ */
 @Qualifier @Retention(AnnotationRetention.BINARY) annotation class ApplicationScope
 
 /** The app's databases and the platform and shared-library objects that need providing. */
@@ -43,7 +46,9 @@ object DataModule {
 
   @Provides fun progressDao(database: ProgressDatabase): ProgressDao = database.progress()
 
-  @Provides fun contentResolver(@ApplicationContext context: Context): ContentResolver = context.contentResolver
+  @Provides
+  fun contentResolver(@ApplicationContext context: Context): ContentResolver =
+    context.contentResolver
 
   @Provides @Singleton fun studyDocumentReader(): StudyDocumentReader = StudyDocumentReader()
 

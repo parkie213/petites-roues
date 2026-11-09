@@ -38,15 +38,22 @@ fun Modifier.sketch(sketch: Sketch, scale: () -> Float): Modifier = drawWithCont
       drawCircle(INK, width / 2, points[0])
       continue
     }
-    val path = Path().apply {
-      moveTo(points[0].x, points[0].y)
-      for (point in points.drop(1)) lineTo(point.x, point.y)
-    }
+    val path =
+      Path().apply {
+        moveTo(points[0].x, points[0].y)
+        for (point in points.drop(1)) lineTo(point.x, point.y)
+      }
     drawPath(path, INK, style = Stroke(width, cap = StrokeCap.Round, join = StrokeJoin.Round))
   }
 }
 
-private enum class Mode { WAIT, IDLE, DRAW, PAN, ZOOM }
+private enum class Mode {
+  WAIT,
+  IDLE,
+  DRAW,
+  PAN,
+  ZOOM,
+}
 
 /**
  * Zoom, pan and drawing for the reader's current view, read in screen coordinates before the page
@@ -63,59 +70,76 @@ fun Modifier.zoomAndDraw(
   onTransform: (PageTransform) -> Unit,
   sketch: Sketch,
   pencil: () -> Boolean,
-): Modifier = pointerInput(sketch) {
-  awaitEachGesture {
-    val down = awaitFirstDown(requireUnconsumed = false, pass = PointerEventPass.Initial)
-    val stylus = down.type == PointerType.Stylus || down.type == PointerType.Eraser
-    val draws = stylus || pencil()
-    var mode = Mode.WAIT
-    var points = mutableListOf<Offset>()
-    val width = size.width.toFloat()
-    val height = size.height.toFloat()
-    while (true) {
-      val event = awaitPointerEvent(PointerEventPass.Initial)
-      if (event.changes.none { it.pressed }) break
-      if (!stylus && mode != Mode.ZOOM && event.changes.count { it.pressed } > 1) {
-        if (mode == Mode.DRAW) sketch.strokes.removeAt(sketch.strokes.lastIndex)
-        mode = Mode.ZOOM
-      }
-      val change = event.changes.firstOrNull { it.id == down.id }
-      when (mode) {
-        Mode.WAIT -> {
-          if (change == null) mode = Mode.IDLE
-          else if ((change.position - down.position).getDistance() > viewConfiguration.touchSlop) {
-            mode =
-              when {
-                draws -> Mode.DRAW
-                transform().zoomed -> Mode.PAN
-                else -> Mode.IDLE
+): Modifier =
+  pointerInput(sketch) {
+    awaitEachGesture {
+      val down = awaitFirstDown(requireUnconsumed = false, pass = PointerEventPass.Initial)
+      val stylus = down.type == PointerType.Stylus || down.type == PointerType.Eraser
+      val draws = stylus || pencil()
+      var mode = Mode.WAIT
+      var points = mutableListOf<Offset>()
+      val width = size.width.toFloat()
+      val height = size.height.toFloat()
+      while (true) {
+        val event = awaitPointerEvent(PointerEventPass.Initial)
+        if (event.changes.none { it.pressed }) break
+        if (!stylus && mode != Mode.ZOOM && event.changes.count { it.pressed } > 1) {
+          if (mode == Mode.DRAW) sketch.strokes.removeAt(sketch.strokes.lastIndex)
+          mode = Mode.ZOOM
+        }
+        val change = event.changes.firstOrNull { it.id == down.id }
+        when (mode) {
+          Mode.WAIT -> {
+            if (change == null) mode = Mode.IDLE
+            else if (
+              (change.position - down.position).getDistance() > viewConfiguration.touchSlop
+            ) {
+              mode =
+                when {
+                  draws -> Mode.DRAW
+                  transform().zoomed -> Mode.PAN
+                  else -> Mode.IDLE
+                }
+              if (mode == Mode.DRAW) {
+                points =
+                  mutableListOf(
+                    transform().toContent(down.position),
+                    transform().toContent(change.position),
+                  )
+                sketch.strokes.add(points.toList())
               }
-            if (mode == Mode.DRAW) {
-              points = mutableListOf(transform().toContent(down.position), transform().toContent(change.position))
-              sketch.strokes.add(points.toList())
+              if (mode != Mode.IDLE) event.changes.forEach { it.consume() }
             }
-            if (mode != Mode.IDLE) event.changes.forEach { it.consume() }
           }
-        }
-        Mode.DRAW -> {
-          if (change != null) {
-            points += transform().toContent(change.position)
-            sketch.strokes[sketch.strokes.lastIndex] = points.toList()
+          Mode.DRAW -> {
+            if (change != null) {
+              points += transform().toContent(change.position)
+              sketch.strokes[sketch.strokes.lastIndex] = points.toList()
+            }
+            event.changes.forEach { it.consume() }
           }
-          event.changes.forEach { it.consume() }
+          Mode.PAN -> {
+            if (change != null)
+              onTransform(
+                transform().transformed(1f, Offset.Zero, change.positionChange(), width, height)
+              )
+            event.changes.forEach { it.consume() }
+          }
+          Mode.ZOOM -> {
+            onTransform(
+              transform()
+                .transformed(
+                  event.calculateZoom(),
+                  event.calculateCentroid(useCurrent = true),
+                  event.calculatePan(),
+                  width,
+                  height,
+                )
+            )
+            event.changes.forEach { it.consume() }
+          }
+          Mode.IDLE -> Unit
         }
-        Mode.PAN -> {
-          if (change != null) onTransform(transform().transformed(1f, Offset.Zero, change.positionChange(), width, height))
-          event.changes.forEach { it.consume() }
-        }
-        Mode.ZOOM -> {
-          onTransform(
-            transform().transformed(event.calculateZoom(), event.calculateCentroid(useCurrent = true), event.calculatePan(), width, height)
-          )
-          event.changes.forEach { it.consume() }
-        }
-        Mode.IDLE -> Unit
       }
     }
   }
-}

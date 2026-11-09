@@ -1,10 +1,9 @@
 package com.petitesroues.android.comic
 
-import android.widget.Toast
 import android.app.Activity
 import android.content.pm.ActivityInfo
 import android.content.res.Configuration
-import com.petitesroues.android.Coral
+import android.widget.Toast
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -16,23 +15,24 @@ import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.displayCutout
-import androidx.compose.foundation.layout.mandatorySystemGestures
-import androidx.compose.foundation.layout.windowInsetsPadding
-import androidx.compose.foundation.layout.union
 import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.displayCutout
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.mandatorySystemGestures
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.union
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -43,19 +43,22 @@ import androidx.compose.material.icons.filled.CropFree
 import androidx.compose.material.icons.filled.DeleteSweep
 import androidx.compose.material.icons.filled.Draw
 import androidx.compose.material.icons.filled.FitScreen
-import androidx.compose.material.icons.filled.SpeakerNotes
 import androidx.compose.material.icons.filled.Headphones
 import androidx.compose.material.icons.filled.HeadsetOff
 import androidx.compose.material.icons.filled.ScreenLockLandscape
 import androidx.compose.material.icons.filled.ScreenRotation
+import androidx.compose.material.icons.filled.SpeakerNotes
 import androidx.compose.material.icons.filled.SwapHoriz
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
@@ -71,6 +74,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.TransformOrigin
@@ -84,50 +89,46 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.LayoutDirection
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.petitesroues.android.study.readyAlignment
-import androidx.compose.ui.focus.focusRequester
-import androidx.compose.ui.focus.FocusRequester
-import androidx.compose.foundation.layout.Column
-import androidx.compose.material3.TextButton
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.AlertDialog
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
+import com.petitesroues.android.Coral
 import com.petitesroues.android.Settings
 import com.petitesroues.android.ThinSlider
+import com.petitesroues.android.data.Progress
+import com.petitesroues.android.data.ProgressStore
+import com.petitesroues.android.library.Title
 import com.petitesroues.android.quiz.QuizBadge
 import com.petitesroues.android.quiz.QuizDialog
 import com.petitesroues.android.quiz.QuizPack
 import com.petitesroues.android.quiz.QuizShare
-import com.petitesroues.android.data.Progress
-import com.petitesroues.android.data.ProgressStore
-import com.petitesroues.android.library.Title
+import com.petitesroues.android.study.readyAlignment
 import com.petitesroues.model.document.ComicBox
-import com.petitesroues.model.document.Line
 import com.petitesroues.model.document.ComicChapter
 import com.petitesroues.model.document.ComicDocument
 import com.petitesroues.model.document.ComicPage
+import com.petitesroues.model.document.Line
 import com.petitesroues.model.document.ReadingDirection
 import com.petitesroues.model.document.StudyDocument
+import kotlin.math.abs
+import kotlin.math.roundToInt
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import kotlin.math.abs
-import kotlin.math.roundToInt
 
 /**
  * The comic reader: one page in portrait, a two-page spread in landscape, swiped in the comic's
- * reading direction. Bubble taps open a study card, read aloud before opening on a second tap,
- * or read aloud and open together, according to the remembered listening mode. Tapping elsewhere
- * closes the card or shows the top bar with bubble-outline, listening and landscape controls, and a bottom bar with
- * the page and a slider to jump through the book (filled from the right for right-to-left comics). Landscape shows
- * two-page spreads even when the phone's auto-rotate is off. The page may run under the camera
- * cutout, but the top bar, study card and messages keep clear of it.
+ * reading direction. Bubble taps open a study card, read aloud before opening on a second tap, or
+ * read aloud and open together, according to the remembered listening mode. Tapping elsewhere
+ * closes the card or shows the top bar with bubble-outline, listening and landscape controls, and a
+ * bottom bar with the page and a slider to jump through the book (filled from the right for
+ * right-to-left comics). Landscape shows two-page spreads even when the phone's auto-rotate is off.
+ * The page may run under the camera cutout, but the top bar, study card and messages keep clear of
+ * it.
  *
  * Pinching zooms the current view (one finger then pans, and swipes stop turning pages); a stylus
  * draws on it, and so does a finger with the top bar's pencil on. Drawings are never saved: they
@@ -228,7 +229,11 @@ fun ReadScreen(
             val first = views[view].first()
             if (page !in views[view]) page = first
             close()
-            progress.savePage(title.progressKey, pages[first].id(), (first + 1).toDouble() / pages.size)
+            progress.savePage(
+              title.progressKey,
+              pages[first].id(),
+              (first + 1).toDouble() / pages.size,
+            )
           }
       }
       HorizontalPager(
@@ -242,7 +247,8 @@ fun ReadScreen(
         val current = view == pager.currentPage
         Box(
           if (current)
-            Modifier.fillMaxSize().zoomAndDraw({ transform }, { transform = it }, sketch, { pencil })
+            Modifier.fillMaxSize()
+              .zoomAndDraw({ transform }, { transform = it }, sketch, { pencil })
           else Modifier.fillMaxSize()
         ) {
           Row(
@@ -299,13 +305,17 @@ fun ReadScreen(
           verticalAlignment = Alignment.CenterVertically,
         ) {
           val shown = scrub ?: page
-          CompositionLocalProvider(LocalLayoutDirection provides if (rtl) LayoutDirection.Rtl else LayoutDirection.Ltr) {
+          CompositionLocalProvider(
+            LocalLayoutDirection provides if (rtl) LayoutDirection.Rtl else LayoutDirection.Ltr
+          ) {
             ThinSlider(
               shown.toFloat(),
               0f..(pages.size - 1).coerceAtLeast(1).toFloat(),
               onValueChange = { scrub = it.roundToInt().coerceIn(0, pages.size - 1) },
               onValueChangeFinished = {
-                scrub?.let { target -> scope.launch { pager.scrollToPage(Spreads.viewOf(views, target)) } }
+                scrub?.let { target ->
+                  scope.launch { pager.scrollToPage(Spreads.viewOf(views, target)) }
+                }
                 scrub = null
               },
               modifier = Modifier.weight(1f),
@@ -315,7 +325,9 @@ fun ReadScreen(
             pageName(shown),
             chapters,
             Chapters.at(pages, chapters, shown),
-            onChapter = { start -> scope.launch { pager.scrollToPage(Spreads.viewOf(views, start)) } },
+            onChapter = { start ->
+              scope.launch { pager.scrollToPage(Spreads.viewOf(views, start)) }
+            },
             pageOf = { chapter -> pages.indexOfFirst { it.id() == chapter.pageId() } },
           )
         }
@@ -323,7 +335,8 @@ fun ReadScreen(
 
     selected?.let { box ->
       val lines = box.lines()
-      val shown = lines.getOrNull(sentence.coerceIn(0, lines.lastIndex.coerceAtLeast(0))) ?: return@let
+      val shown =
+        lines.getOrNull(sentence.coerceIn(0, lines.lastIndex.coerceAtLeast(0))) ?: return@let
       val region = box.regions().firstOrNull()
       val atBottom = region == null || region.y() + region.height() / 2 < 0.5
       Surface(
@@ -340,7 +353,8 @@ fun ReadScreen(
             .heightIn(max = LocalConfiguration.current.screenHeightDp.dp * 0.45f),
       ) {
         Column {
-          if (lines.size > 1) SentenceSteps(lines.indexOf(shown), lines.size, onStep = { sentence = it })
+          if (lines.size > 1)
+            SentenceSteps(lines.indexOf(shown), lines.size, onStep = { sentence = it })
           // Keyed by the sentence so stepping starts its card fresh, scrolled to the top.
           key(shown.id()) {
             BubbleCard(
@@ -355,7 +369,8 @@ fun ReadScreen(
       }
     }
 
-    // The top bar, and below it Clear drawing / Reset zoom while there is something to clear or reset.
+    // The top bar, and below it Clear drawing / Reset zoom while there is something to clear or
+    // reset.
     Column(Modifier.align(Alignment.TopCenter).fillMaxWidth()) {
       if (chrome && selected == null)
         Row(
@@ -378,7 +393,8 @@ fun ReadScreen(
           IconButton(onClick = { pencil = !pencil }) {
             Icon(
               Icons.Filled.Draw,
-              contentDescription = if (pencil) "Stop drawing with a finger" else "Draw with a finger",
+              contentDescription =
+                if (pencil) "Stop drawing with a finger" else "Draw with a finger",
               tint = if (pencil) Coral else Color.White,
             )
           }
@@ -401,12 +417,17 @@ fun ReadScreen(
             ) {
               Icon(
                 Icons.Filled.CropFree,
-                contentDescription = if (outlines) "Hide bubble outlines" else "Show bubble outlines",
+                contentDescription =
+                  if (outlines) "Hide bubble outlines" else "Show bubble outlines",
                 tint = if (outlines) Coral else Color.White,
               )
             }
             // Quizzes are scoped to a chapter, so a volume without chapters offers none.
-            if (chapters.isNotEmpty()) QuizBadge(onClick = { quizzing = true }, description = "Quiz me on a chapter in another app")
+            if (chapters.isNotEmpty())
+              QuizBadge(
+                onClick = { quizzing = true },
+                description = "Quiz me on a chapter in another app",
+              )
             IconButton(
               onClick = {
                 listeningMode = listeningMode.next()
@@ -422,7 +443,8 @@ fun ReadScreen(
                   ListeningMode.LISTEN_FIRST -> Icons.Filled.Headphones
                   ListeningMode.LISTEN_AND_OPEN -> Icons.Filled.SpeakerNotes
                 },
-                contentDescription = "${listeningMode.label}. Switch to: ${listeningMode.next().label}",
+                contentDescription =
+                  "${listeningMode.label}. Switch to: ${listeningMode.next().label}",
                 tint = if (listeningMode != ListeningMode.OFF) Coral else Color.White,
               )
             }
@@ -435,7 +457,8 @@ fun ReadScreen(
           ) {
             Icon(
               if (landscape) Icons.Filled.ScreenLockLandscape else Icons.Filled.ScreenRotation,
-              contentDescription = if (landscape) "Follow the phone's rotation" else "Read in landscape",
+              contentDescription =
+                if (landscape) "Follow the phone's rotation" else "Read in landscape",
               tint = if (landscape) Coral else Color.White,
             )
           }
@@ -460,7 +483,9 @@ fun ReadScreen(
           settings.quizType = type
           quizzing = false
           val name = chapters[chapter].number()?.let { "chapter $it" } ?: chapters[chapter].title()
-          QuizShare.share(context, document, QuizPack.fileName(document, name), type) { rules, chosen ->
+          QuizShare.share(context, document, QuizPack.fileName(document, name), type) {
+            rules,
+            chosen ->
             QuizPack.chapter(rules, document, comic, chapter, chosen)
           }
         },
@@ -489,7 +514,8 @@ fun ReadScreen(
           it,
           color = Color(0xFFFFB4A9),
           fontSize = 13.sp,
-          modifier = Modifier.align(Alignment.BottomStart).windowInsetsPadding(cutoutSafe).padding(8.dp),
+          modifier =
+            Modifier.align(Alignment.BottomStart).windowInsetsPadding(cutoutSafe).padding(8.dp),
         )
     }
   }
@@ -499,8 +525,13 @@ fun ReadScreen(
 @Composable
 private fun SketchActions(sketch: Sketch, zoomed: Boolean, onResetZoom: () -> Unit) {
   if (sketch.strokes.isNotEmpty())
-    IconButton(onClick = sketch::clear) { Icon(Icons.Filled.DeleteSweep, "Clear drawing", tint = Color.White) }
-  if (zoomed) IconButton(onClick = onResetZoom) { Icon(Icons.Filled.FitScreen, "Reset zoom", tint = Color.White) }
+    IconButton(onClick = sketch::clear) {
+      Icon(Icons.Filled.DeleteSweep, "Clear drawing", tint = Color.White)
+    }
+  if (zoomed)
+    IconButton(onClick = onResetZoom) {
+      Icon(Icons.Filled.FitScreen, "Reset zoom", tint = Color.White)
+    }
 }
 
 /** Asks what the learner wants to know about a bubble, before sharing it to a chat app. */
@@ -532,7 +563,10 @@ private fun AskDialog(phrase: String?, onDismiss: () -> Unit, onAsk: (String) ->
 /** A question being written about [line], held by [box], exploring source [phrase] if any. */
 private data class Question(val box: ComicBox, val line: Line, val phrase: Int?)
 
-/** One page image, fitted to its slot against [alignment] (the spine in a spread), with its bubbles as tap targets in normalised coordinates. */
+/**
+ * One page image, fitted to its slot against [alignment] (the spine in a spread), with its bubbles
+ * as tap targets in normalised coordinates.
+ */
 @Composable
 private fun PageView(
   reader: CbzReader,
@@ -548,7 +582,10 @@ private fun PageView(
     val slot = with(density) { maxWidth.roundToPx() to maxHeight.roundToPx() }
     val image by
       produceState<Result<ImageBitmap>?>(null, page.entry()) {
-        value = withContext(Dispatchers.IO) { runCatching { reader.page(page.entry(), slot.first, slot.second) } }
+        value =
+          withContext(Dispatchers.IO) {
+            runCatching { reader.page(page.entry(), slot.first, slot.second) }
+          }
       }
     val bitmap = image?.getOrNull()
     when {
@@ -557,7 +594,12 @@ private fun PageView(
         Text(image!!.exceptionOrNull()?.message ?: "Cannot show page", color = Color(0xFFFFB4A9))
       else ->
         BoxWithConstraints(Modifier.aspectRatio(bitmap.width.toFloat() / bitmap.height)) {
-          Image(bitmap, contentDescription = page.label(), contentScale = ContentScale.Fit, modifier = Modifier.fillMaxSize())
+          Image(
+            bitmap,
+            contentDescription = page.label(),
+            contentScale = ContentScale.Fit,
+            modifier = Modifier.fillMaxSize(),
+          )
           boxes.forEachIndexed { number, box ->
             val isSelected = box.id() == highlighted?.id()
             box.regions().forEachIndexed { r, region ->
@@ -576,7 +618,10 @@ private fun PageView(
                       else -> Modifier
                     }
                   )
-                  .clickable(interactionSource = remember { MutableInteractionSource() }, indication = null) {
+                  .clickable(
+                    interactionSource = remember { MutableInteractionSource() },
+                    indication = null,
+                  ) {
                     onSelect(box)
                   }
               ) {
@@ -601,10 +646,10 @@ private fun PageView(
 }
 
 /**
- * Keeps gestures that travel more vertically than horizontally away from the pager, so the
- * swipe up for the system bars or the app switcher does not turn the page when it drifts
- * sideways: the pager would otherwise start dragging after a few pixels of sideways movement,
- * however steep the swipe. Taps and mostly horizontal swipes pass through untouched.
+ * Keeps gestures that travel more vertically than horizontally away from the pager, so the swipe up
+ * for the system bars or the app switcher does not turn the page when it drifts sideways: the pager
+ * would otherwise start dragging after a few pixels of sideways movement, however steep the swipe.
+ * Taps and mostly horizontal swipes pass through untouched.
  */
 private fun Modifier.keepVerticalSwipesFromPager(): Modifier =
   pointerInput(Unit) {
@@ -636,7 +681,8 @@ private fun ImmersiveReading(landscape: Boolean) {
   DisposableEffect(view) {
     val window = (view.context as Activity).window
     val controller = WindowCompat.getInsetsController(window, view)
-    controller.systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+    controller.systemBarsBehavior =
+      WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
     controller.hide(WindowInsetsCompat.Type.systemBars())
     onDispose { controller.show(WindowInsetsCompat.Type.systemBars()) }
   }
@@ -676,7 +722,9 @@ private fun ChapterLabel(
     DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
       chapters.forEachIndexed { i, chapter ->
         DropdownMenuItem(
-          text = { Text(Chapters.name(chapter), fontWeight = if (i == current) FontWeight.Bold else null) },
+          text = {
+            Text(Chapters.name(chapter), fontWeight = if (i == current) FontWeight.Bold else null)
+          },
           onClick = {
             open = false
             pageOf(chapter).takeIf { it >= 0 }?.let(onChapter)

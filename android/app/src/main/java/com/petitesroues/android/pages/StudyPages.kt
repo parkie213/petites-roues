@@ -91,7 +91,11 @@ fun StudyTabs(section: Section, onSection: (Section) -> Unit) {
         val active = tab == section
         Text(
           tab.label,
-          style = MaterialTheme.typography.titleSmall.copy(fontSize = 15.sp, fontWeight = FontWeight.SemiBold),
+          style =
+            MaterialTheme.typography.titleSmall.copy(
+              fontSize = 15.sp,
+              fontWeight = FontWeight.SemiBold,
+            ),
           color = if (active) underline else MaterialTheme.colorScheme.onSurface,
           modifier =
             Modifier.clickable { onSection(tab) }
@@ -134,15 +138,26 @@ fun StudyPages(
   BackHandler { if (open != null) openKey = null else onBack() }
   val quiz = section == Section.QUIZZES
   when {
-    pages == null -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
+    pages == null ->
+      Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+        CircularProgressIndicator()
+      }
     open != null -> Reading(section, open, quiz, onClose = { openKey = null }, onChat, onCopy)
     else -> {
       val several = pages.map { it.repository }.distinct().size > 1
-      val shown = pages.filter { query.isBlank() || it.title.contains(query.trim(), ignoreCase = true) }
-      LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(horizontal = 16.dp, vertical = 20.dp)) {
+      val shown = pages.filter {
+        query.isBlank() || it.title.contains(query.trim(), ignoreCase = true)
+      }
+      LazyColumn(
+        Modifier.fillMaxSize(),
+        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 20.dp),
+      ) {
         item {
           Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-            Text(section.label, style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.SemiBold))
+            Text(
+              section.label,
+              style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.SemiBold),
+            )
             Spacer(Modifier.weight(1f))
             Text(
               "${pages.size} ${if (pages.size == 1) "topic" else "topics"}",
@@ -192,14 +207,21 @@ fun StudyPages(
 private fun Topic(page: MarkdownPage, selected: Boolean, several: Boolean, onClick: () -> Unit) {
   Column(
     Modifier.fillMaxWidth()
-      .background(if (selected) Selected else Color.Transparent, RoundedCornerShape(topEnd = 6.dp, bottomEnd = 6.dp))
+      .background(
+        if (selected) Selected else Color.Transparent,
+        RoundedCornerShape(topEnd = 6.dp, bottomEnd = 6.dp),
+      )
       .drawBehind { if (selected) drawRect(SelectedBar, size = Size(3.dp.toPx(), size.height)) }
       .clickable(onClick = onClick)
       .padding(horizontal = 16.dp, vertical = 14.dp)
   ) {
     Text(page.title, style = MaterialTheme.typography.bodyLarge)
     if (several)
-      Text(page.repository, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+      Text(
+        page.repository,
+        style = MaterialTheme.typography.bodySmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+      )
   }
 }
 
@@ -213,31 +235,75 @@ private fun Reading(
   onCopy: (MarkdownPage) -> Unit,
 ) {
   val dim = MaterialTheme.colorScheme.onSurfaceVariant
-  Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 20.dp, vertical = 16.dp)) {
-    Row(Modifier.clickable(onClick = onClose).padding(vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
-      Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back to ${section.label}", Modifier.size(16.dp), tint = dim)
-      Text("  ${section.label} / ${page.repository}", style = MaterialTheme.typography.bodySmall, color = dim)
+  Column(
+    Modifier.fillMaxSize()
+      .verticalScroll(rememberScrollState())
+      .padding(horizontal = 20.dp, vertical = 16.dp)
+  ) {
+    Row(
+      Modifier.clickable(onClick = onClose).padding(vertical = 4.dp),
+      verticalAlignment = Alignment.CenterVertically,
+    ) {
+      Icon(
+        Icons.AutoMirrored.Filled.ArrowBack,
+        "Back to ${section.label}",
+        Modifier.size(16.dp),
+        tint = dim,
+      )
+      Text(
+        "  ${section.label} / ${page.repository}",
+        style = MaterialTheme.typography.bodySmall,
+        color = dim,
+      )
     }
     Text(
       page.title,
-      style = MaterialTheme.typography.headlineSmall.copy(fontSize = 26.sp, lineHeight = 32.sp, fontWeight = FontWeight.SemiBold),
+      style =
+        MaterialTheme.typography.headlineSmall.copy(
+          fontSize = 26.sp,
+          lineHeight = 32.sp,
+          fontWeight = FontWeight.SemiBold,
+        ),
       modifier = Modifier.padding(top = 14.dp, bottom = 10.dp),
     )
     if (quiz) {
-      Text("Practise with a chat, one question at a time.", style = MaterialTheme.typography.bodySmall, color = dim)
+      Text(
+        "Practise with a chat, one question at a time.",
+        style = MaterialTheme.typography.bodySmall,
+        color = dim,
+      )
       ChatCard(onChat = { onChat(page, it) }, onCopy = { onCopy(page) })
     }
     StudyMarkdown(page.text)
   }
 }
 
-/** The quiz's "Continue in a chat" card: open ChatGPT or Claude with the quiz attached, or copy or share it. */
+/**
+ * The quiz's "Continue in a chat" card: open ChatGPT or Claude with the quiz attached, or copy or
+ * share it.
+ */
 @Composable
 private fun ChatCard(onChat: (app: String?) -> Unit, onCopy: () -> Unit) {
   val shape = RoundedCornerShape(8.dp)
-  Column(Modifier.fillMaxWidth().padding(vertical = 16.dp).background(Card, shape).border(1.dp, CardBorder, shape).padding(16.dp)) {
-    Text("Continue in a chat", style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold, fontSize = 15.sp))
-    Row(Modifier.fillMaxWidth().padding(top = 12.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+  Column(
+    Modifier.fillMaxWidth()
+      .padding(vertical = 16.dp)
+      .background(Card, shape)
+      .border(1.dp, CardBorder, shape)
+      .padding(16.dp)
+  ) {
+    Text(
+      "Continue in a chat",
+      style =
+        MaterialTheme.typography.titleSmall.copy(
+          fontWeight = FontWeight.SemiBold,
+          fontSize = 15.sp,
+        ),
+    )
+    Row(
+      Modifier.fillMaxWidth().padding(top = 12.dp),
+      horizontalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
       val buttonShape = RoundedCornerShape(6.dp)
       Button(
         onClick = { onChat(CHATGPT) },
@@ -268,11 +334,19 @@ private fun ChatCard(onChat: (app: String?) -> Unit, onCopy: () -> Unit) {
     HorizontalDivider(color = CardBorder)
     Row(Modifier.padding(top = 4.dp)) {
       val small = MaterialTheme.typography.bodySmall
-      TextButton(onClick = onCopy, colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.onSurface)) {
+      TextButton(
+        onClick = onCopy,
+        colors =
+          ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.onSurface),
+      ) {
         Icon(Icons.Outlined.ContentCopy, null, Modifier.size(16.dp))
         Text("Copy prompt", style = small, modifier = Modifier.padding(start = 6.dp))
       }
-      TextButton(onClick = { onChat(null) }, colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.onSurface)) {
+      TextButton(
+        onClick = { onChat(null) },
+        colors =
+          ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.onSurface),
+      ) {
         Icon(Icons.Filled.Share, null, Modifier.size(16.dp))
         Text("Share…", style = small, modifier = Modifier.padding(start = 6.dp))
       }
@@ -293,11 +367,19 @@ const val CLAUDE = "com.anthropic.claude"
 @Composable
 private fun StudyMarkdown(text: String) {
   val lines = text.lines().dropWhile { it.isBlank() }
-  val body = (if (lines.firstOrNull()?.startsWith("# ") == true) lines.drop(1) else lines).joinToString("\n")
+  val body =
+    (if (lines.firstOrNull()?.startsWith("# ") == true) lines.drop(1) else lines).joinToString("\n")
   val ink = MaterialTheme.colorScheme.onSurface
-  val prose = MaterialTheme.typography.bodyLarge.copy(fontSize = 16.sp, lineHeight = 27.sp, color = ink)
+  val prose =
+    MaterialTheme.typography.bodyLarge.copy(fontSize = 16.sp, lineHeight = 27.sp, color = ink)
   val heading = prose.copy(fontWeight = FontWeight.SemiBold)
-  val code = prose.copy(fontFamily = FontFamily.Monospace, fontSize = 14.sp, lineHeight = 22.sp, color = CodeText)
+  val code =
+    prose.copy(
+      fontFamily = FontFamily.Monospace,
+      fontSize = 14.sp,
+      lineHeight = 22.sp,
+      color = CodeText,
+    )
   Markdown(
     content = body,
     modifier = Modifier.fillMaxWidth(),
@@ -332,18 +414,34 @@ private fun StudyMarkdown(text: String) {
     components =
       markdownComponents(
         table = {
-          Box(Modifier.padding(vertical = 4.dp).border(1.dp, CardBorder, RoundedCornerShape(5.dp))) {
+          Box(
+            Modifier.padding(vertical = 4.dp).border(1.dp, CardBorder, RoundedCornerShape(5.dp))
+          ) {
             MarkdownTable(
               it.content,
               it.node,
               style = it.typography.table,
               headerBlock = { content, header, width, style ->
                 Box(Modifier.width(width).background(TableHeader)) {
-                  MarkdownTableHeader(content, header, width, style.copy(fontWeight = FontWeight.SemiBold), maxLines = Int.MAX_VALUE, overflow = Clip)
+                  MarkdownTableHeader(
+                    content,
+                    header,
+                    width,
+                    style.copy(fontWeight = FontWeight.SemiBold),
+                    maxLines = Int.MAX_VALUE,
+                    overflow = Clip,
+                  )
                 }
               },
               rowBlock = { content, row, width, style ->
-                MarkdownTableRow(content, row, width, style, maxLines = Int.MAX_VALUE, overflow = Clip)
+                MarkdownTableRow(
+                  content,
+                  row,
+                  width,
+                  style,
+                  maxLines = Int.MAX_VALUE,
+                  overflow = Clip,
+                )
               },
             )
           }

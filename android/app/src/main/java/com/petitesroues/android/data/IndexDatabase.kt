@@ -17,12 +17,16 @@ import com.petitesroues.android.library.TitleKind
 
 /**
  * The library index: every title the last refresh found, and the media fingerprints it computed.
- * Both are rebuilt from the content folders by each refresh, so this database is a cache. It has
- * no migrations: when its schema changes, Room drops and recreates it (see
+ * Both are rebuilt from the content folders by each refresh, so this database is a cache. It has no
+ * migrations: when its schema changes, Room drops and recreates it (see
  * [com.petitesroues.android.di.DataModule]) and the library refreshes because the index is empty.
  * Reading and playback progress is kept apart, in [ProgressDatabase].
  */
-@Database(entities = [IndexedTitle::class, CachedFingerprint::class], version = 1, exportSchema = false)
+@Database(
+  entities = [IndexedTitle::class, CachedFingerprint::class],
+  version = 1,
+  exportSchema = false,
+)
 @TypeConverters(UriConverter::class)
 abstract class IndexDatabase : RoomDatabase() {
   abstract fun index(): IndexDao
@@ -78,31 +82,31 @@ data class IndexedTitle(
     fun of(title: Title) =
       with(title) {
         IndexedTitle(
-        path = path,
-        name = name,
-        series = series,
-        kind = kind,
-        documentUri = documentUri,
-        mediaUri = mediaUri,
-        documentId = documentId,
-        durationSeconds = durationSeconds,
-        season = season,
-        episode = episode,
-        volume = volume,
-        poster = poster,
-        seriesPoster = seriesPoster,
-        firstPage = firstPage,
-        shelf = shelf,
-        sourceLanguage = sourceLanguage,
-        mediaPath = mediaPath,
+          path = path,
+          name = name,
+          series = series,
+          kind = kind,
+          documentUri = documentUri,
+          mediaUri = mediaUri,
+          documentId = documentId,
+          durationSeconds = durationSeconds,
+          season = season,
+          episode = episode,
+          volume = volume,
+          poster = poster,
+          seriesPoster = seriesPoster,
+          firstPage = firstPage,
+          shelf = shelf,
+          sourceLanguage = sourceLanguage,
+          mediaPath = mediaPath,
         )
       }
   }
 }
 
 /**
- * A media file's fingerprint as of a refresh, with the size and modification time it was taken
- * at, so an unchanged file is not read again.
+ * A media file's fingerprint as of a refresh, with the size and modification time it was taken at,
+ * so an unchanged file is not read again.
  */
 @Entity(tableName = "fingerprint")
 data class CachedFingerprint(
@@ -144,7 +148,8 @@ abstract class IndexDao {
 
   @Insert protected abstract fun insertTitles(titles: List<IndexedTitle>)
 
-  @Query("SELECT * FROM fingerprint") protected abstract fun allFingerprints(): List<CachedFingerprint>
+  @Query("SELECT * FROM fingerprint")
+  protected abstract fun allFingerprints(): List<CachedFingerprint>
 
   @Query("DELETE FROM fingerprint") protected abstract fun deleteFingerprints()
 

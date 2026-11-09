@@ -93,7 +93,9 @@ object DesktopFinder {
     return try {
       found.poll(TIMEOUT_SECONDS, TimeUnit.SECONDS)?.takeIf { it.isNotEmpty() }
     } finally {
-      synchronized(resolving) { resolving.forEach { runCatching { nsd.unregisterServiceInfoCallback(it) } } }
+      synchronized(resolving) {
+        resolving.forEach { runCatching { nsd.unregisterServiceInfoCallback(it) } }
+      }
       runCatching { nsd.stopServiceDiscovery(discovery) }
       executor.shutdown()
     }
@@ -103,7 +105,12 @@ object DesktopFinder {
    * The `https` base URL of an announcement carrying [pin], or null for another desktop's: its
    * first IPv4 address, else a global IPv6 one (a link-local address would need its interface).
    */
-  fun url(pin: String, attributes: Map<String, ByteArray?>, addresses: List<InetAddress>, port: Int): String? {
+  fun url(
+    pin: String,
+    attributes: Map<String, ByteArray?>,
+    addresses: List<InetAddress>,
+    port: Int,
+  ): String? {
     if (attributes[PhoneRoutes.SERVICE_PIN]?.decodeToString() != pin || port <= 0) return null
     val ipv4 = addresses.firstOrNull { it is Inet4Address }
     if (ipv4 != null) return "https://${ipv4.hostAddress}:$port"

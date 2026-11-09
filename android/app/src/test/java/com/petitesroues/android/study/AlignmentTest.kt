@@ -21,11 +21,16 @@ class AlignmentTest {
   @Test
   fun readyOnlyWhileTheAlignmentMatchesItsCue() {
     val alignment = weather()
-    assertSame(alignment, readyAlignment(cue("a", "Il fait beau", "The weather is nice", alignment), FRENCH))
+    assertSame(
+      alignment,
+      readyAlignment(cue("a", "Il fait beau", "The weather is nice", alignment), FRENCH),
+    )
     assertNull(readyAlignment(cue("a", "Il fait froid", "The weather is nice", alignment), FRENCH))
     assertNull(readyAlignment(cue("a", "Il fait beau", "The weather is nice"), FRENCH))
     // Untranslated lines have a null translation; they show as plain text, never crash.
-    assertNull(readyAlignment(Line("a", "Il fait beau", null, listOf(), alignment, false, null), FRENCH))
+    assertNull(
+      readyAlignment(Line("a", "Il fait beau", null, listOf(), alignment, false, null), FRENCH)
+    )
   }
 
   @Test

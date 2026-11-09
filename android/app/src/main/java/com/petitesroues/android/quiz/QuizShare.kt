@@ -2,23 +2,33 @@ package com.petitesroues.android.quiz
 
 import android.content.ActivityNotFoundException
 import android.content.ClipData
-import com.petitesroues.android.pages.MarkdownPage
 import android.content.Context
 import android.content.Intent
 import androidx.core.content.FileProvider
+import com.petitesroues.android.pages.MarkdownPage
 import com.petitesroues.model.document.StudyDocument
 import com.petitesroues.model.document.VideoCue
 import java.io.File
 
 /**
- * Hands a [QuizPack] to another app (the Claude app) through Android's share sheet, as an
- * attached Markdown file plus a short opening message. The file is rewritten in the app's cache
- * on each share; nothing is kept elsewhere.
+ * Hands a [QuizPack] to another app (the Claude app) through Android's share sheet, as an attached
+ * Markdown file plus a short opening message. The file is rewritten in the app's cache on each
+ * share; nothing is kept elsewhere.
  */
 object QuizShare {
-  /** The video player's quiz of type [typeId]: the lines watched up to index [current] of [cues]. */
-  fun share(context: Context, document: StudyDocument, cues: List<VideoCue>, current: Int, typeId: String) =
-    share(context, document, QuizPack.fileName(document), typeId) { rules, type -> QuizPack.build(rules, document, cues, current, type) }
+  /**
+   * The video player's quiz of type [typeId]: the lines watched up to index [current] of [cues].
+   */
+  fun share(
+    context: Context,
+    document: StudyDocument,
+    cues: List<VideoCue>,
+    current: Int,
+    typeId: String,
+  ) =
+    share(context, document, QuizPack.fileName(document), typeId) { rules, type ->
+      QuizPack.build(rules, document, cues, current, type)
+    }
 
   /**
    * Shares the brief that [build] makes from the bundled quiz rules and quiz type [typeId] (its
@@ -32,7 +42,12 @@ object QuizShare {
     build: (rules: String, type: QuizPack.Chosen) -> String,
   ) {
     val types = context.assets.open("quiz/quiz-types.md").bufferedReader().use { it.readText() }
-    send(context, fileName, document.title(), build(rules(context), QuizPack.type(types, typeId, document)))
+    send(
+      context,
+      fileName,
+      document.title(),
+      build(rules(context), QuizPack.type(types, typeId, document)),
+    )
   }
 
   /**
@@ -48,7 +63,13 @@ object QuizShare {
   private fun rules(context: Context): String =
     context.assets.open("quiz/subtitle-quiz.md").bufferedReader().use { it.readText() }
 
-  private fun send(context: Context, fileName: String, subject: String, pack: String, app: String? = null) {
+  private fun send(
+    context: Context,
+    fileName: String,
+    subject: String,
+    pack: String,
+    app: String? = null,
+  ) {
     val folder = File(context.cacheDir, "quiz").apply { mkdirs() }
     folder.listFiles()?.forEach { it.delete() }
     val file = File(folder, fileName).apply { writeText(pack) }
