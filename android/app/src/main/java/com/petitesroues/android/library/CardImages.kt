@@ -8,6 +8,7 @@ import android.util.LruCache
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asAndroidBitmap
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.core.graphics.scale
 import com.petitesroues.android.comic.CbzReader
 import com.petitesroues.library.shelves.Shelves.CardArt
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -113,8 +114,7 @@ class CardImages @Inject constructor(@ApplicationContext private val context: Co
   private fun fit(image: ImageBitmap): ImageBitmap {
     if (image.width <= WIDTH) return image
     val bitmap = image.asAndroidBitmap()
-    return Bitmap.createScaledBitmap(bitmap, WIDTH, bitmap.height * WIDTH / bitmap.width, true)
-      .asImageBitmap()
+    return bitmap.scale(WIDTH, bitmap.height * WIDTH / bitmap.width).asImageBitmap()
   }
 
   private fun sha1(text: String): String =

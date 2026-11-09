@@ -3,6 +3,7 @@ package com.petitesroues.android.player
 import android.app.Activity
 import android.content.pm.ActivityInfo
 import androidx.activity.compose.BackHandler
+import androidx.annotation.OptIn
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
@@ -55,6 +56,7 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -77,6 +79,7 @@ import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import androidx.lifecycle.compose.LifecycleStartEffect
+import androidx.media3.common.util.UnstableApi
 import androidx.media3.ui.compose.ContentFrame
 import com.petitesroues.android.Settings
 import com.petitesroues.android.ThinSlider
@@ -131,6 +134,8 @@ private val railMargin = 12.dp
  * just watched with a chat app such as Claude ([QuizShare]). Controls keep clear of the camera
  * cutout. Read-only: no editing on the phone.
  */
+// ContentFrame, the Compose video surface, is Media3 API still marked unstable.
+@OptIn(UnstableApi::class)
 @Composable
 fun WatchScreen(
   title: Title,
@@ -144,7 +149,7 @@ fun WatchScreen(
   val timeline = remember(document) { CueTimeline(document.video().cues()) }
   val playback = remember(document) { VideoPlayback(context, title.mediaUri!!, timeline) }
   var autoPause by remember { mutableStateOf(settings.autoPause) }
-  var speed by remember { mutableStateOf(settings.playbackSpeed) }
+  var speed by remember { mutableFloatStateOf(settings.playbackSpeed) }
   var subtitles by remember { mutableStateOf(settings.showSubtitles) }
   var quizzing by remember { mutableStateOf(false) }
   var help by remember { mutableStateOf<Help?>(null) }

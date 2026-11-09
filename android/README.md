@@ -22,7 +22,7 @@ Java formatting check, so unformatted Java fails the sync until you run
 
 ```bash
 ./gradlew spotlessApply                               # format the Kotlin
-./gradlew :app:testDebugUnitTest :app:assembleDebug   # JVM tests and the APK
+./gradlew :app:lintDebug :app:testDebugUnitTest :app:assembleDebug   # lint, JVM tests, APK
 ./gradlew :app:connectedDebugAndroidTest              # database tests, on a connected phone
 adb install -r app/build/outputs/apk/debug/app-debug.apk
 ```
@@ -31,6 +31,11 @@ Kotlin is formatted by ktfmt (Google style, as google-java-format formats the Ja
 through Spotless: `./gradlew spotlessApply` formats and removes unused imports, and CI runs
 `spotlessCheck`. ktfmt judges imports by name, so an import whose name only appears as an argument
 name (`size(width = …)`) survives it; Android Studio's **Code → Optimize Imports** catches those.
+
+`./gradlew :app:lintDebug` runs Android Lint; CI fails on any warning, and Kotlin compiler warnings
+fail the build too. Lint's notices about newer library versions are switched off. Debug builds
+turn on StrictMode, which logs disk, database and network access on the main thread and leaked
+resources: `adb logcat -s StrictMode`.
 
 Device tests leave the app installed with its data (`gradle.properties`), so running them
 doesn't wipe the phone's pairing, folders or progress.
