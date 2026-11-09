@@ -13,9 +13,9 @@ enum class TitleKind {
  * One library entry: a study document and the video or CBZ its reference fingerprint names, from
  * any content folder ([com.petitesroues.library.linking.MediaLinks]), or a video or CBZ that no
  * document references yet ([documentUri] null), named from its path
- * ([com.petitesroues.library.shelves.MediaNames]). [path] identifies the entry and keys its
- * progress: the document's place in its content folder ([TitlePaths]), or the media's, prefixed
- * with that folder's name.
+ * ([com.petitesroues.library.shelves.MediaNames]). [path] identifies the entry: the document's
+ * place in its content folder ([TitlePaths]), or the media's, prefixed with that folder's name.
+ * Its progress is saved under [progressKey].
  *
  * The library groups entries into shelves by the rules it shares with the desktop
  * ([com.petitesroues.library.shelves.Shelves]): from the document's [series], [season], [episode],
@@ -43,6 +43,14 @@ data class Title(
   val sourceLanguage: String? = null,
   val mediaPath: String? = null,
 ) : Shelvable {
+  /**
+   * What the title's reading or playback progress is saved under: its document's ID, which moving
+   * or renaming files does not change, so a sync that lays files out differently keeps it. Media
+   * without a document has a path-based ID.
+   */
+  val progressKey: String
+    get() = documentId
+
   /** The content folder the title came from. */
   val folder: String
     get() = path.substringBefore('/')

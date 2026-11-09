@@ -162,7 +162,7 @@ fun ReadScreen(
   ImmersiveReading(landscape)
 
   var page by remember {
-    val saved = store.progress(title.path)?.pageId
+    val saved = store.progress(title.progressKey)?.pageId
     mutableIntStateOf(pages.indexOfFirst { it.id() == saved }.coerceAtLeast(0))
   }
   var selected by remember { mutableStateOf<ComicBox?>(null) }
@@ -227,7 +227,7 @@ fun ReadScreen(
             val first = views[view].first()
             if (page !in views[view]) page = first
             close()
-            store.savePage(title.path, pages[first].id(), (first + 1).toDouble() / pages.size)
+            store.savePage(title.progressKey, pages[first].id(), (first + 1).toDouble() / pages.size)
           }
       }
       HorizontalPager(

@@ -132,8 +132,10 @@ class PhoneTransferIntegrationTest extends HttpIntegrationTest {
         List.of(TitleFile.MEDIA, TitleFile.POSTER, TitleFile.DOCUMENT),
         demon.files().stream().map(TitleFile::role).toList(),
         "media first, the document last");
-    assertEquals("fr/comics/demon/T01.cbz", demon.files().get(0).path());
-    assertEquals("study/comics/demon/t01/document.json", demon.files().get(2).path());
+    // Laid out by title, not by where the desktop keeps the files.
+    assertEquals(t01Id + ".cbz", demon.files().get(0).path());
+    assertEquals(t01Id + ".jpg", demon.files().get(1).path());
+    assertEquals(t01Id + ".json", demon.files().get(2).path());
 
     // Cut the CBZ part way through, as a dropped Wi-Fi or a stopped job would.
     Path phone = root.resolve("phone");
@@ -187,14 +189,11 @@ class PhoneTransferIntegrationTest extends HttpIntegrationTest {
             });
     assertEquals(resumed.remaining(), fetched[0], "the desktop sent only the rest (Range)");
     assertEquals(List.of(t01Id), finished.stream().map(DesktopTitle::id).toList());
-    assertEquals(
-        MediaFingerprint.of(t01), MediaFingerprint.of(phone.resolve("fr/comics/demon/T01.cbz")));
-    assertEquals(3, Files.size(phone.resolve("fr/comics/demon/poster.jpg")));
+    assertEquals(MediaFingerprint.of(t01), MediaFingerprint.of(phone.resolve(t01Id + ".cbz")));
+    assertEquals(3, Files.size(phone.resolve(t01Id + ".jpg")));
     assertEquals(
         "t01",
-        new StudyDocumentCodec()
-            .decode(Files.readAllBytes(phone.resolve("study/comics/demon/t01/document.json")))
-            .id());
+        new StudyDocumentCodec().decode(Files.readAllBytes(phone.resolve(t01Id + ".json"))).id());
     assertEquals(-1, folder.partSize(cbzPath));
 
     var again = TransferPlan.of(client.titles(desktop), folder);
@@ -217,9 +216,16 @@ class PhoneTransferIntegrationTest extends HttpIntegrationTest {
         update.steps().stream().map(step -> step.file().role()).toList(),
         "an edited document is fetched again, alone");
     new TitleDownloader(client).run(desktop, update, folder, new TitleDownloader.Listener() {});
+    assertEquals(Files.readString(document), Files.readString(phone.resolve(t01Id + ".json")));
+
+    // Moving the media on the desktop and refreshing changes nothing for the phone.
+    Files.createDirectories(media.resolve("films"));
+    Files.move(media.resolve("comics/demon"), media.resolve("films/demon"));
+    http.post().uri("/api/repositories/refresh").retrieve().toBodilessEntity();
     assertEquals(
-        Files.readString(document),
-        Files.readString(phone.resolve("study/comics/demon/t01/document.json")));
+        List.of(),
+        TransferPlan.of(client.titles(desktop), folder).steps(),
+        "the phone still has everything after the desktop moved it");
   }
 
   @Test

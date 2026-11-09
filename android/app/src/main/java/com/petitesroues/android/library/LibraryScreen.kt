@@ -350,7 +350,7 @@ private class Cards(
         entry.kind == TitleKind.VIDEO -> "No video"
         else -> "No CBZ"
       }
-    val saved = progress[entry.path]
+    val saved = progress[entry.progressKey]
     val resume = saved?.positionSeconds?.takeIf { entry.kind == TitleKind.VIDEO && it >= 1 }
     Card(
       name,

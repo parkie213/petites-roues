@@ -103,8 +103,13 @@ following the series.
 The app checks the desktop when the library opens and badges the desktop button with how many
 titles a sync would fetch. The Sync button fetches them, and the pairing dialog is the computer
 icon on that screen. Each title's media, posters and document (as the player serves it, with
-pending edits) download into `Internal storage/Petites roues`, with a subfolder per desktop
-repository. That folder is the app's own content folder: it needs **All files access**
+pending edits) download into `Internal storage/Petites roues`, laid out by title, not by where
+the desktop keeps the files. Each title's files are named by its ID, side by side in a folder per
+series (at the top without a series): `Demon Slayer/demon-slayer-t01-comic.cbz`, its `.json`
+document and its poster (`.jpg`, `.webp`…), with the series poster as `Demon Slayer/poster.*`.
+Moving or renaming media on the desktop, or registering its folders again, changes nothing on
+the phone, and the phone keeps reading and playback progress by document ID, so files moving
+there keep it too. Notes and quizzes keep a subfolder per desktop repository. That folder is the app's own content folder: it needs **All files access**
 (`MANAGE_EXTERNAL_STORAGE`), granted once from the empty library or the copy screen, and it stays
 when the app is uninstalled. **Change** picks another folder with the system picker instead. A title is offered only when its media
 matches its document's reference fingerprint; hand links do not reach the phone yet. Downloads

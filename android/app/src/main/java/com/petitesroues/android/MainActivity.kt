@@ -184,7 +184,11 @@ class MainActivity : ComponentActivity() {
 
     val open = openPath?.let { path -> state.titles.firstOrNull { it.path == path } }
     if (open == null) {
-      LaunchedEffect(Unit) { reload() }
+      LaunchedEffect(Unit) {
+        reload()
+        // An app update that upgraded the database left the index empty: rebuild it straight away.
+        if (store.takeEmptied() && state.folders.isNotEmpty()) refresh()
+      }
       LaunchedEffect(section) {
         pages = null
         val folder = section.folder ?: return@LaunchedEffect
@@ -226,7 +230,7 @@ class MainActivity : ComponentActivity() {
         onOpen = { openPath = it.path },
         onClearProgress = { title ->
           scope.launch {
-            withContext(Dispatchers.IO) { store.clearProgress(title.path) }
+            withContext(Dispatchers.IO) { store.clearProgress(title.progressKey) }
             reload()
           }
         },

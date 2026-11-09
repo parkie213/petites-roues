@@ -165,9 +165,9 @@ fun WatchScreen(
   BackHandler(onBack = onBack)
 
   DisposableEffect(playback) {
-    store.progress(title.path)?.positionSeconds?.let(playback::seek)
+    store.progress(title.progressKey)?.positionSeconds?.let(playback::seek)
     onDispose {
-      store.savePosition(title.path, playback.position, playback.fraction)
+      store.savePosition(title.progressKey, playback.position, playback.fraction)
       playback.release()
     }
   }
@@ -186,7 +186,7 @@ fun WatchScreen(
         playback.tick()
         if (playback.playing && now - saved > 5000) {
           saved = now
-          store.savePosition(title.path, playback.position, playback.fraction)
+          store.savePosition(title.progressKey, playback.position, playback.fraction)
         }
       }
     }
@@ -195,7 +195,7 @@ fun WatchScreen(
     if (playback.playing) {
       help = null
       explored = null
-    } else store.savePosition(title.path, playback.position, playback.fraction)
+    } else store.savePosition(title.progressKey, playback.position, playback.fraction)
   }
   LifecycleStartEffect(playback) { onStopOrDispose { playback.pause() } }
 
