@@ -50,14 +50,19 @@ abstract class QuizAssets : DefaultTask() {
 val quizAssets =
   tasks.register<QuizAssets>("quizAssets") {
     val agents = rootDir.resolve("../agents")
-    sources.from(agents.resolve("workflows/subtitle-quiz.md"), agents.resolve("workflows/quiz-types.md"))
+    sources.from(
+      agents.resolve("workflows/subtitle-quiz.md"),
+      agents.resolve("workflows/quiz-types.md"),
+    )
   }
 
 // Room writes each version of the progress database's schema here, to review and migrate from.
 room { schemaDirectory("$projectDir/schemas") }
 
 androidComponents {
-  onVariants { variant -> variant.sources.assets?.addGeneratedSourceDirectory(quizAssets, QuizAssets::output) }
+  onVariants { variant ->
+    variant.sources.assets?.addGeneratedSourceDirectory(quizAssets, QuizAssets::output)
+  }
 }
 
 dependencies {
@@ -74,7 +79,6 @@ dependencies {
   implementation(libs.commons.compress)
   implementation(libs.markdown.renderer.m3)
   implementation(libs.play.services.code.scanner)
-  debugImplementation(libs.compose.ui.tooling)
   implementation(libs.hilt.android)
   ksp(libs.hilt.compiler)
   implementation(libs.room.runtime)
@@ -87,6 +91,8 @@ dependencies {
   constraints {
     // Test classpaths are held to the app's versions; Room's schema reader (room-migration)
     // needs a newer serialization runtime than the app's other libraries pull in.
-    implementation(libs.kotlinx.serialization.core) { because("androidx.room:room-migration needs 1.8.1") }
+    implementation(libs.kotlinx.serialization.core) {
+      because("androidx.room:room-migration needs 1.8.1")
+    }
   }
 }
