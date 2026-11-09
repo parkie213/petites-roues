@@ -52,24 +52,31 @@ import com.petitesroues.android.pages.StudyPages
 import android.content.ClipData
 import android.content.ClipboardManager
 import com.petitesroues.android.quiz.QuizShare
-import com.petitesroues.android.library.LibraryStore
 import com.petitesroues.android.library.Title
 import com.petitesroues.android.library.TitleKind
 import com.petitesroues.android.player.WatchScreen
+import com.petitesroues.android.data.IndexDao
+import com.petitesroues.android.data.Progress
+import com.petitesroues.android.data.ProgressStore
 import com.petitesroues.model.document.StudyDocument
+import dagger.hilt.android.AndroidEntryPoint
+import javax.inject.Inject
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 /**
  * The single activity: the library, and the player or comic reader for the open title. The app
- * only reads the content folder; documents are written on the desktop by agents.
+ * only reads the content folder; documents are written on the desktop by agents. Hilt injects the
+ * app-wide objects it works with.
  */
+@AndroidEntryPoint
 class MainActivity : ComponentActivity() {
-  private val settings by lazy { Settings(this) }
-  private val store by lazy { LibraryStore(this) }
-  private val library by lazy { LibraryService(contentResolver, store) }
-  private val images by lazy { CardImages(this) }
+  @Inject lateinit var settings: Settings
+  @Inject lateinit var index: IndexDao
+  @Inject lateinit var progress: ProgressStore
+  @Inject lateinit var library: LibraryService
+  @Inject lateinit var images: CardImages
 
   override fun onCreate(savedInstanceState: Bundle?) {
     super.onCreate(savedInstanceState)
@@ -93,14 +100,15 @@ class MainActivity : ComponentActivity() {
     }
 
     suspend fun reload() {
-      val (titles, progress) = withContext(Dispatchers.IO) { store.titles() to store.progress() }
+      val titles = withContext(Dispatchers.IO) { index.titles() }
+      val saved = progress.all()
       val usage =
         withContext(Dispatchers.IO) {
           runCatching { LibraryUsage.line(settings.libraryBytes, LibraryUsage.free(this@MainActivity, settings.libraryFolders)) }
             .getOrNull()
             ?.ifBlank { null }
         }
-      state = state.copy(titles = titles, progress = progress, usage = usage)
+      state = state.copy(titles = titles, progress = saved, usage = usage)
     }
 
     fun refresh() {
@@ -186,8 +194,9 @@ class MainActivity : ComponentActivity() {
     if (open == null) {
       LaunchedEffect(Unit) {
         reload()
-        // An app update that upgraded the database left the index empty: rebuild it straight away.
-        if (store.takeEmptied() && state.folders.isNotEmpty()) refresh()
+        // An empty index with folders to read (a first launch, or an update that changed the
+        // index's schema, which drops it) is rebuilt straight away.
+        if (state.titles.isEmpty() && state.folders.isNotEmpty() && !state.refreshing) refresh()
       }
       LaunchedEffect(section) {
         pages = null
@@ -230,7 +239,7 @@ class MainActivity : ComponentActivity() {
         onOpen = { openPath = it.path },
         onClearProgress = { title ->
           scope.launch {
-            withContext(Dispatchers.IO) { store.clearProgress(title.progressKey) }
+            progress.clear(title.progressKey)
             reload()
           }
         },
@@ -242,15 +251,18 @@ class MainActivity : ComponentActivity() {
   }
 
   /**
-   * Loads the title's document, then shows the player or reader for it. A comic without a study
-   * document reads from a pages-only one built from its CBZ, in the direction chosen for it.
+   * Loads the title's document and where it was left, then shows the player or reader for it. A
+   * comic without a study document reads from a pages-only one built from its CBZ, in the direction
+   * chosen for it.
    */
   @Composable
   private fun TitleScreen(title: Title, onBack: () -> Unit) {
     val bare = title.documentUri == null && title.kind == TitleKind.COMIC
     var rtl by remember(title) { mutableStateOf(bare && settings.comicRtl(title.path)) }
     var loaded by remember(title) { mutableStateOf<Result<StudyDocument>?>(null) }
+    var saved by remember(title) { mutableStateOf<Progress?>(null) }
     LaunchedEffect(title, rtl) {
+      saved = progress.find(title.progressKey)
       loaded = withContext(Dispatchers.IO) {
         runCatching {
           if (bare)
@@ -276,13 +288,13 @@ class MainActivity : ComponentActivity() {
           Text("Cannot open ${title.name}: ${loaded!!.exceptionOrNull()?.message}", color = Color(0xFFFFB4A9))
         }
       }
-      title.kind == TitleKind.VIDEO -> WatchScreen(title, document, store, settings, onBack)
+      title.kind == TitleKind.VIDEO -> WatchScreen(title, document, saved, progress, settings, onBack)
       bare ->
-        ReadScreen(title, document, store, settings, onBack) {
+        ReadScreen(title, document, saved, progress, settings, onBack) {
           rtl = !rtl
           settings.setComicRtl(title.path, rtl)
         }
-      else -> ReadScreen(title, document, store, settings, onBack)
+      else -> ReadScreen(title, document, saved, progress, settings, onBack)
     }
   }
 }

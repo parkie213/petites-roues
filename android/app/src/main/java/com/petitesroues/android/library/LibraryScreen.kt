@@ -75,6 +75,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.petitesroues.android.ProgressColor
+import com.petitesroues.android.data.Progress
 import com.petitesroues.library.discovery.MediaKind
 import com.petitesroues.library.progress.LibraryProgress
 import com.petitesroues.library.shelves.Shelves

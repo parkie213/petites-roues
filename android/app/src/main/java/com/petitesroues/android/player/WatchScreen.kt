@@ -82,7 +82,8 @@ import androidx.media3.ui.compose.ContentFrame
 import androidx.compose.material3.LocalContentColor
 import com.petitesroues.android.Settings
 import com.petitesroues.android.ThinSlider
-import com.petitesroues.android.library.LibraryStore
+import com.petitesroues.android.data.Progress
+import com.petitesroues.android.data.ProgressStore
 import com.petitesroues.android.library.Title
 import com.petitesroues.android.quiz.QuizBadge
 import com.petitesroues.android.quiz.QuizDialog
@@ -137,7 +138,8 @@ private val railMargin = 12.dp
 fun WatchScreen(
   title: Title,
   document: StudyDocument,
-  store: LibraryStore,
+  saved: Progress?,
+  progress: ProgressStore,
   settings: Settings,
   onBack: () -> Unit,
 ) {
@@ -165,9 +167,9 @@ fun WatchScreen(
   BackHandler(onBack = onBack)
 
   DisposableEffect(playback) {
-    store.progress(title.progressKey)?.positionSeconds?.let(playback::seek)
+    saved?.positionSeconds?.let(playback::seek)
     onDispose {
-      store.savePosition(title.progressKey, playback.position, playback.fraction)
+      progress.savePosition(title.progressKey, playback.position, playback.fraction)
       playback.release()
     }
   }
@@ -180,13 +182,13 @@ fun WatchScreen(
     settings.playbackSpeed = speed
   }
   LaunchedEffect(playback) {
-    var saved = 0L
+    var lastSave = 0L
     while (true) {
       withFrameMillis { now ->
         playback.tick()
-        if (playback.playing && now - saved > 5000) {
-          saved = now
-          store.savePosition(title.progressKey, playback.position, playback.fraction)
+        if (playback.playing && now - lastSave > 5000) {
+          lastSave = now
+          progress.savePosition(title.progressKey, playback.position, playback.fraction)
         }
       }
     }
@@ -195,7 +197,7 @@ fun WatchScreen(
     if (playback.playing) {
       help = null
       explored = null
-    } else store.savePosition(title.progressKey, playback.position, playback.fraction)
+    } else progress.savePosition(title.progressKey, playback.position, playback.fraction)
   }
   LifecycleStartEffect(playback) { onStopOrDispose { playback.pause() } }
 

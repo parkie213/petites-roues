@@ -7,21 +7,19 @@ import androidx.core.net.toUri
 import com.petitesroues.android.comic.ListeningMode
 import com.petitesroues.android.library.AppFolder
 import com.petitesroues.model.sync.Desktop
+import dagger.hilt.android.qualifiers.ApplicationContext
+import javax.inject.Inject
+import javax.inject.Singleton
 
 /** Small per-device preferences: the content folders, the paired desktop and the players' toggles. */
-class Settings(context: Context) {
+@Singleton
+class Settings @Inject constructor(@ApplicationContext context: Context) {
   private val prefs = context.getSharedPreferences("settings", Context.MODE_PRIVATE)
 
   /** The granted content folders, in the order they were added. */
   var contentTrees: List<Uri>
-    get() =
-      prefs.getString("contentTrees", null)?.lines()?.filter { it.isNotEmpty() }?.map { it.toUri() }
-        ?: listOfNotNull(prefs.getString("contentTree", null)?.toUri())
-    set(value) =
-      prefs.edit {
-        putString("contentTrees", value.joinToString("\n"))
-        remove("contentTree")
-      }
+    get() = prefs.getString("contentTrees", null)?.lines()?.filter { it.isNotEmpty() }?.map { it.toUri() }.orEmpty()
+    set(value) = prefs.edit { putString("contentTrees", value.joinToString("\n")) }
 
   /**
    * Every content folder the library reads: the app's own ([AppFolder]) when it is allowed, then
@@ -83,14 +81,10 @@ class Settings(context: Context) {
     get() = prefs.getBoolean("autoPause", false)
     set(value) = prefs.edit { putBoolean("autoPause", value) }
 
-  /** Bubble tap mode, retaining the former two-state listening preference on upgrade. */
+  /** What tapping a bubble does in the comic reader. */
   var listeningMode: ListeningMode
-    get() = ListeningMode.entries.firstOrNull { it.name == prefs.getString("listeningMode", null) }
-      ?: if (prefs.getBoolean("autoListen", false)) ListeningMode.LISTEN_FIRST else ListeningMode.OFF
-    set(value) = prefs.edit {
-      putString("listeningMode", value.name)
-      remove("autoListen")
-    }
+    get() = ListeningMode.entries.firstOrNull { it.name == prefs.getString("listeningMode", null) } ?: ListeningMode.OFF
+    set(value) = prefs.edit { putString("listeningMode", value.name) }
 
   var comicLandscape: Boolean
     get() = prefs.getBoolean("comicLandscape", false)
