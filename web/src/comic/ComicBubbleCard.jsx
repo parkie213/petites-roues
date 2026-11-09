@@ -62,6 +62,8 @@ export function ComicBubbleCard({ cue, document, onKeep, quiet = false }) {
     if (quiet || !autoListen || !cue.source) return;
     const timer = setTimeout(() => speak(cue.source), AUTO_LISTEN_DELAY);
     return () => clearTimeout(timer);
+    // Speaks once, when the card opens; later changes must not speak again.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   // Every phrase's explanation is laid out in one grid cell so the card keeps the height of the
   // longest.

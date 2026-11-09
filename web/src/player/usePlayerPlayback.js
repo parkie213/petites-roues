@@ -108,6 +108,8 @@ export function usePlayerPlayback({
     if (element.readyState >= 1) start();
     else element.addEventListener("loadedmetadata", start, { once: true });
     return () => element.removeEventListener("loadedmetadata", start);
+    // Starts once per document; `play` is a new function each render and must not restart it.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [autoPlay, saveProgress, doc]);
   // Browsers refuse to start a page's sound until the person clicks on it, but allow it muted.
   const [mutedForAutoplay, setMutedForAutoplay] = useState(false);

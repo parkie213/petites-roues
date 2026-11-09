@@ -258,10 +258,11 @@ export function LibraryBrowser({
   const columns = repo
     ? repositoryColumns(repo.entries, selection.parts, repo.media)
     : [];
+  const path = selection.parts.join("/");
   useEffect(() => {
     const browser = strip.current;
     browser?.scrollTo({ left: browser.scrollWidth, behavior: "smooth" });
-  }, [selection.repository, selection.parts.join("/")]);
+  }, [selection.repository, path]);
   function follow(event, repository, parts) {
     if (
       event.button ||

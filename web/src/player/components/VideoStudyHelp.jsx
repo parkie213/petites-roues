@@ -5,6 +5,7 @@ import { LearnerNote } from "./LearnerNote.jsx";
 export function VideoStudyHelp({ cues, notes, showNotes }) {
   const root = useRef(null);
   const [position, setPosition] = useState(null);
+  const cueIds = cues.map((cue) => cue.id).join(",");
   useLayoutEffect(() => {
     const element = root.current;
     const stage = element.parentElement;
@@ -25,7 +26,7 @@ export function VideoStudyHelp({ cues, notes, showNotes }) {
     observer.observe(stage);
     lines.forEach((line) => observer.observe(line));
     return () => observer.disconnect();
-  }, [showNotes, cues.map((cue) => cue.id).join(",")]);
+  }, [showNotes, cueIds]);
   return (
     <div
       ref={root}
