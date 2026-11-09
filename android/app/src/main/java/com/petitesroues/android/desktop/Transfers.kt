@@ -79,14 +79,15 @@ object Transfers {
   fun check(context: Context, settings: Settings): SyncStatus {
     val tree = downloadFolder(settings) ?: error("Allow file access so titles can be copied into ${AppFolder.LABEL}")
     val titles = reachDesktop(context, settings, DesktopClient()::titles)
-    val sync = SyncStatus.of(titles, settings.followed, transferFolder(context.contentResolver, tree))
+    val sync = SyncStatus.of(titles, settings.followed, settings.chosen, transferFolder(context.contentResolver, tree))
+    settings.chosen = sync.stillChosen()
     pendingTitles.value = sync.toSync().size
     return sync
   }
 
   /**
    * Starts a sync; [bytes] is the estimate the system is told. A sync already under way is left to
-   * run: it goes round again if the followed series changed meanwhile.
+   * run: it goes round again if the followed series or chosen titles changed meanwhile.
    */
   fun start(context: Context, bytes: Long) {
     if (state.value.running) return
@@ -152,15 +153,16 @@ class TransferJobService : JobService() {
       val folder = transferFolder(contentResolver, tree)
       val client = DesktopClient()
       var count = 0
-      // Following or unfollowing a series during a round changes what to fetch, so it goes round again.
+      // Following a series or choosing a title during a round changes what to fetch, so it goes round again.
       do {
         val followed = settings.followed
+        val chosen = settings.chosen
         // The desktop as reached, at a new address if it moved.
         val (desktop, titles) = reachDesktop(this, settings) { it to client.titles(it) }
-        val plan = TransferPlan.of(SyncStatus.of(titles, followed, folder).toSync(), folder)
+        val plan = TransferPlan.of(SyncStatus.of(titles, followed, chosen, folder).toSync(), folder)
         download(client, desktop, plan, folder, tree)
         count += plan.titles().size
-      } while (settings.followed != followed && !stopped)
+      } while ((settings.followed != followed || !chosen.containsAll(settings.chosen)) && !stopped)
       Transfers.state.update {
         it.copy(
           running = false,

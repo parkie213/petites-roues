@@ -98,6 +98,8 @@ Once paired, the app's desktop button opens **Sync**: one row per series (or sta
 saying how many of its titles are on the phone. Its checkbox follows the series. Ticking it copies
 the titles the phone lacks, and later syncs bring the ones the desktop adds. Every sync also
 fetches updates to whatever is already on the phone, followed or not. Unfollowing deletes nothing.
+Tapping a series shows its titles, each with its own checkbox to copy just that one without
+following the series.
 The app checks the desktop when the library opens and badges the desktop button with how many
 titles a sync would fetch. The Sync button fetches them, and the pairing dialog is the computer
 icon on that screen. Each title's media, posters and document (as the player serves it, with

@@ -70,6 +70,15 @@ class Settings(context: Context) {
     get() = prefs.getStringSet("followed", null)?.toSet().orEmpty()
     set(value) = prefs.edit { putStringSet("followed", value) }
 
+  /**
+   * Desktop titles chosen one by one, by ID, still waiting to be copied. Once a title is on the
+   * phone it gets updates like any other, so [com.petitesroues.android.desktop.Transfers.check]
+   * drops it from here.
+   */
+  var chosen: Set<String>
+    get() = prefs.getStringSet("chosen", null)?.toSet().orEmpty()
+    set(value) = prefs.edit { putStringSet("chosen", value) }
+
   var autoPause: Boolean
     get() = prefs.getBoolean("autoPause", false)
     set(value) = prefs.edit { putBoolean("autoPause", value) }

@@ -61,7 +61,8 @@ class SyncStatusTest {
             episode("masha-3", "masha", "No media", "{}"),
             episode("film", null, null, "{}"));
 
-    SyncStatus status = SyncStatus.of(titles, Set.of("peppa"), new PathTransferFolder(phone));
+    SyncStatus status =
+        SyncStatus.of(titles, Set.of("peppa"), Set.of(), new PathTransferFolder(phone));
 
     var groups = status.groups();
     assertEquals(
@@ -80,10 +81,29 @@ class SyncStatusTest {
   }
 
   @Test
+  void aChosenTitleIsCopiedWithoutFollowingItsSeries() throws IOException {
+    var titles =
+        List.of(episode("masha-1", "masha", null, "{}"), episode("masha-2", "masha", null, "{}"));
+    var folder = new PathTransferFolder(phone);
+
+    SyncStatus status = SyncStatus.of(titles, Set.of(), Set.of("masha-2"), folder);
+    assertEquals(List.of("masha-2"), status.toSync().stream().map(DesktopTitle::id).toList());
+    assertEquals(Set.of("masha-2"), status.stillChosen());
+
+    // Once it is on the phone it is fetched as an update, so it no longer needs choosing.
+    put("repo/masha-2.mp4", "0123456789");
+    assertEquals(
+        Set.of(), SyncStatus.of(titles, Set.of(), Set.of("masha-2"), folder).stillChosen());
+  }
+
+  @Test
   void aGroupWhoseTitlesAllHaveProblemsCannotBeFollowed() throws IOException {
     var status =
         SyncStatus.of(
-            List.of(episode("a", "s", "No media", "{}")), Set.of(), new PathTransferFolder(phone));
+            List.of(episode("a", "s", "No media", "{}")),
+            Set.of(),
+            Set.of(),
+            new PathTransferFolder(phone));
     assertFalse(status.groups().getFirst().followable());
   }
 }
