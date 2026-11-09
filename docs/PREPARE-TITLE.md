@@ -6,6 +6,20 @@ small scripts in [prepare/](../prepare/) call hosted models through
 [OpenRouter](https://openrouter.ai) and fill in the document.
 There is no pipeline to maintain: when a step stops being useful, change this page.
 
+**What goes to OpenRouter, and what doesn't.** OpenRouter does the bulk first passes, with
+non-Claude models only:
+
+- the video's first audio track, as ten-minute MP3 chunks (`transcribe.py`);
+- comic page images, a few pages per request (`comic_text.py`);
+- batches of about 30 lines with their neighbours and [the teaching guide](../agents/guides/translation-notes.md),
+  for the first-pass translations, breakdowns and notes (`translate.py`, `phrases.py`, `notes.py`):
+  the source text, plus the reviewed translations and breakdowns the later stages build on.
+
+Everything else stays in the coding agent's session: checking the media and audio language,
+writing the character list and correcting names, every review of the three annotation stages,
+listening and text checks, commits, and the guide's *Traps*. Never route Claude through
+OpenRouter, and don't send reviews, whole documents or anything else there.
+
 | Step | Script | Default model |
 | --- | --- | --- |
 | Speech to timed source text | `prepare/transcribe.py` | `mistralai/voxtral-small-transcribe-3-0` |
@@ -14,7 +28,7 @@ There is no pipeline to maintain: when a step stops being useful, change this pa
 | First-pass phrase breakdowns (chunks and links) | `prepare/phrases.py` | `openai/gpt-6-luna` |
 | First-pass link and sentence notes | `prepare/notes.py` | `openai/gpt-6-luna` |
 
-`prepare/spellings.py` corrects misheard names from a title's spelling list; it calls no model.
+`prepare/spellings.py` finds and corrects misheard names from a title's character list; it calls no model.
 
 Each script takes `--model` to try something else. All of them need Python 3 (standard
 library only) and `OPENROUTER_API_KEY` in the environment, and print the reported cost.
@@ -24,10 +38,10 @@ on `http://localhost:8877`).
 The app and `transcribe.py` need FFmpeg, and [yt-dlp](https://github.com/yt-dlp/yt-dlp#installation)
 if you download videos. Use media you have permission to use.
 
-The order for a title is: **sample → spelling list → transcribe the rest → correct names →
-translate → phrase breakdowns → breakdown review → notes → notes review → commit**. Always
-check a sample before running a whole title (see each step), so a bad model or setting costs
-minutes, not a film.
+The order for a title is: **check the audio language → character list → sample → correct
+names → transcribe the rest → correct names → translate → translation review → break down →
+breakdown review → notes → notes review**. Always check a sample before running a whole title
+(see each step), so a bad model or setting costs minutes, not a film.
 
 ## Ground rules
 
@@ -58,10 +72,19 @@ Languages default to French source with English translation and notes (`--source
 
 - **Comics:** the pages are listed in natural filename order and read right to left unless
   `--ltr`; check the first few pages in the reader.
-- **Videos:** the browser plays only a file's first audio track, and not AC3 or DTS. If the
-  library warns about the audio, or the first track is a dub, keep just the right track as AAC
-  before starting the document, for example
-  `ffmpeg -i in.mkv -map 0:v:0 -map 0:a:1 -c:v copy -c:a aac -b:a 192k -movflags +faststart video.mp4`.
+- **Videos:** browsers play only a file's first audio track, whatever track is marked default,
+  and not AC3 or DTS, and `transcribe.py` transcribes the same track. `new_title.py` and
+  `transcribe.py` refuse a video whose first track is tagged with another language than the
+  `sourceLanguage`, listing its tracks; an untagged track is only reported, so listen to the
+  start before transcribing. Pass `--ignore-track-language` when a tag is wrong. The library also
+  names the language that plays when a file has several, and warns when it isn't the document's
+  `sourceLanguage`. Reorder the tracks so the one you study comes
+  first, keeping the others (`ffprobe -v error -show_entries stream=index:stream_tags=language -select_streams a in.mkv`
+  lists them; `0:a:1` is the second):
+  `ffmpeg -i in.mkv -map 0:v -map 0:a:1 -map 0:a:0 -map 0:a:2 -map 0:s? -c copy -disposition:a 0 -disposition:a:0 default out.mkv`.
+  If that track is AC3 or DTS, convert it to AAC instead of copying it (`-c:a:0 aac -b:a:0 192k`).
+  A different file has a different fingerprint, so start the document from the remuxed file, or
+  record it with `prepare/reference.py`.
 
 Then **Refresh** the documents folder in the library. Add other metadata such as `season`,
 `episode` and `sourceUrl` by hand if you want it (see
@@ -89,15 +112,32 @@ Watch for hallucinated lines in silence or music (for example, broadcaster credi
 
 Transcription spells names as it hears them ("Bigwell" or "Big Web" for Bigweld), and the
 OpenRouter transcription models accept no list of expected names (`keyterms` is refused, and
-Voxtral ignores Mistral's `context_bias` when passed through). So after the sample, read its
-transcript and write the title's spelling list, mapping each correct spelling to the variants
-the model produced:
+Voxtral ignores Mistral's `context_bias` when passed through). So **before transcribing**, write
+the title's character list: every character, place and invented name, spelled as the source
+language's release spells them (its cast list, credits, official site or wiki; a dub often renames
+characters, so Hiccup is Harold in French). Keep it as `content-archive/<title>/spellings.json`,
+each name with no variants yet:
 
 ```json
-{ "Bigweld": ["Bigwell", "Big Web", "Big World"], "Rodney": ["René"] }
+{ "Bigweld": [], "Rodney": [], "Fender": [] }
 ```
 
-Keep it as `content-archive/<title>/spellings.json`, then apply it:
+After the sample, list what the transcript has that looks like a listed name:
+
+```bash
+python3 prepare/spellings.py --document content/my-title/document.json \
+  --spellings content-archive/my-title/spellings.json --suggest
+```
+
+It prints each look-alike word or word pair with the cues it is in (`Bigweld ← 'Big Web' ×3`)
+and changes nothing. Real words turn up too ("stock" for Stoïck), so open the cue before adding
+a variant. Add the misheard ones under their name:
+
+```json
+{ "Bigweld": ["Bigwell", "Big Web", "Big World"], "Rodney": ["René"], "Fender": [] }
+```
+
+then apply the list:
 
 ```bash
 python3 prepare/spellings.py --document content/my-title/document.json \
@@ -106,8 +146,8 @@ python3 prepare/spellings.py --document content/my-title/document.json \
 
 Variants are replaced as whole words, case-sensitively; check the printed changes, then rerun
 without `--dry-run`. Only add a variant that is never a real word in the film (a character
-named René elsewhere would be renamed too). After transcribing the rest, look for new variants,
-add them and rerun; cues already corrected are left alone. Cues with translations or notes are
+named René elsewhere would be renamed too). After transcribing the rest, run `--suggest` again,
+add the new variants and rerun; cues already corrected are left alone. Cues with translations or notes are
 skipped and listed, so do this before the notes first pass.
 
 ## Find a comic's text
@@ -146,17 +186,20 @@ reads the pages instead:
 
 ## Annotate in three stages
 
-A cue's teaching material is built in three stages, each a script with its own review:
+A cue's teaching material is built in three stages. In each, a script has the default model
+(`openai/gpt-6-luna`) write a first pass, and then the coding agent running these steps reviews
+it itself, in the same session, before starting the next script:
 
-1. **Translate** (`translate.py`): the translation only.
-2. **Break down** (`phrases.py`): the line divided into chunks linked to the translation, with no
-   notes yet. An agent reviews the chunks before anything is written about them.
+1. **Translate** (`translate.py`), then the agent reviews the translations.
+2. **Break down** (`phrases.py`): the line divided into chunks linked to the settled translation,
+   with no notes yet. The agent reviews the chunks and links.
 3. **Notes** (`notes.py`): a note for every link and the sentence notes, written for the
-   reviewed chunks.
+   reviewed chunks. The agent reviews the notes.
 
-Keeping them apart lets each request do one job well, and lets the chunks be settled before
-notes are written about them. Each stage leaves a valid document, so the player shows what
-exists so far.
+Each review settles what the next stage builds on: a translation changed after its breakdown
+loses the breakdown, and a chunk changed after its notes means rewriting them. Keeping the stages
+apart lets each request do one job well. Each stage leaves a valid document, so the player shows
+what exists so far. How to review is under [Review](#review).
 
 All three scripts work the same way. They send batches of about 30 cues with neighbouring
 context, using [the teaching guide](../agents/guides/translation-notes.md) as the instructions.
@@ -182,6 +225,8 @@ python3 prepare/translate.py --document content/my-title/document.json \
 Fills cues that have no translation; `--all` redoes every cue. A retranslated cue loses its
 phrase breakdown, which was bound to the old translation.
 
+Then review the translations (see [Review](#review)) before breaking them down.
+
 ### Break down
 
 ```bash
@@ -196,8 +241,8 @@ more words is sent back once, asking for a split at a clause or adverbial bounda
 stay whole only when the English wraps around it. A long chunk that survives is named in that
 cue's review request.
 
-Have an agent review the breakdowns (see [Review](#review)) before writing notes: changing a
-chunk later means rewriting its notes.
+Then review the breakdowns (see [Review](#review)) before writing notes: changing a chunk later
+means rewriting its notes.
 
 To compare models or prompt changes, run a few dozen cues without writing, then compare:
 
@@ -234,17 +279,33 @@ python3 prepare/notes.py --document content/my-title/document.json \
 
 Handles cues with a current breakdown in which some link has no note; `--all` redoes every cue
 with a breakdown. The chunks and links are fixed: the model writes one note per link and the
-sentence notes.
+sentence notes. Then review the notes (see [Review](#review)).
 
 ## Review
 
 Every first pass is a draft. Notes can be confidently wrong, especially on idioms and
-pronominal verbs, and on words the transcript misheard. Each script's review requests are in the
-title's review queue: have a strong agent (Opus or Sol) work through them following
-[the review workflow](../agents/workflows/review-content.md) and the title's
-**Copy notes review prompt**. The agent rewrites weak material and records doubtful source
-text as listening or text checks. A breakdown review checks only chunks and links, so finish
-it before running `notes.py`. When the review keeps finding the same mistake, add it to the guide's
-*Traps* section so the next first pass avoids it. Edits you make in the player are
-queued and shown on top of the file until the agent writes them in
+pronominal verbs, and on words the transcript misheard. Each script queues a review request for
+every cue it wrote, in the title's review queue. The coding agent running these steps reviews
+them itself, in the same session, once each script finishes: it claims the batches, writes its
+corrections into the document, commits and completes them as
+[the review workflow](../agents/workflows/review-content.md) describes. Use a strong model for
+the session (Opus or Sol), read [the teaching guide](../agents/guides/translation-notes.md)
+first, and keep the title's character list (`content-archive/<title>/spellings.json`) to hand.
+Each review checks only what its stage produced:
+
+- **Translation review:** does each translation say what the line means in this scene, with its
+  register and tone? Idioms, pronominal verbs and familiar words used in a less familiar sense
+  are the usual misses. Names must match the character list. A line whose source looks misheard
+  gets a `listeningCheck` (or `textCheck`) now, before anything is built on it.
+- **Breakdown review:** chunk boundaries and links only, against the guide's *Chunking* and
+  *Links* sections. No notes are written yet; a translation still at fault is retranslated and
+  its breakdown rebuilt.
+- **Notes review:** every link note and sentence note against the guide: why the French means
+  that English here, not just a gloss. Rewrite weak notes, delete notes that explain doubtful
+  words, and explain each character's name pun at its first appearance in the title.
+
+Review a new title's sample through all three stages before running the rest, so systematic
+mistakes are fixed in the guide, not cue by cue. When a review keeps finding the same mistake,
+add it to the guide's *Traps* section so the next first pass avoids it. Edits you make in the
+player are queued and shown on top of the file until the agent writes them in
 ([review API](REVIEW-API.md)). Keep listening checks separate from translation review.

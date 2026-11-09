@@ -20,7 +20,10 @@ file with their annotations, commit and push, then complete the batch. The API i
    a split together. A `review-request` asks you to check machine output: review the cue's
    translation, notes and alignment against the teaching guide, rewrite what falls short, and
    check the source text itself (see *Doubtful source text* below); one that says the model could
-   not annotate the cue needs you to write its annotations. A request for a **phrase breakdown**
+   not annotate the cue needs you to write its annotations. A request for a first-pass
+   **translation** comes before any breakdown or notes: judge whether each translation says what
+   the line means in its scene, with the right register, correct it in the file, check the names
+   and source text, and write no breakdown or notes. A request for a **phrase breakdown**
    ("check chunks and links only") comes before any notes exist: judge the chunk boundaries and
    pairings against the guide's *Chunking* and *Links* sections, correct them in the file, and
    write no notes. A fault in the translation itself is still yours to fix (remove the breakdown
@@ -44,6 +47,12 @@ file with their annotations, commit and push, then complete the batch. The API i
    open. Never edit SQLite queue rows directly.
 
 ## Doubtful source text
+
+Before reviewing a title's lines, read its character list: `content-archive/<title>/spellings.json`
+where the title was prepared here, otherwise the cast list of the source-language release (a dub
+often renames characters). Check every name in the batch against it, including names misheard as
+ordinary words ("Big Web" for Bigweld), and correct a misspelt name everywhere it occurs
+in the batch.
 
 Machine transcripts and comic text recognition mishear and misread. While reviewing, treat these
 as doubts about the source, not as French to explain: a malformed sentence, a name spelled
