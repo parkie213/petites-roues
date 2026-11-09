@@ -328,9 +328,28 @@ class ShelvesTest {
   @Test
   void aBareFilmUsesItsFolderPosterAndABareComicItsOwnCard() {
     var film = bare("Ponyo.mkv", MediaKind.VIDEO).seriesPoster();
-    assertEquals(new Shelves.CardArt<>(film, true), shelf("films", film).get(0).art());
+    assertEquals(new Shelves.CardArt<>(film, true), shelf("unsorted", film).get(0).art());
     var comic = bare("volume.cbz", MediaKind.COMIC);
     assertEquals(new Shelves.CardArt<>(comic, false), shelf("comics", comic).get(0).art());
+  }
+
+  @Test
+  void videosNothingDescribesAreUnsortedEachOnItsOwn() {
+    var shrek = bare("films/shrek/shrek.mkv", MediaKind.VIDEO);
+    var shrek2 = bare("films/shrek/shrek-2.mkv", MediaKind.VIDEO);
+    var episode = bare("peppa-pig/s01e01-les-flaques-de-boue.mp4", MediaKind.VIDEO);
+    var channel = new E().series("Le Parisien").title("Documented");
+    var clip = bare("le-parisien/clip.mp4", MediaKind.VIDEO);
+    var unsorted = shelf("unsorted", shrek, shrek2, episode, channel, clip);
+    assertEquals(
+        List.of("Shrek", "Shrek 2"),
+        unsorted.stream().map(Shelves.Group::name).toList(),
+        "a folder name alone does not make a series");
+    assertEquals(1, shelf("series", shrek, episode).size(), "an episode number does");
+    assertEquals(
+        2,
+        shelf("series", channel, clip).get(0).slots().size(),
+        "so does a series a documented video belongs to");
   }
 
   @Test

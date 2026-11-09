@@ -13,6 +13,8 @@ export function usePlayerPlayback({
   speed,
   setSelected,
   setStatus,
+  saveProgress = true,
+  autoPlay = false,
 }) {
   const video = useRef(null);
   const [time, setTime] = useState(0);
@@ -90,18 +92,44 @@ export function usePlayerPlayback({
   }
   usePlaybackProgress({
     api,
-    enabled: Boolean(doc),
+    enabled: saveProgress && Boolean(doc),
     videoRef: video,
     position: (element) =>
       heldTime.current >= 0 ? heldTime.current : element.currentTime,
     restore: seek,
     onError: setStatus,
+    onReady: () => autoPlay && play(),
   });
+  // Without saved progress there is nothing to restore: start as soon as the video can.
+  useEffect(() => {
+    const element = video.current;
+    if (!autoPlay || saveProgress || !doc || !element) return;
+    const start = () => play();
+    if (element.readyState >= 1) start();
+    else element.addEventListener("loadedmetadata", start, { once: true });
+    return () => element.removeEventListener("loadedmetadata", start);
+  }, [autoPlay, saveProgress, doc]);
+  // Browsers refuse to start a page's sound until the person clicks on it, but allow it muted.
+  const [mutedForAutoplay, setMutedForAutoplay] = useState(false);
   function play() {
-    const promise = video.current?.play();
-    promise?.catch((e) => {
-      if (e.name !== "AbortError") setStatus(e.message);
+    const element = video.current;
+    element?.play().catch((e) => {
+      if (e.name === "NotAllowedError" && !element.muted) {
+        element.muted = true;
+        element.play().then(
+          () => setMutedForAutoplay(true),
+          () => {
+            element.muted = false;
+            setStatus("The browser blocked playback: press play to start.");
+          },
+        );
+      } else if (e.name !== "AbortError") setStatus(e.message);
     });
+  }
+  /** Turns the sound on after a muted autoplay; a click is what the browser waits for. */
+  function unmute() {
+    if (video.current) video.current.muted = false;
+    setMutedForAutoplay(false);
   }
   function pause() {
     video.current?.pause();
@@ -144,5 +172,7 @@ export function usePlayerPlayback({
     play,
     pause,
     replay,
+    mutedForAutoplay,
+    unmute,
   };
 }

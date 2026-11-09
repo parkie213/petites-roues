@@ -10,6 +10,8 @@ export function useStudyDocument({ id, api, setStatus }) {
   const [error, setError] = useState("");
   const [returnPath] = useState(libraryReturnPath);
   useEffect(() => {
+    // A video without a study document has no title to load.
+    if (!api) return;
     const controller = new AbortController();
     request(api, { signal: controller.signal })
       .then((document) => {

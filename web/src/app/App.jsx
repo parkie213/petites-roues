@@ -7,7 +7,6 @@ import { ComicReader } from "../comic/ComicReader.jsx";
 import { Library } from "../library/Library.jsx";
 import { QuizPage } from "../library/QuizPage.jsx";
 import { Notes } from "../library/Notes.jsx";
-import { BareVideo } from "../player/BareVideo.jsx";
 import { Watch } from "../player/Watch.jsx";
 
 export function App() {
@@ -49,7 +48,7 @@ export function App() {
   const bare = url.pathname.match(/^\/video\/([^/]+)\/?$/);
   if (bare) {
     const fingerprint = decodeURIComponent(bare[1]);
-    return <BareVideo key={fingerprint} fingerprint={fingerprint} />;
+    return <Watch key={fingerprint} fingerprint={fingerprint} />;
   }
   const comic = url.pathname.match(/^\/comic\/([^/]+)\/?$/);
   if (comic) {

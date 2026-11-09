@@ -8,7 +8,11 @@ import {
   writeProgressCheckpoint,
 } from "./progress.js";
 
-/** Saves changed progress every five seconds while playing and at user stopping points. */
+/**
+ * Saves changed progress every five seconds while playing and at user stopping points. Calls
+ * {@code onReady} once the saved position is restored, the moment playback may start without
+ * counting as the person's own play (which would skip the restore).
+ */
 export function usePlaybackProgress({
   api,
   enabled,
@@ -16,9 +20,10 @@ export function usePlaybackProgress({
   position,
   restore,
   onError,
+  onReady,
 }) {
-  const latest = useRef({ position, restore, onError });
-  latest.current = { position, restore, onError };
+  const latest = useRef({ position, restore, onError, onReady });
+  latest.current = { position, restore, onError, onReady };
   useEffect(() => {
     const video = videoRef.current;
     if (!enabled || !video) return;
@@ -103,6 +108,7 @@ export function usePlaybackProgress({
       ready = true;
       restoring = false;
       if (interacted) save();
+      else latest.current.onReady?.();
     };
     const visibility = () => {
       if (document.visibilityState === "hidden") save();
