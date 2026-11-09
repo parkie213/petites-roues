@@ -233,7 +233,7 @@ class ContentRepositoryServiceTest {
                 ID, folder.toString(), "gone.mp4", "video", 1, 0, "v1:gone", 60.0, "aac", true));
     when(media.inRepository(ID)).thenReturn(previous);
     when(scanner.scan(folder)).thenReturn(ContentScanner.scan(new PathContentTree(folder)));
-    when(probe.video(changed)).thenReturn(new MediaProbe.Probe("v1:new", 30.0, "ac3", false));
+    when(probe.video(changed)).thenReturn(new MediaProbe.Probe("v1:new", 30.0, "ac3", false, "en"));
 
     service.refresh(ID);
 
@@ -252,7 +252,11 @@ class ContentRepositoryServiceTest {
                     "v1:new",
                     30.0,
                     "ac3",
-                    false),
+                    false,
+                    "en",
+                    null,
+                    null,
+                    null),
                 new IndexedMedia(
                     null,
                     folder.toString(),

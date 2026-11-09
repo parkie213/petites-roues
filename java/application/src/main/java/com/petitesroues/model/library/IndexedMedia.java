@@ -1,6 +1,8 @@
 package com.petitesroues.model.library;
 
+import com.petitesroues.media.AudioLanguages;
 import java.nio.file.Path;
+import java.util.List;
 
 /**
  * A video or CBZ found in a registered folder at its last refresh, with what probing it learned.
@@ -18,7 +20,10 @@ import java.nio.file.Path;
  * @param durationSeconds container duration for a video, or null when unknown or a comic
  * @param audioCodecs ffprobe codec names of a video's audio streams, comma-separated; empty when it
  *     has none; null for a comic
- * @param audioPlayable whether any audio stream is browser-playable; null for a comic
+ * @param audioPlayable whether the first audio stream, the one browsers play, is browser-playable;
+ *     null for a comic or when unknown
+ * @param audioLanguages each audio stream's language in track order, comma-separated BCP 47 primary
+ *     tags with an untagged stream empty ({@link AudioLanguages}); null for a comic or when unknown
  * @param posterPath its own card image, relative to the folder, or null ({@link
  *     com.petitesroues.library.discovery.ContentScanner} finds posters at Refresh)
  * @param seriesPosterPath its series poster, relative to the folder, or null
@@ -35,6 +40,7 @@ public record IndexedMedia(
     Double durationSeconds,
     String audioCodecs,
     Boolean audioPlayable,
+    String audioLanguages,
     String posterPath,
     String seriesPosterPath,
     String posterProblem) {
@@ -64,6 +70,7 @@ public record IndexedMedia(
         audioPlayable,
         null,
         null,
+        null,
         null);
   }
 
@@ -84,6 +91,50 @@ public record IndexedMedia(
         : Path.of(repositoryPath).resolve(seriesPosterPath).normalize();
   }
 
+  /** The language of the first audio track, the one browsers play, or null when untagged. */
+  public String playedLanguage() {
+    var languages = AudioLanguages.split(audioLanguages);
+    return languages.isEmpty() || languages.getFirst().isEmpty() ? null : languages.getFirst();
+  }
+
+  /**
+   * The warning for a video whose document is in {@code sourceLanguage} but whose first audio
+   * track, the one browsers play, is tagged with another language; null when they agree or either
+   * is unknown.
+   */
+  public String languageWarning(String sourceLanguage) {
+    String played = playedLanguage();
+    if (!"video".equals(kind) || played == null || sourceLanguage == null) return null;
+    String wanted = AudioLanguages.tag(sourceLanguage.split("-")[0]);
+    if (played.equals(wanted)) return null;
+    boolean has = AudioLanguages.split(audioLanguages).contains(wanted);
+    return "Plays "
+        + AudioLanguages.name(played)
+        + " audio, not "
+        + AudioLanguages.name(wanted)
+        + (has
+            ? ": make the " + AudioLanguages.name(wanted) + " track the first"
+            : ": it has no " + AudioLanguages.name(wanted) + " track");
+  }
+
+  /**
+   * For a video with audio in several languages, which one browsers play ("Plays English audio of
+   * English, French and Dutch"); null otherwise.
+   */
+  public String languagesNote() {
+    if (!"video".equals(kind)) return null;
+    List<String> distinct =
+        AudioLanguages.split(audioLanguages).stream()
+            .filter(language -> !language.isEmpty())
+            .distinct()
+            .toList();
+    String played = playedLanguage();
+    if (distinct.size() < 2 || played == null) return null;
+    var names = distinct.stream().map(AudioLanguages::name).toList();
+    String list = String.join(", ", names.subList(0, names.size() - 1)) + " and " + names.getLast();
+    return "Plays " + AudioLanguages.name(played) + " audio of " + list;
+  }
+
   /** Whether this is a video whose audio no browser can play. */
   public boolean unplayableAudio() {
     return "video".equals(kind) && Boolean.FALSE.equals(audioPlayable);
@@ -91,8 +142,11 @@ public record IndexedMedia(
 
   /** The warning for {@link #unplayableAudio()}, naming the codecs found. */
   public String audioWarning() {
-    return audioCodecs == null || audioCodecs.isBlank()
-        ? "No audio track"
-        : "No audio track this player can play (" + audioCodecs.toUpperCase() + ")";
+    if (audioCodecs == null || audioCodecs.isBlank()) return "No audio track";
+    // Codecs are listed in track order, so the first is the first track's.
+    String first = audioCodecs.split(",")[0].toUpperCase();
+    return audioCodecs.contains(",")
+        ? "The first audio track (" + first + ") won't play in a browser"
+        : "No audio track this player can play (" + first + ")";
   }
 }

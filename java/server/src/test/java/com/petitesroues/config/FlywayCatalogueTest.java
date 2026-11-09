@@ -17,7 +17,7 @@ class FlywayCatalogueTest {
       var jdbc = new JdbcTemplate(source);
       jdbc.execute("PRAGMA foreign_keys=ON");
       var flyway = DatabaseFixtures.flyway(source);
-      assertEquals(1, flyway.migrate().migrationsExecuted);
+      assertEquals(2, flyway.migrate().migrationsExecuted);
       assertEquals(0, flyway.migrate().migrationsExecuted);
       flyway.validate();
       assertEquals(
@@ -25,6 +25,9 @@ class FlywayCatalogueTest {
           jdbc.queryForObject(
               "SELECT count(*) FROM sqlite_master WHERE type='table' AND name IN ('repositories','titles','media','review_batches','review_queue','playback_progress','reading_progress','flyway_schema_history')",
               Integer.class));
+      assertTrue(
+          jdbc.queryForList("PRAGMA table_info(media)").stream()
+              .anyMatch(column -> "audio_languages".equals(column.get("name"))));
       assertTrue(jdbc.queryForList("PRAGMA foreign_key_check").isEmpty());
       var error =
           assertThrows(
