@@ -15,16 +15,14 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.displayCutout
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.only
-import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -32,10 +30,9 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Notes
-import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.ExpandMore
-import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material.icons.filled.FindInPage
+import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PauseCircleOutline
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Replay
@@ -45,10 +42,12 @@ import androidx.compose.material.icons.filled.Speed
 import androidx.compose.material.icons.filled.Subtitles
 import androidx.compose.material.icons.filled.SubtitlesOff
 import androidx.compose.material.icons.filled.Translate
+import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -79,7 +78,6 @@ import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import androidx.lifecycle.compose.LifecycleStartEffect
 import androidx.media3.ui.compose.ContentFrame
-import androidx.compose.material3.LocalContentColor
 import com.petitesroues.android.Settings
 import com.petitesroues.android.ThinSlider
 import com.petitesroues.android.data.Progress
@@ -89,16 +87,16 @@ import com.petitesroues.android.quiz.QuizBadge
 import com.petitesroues.android.quiz.QuizDialog
 import com.petitesroues.android.quiz.QuizPack
 import com.petitesroues.android.quiz.QuizShare
-import com.petitesroues.android.study.readyAlignment
-import com.petitesroues.model.ChunkSeparator
 import com.petitesroues.android.study.LearnerNote
 import com.petitesroues.android.study.PhraseLine
 import com.petitesroues.android.study.SubtitleLook
 import com.petitesroues.android.study.TranslationContext
 import com.petitesroues.android.study.phraseNotes
+import com.petitesroues.android.study.readyAlignment
+import com.petitesroues.model.ChunkSeparator
 import com.petitesroues.model.document.StudyDocument
-import kotlinx.coroutines.delay
 import kotlin.math.abs
+import kotlinx.coroutines.delay
 
 private val speeds = listOf(0.5f, 0.6f, 0.8f, 1f, 1.25f, 1.5f)
 
@@ -126,13 +124,12 @@ private val railMargin = 12.dp
 /**
  * The full-screen landscape player: the video with tappable phrase subtitles, a pill of line
  * shortcuts and study toggles on the right. Tapping the video reveals transport controls without
- * changing playback; a central button and a thumb button in the second rail column play/pause.
- * Both rail columns collapse together. Phrase cycling pauses on each explanation in source order.
- * Horizontal swipes step between lines. Translation appears above the source subtitles.
- * The transport bar can hide source subtitles (remembered per device).
- * Its quiz button shares the lines just watched with a chat app such as Claude ([QuizShare]).
- * Controls keep clear of the camera cutout.
- * Read-only: no editing on the phone.
+ * changing playback; a central button and a thumb button in the second rail column play/pause. Both
+ * rail columns collapse together. Phrase cycling pauses on each explanation in source order.
+ * Horizontal swipes step between lines. Translation appears above the source subtitles. The
+ * transport bar can hide source subtitles (remembered per device). Its quiz button shares the lines
+ * just watched with a chat app such as Claude ([QuizShare]). Controls keep clear of the camera
+ * cutout. Read-only: no editing on the phone.
  */
 @Composable
 fun WatchScreen(
@@ -214,9 +211,7 @@ fun WatchScreen(
     Box(
       Modifier.fillMaxSize()
         .pointerInput(playback) {
-          detectTapGestures(
-            onTap = { controlsVisible = !controlsVisible }
-          )
+          detectTapGestures(onTap = { controlsVisible = !controlsVisible })
         }
         .pointerInput(playback) {
           var distance = 0f
@@ -271,115 +266,145 @@ fun WatchScreen(
         for (cue in showing) {
           val line = cue.line()
           val alignment = readyAlignment(line, document)
-          val translationModifier = Modifier.background(Color(0xDD101216), RoundedCornerShape(4.dp))
-            .padding(horizontal = 8.dp, vertical = 3.dp)
-          if (alignment != null) TranslationContext(
-            alignment, null, subtitleStyle, translationModifier,
-            centred = true, separator = ChunkSeparator.of(document.translationLanguage()),
-            onTap = { index -> playback.pause(); explored = Explored(line.id(), index) },
-          ) else if (!line.translation().isNullOrBlank()) Text(
-            line.translation().orEmpty(), style = subtitleStyle,
-            textAlign = TextAlign.Center, modifier = translationModifier,
-          )
+          val translationModifier =
+            Modifier.background(Color(0xDD101216), RoundedCornerShape(4.dp))
+              .padding(horizontal = 8.dp, vertical = 3.dp)
+          if (alignment != null)
+            TranslationContext(
+              alignment,
+              null,
+              subtitleStyle,
+              translationModifier,
+              centred = true,
+              separator = ChunkSeparator.of(document.translationLanguage()),
+              onTap = { index ->
+                playback.pause()
+                explored = Explored(line.id(), index)
+              },
+            )
+          else if (!line.translation().isNullOrBlank())
+            Text(
+              line.translation().orEmpty(),
+              style = subtitleStyle,
+              textAlign = TextAlign.Center,
+              modifier = translationModifier,
+            )
         }
       }
-      if (subtitles) for (cue in showing) {
-        val line = cue.line()
-        val alignment = readyAlignment(line, document)
-        if (alignment != null)
-          PhraseLine(
-            alignment,
-            active = explored?.takeIf { it.cueId == line.id() }?.phrase,
-            style = subtitleStyle,
-            look = SubtitleLook,
-            centred = true,
-            onTap = { index ->
-              playback.pause()
-              explored =
-                Explored(line.id(), index).takeUnless { it == explored }
-            },
-          )
-        else
-          Text(
-            line.source(),
-            style = subtitleStyle,
-            textAlign = TextAlign.Center,
-            modifier =
-              Modifier.background(Color(0xDD000000), RoundedCornerShape(4.dp))
-                .padding(horizontal = 6.dp, vertical = 2.dp),
-          )
-      }
+      if (subtitles)
+        for (cue in showing) {
+          val line = cue.line()
+          val alignment = readyAlignment(line, document)
+          if (alignment != null)
+            PhraseLine(
+              alignment,
+              active = explored?.takeIf { it.cueId == line.id() }?.phrase,
+              style = subtitleStyle,
+              look = SubtitleLook,
+              centred = true,
+              onTap = { index ->
+                playback.pause()
+                explored = Explored(line.id(), index).takeUnless { it == explored }
+              },
+            )
+          else
+            Text(
+              line.source(),
+              style = subtitleStyle,
+              textAlign = TextAlign.Center,
+              modifier =
+                Modifier.background(Color(0xDD000000), RoundedCornerShape(4.dp))
+                  .padding(horizontal = 6.dp, vertical = 2.dp),
+            )
+        }
     }
 
     Column(
       Modifier.align(Alignment.BottomEnd)
-        .windowInsetsPadding(WindowInsets.displayCutout.only(WindowInsetsSides.Horizontal + WindowInsetsSides.Bottom))
+        .windowInsetsPadding(
+          WindowInsets.displayCutout.only(WindowInsetsSides.Horizontal + WindowInsetsSides.Bottom)
+        )
         .padding(end = railMargin, bottom = 6.dp),
       horizontalAlignment = Alignment.End,
       verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {
-      if (railExpanded) Row(
-        horizontalArrangement = Arrangement.spacedBy(6.dp),
-        verticalAlignment = Alignment.Bottom,
-      ) {
-        RailPill {
-          RailButton(
-            if (playback.playing) Icons.Filled.Pause else Icons.Filled.PlayArrow,
-            if (playback.playing) "Pause" else "Resume",
-            onClick = toggle,
-          )
-          val phrases = showing.flatMap { cue ->
-            readyAlignment(cue.line(), document)?.source().orEmpty().indices.map {
-              Explored(cue.line().id(), it)
+      if (railExpanded)
+        Row(
+          horizontalArrangement = Arrangement.spacedBy(6.dp),
+          verticalAlignment = Alignment.Bottom,
+        ) {
+          RailPill {
+            RailButton(
+              if (playback.playing) Icons.Filled.Pause else Icons.Filled.PlayArrow,
+              if (playback.playing) "Pause" else "Resume",
+              onClick = toggle,
+            )
+            val phrases = showing.flatMap { cue ->
+              readyAlignment(cue.line(), document)?.source().orEmpty().indices.map {
+                Explored(cue.line().id(), it)
+              }
+            }
+            RailButton(
+              Icons.Filled.FindInPage,
+              "Next phrase explanation",
+              dimmed = phrases.isEmpty(),
+            ) {
+              if (phrases.isNotEmpty()) {
+                playback.pause()
+                help = null
+                controlsVisible = false
+                explored = phrases[(phrases.indexOf(explored) + 1) % phrases.size]
+              }
             }
           }
-          RailButton(Icons.Filled.FindInPage, "Next phrase explanation", dimmed = phrases.isEmpty()) {
-            if (phrases.isNotEmpty()) {
-              playback.pause()
-              help = null
-              controlsVisible = false
-              explored = phrases[(phrases.indexOf(explored) + 1) % phrases.size]
+          RailPill {
+            RailButton(Icons.Filled.SkipPrevious, "Previous line") {
+              explored = null
+              playback.step(-1)
+            }
+            RailButton(Icons.Filled.Replay, "Replay line") {
+              explored = null
+              playback.replay(maxOf(0, timeline.current(time)))
+            }
+            RailButton(Icons.Filled.SkipNext, "Next line") {
+              explored = null
+              playback.step(1)
+            }
+            Box(
+              Modifier.padding(vertical = 4.dp)
+                .size(width = 22.dp, height = 1.dp)
+                .background(Color(0x40FFFFFF))
+            )
+            RailButton(Icons.Filled.PauseCircleOutline, "Auto-pause", selected = autoPause) {
+              autoPause = !autoPause
+            }
+            RailButton(
+              Icons.Filled.Translate,
+              "Line translation",
+              selected = help == Help.TRANSLATION,
+            ) {
+              explored = null
+              help = if (help == Help.TRANSLATION) null else Help.TRANSLATION
+            }
+            RailButton(
+              Icons.AutoMirrored.Filled.Notes,
+              "Sentence notes",
+              selected = help == Help.NOTES,
+              dimmed = sentenceNotes.isEmpty(),
+              badge = sentenceNotes.isNotEmpty(),
+            ) {
+              explored = null
+              help = if (help == Help.NOTES) null else Help.NOTES
             }
           }
         }
-        RailPill {
-          RailButton(Icons.Filled.SkipPrevious, "Previous line") {
-            explored = null
-            playback.step(-1)
-          }
-          RailButton(Icons.Filled.Replay, "Replay line") {
-            explored = null
-            playback.replay(maxOf(0, timeline.current(time)))
-          }
-          RailButton(Icons.Filled.SkipNext, "Next line") {
-            explored = null
-            playback.step(1)
-          }
-          Box(Modifier.padding(vertical = 4.dp).size(width = 22.dp, height = 1.dp).background(Color(0x40FFFFFF)))
-          RailButton(Icons.Filled.PauseCircleOutline, "Auto-pause", selected = autoPause) {
-            autoPause = !autoPause
-          }
-          RailButton(Icons.Filled.Translate, "Line translation", selected = help == Help.TRANSLATION) {
-            explored = null
-            help = if (help == Help.TRANSLATION) null else Help.TRANSLATION
-          }
-          RailButton(
-            Icons.AutoMirrored.Filled.Notes,
-            "Sentence notes",
-            selected = help == Help.NOTES,
-            dimmed = sentenceNotes.isEmpty(),
-            badge = sentenceNotes.isNotEmpty(),
-          ) {
-            explored = null
-            help = if (help == Help.NOTES) null else Help.NOTES
-          }
-        }
-      }
       Surface(color = Color(0xCC101419), shape = CircleShape) {
         RailButton(
           if (railExpanded) Icons.Filled.ExpandMore else Icons.Filled.Tune,
           if (railExpanded) "Minimise player controls" else "Expand player controls",
-        ) { railExpanded = !railExpanded }
+        ) {
+          railExpanded = !railExpanded
+        }
       }
     }
 
@@ -403,18 +428,19 @@ fun WatchScreen(
         modifier = Modifier.fillMaxSize(),
       )
 
-    if (controlsVisible) IconButton(
-      onClick = toggle,
-      modifier = Modifier.align(Alignment.Center).size(80.dp)
-        .background(Color(0x88000000), CircleShape),
-    ) {
-      Icon(
-        if (playback.playing) Icons.Filled.Pause else Icons.Filled.PlayArrow,
-        contentDescription = if (playback.playing) "Pause" else "Play",
-        tint = Color.White,
-        modifier = Modifier.size(48.dp),
-      )
-    }
+    if (controlsVisible)
+      IconButton(
+        onClick = toggle,
+        modifier =
+          Modifier.align(Alignment.Center).size(80.dp).background(Color(0x88000000), CircleShape),
+      ) {
+        Icon(
+          if (playback.playing) Icons.Filled.Pause else Icons.Filled.PlayArrow,
+          contentDescription = if (playback.playing) "Pause" else "Play",
+          tint = Color.White,
+          modifier = Modifier.size(48.dp),
+        )
+      }
 
     if (quizzing)
       QuizDialog(
@@ -455,7 +481,9 @@ private fun RailPill(content: @Composable () -> Unit) {
       .padding(railPadding),
     horizontalAlignment = Alignment.CenterHorizontally,
     verticalArrangement = Arrangement.spacedBy(2.dp),
-  ) { content() }
+  ) {
+    content()
+  }
 }
 
 /** A round button in the right-hand rail pill; a selected toggle uses the warm brand accent. */
@@ -506,8 +534,12 @@ private fun TransportBar(
   var speedMenu by remember { mutableStateOf(false) }
   Column(
     modifier
-      .background(Brush.verticalGradient(listOf(Color(0xCC000000), Color(0x66000000), Color.Transparent)))
-      .windowInsetsPadding(WindowInsets.displayCutout.only(WindowInsetsSides.Horizontal + WindowInsetsSides.Top))
+      .background(
+        Brush.verticalGradient(listOf(Color(0xCC000000), Color(0x66000000), Color.Transparent))
+      )
+      .windowInsetsPadding(
+        WindowInsets.displayCutout.only(WindowInsetsSides.Horizontal + WindowInsetsSides.Top)
+      )
       // Stops short of the rail pill, so the two sit side by side instead of overlapping.
       .padding(start = 8.dp, end = 140.dp, top = 2.dp, bottom = 8.dp)
   ) {
@@ -535,14 +567,13 @@ private fun TransportBar(
           Icon(Icons.Filled.Speed, "Playback speed", tint = Color.White)
         }
         DropdownMenu(expanded = speedMenu, onDismissRequest = { speedMenu = false }) {
-          for (option in speeds)
-            DropdownMenuItem(
-              text = { Text(if (option == speed) "✓ ${option}×" else "   ${option}×") },
-              onClick = {
-                onSpeed(option)
-                speedMenu = false
-              },
-            )
+          for (option in speeds) DropdownMenuItem(
+            text = { Text(if (option == speed) "✓ ${option}×" else "   ${option}×") },
+            onClick = {
+              onSpeed(option)
+              speedMenu = false
+            },
+          )
         }
       }
     }
@@ -582,7 +613,8 @@ private fun FullScreenLandscape(keepScreenOn: Boolean) {
     val activity = view.context as Activity
     val controller = WindowCompat.getInsetsController(activity.window, view)
     activity.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE
-    controller.systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+    controller.systemBarsBehavior =
+      WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
     controller.hide(WindowInsetsCompat.Type.systemBars())
     onDispose {
       controller.show(WindowInsetsCompat.Type.systemBars())
@@ -592,4 +624,3 @@ private fun FullScreenLandscape(keepScreenOn: Boolean) {
   }
   LaunchedEffect(keepScreenOn) { view.keepScreenOn = keepScreenOn }
 }
-

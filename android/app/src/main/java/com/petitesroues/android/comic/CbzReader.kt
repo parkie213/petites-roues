@@ -5,9 +5,9 @@ import android.graphics.BitmapFactory
 import android.net.Uri
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
+import com.petitesroues.library.shelves.Shelves
 import java.io.Closeable
 import java.io.FileInputStream
-import com.petitesroues.library.shelves.Shelves
 import org.apache.commons.compress.archivers.zip.ZipFile
 
 private val IMAGES = listOf(".jpg", ".jpeg", ".png", ".webp", ".gif")
@@ -33,11 +33,16 @@ class CbzReader(resolver: ContentResolver, archive: Uri) : Closeable {
     val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
     BitmapFactory.decodeByteArray(bytes, 0, bytes.size, bounds)
     var sample = 1
-    while (bounds.outWidth / (sample * 2) >= maxWidth && bounds.outHeight / (sample * 2) >= maxHeight)
-      sample *= 2
+    while (
+      bounds.outWidth / (sample * 2) >= maxWidth && bounds.outHeight / (sample * 2) >= maxHeight
+    ) sample *= 2
     val bitmap =
-      BitmapFactory.decodeByteArray(bytes, 0, bytes.size, BitmapFactory.Options().apply { inSampleSize = sample })
-        ?: error("Page $entry is not a readable image")
+      BitmapFactory.decodeByteArray(
+        bytes,
+        0,
+        bytes.size,
+        BitmapFactory.Options().apply { inSampleSize = sample },
+      ) ?: error("Page $entry is not a readable image")
     return bitmap.asImageBitmap()
   }
 
@@ -47,7 +52,8 @@ class CbzReader(resolver: ContentResolver, archive: Uri) : Closeable {
    */
   fun pages(): List<String> =
     synchronized(this) {
-      zip.entries.toList()
+      zip.entries
+        .toList()
         .map { it.name }
         .filter { name -> IMAGES.any { name.lowercase().endsWith(it) } }
         .sortedWith(Shelves.NATURAL)

@@ -77,6 +77,6 @@ jobs:
         with:
           name: library
           path: ~/.m2/repository/com/petitesroues
-      - name: Test and build the Android app against the built library
-        run: ./gradlew --no-daemon -PprebuiltLibrary :app:testDebugUnitTest :app:assembleDebug
+      - name: Check formatting, test and build the Android app against the built library
+        run: ./gradlew --no-daemon -PprebuiltLibrary spotlessCheck :app:testDebugUnitTest :app:assembleDebug
         working-directory: android

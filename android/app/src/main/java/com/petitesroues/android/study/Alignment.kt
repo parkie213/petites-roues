@@ -33,12 +33,27 @@ fun readyAlignment(line: Line, document: StudyDocument): PhraseAlignment? {
 fun PhraseAlignment.linkOfSource(sourceIndex: Int): Int =
   links().indexOfFirst { sourceIndex in it.source() }
 
-/** Each distinct explanation attached to a source phrase, in link order; links not yet explained add none. */
+/**
+ * Each distinct explanation attached to a source phrase, in link order; links not yet explained add
+ * none.
+ */
 fun PhraseAlignment.phraseNotes(sourceIndex: Int): List<String> =
-  links().filter { sourceIndex in it.source() }.map { it.note() }.filter { it.isNotBlank() }.distinct()
+  links()
+    .filter { sourceIndex in it.source() }
+    .map { it.note() }
+    .filter { it.isNotBlank() }
+    .distinct()
 
-/** One translation chunk with the link that colours it and whether it belongs to the explored phrase. */
-data class ContextChunk(val text: String, val link: Int, val active: Boolean, val sourcePhrase: Int?)
+/**
+ * One translation chunk with the link that colours it and whether it belongs to the explored
+ * phrase.
+ */
+data class ContextChunk(
+  val text: String,
+  val link: Int,
+  val active: Boolean,
+  val sourcePhrase: Int?,
+)
 
 /** The whole translated line in its own word order, as the browser's translation strip shows it. */
 fun PhraseAlignment.translationContext(sourceIndex: Int?): List<ContextChunk> {
@@ -61,7 +76,8 @@ fun noteSegments(text: String): List<NoteSegment> {
   val segments = mutableListOf<NoteSegment>()
   var last = 0
   for (match in sourceSpan.findAll(text)) {
-    if (match.range.first > last) segments += NoteSegment(text.substring(last, match.range.first), false)
+    if (match.range.first > last)
+      segments += NoteSegment(text.substring(last, match.range.first), false)
     segments += NoteSegment(match.value.substring(1, match.value.length - 1), true)
     last = match.range.last + 1
   }

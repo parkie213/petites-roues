@@ -11,6 +11,8 @@ commonsCompress = "1.28.0"
 markdownRenderer = "0.46.0"
 junit = "4.13.2"
 codeScanner = "16.1.0"
+spotless = "8.9.0"
+ktfmt = "0.64"
 hilt = "2.60.1"
 ksp = "2.3.13"
 room = "2.8.5"
@@ -23,7 +25,6 @@ petites-roues-sync = { module = "com.petitesroues:petites-roues-sync", version.r
 compose-bom = { module = "androidx.compose:compose-bom", version.ref = "composeBom" }
 compose-material3 = { module = "androidx.compose.material3:material3" }
 compose-icons = { module = "androidx.compose.material:material-icons-extended" }
-compose-ui-tooling = { module = "androidx.compose.ui:ui-tooling" }
 activity-compose = { module = "androidx.activity:activity-compose", version.ref = "activityCompose" }
 lifecycle-runtime-compose = { module = "androidx.lifecycle:lifecycle-runtime-compose", version.ref = "lifecycle" }
 media3-exoplayer = { module = "androidx.media3:media3-exoplayer", version.ref = "media3" }
@@ -45,6 +46,7 @@ play-services-code-scanner = { module = "com.google.android.gms:play-services-co
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
 kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
+spotless = { id = "com.diffplug.spotless", version.ref = "spotless" }
 ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
 hilt = { id = "com.google.dagger.hilt.android", version.ref = "hilt" }
 room = { id = "androidx.room", version.ref = "room" }

@@ -14,7 +14,10 @@ import org.junit.runner.RunWith
 @RunWith(AndroidJUnit4::class)
 class IndexDaoTest {
   private val database =
-    Room.inMemoryDatabaseBuilder(InstrumentationRegistry.getInstrumentation().targetContext, IndexDatabase::class.java)
+    Room.inMemoryDatabaseBuilder(
+        InstrumentationRegistry.getInstrumentation().targetContext,
+        IndexDatabase::class.java,
+      )
       .allowMainThreadQueries()
       .build()
   private val index = database.index()
@@ -44,7 +47,11 @@ class IndexDaoTest {
 
   @Test
   fun everyFieldRoundTripsAndAReplaceReplaces() {
-    val first = listOf(title("b/naruto-t02", "naruto-t02"), title("a/naruto-t01", "naruto-t01", document = false))
+    val first =
+      listOf(
+        title("b/naruto-t02", "naruto-t02"),
+        title("a/naruto-t01", "naruto-t01", document = false),
+      )
     index.replaceTitles(first)
     assertEquals(first.sortedBy { it.path }, index.titles())
     val second = listOf(title("c/naruto-t03", "naruto-t03"))
@@ -54,8 +61,16 @@ class IndexDaoTest {
 
   @Test
   fun fingerprintsAreReplacedWhole() {
-    index.replaceFingerprints(listOf(CachedFingerprint("content://a", 1, 2, "v1:a"), CachedFingerprint("content://b", 3, 4, "v1:b")))
+    index.replaceFingerprints(
+      listOf(
+        CachedFingerprint("content://a", 1, 2, "v1:a"),
+        CachedFingerprint("content://b", 3, 4, "v1:b"),
+      )
+    )
     index.replaceFingerprints(listOf(CachedFingerprint("content://b", 5, 6, "v1:b2")))
-    assertEquals(mapOf("content://b" to CachedFingerprint("content://b", 5, 6, "v1:b2")), index.fingerprints())
+    assertEquals(
+      mapOf("content://b" to CachedFingerprint("content://b", 5, 6, "v1:b2")),
+      index.fingerprints(),
+    )
   }
 }

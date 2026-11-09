@@ -1,8 +1,8 @@
 package com.petitesroues.android.library
 
 /**
- * The phone's own part of indexing a title. Which media a document links to is the library's
- * shared rule ([com.petitesroues.library.linking.MediaLinks]); this only names titles.
+ * The phone's own part of indexing a title. Which media a document links to is the library's shared
+ * rule ([com.petitesroues.library.linking.MediaLinks]); this only names titles.
  */
 object TitlePaths {
   /**

@@ -26,19 +26,31 @@ dependencyResolutionManagement {
  * -PprebuiltLibrary to skip this.
  */
 if (!providers.gradleProperty("prebuiltLibrary").isPresent) {
-  val maven =
-    providers.exec {
-      workingDir = settingsDir.resolve("../java")
-      commandLine("./mvnw", "-q", "-B", "-pl", "documents,library,sync", "-am", "install", "-DskipTests")
-      // Maven compiles with the JDK Gradle runs on. Android Studio starts Gradle on its own JDK
-      // without setting JAVA_HOME, and the system's `java` may be a runtime with no compiler.
-      environment("JAVA_HOME", System.getProperty("java.home"))
-      isIgnoreExitValue = true
-    }
+  val maven = providers.exec {
+    workingDir = settingsDir.resolve("../java")
+    commandLine(
+      "./mvnw",
+      "-q",
+      "-B",
+      "-pl",
+      "documents,library,sync",
+      "-am",
+      "install",
+      "-DskipTests",
+    )
+    // Maven compiles with the JDK Gradle runs on. Android Studio starts Gradle on its own JDK
+    // without setting JAVA_HOME, and the system's `java` may be a runtime with no compiler.
+    environment("JAVA_HOME", System.getProperty("java.home"))
+    isIgnoreExitValue = true
+  }
   // Gradle would only say the exit value; Maven's own output says what went wrong.
   if (maven.result.get().exitValue != 0) {
-    val output = (maven.standardOutput.asText.get() + maven.standardError.asText.get())
-      .lines().filterNot { it.startsWith("WARNING:") || it.isBlank() }.takeLast(40).joinToString("\n")
+    val output =
+      (maven.standardOutput.asText.get() + maven.standardError.asText.get())
+        .lines()
+        .filterNot { it.startsWith("WARNING:") || it.isBlank() }
+        .takeLast(40)
+        .joinToString("\n")
     throw GradleException("Installing the shared Java library from ../java failed:\n$output")
   }
 }

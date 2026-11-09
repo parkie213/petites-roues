@@ -4,34 +4,33 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberUpdatedState
-import androidx.compose.runtime.setValue
-import androidx.compose.ui.geometry.CornerRadius
-import androidx.compose.ui.geometry.Rect
-import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.text.TextLayoutResult
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -92,10 +91,7 @@ fun PhraseLine(
         phrase,
         style = style,
         modifier =
-          Modifier.then(
-              if (isActive) Modifier.border(2.dp, colour, shape)
-              else Modifier
-            )
+          Modifier.then(if (isActive) Modifier.border(2.dp, colour, shape) else Modifier)
             .background(
               when {
                 isActive -> look.activeChip
@@ -112,9 +108,9 @@ fun PhraseLine(
 }
 
 /**
- * The whole translation in its own word order, each chunk underlined in its source phrase's
- * colour and the explored phrase's chunks emphasised. [onTap], when given, explores the first
- * source phrase a chunk translates. [separator] joins the chunks (see `ChunkSeparator`).
+ * The whole translation in its own word order, each chunk underlined in its source phrase's colour
+ * and the explored phrase's chunks emphasised. [onTap], when given, explores the first source
+ * phrase a chunk translates. [separator] joins the chunks (see `ChunkSeparator`).
  */
 @Composable
 fun TranslationContext(
@@ -174,8 +170,16 @@ fun PhraseParagraphLine(
   )
 }
 
-/** One phrase in a [PhraseParagraph]: its underline colour and weight, and the index a tap reports. */
-class PhraseSpan(val text: String, val colour: Color, val underline: Dp, val active: Boolean, val tap: Int?)
+/**
+ * One phrase in a [PhraseParagraph]: its underline colour and weight, and the index a tap reports.
+ */
+class PhraseSpan(
+  val text: String,
+  val colour: Color,
+  val underline: Dp,
+  val active: Boolean,
+  val tap: Int?,
+)
 
 /**
  * Phrases laid out as a single wrapping paragraph, so a phrase that runs over a line break wraps
@@ -202,7 +206,10 @@ fun PhraseParagraph(
     }
   }
   var layout by remember { mutableStateOf<TextLayoutResult?>(null) }
-  val boxes = remember(layout, text) { layout?.let { result -> ranges.map { result.lineBoxes(it) } }.orEmpty() }
+  val boxes =
+    remember(layout, text) {
+      layout?.let { result -> ranges.map { result.lineBoxes(it) } }.orEmpty()
+    }
   val latestSpans by rememberUpdatedState(spans)
   val latestBoxes by rememberUpdatedState(boxes)
   // The tap detector outlives recompositions (pointerInput(Unit)), so it must call the latest
@@ -236,10 +243,12 @@ fun PhraseParagraph(
         .pointerInput(Unit) {
           detectTapGestures { position ->
             val slop = 4.dp.toPx()
-            val hit =
-              latestBoxes.indexOfFirst { lines ->
-                lines.any { position.x in it.left - slop..it.right + slop && position.y in it.top - slop..it.bottom + slop }
+            val hit = latestBoxes.indexOfFirst { lines ->
+              lines.any {
+                position.x in it.left - slop..it.right + slop &&
+                  position.y in it.top - slop..it.bottom + slop
               }
+            }
             latestSpans.getOrNull(hit)?.tap?.let(latestOnTap)
           }
         },
@@ -267,7 +276,12 @@ private fun TextLayoutResult.lineBoxes(range: IntRange): List<Rect> {
 
 private fun Modifier.underline(colour: Color, width: Dp) = drawBehind {
   val stroke = width.toPx()
-  drawLine(colour, Offset(0f, size.height - stroke / 2), Offset(size.width, size.height - stroke / 2), stroke)
+  drawLine(
+    colour,
+    Offset(0f, size.height - stroke / 2),
+    Offset(size.width, size.height - stroke / 2),
+    stroke,
+  )
 }
 
 /** A learner note with backtick-marked source expressions highlighted. */
@@ -277,10 +291,14 @@ fun LearnerNote(note: String, style: TextStyle, modifier: Modifier = Modifier) {
 }
 
 private val sourceExpression =
-  SpanStyle(fontWeight = FontWeight.SemiBold, background = Color(0x55E8B97E), color = Color(0xFFFFD58A))
+  SpanStyle(
+    fontWeight = FontWeight.SemiBold,
+    background = Color(0x55E8B97E),
+    color = Color(0xFFFFD58A),
+  )
 
 fun noteText(note: String): AnnotatedString = buildAnnotatedString {
-  for (segment in noteSegments(note))
-    if (segment.highlighted) withStyle(sourceExpression) { append(segment.text) }
-    else append(segment.text)
+  for (segment in noteSegments(note)) if (segment.highlighted)
+    withStyle(sourceExpression) { append(segment.text) }
+  else append(segment.text)
 }

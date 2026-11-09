@@ -3,11 +3,8 @@ package com.petitesroues.android.desktop
 import android.content.Context
 import android.content.pm.PackageManager
 import android.os.Build
-import android.util.Log
-import com.petitesroues.model.sync.Desktop
-import com.petitesroues.sync.DesktopClient
-import com.petitesroues.sync.PairingCodeReader
 import android.provider.Settings as SystemSettings
+import android.util.Log
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
@@ -30,6 +27,9 @@ import com.google.mlkit.vision.barcode.common.Barcode
 import com.google.mlkit.vision.codescanner.GmsBarcodeScannerOptions
 import com.google.mlkit.vision.codescanner.GmsBarcodeScanning
 import com.petitesroues.android.Settings
+import com.petitesroues.model.sync.Desktop
+import com.petitesroues.sync.DesktopClient
+import com.petitesroues.sync.PairingCodeReader
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -41,20 +41,24 @@ import kotlinx.coroutines.withContext
 private const val LOCAL_NETWORK = "android.permission.ACCESS_LOCAL_NETWORK"
 
 internal fun mayReachLocalNetwork(context: Context): Boolean =
-  Build.VERSION.SDK_INT < 37 || context.checkSelfPermission(LOCAL_NETWORK) == PackageManager.PERMISSION_GRANTED
+  Build.VERSION.SDK_INT < 37 ||
+    context.checkSelfPermission(LOCAL_NETWORK) == PackageManager.PERMISSION_GRANTED
 
-/** The name this phone gives the desktop when pairing: the one set in its system settings, else its model. */
+/**
+ * The name this phone gives the desktop when pairing: the one set in its system settings, else its
+ * model.
+ */
 private fun phoneName(context: Context): String =
-  SystemSettings.Global.getString(context.contentResolver, SystemSettings.Global.DEVICE_NAME)?.ifBlank { null }
-    ?: Build.MODEL
+  SystemSettings.Global.getString(context.contentResolver, SystemSettings.Global.DEVICE_NAME)
+    ?.ifBlank { null } ?: Build.MODEL
 
 /**
  * Pairs this phone with a desktop by scanning the QR code from the desktop's "Connect a phone"
  * dialog, then tests the connection. Once paired it shows the desktop, tests the connection again
  * on demand, and can forget it (the desktop keeps listing the phone until it is forgotten there
- * too). Scanning uses Google Play services' scanner, so the app needs no camera permission; it
- * does need Android 17's local network permission, which it asks for before scanning or testing.
- * Once paired, [onGetTitles] opens syncing with the desktop ([DesktopTitlesScreen]).
+ * too). Scanning uses Google Play services' scanner, so the app needs no camera permission; it does
+ * need Android 17's local network permission, which it asks for before scanning or testing. Once
+ * paired, [onGetTitles] opens syncing with the desktop ([DesktopTitlesScreen]).
  */
 @Composable
 fun DesktopDialog(settings: Settings, onGetTitles: () -> Unit, onDismiss: () -> Unit) {
@@ -89,12 +93,17 @@ fun DesktopDialog(settings: Settings, onGetTitles: () -> Unit, onDismiss: () -> 
     busy = true
     status = "Connecting to ${paired.url()}…"
     scope.launch {
-      val result = withContext(Dispatchers.IO) { runCatching { reachDesktop(context, settings, client::hello) } }
+      val result =
+        withContext(Dispatchers.IO) {
+          runCatching { reachDesktop(context, settings, client::hello) }
+        }
       // Finding the desktop at a new address saves it.
       desktop = settings.desktop
       status =
         result.fold(
-          { "Connected to ${it.name()}: ${it.titles()} study documents, ${it.media()} media files." },
+          {
+            "Connected to ${it.name()}: ${it.titles()} study documents, ${it.media()} media files."
+          },
           {
             Log.w("Desktop", "Connection test failed", it)
             "Could not connect: ${it.message ?: it.javaClass.simpleName}"
@@ -128,10 +137,13 @@ fun DesktopDialog(settings: Settings, onGetTitles: () -> Unit, onDismiss: () -> 
   }
 
   fun scan() {
-    val options = GmsBarcodeScannerOptions.Builder().setBarcodeFormats(Barcode.FORMAT_QR_CODE).build()
+    val options =
+      GmsBarcodeScannerOptions.Builder().setBarcodeFormats(Barcode.FORMAT_QR_CODE).build()
     GmsBarcodeScanning.getClient(context, options)
       .startScan()
-      .addOnSuccessListener { code -> code.rawValue?.let(::pair) ?: run { status = "That QR code holds no text." } }
+      .addOnSuccessListener { code ->
+        code.rawValue?.let(::pair) ?: run { status = "That QR code holds no text." }
+      }
       .addOnFailureListener {
         Log.w("Desktop", "Scan failed: ${(it as? MlKitException)?.errorCode}", it)
         status =
@@ -156,18 +168,27 @@ fun DesktopDialog(settings: Settings, onGetTitles: () -> Unit, onDismiss: () -> 
           )
         else {
           Text(paired.name(), style = MaterialTheme.typography.titleMedium)
-          Text(paired.url(), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+          Text(
+            paired.url(),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+          )
         }
         status?.let { Text(it, style = MaterialTheme.typography.bodyMedium) }
       }
     },
     confirmButton = {
-      if (paired == null) TextButton(onClick = { withLocalNetwork(::scan) }, enabled = !busy) { Text("Scan QR code") }
-      else TextButton(onClick = { withLocalNetwork { test(paired) } }, enabled = !busy) { Text("Test connection") }
+      if (paired == null)
+        TextButton(onClick = { withLocalNetwork(::scan) }, enabled = !busy) { Text("Scan QR code") }
+      else
+        TextButton(onClick = { withLocalNetwork { test(paired) } }, enabled = !busy) {
+          Text("Test connection")
+        }
     },
     dismissButton = {
       Row {
-        if (paired != null) TextButton(onClick = { withLocalNetwork(onGetTitles) }, enabled = !busy) { Text("Sync") }
+        if (paired != null)
+          TextButton(onClick = { withLocalNetwork(onGetTitles) }, enabled = !busy) { Text("Sync") }
         if (paired != null)
           TextButton(
             onClick = {

@@ -21,10 +21,16 @@ Java formatting check, so unformatted Java fails the sync until you run
 `./java/mvnw -f java/pom.xml spotless:apply`.
 
 ```bash
+./gradlew spotlessApply                               # format the Kotlin
 ./gradlew :app:testDebugUnitTest :app:assembleDebug   # JVM tests and the APK
 ./gradlew :app:connectedDebugAndroidTest              # database tests, on a connected phone
 adb install -r app/build/outputs/apk/debug/app-debug.apk
 ```
+
+Kotlin is formatted by ktfmt (Google style, as google-java-format formats the Java modules)
+through Spotless: `./gradlew spotlessApply` formats and removes unused imports, and CI runs
+`spotlessCheck`. ktfmt judges imports by name, so an import whose name only appears as an argument
+name (`size(width = …)`) survives it; Android Studio's **Code → Optimize Imports** catches those.
 
 Device tests leave the app installed with its data (`gradle.properties`), so running them
 doesn't wipe the phone's pairing, folders or progress.

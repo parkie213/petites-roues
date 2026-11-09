@@ -10,8 +10,8 @@ import kotlinx.coroutines.withContext
 
 /**
  * Saves and reads reading and playback progress for the player and the comic reader. Saves are
- * fire-and-forget, so a screen can save as it closes: they run in the application's scope, one at
- * a time in the order they were made, so the last save made is the one kept. Reads wait for saves
+ * fire-and-forget, so a screen can save as it closes: they run in the application's scope, one at a
+ * time in the order they were made, so the last save made is the one kept. Reads wait for saves
  * already queued.
  */
 @Singleton
@@ -22,7 +22,8 @@ constructor(private val dao: ProgressDao, @ApplicationScope private val scope: C
   private val writes = Dispatchers.IO.limitedParallelism(1)
 
   /** Progress for every title that has any, keyed by document ID. */
-  suspend fun all(): Map<String, Progress> = withContext(writes) { dao.all().associateBy { it.documentId } }
+  suspend fun all(): Map<String, Progress> =
+    withContext(writes) { dao.all().associateBy { it.documentId } }
 
   /** Where the title with this document ID was left, or null. */
   suspend fun find(documentId: String): Progress? = withContext(writes) { dao.find(documentId) }

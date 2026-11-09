@@ -20,10 +20,19 @@ class FileContentTree(private val tree: Uri) : ContentFolder {
   override fun root(): Uri = tree
 
   override fun children(folder: Uri): List<ContentTree.Entry<Uri>> {
-    val files = File(checkNotNull(folder.path)).listFiles() ?: throw IOException("Cannot list ${folder.path}")
+    val files =
+      File(checkNotNull(folder.path)).listFiles() ?: throw IOException("Cannot list ${folder.path}")
     return files
       .filter { !Files.isSymbolicLink(it.toPath()) && (it.isFile || it.isDirectory) }
-      .map { ContentTree.Entry(it.name, Uri.fromFile(it), it.isDirectory, if (it.isFile) it.length() else 0, it.lastModified()) }
+      .map {
+        ContentTree.Entry(
+          it.name,
+          Uri.fromFile(it),
+          it.isDirectory,
+          if (it.isFile) it.length() else 0,
+          it.lastModified(),
+        )
+      }
   }
 
   override fun open(file: Uri): SeekableByteChannel =

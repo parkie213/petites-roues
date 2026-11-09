@@ -70,12 +70,12 @@ import kotlinx.coroutines.withContext
  * quizzes), saying how much of it is on the phone. Its checkbox follows it ([Settings.followed]):
  * ticking starts a sync that copies its missing titles, and later syncs fetch the ones the desktop
  * adds. Every sync also fetches updates (a changed document or page) to whatever is already on the
- * phone, followed or not. Tapping a series opens its titles, each with a checkbox of its own to copy
- * just that one ([Settings.chosen]). Opening the screen checks the desktop; Sync fetches what it found
- * ([Transfers]). Titles land in the download folder, the app's own [AppFolder] once All files
- * access is allowed, or another folder chosen with the picker (granted for writing, and added to
- * the content folders), and appear in the library as each finishes. [onDesktop] opens the pairing
- * dialog.
+ * phone, followed or not. Tapping a series opens its titles, each with a checkbox of its own to
+ * copy just that one ([Settings.chosen]). Opening the screen checks the desktop; Sync fetches what
+ * it found ([Transfers]). Titles land in the download folder, the app's own [AppFolder] once All
+ * files access is allowed, or another folder chosen with the picker (granted for writing, and added
+ * to the content folders), and appear in the library as each finishes. [onDesktop] opens the
+ * pairing dialog.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -108,7 +108,9 @@ fun DesktopTitlesScreen(settings: Settings, onDesktop: () -> Unit, onBack: () ->
     }
   // Back from the system's All files access page, allowed or not.
   val allowFiles =
-    rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) { folder = downloadFolder(settings) }
+    rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) {
+      folder = downloadFolder(settings)
+    }
   // Notifications show the download's progress; it runs whether or not they are allowed.
   val askNotifications =
     rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) {
@@ -123,7 +125,8 @@ fun DesktopTitlesScreen(settings: Settings, onDesktop: () -> Unit, onBack: () ->
         problem = null
         if (startAfterCheck) {
           startAfterCheck = false
-          if (it.toSync().isNotEmpty()) askNotifications.launch(Manifest.permission.POST_NOTIFICATIONS)
+          if (it.toSync().isNotEmpty())
+            askNotifications.launch(Manifest.permission.POST_NOTIFICATIONS)
         }
       }
       .onFailure {
@@ -147,33 +150,49 @@ fun DesktopTitlesScreen(settings: Settings, onDesktop: () -> Unit, onBack: () ->
   }
 
   /** Each group's row, its titles when opened, and a divider. */
-  fun LazyListScope.groups(list: List<SyncStatus.Group>) =
-    list.forEach { group ->
-      val series = group.entries().size > 1
-      val open = series && group.key() in opened
-      item(key = group.key()) {
-        GroupRow(group, open = if (series) open else null, onOpen = { opened = if (open) opened - group.key() else opened + group.key() }) {
-          follow(group, it)
-        }
+  fun LazyListScope.groups(list: List<SyncStatus.Group>) = list.forEach { group ->
+    val series = group.entries().size > 1
+    val open = series && group.key() in opened
+    item(key = group.key()) {
+      GroupRow(
+        group,
+        open = if (series) open else null,
+        onOpen = { opened = if (open) opened - group.key() else opened + group.key() },
+      ) {
+        follow(group, it)
       }
-      if (open)
-        items(group.entries(), key = { "title:" + it.title().id() }) { entry ->
-          EntryRow(entry, group.followed()) { choose(entry, it) }
-        }
-      item(key = "divider:" + group.key()) { HorizontalDivider() }
     }
+    if (open)
+      items(group.entries(), key = { "title:" + it.title().id() }) { entry ->
+        EntryRow(entry, group.followed()) { choose(entry, it) }
+      }
+    item(key = "divider:" + group.key()) { HorizontalDivider() }
+  }
 
   Scaffold(
     topBar = {
       TopAppBar(
-        navigationIcon = { IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "Library") } },
-        title = { Text("Sync with ${settings.desktop?.name() ?: "the desktop"}", maxLines = 1, overflow = TextOverflow.Ellipsis) },
-        actions = { IconButton(onClick = onDesktop) { Icon(Icons.Filled.Computer, "Desktop pairing") } },
+        navigationIcon = {
+          IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "Library") }
+        },
+        title = {
+          Text(
+            "Sync with ${settings.desktop?.name() ?: "the desktop"}",
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+          )
+        },
+        actions = {
+          IconButton(onClick = onDesktop) { Icon(Icons.Filled.Computer, "Desktop pairing") }
+        },
       )
     },
     bottomBar = {
       Surface(tonalElevation = 3.dp) {
-        Column(Modifier.fillMaxWidth().navigationBarsPadding().padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Column(
+          Modifier.fillMaxWidth().navigationBarsPadding().padding(16.dp),
+          verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
           FolderLine(
             folder,
             custom = settings.downloadFolder != null,
@@ -185,7 +204,11 @@ fun DesktopTitlesScreen(settings: Settings, onDesktop: () -> Unit, onBack: () ->
             },
           )
           if (transfer.running) {
-            if (transfer.total > 0) LinearProgressIndicator(progress = { transfer.done.toFloat() / transfer.total }, Modifier.fillMaxWidth())
+            if (transfer.total > 0)
+              LinearProgressIndicator(
+                progress = { transfer.done.toFloat() / transfer.total },
+                Modifier.fillMaxWidth(),
+              )
             else LinearProgressIndicator(Modifier.fillMaxWidth())
             Row(verticalAlignment = Alignment.CenterVertically) {
               Text(
@@ -220,7 +243,8 @@ fun DesktopTitlesScreen(settings: Settings, onDesktop: () -> Unit, onBack: () ->
     Box(Modifier.fillMaxSize().padding(padding)) {
       val groups = sync?.groups()
       when {
-        folder == null -> Text("Allow file access to sync titles into ${AppFolder.LABEL}.", Modifier.padding(24.dp))
+        folder == null ->
+          Text("Allow file access to sync titles into ${AppFolder.LABEL}.", Modifier.padding(24.dp))
         problem != null -> Text(problem!!, Modifier.padding(24.dp))
         groups == null -> CircularProgressIndicator(Modifier.align(Alignment.Center))
         groups.isEmpty() -> Text("The desktop has no titles to copy yet.", Modifier.padding(24.dp))
@@ -236,12 +260,14 @@ fun DesktopTitlesScreen(settings: Settings, onDesktop: () -> Unit, onBack: () ->
               placeholder = { Text("Search titles") },
               leadingIcon = { Icon(Icons.Filled.Search, null) },
               trailingIcon = {
-                if (search.isNotEmpty()) IconButton(onClick = { search = "" }) { Icon(Icons.Filled.Close, "Clear search") }
+                if (search.isNotEmpty())
+                  IconButton(onClick = { search = "" }) { Icon(Icons.Filled.Close, "Clear search") }
               },
               singleLine = true,
             )
             LazyColumn(Modifier.fillMaxSize()) {
-              if (shown.isEmpty()) item { Text("No titles match “$search”.", Modifier.padding(24.dp)) }
+              if (shown.isEmpty())
+                item { Text("No titles match “$search”.", Modifier.padding(24.dp)) }
               if (waiting.isNotEmpty()) item(key = "heading:waiting") { Heading("To sync") }
               if (waiting.isNotEmpty() && rest.isNotEmpty()) {
                 groups(waiting)
@@ -289,19 +315,31 @@ private fun titles(count: Int) = "$count ${if (count == 1) "title" else "titles"
  * One with something to sync is tinted, with its summary in the accent colour.
  */
 @Composable
-private fun GroupRow(group: SyncStatus.Group, open: Boolean?, onOpen: () -> Unit, onFollow: (Boolean) -> Unit) {
+private fun GroupRow(
+  group: SyncStatus.Group,
+  open: Boolean?,
+  onOpen: () -> Unit,
+  onFollow: (Boolean) -> Unit,
+) {
   val followable = group.followable()
   val waiting = group.toSync().isNotEmpty()
   Row(
     Modifier.fillMaxWidth()
       .background(if (waiting) MaterialTheme.colorScheme.secondaryContainer else Color.Transparent)
-      .clickable(enabled = open != null || followable) { if (open != null) onOpen() else onFollow(!group.followed()) }
+      .clickable(enabled = open != null || followable) {
+        if (open != null) onOpen() else onFollow(!group.followed())
+      }
       .padding(start = 4.dp, end = 16.dp),
     verticalAlignment = Alignment.CenterVertically,
   ) {
     Checkbox(checked = group.followed(), onCheckedChange = onFollow, enabled = followable)
     Column(Modifier.weight(1f).padding(vertical = 10.dp)) {
-      Text(group.name(), style = MaterialTheme.typography.titleMedium, maxLines = 2, overflow = TextOverflow.Ellipsis)
+      Text(
+        group.name(),
+        style = MaterialTheme.typography.titleMedium,
+        maxLines = 2,
+        overflow = TextOverflow.Ellipsis,
+      )
       val problem = group.entries().singleOrNull()?.title()?.problem()
       Text(
         problem ?: summary(group),
@@ -314,7 +352,11 @@ private fun GroupRow(group: SyncStatus.Group, open: Boolean?, onOpen: () -> Unit
           },
       )
     }
-    if (open != null) Icon(if (open) Icons.Filled.ExpandLess else Icons.Filled.ExpandMore, if (open) "Hide titles" else "Show titles")
+    if (open != null)
+      Icon(
+        if (open) Icons.Filled.ExpandLess else Icons.Filled.ExpandMore,
+        if (open) "Hide titles" else "Show titles",
+      )
   }
 }
 
@@ -328,11 +370,17 @@ private fun EntryRow(entry: SyncStatus.Entry, followed: Boolean, onChoose: (Bool
   val choosable = state == SyncStatus.State.MISSING && !followed
   val problem = entry.title().problem()
   Row(
-    Modifier.fillMaxWidth().clickable(enabled = choosable) { onChoose(!entry.chosen()) }.padding(start = 28.dp, end = 16.dp),
+    Modifier.fillMaxWidth()
+      .clickable(enabled = choosable) { onChoose(!entry.chosen()) }
+      .padding(start = 28.dp, end = 16.dp),
     verticalAlignment = Alignment.CenterVertically,
   ) {
     Checkbox(
-      checked = state == SyncStatus.State.UPDATE || state == SyncStatus.State.UP_TO_DATE || entry.chosen() || (followed && state == SyncStatus.State.MISSING),
+      checked =
+        state == SyncStatus.State.UPDATE ||
+          state == SyncStatus.State.UP_TO_DATE ||
+          entry.chosen() ||
+          (followed && state == SyncStatus.State.MISSING),
       onCheckedChange = onChoose,
       enabled = choosable,
     )
@@ -346,7 +394,9 @@ private fun EntryRow(entry: SyncStatus.Entry, followed: Boolean, onChoose: (Bool
           SyncStatus.State.MISSING -> LibraryUsage.format(entry.remaining())
         },
         style = MaterialTheme.typography.bodySmall,
-        color = if (problem != null) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
+        color =
+          if (problem != null) MaterialTheme.colorScheme.error
+          else MaterialTheme.colorScheme.onSurfaceVariant,
       )
     }
   }
@@ -354,8 +404,8 @@ private fun EntryRow(entry: SyncStatus.Entry, followed: Boolean, onChoose: (Bool
 
 /**
  * Where a group stands: for a single title, whether it is on the phone; for a series, how many of
- * its titles are, then what a sync adds and updates, what is left out until it is followed, and
- * how many the desktop cannot offer.
+ * its titles are, then what a sync adds and updates, what is left out until it is followed, and how
+ * many the desktop cannot offer.
  */
 private fun summary(group: SyncStatus.Group): String {
   val entries = group.entries()
@@ -363,7 +413,12 @@ private fun summary(group: SyncStatus.Group): String {
   val updates = group.count(SyncStatus.State.UPDATE)
   val unavailable = group.count(SyncStatus.State.PROBLEM)
   val fetch = LibraryUsage.format(group.toSync().sumOf { it.remaining() })
-  val notFetched = LibraryUsage.format(entries.filter { it.state() == SyncStatus.State.MISSING && !group.fetches(it) }.sumOf { it.remaining() })
+  val notFetched =
+    LibraryUsage.format(
+      entries
+        .filter { it.state() == SyncStatus.State.MISSING && !group.fetches(it) }
+        .sumOf { it.remaining() }
+    )
   if (entries.size == 1)
     return when {
       updates == 1 -> "Update available · $fetch"
@@ -392,7 +447,13 @@ private fun summary(group: SyncStatus.Group): String {
  * [custom] when another folder was chosen, which can be dropped to go back to the app's own.
  */
 @Composable
-private fun FolderLine(folder: Uri?, custom: Boolean, onAllow: () -> Unit, onChoose: () -> Unit, onDefault: () -> Unit) {
+private fun FolderLine(
+  folder: Uri?,
+  custom: Boolean,
+  onAllow: () -> Unit,
+  onChoose: () -> Unit,
+  onDefault: () -> Unit,
+) {
   Row(verticalAlignment = Alignment.CenterVertically) {
     Text(
       folder?.let { "Copying into ${folderLabel(it)}" }

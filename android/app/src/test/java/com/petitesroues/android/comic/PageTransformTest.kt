@@ -21,7 +21,10 @@ class PageTransformTest {
   @Test
   fun scaleStaysBetweenOneAndFour() {
     assertEquals(4f, none.transformed(10f, Offset.Zero, Offset.Zero, 1000f, 2000f).scale)
-    val back = none.transformed(2f, Offset(500f, 500f), Offset.Zero, 1000f, 2000f).transformed(0.1f, Offset(500f, 500f), Offset.Zero, 1000f, 2000f)
+    val back =
+      none
+        .transformed(2f, Offset(500f, 500f), Offset.Zero, 1000f, 2000f)
+        .transformed(0.1f, Offset(500f, 500f), Offset.Zero, 1000f, 2000f)
     assertEquals(PageTransform(), back)
     assertFalse(back.zoomed)
   }
@@ -29,9 +32,18 @@ class PageTransformTest {
   @Test
   fun panStopsAtThePageEdges() {
     val zoomed = none.transformed(2f, Offset.Zero, Offset.Zero, 1000f, 2000f)
-    assertEquals(Offset.Zero, zoomed.transformed(1f, Offset.Zero, Offset(500f, 500f), 1000f, 2000f).offset)
-    assertEquals(Offset(-1000f, -2000f), zoomed.transformed(1f, Offset.Zero, Offset(-5000f, -5000f), 1000f, 2000f).offset)
-    assertEquals(Offset.Zero, none.transformed(1f, Offset.Zero, Offset(-50f, 30f), 1000f, 2000f).offset)
+    assertEquals(
+      Offset.Zero,
+      zoomed.transformed(1f, Offset.Zero, Offset(500f, 500f), 1000f, 2000f).offset,
+    )
+    assertEquals(
+      Offset(-1000f, -2000f),
+      zoomed.transformed(1f, Offset.Zero, Offset(-5000f, -5000f), 1000f, 2000f).offset,
+    )
+    assertEquals(
+      Offset.Zero,
+      none.transformed(1f, Offset.Zero, Offset(-50f, 30f), 1000f, 2000f).offset,
+    )
   }
 
   @Test

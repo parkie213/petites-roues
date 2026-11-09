@@ -72,8 +72,7 @@ class ReadAloud(context: Context, language: String) {
     val voiced = spoken(text, locale)
     if (voiced.isEmpty()) return
     speaking = text
-    if (!ready) pending = text
-    else tts.speak(voiced, TextToSpeech.QUEUE_FLUSH, null, text)
+    if (!ready) pending = text else tts.speak(voiced, TextToSpeech.QUEUE_FLUSH, null, text)
   }
 
   fun stop() {

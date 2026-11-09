@@ -14,8 +14,8 @@ import androidx.media3.exoplayer.ExoPlayer
 
 /**
  * Owns the media clock for one video, ported from the browser's `usePlayerPlayback`: line-end
- * pauses for auto-pause and replay, and the study cursor ([time]) that holds just inside a
- * finished line while paused so a touching next line does not appear early.
+ * pauses for auto-pause and replay, and the study cursor ([time]) that holds just inside a finished
+ * line while paused so a touching next line does not appear early.
  *
  * Line ends are ExoPlayer messages at each cue's end position, delivered on the main thread every
  * time playback crosses them.

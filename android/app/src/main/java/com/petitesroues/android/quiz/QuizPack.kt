@@ -1,7 +1,7 @@
 package com.petitesroues.android.quiz
 
-import com.petitesroues.android.pages.MarkdownPage
 import com.petitesroues.android.comic.Chapters
+import com.petitesroues.android.pages.MarkdownPage
 import com.petitesroues.model.document.ComicDocument
 import com.petitesroues.model.document.Line
 import com.petitesroues.model.document.StudyDocument
@@ -10,9 +10,10 @@ import java.util.Locale
 
 /**
  * Self-contained Markdown briefs for running the subtitle quiz in a chat app: the quiz rules
- * (bundled from `agents/` at build time) plus the title's real lines. Each line is its source text and the app's translation, the only parts a translation quiz needs: the chat
- * model writes its own explanations, so learner notes stay out and the brief stays small. Matches
- * the browser's `quiz.js`.
+ * (bundled from `agents/` at build time) plus the title's real lines. Each line is its source text
+ * and the app's translation, the only parts a translation quiz needs: the chat model writes its own
+ * explanations, so learner notes stay out and the brief stays small. Matches the browser's
+ * `quiz.js`.
  */
 object QuizPack {
   /** Keeps a quiz from working through the lines in order, as chat models otherwise do. */
@@ -24,15 +25,19 @@ object QuizPack {
   const val LINES = 30
 
   /**
-   * A quiz type offered by Quiz me. Its instructions are the section of the bundled
-   * `quiz-types.md` under [heading]; [label] names it for the learner. Matches the browser's list.
+   * A quiz type offered by Quiz me. Its instructions are the section of the bundled `quiz-types.md`
+   * under [heading]; [label] names it for the learner. Matches the browser's list.
    */
   class Type(val id: String, val heading: String, val label: (StudyDocument) -> String)
 
   val TYPES =
     listOf(
-      Type("to-source", "Translate into the source language") { "Translate into ${language(it.sourceLanguage())}" },
-      Type("to-translation", "Translate into the translation language") { "Translate into ${language(it.translationLanguage())}" },
+      Type("to-source", "Translate into the source language") {
+        "Translate into ${language(it.sourceLanguage())}"
+      },
+      Type("to-translation", "Translate into the translation language") {
+        "Translate into ${language(it.translationLanguage())}"
+      },
       Type("comprehension", "Comprehension") { "Comprehension" },
       Type("vocabulary", "Vocabulary") { "Vocabulary" },
       Type("tenses", "Verb tenses") { "Verb tenses" },
@@ -42,11 +47,20 @@ object QuizPack {
   /** A chosen quiz type for one brief: its [label] and [instructions]. */
   class Chosen(val id: String, val label: String, val instructions: String)
 
-  /** Quiz type [id] for [document] from the quiz types Markdown [types]; unknown ids give the first. */
+  /**
+   * Quiz type [id] for [document] from the quiz types Markdown [types]; unknown ids give the first.
+   */
   fun type(types: String, id: String, document: StudyDocument): Chosen {
     val type = TYPES.firstOrNull { it.id == id } ?: TYPES.first()
-    val section = types.split(Regex("^## ", RegexOption.MULTILINE)).drop(1).firstOrNull { it.startsWith(type.heading + "\n") }
-    return Chosen(type.id, type.label(document), section?.removePrefix(type.heading)?.trim().orEmpty())
+    val section =
+      types.split(Regex("^## ", RegexOption.MULTILINE)).drop(1).firstOrNull {
+        it.startsWith(type.heading + "\n")
+      }
+    return Chosen(
+      type.id,
+      type.label(document),
+      section?.removePrefix(type.heading)?.trim().orEmpty(),
+    )
   }
 
   private fun language(tag: String): String =
@@ -59,8 +73,18 @@ object QuizPack {
    * The video brief for [document], with up to [LINES] cues ending at index [current] in [cues]
    * (the document's sorted video cues). Lines without source text are skipped.
    */
-  fun build(rules: String, document: StudyDocument, cues: List<VideoCue>, current: Int, type: Chosen? = null): String {
-    val watched = cues.subList(0, (current + 1).coerceIn(0, cues.size)).filter { it.line().source().isNotBlank() }.takeLast(LINES)
+  fun build(
+    rules: String,
+    document: StudyDocument,
+    cues: List<VideoCue>,
+    current: Int,
+    type: Chosen? = null,
+  ): String {
+    val watched =
+      cues
+        .subList(0, (current + 1).coerceIn(0, cues.size))
+        .filter { it.line().source().isNotBlank() }
+        .takeLast(LINES)
     return brief(
       rules,
       type,
@@ -73,14 +97,24 @@ object QuizPack {
           "documents) that are not included: work from the lines below.",
       section =
         if (watched.isEmpty()) "Lines just watched"
-        else "Lines just watched (${clock(watched.first().start())}–${clock(watched.last().end())})",
+        else
+          "Lines just watched (${clock(watched.first().start())}–${clock(watched.last().end())})",
       empty = "None yet: the learner is at the start of the film.",
       items = watched.map { Item(it.line(), label = clock(it.start())) },
     )
   }
 
-  /** The chapter brief: every bubble and text block sentence of chapter [index] of [comic], in reading order. */
-  fun chapter(rules: String, document: StudyDocument, comic: ComicDocument, index: Int, type: Chosen? = null): String {
+  /**
+   * The chapter brief: every bubble and text block sentence of chapter [index] of [comic], in
+   * reading order.
+   */
+  fun chapter(
+    rules: String,
+    document: StudyDocument,
+    comic: ComicDocument,
+    index: Int,
+    type: Chosen? = null,
+  ): String {
     val chapter = comic.chapters()[index]
     val pages = comic.pages()
     val start = { i: Int -> pages.indexOfFirst { it.id() == comic.chapters()[i].pageId() } }
@@ -90,7 +124,11 @@ object QuizPack {
       (first..last).flatMap { position ->
         val page = pages[position]
         val name = "Page ${page.label().orEmpty().ifBlank { "${position + 1}" }}"
-        page.boxes().flatMap { it.lines() }.filter { it.source().isNotBlank() }.map { Item(it, group = name) }
+        page
+          .boxes()
+          .flatMap { it.lines() }
+          .filter { it.source().isNotBlank() }
+          .map { Item(it, group = name) }
       }
     val name = Chapters.name(chapter)
     return brief(
@@ -172,10 +210,12 @@ object QuizPack {
   }
 
   /** A file name for a brief, from the title and an optional [part] such as "chapter 2". */
-  fun fileName(document: StudyDocument, part: String = ""): String = fileName("${document.title()} $part")
+  fun fileName(document: StudyDocument, part: String = ""): String =
+    fileName("${document.title()} $part")
 
   private fun fileName(name: String): String {
-    val slug = name.lowercase().replace(Regex("[^\\p{L}\\p{N}]+"), "-").trim('-').ifEmpty { "title" }
+    val slug =
+      name.lowercase().replace(Regex("[^\\p{L}\\p{N}]+"), "-").trim('-').ifEmpty { "title" }
     return "quiz-$slug.md"
   }
 

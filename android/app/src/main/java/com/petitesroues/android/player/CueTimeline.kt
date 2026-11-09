@@ -15,8 +15,9 @@ class CueTimeline(val cues: List<VideoCue>) {
   }
 
   /** Every cue on screen at [time]; overlapping lines are shown together. */
-  fun showing(time: Double): List<VideoCue> =
-    cues.filter { time >= it.start() - EPSILON && time < it.end() }
+  fun showing(time: Double): List<VideoCue> = cues.filter {
+    time >= it.start() - EPSILON && time < it.end()
+  }
 
   /**
    * Where a previous/next line step lands. Stepping back shortly after a line starts goes to the
@@ -28,8 +29,7 @@ class CueTimeline(val cues: List<VideoCue>) {
     if (index < 0) return cues[0].start()
     val target =
       if (direction > 0) minOf(index + 1, cues.size - 1)
-      else if (time > cues[index].start() + RESTART_WINDOW) index
-      else maxOf(0, index - 1)
+      else if (time > cues[index].start() + RESTART_WINDOW) index else maxOf(0, index - 1)
     return cues[target].start()
   }
 

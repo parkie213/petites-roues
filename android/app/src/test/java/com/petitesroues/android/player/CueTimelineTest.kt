@@ -5,7 +5,8 @@ import org.junit.Assert.assertEquals
 import org.junit.Test
 
 class CueTimelineTest {
-  private val timeline = CueTimeline(listOf(line("a", 1.0, 3.0), line("b", 3.0, 5.0), line("c", 4.5, 7.0)))
+  private val timeline =
+    CueTimeline(listOf(line("a", 1.0, 3.0), line("b", 3.0, 5.0), line("c", 4.5, 7.0)))
 
   @Test
   fun currentIsTheLastStartedLine() {

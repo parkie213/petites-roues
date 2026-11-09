@@ -14,8 +14,8 @@ enum class TitleKind {
  * any content folder ([com.petitesroues.library.linking.MediaLinks]), or a video or CBZ that no
  * document references yet ([documentUri] null), named from its path
  * ([com.petitesroues.library.shelves.MediaNames]). [path] identifies the entry: the document's
- * place in its content folder ([TitlePaths]), or the media's, prefixed with that folder's name.
- * Its progress is saved under [progressKey].
+ * place in its content folder ([TitlePaths]), or the media's, prefixed with that folder's name. Its
+ * progress is saved under [progressKey].
  *
  * The library groups entries into shelves by the rules it shares with the desktop
  * ([com.petitesroues.library.shelves.Shelves]): from the document's [series], [season], [episode],
@@ -78,7 +78,8 @@ data class Title(
 
   override fun mediaAvailable(): Boolean = mediaUri != null
 
-  override fun hasTitleArt(): Boolean = poster != null || (kind == TitleKind.COMIC && mediaUri != null)
+  override fun hasTitleArt(): Boolean =
+    poster != null || (kind == TitleKind.COMIC && mediaUri != null)
 
   override fun hasSeriesPoster(): Boolean = seriesPoster != null
 

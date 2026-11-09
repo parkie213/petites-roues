@@ -11,14 +11,22 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
 import javax.inject.Singleton
 
-/** Small per-device preferences: the content folders, the paired desktop and the players' toggles. */
+/**
+ * Small per-device preferences: the content folders, the paired desktop and the players' toggles.
+ */
 @Singleton
 class Settings @Inject constructor(@ApplicationContext context: Context) {
   private val prefs = context.getSharedPreferences("settings", Context.MODE_PRIVATE)
 
   /** The granted content folders, in the order they were added. */
   var contentTrees: List<Uri>
-    get() = prefs.getString("contentTrees", null)?.lines()?.filter { it.isNotEmpty() }?.map { it.toUri() }.orEmpty()
+    get() =
+      prefs
+        .getString("contentTrees", null)
+        ?.lines()
+        ?.filter { it.isNotEmpty() }
+        ?.map { it.toUri() }
+        .orEmpty()
     set(value) = prefs.edit { putString("contentTrees", value.joinToString("\n")) }
 
   /**
@@ -36,20 +44,19 @@ class Settings @Inject constructor(@ApplicationContext context: Context) {
       val pin = prefs.getString("desktopPin", null) ?: return null
       return Desktop(prefs.getString("desktopName", null) ?: "Desktop", url, token, pin)
     }
-    set(value) =
-      prefs.edit {
-        if (value == null) {
-          remove("desktopUrl")
-          remove("desktopToken")
-          remove("desktopName")
-          remove("desktopPin")
-        } else {
-          putString("desktopUrl", value.url())
-          putString("desktopToken", value.token())
-          putString("desktopName", value.name())
-          putString("desktopPin", value.pin())
-        }
+    set(value) = prefs.edit {
+      if (value == null) {
+        remove("desktopUrl")
+        remove("desktopToken")
+        remove("desktopName")
+        remove("desktopPin")
+      } else {
+        putString("desktopUrl", value.url())
+        putString("desktopToken", value.token())
+        putString("desktopName", value.name())
+        putString("desktopPin", value.pin())
       }
+    }
 
   /**
    * A folder chosen to copy titles from the desktop into instead of the app's own ([AppFolder]),
@@ -57,7 +64,9 @@ class Settings @Inject constructor(@ApplicationContext context: Context) {
    */
   var downloadFolder: Uri?
     get() = prefs.getString("downloadFolder", null)?.toUri()
-    set(value) = prefs.edit { if (value == null) remove("downloadFolder") else putString("downloadFolder", value.toString()) }
+    set(value) = prefs.edit {
+      if (value == null) remove("downloadFolder") else putString("downloadFolder", value.toString())
+    }
 
   /**
    * The desktop's series and standalone titles this phone follows, by
@@ -83,21 +92,25 @@ class Settings @Inject constructor(@ApplicationContext context: Context) {
 
   /** What tapping a bubble does in the comic reader. */
   var listeningMode: ListeningMode
-    get() = ListeningMode.entries.firstOrNull { it.name == prefs.getString("listeningMode", null) } ?: ListeningMode.OFF
+    get() =
+      ListeningMode.entries.firstOrNull { it.name == prefs.getString("listeningMode", null) }
+        ?: ListeningMode.OFF
     set(value) = prefs.edit { putString("listeningMode", value.name) }
 
   var comicLandscape: Boolean
     get() = prefs.getBoolean("comicLandscape", false)
     set(value) = prefs.edit { putBoolean("comicLandscape", value) }
 
-  /** Whether the comic reader outlines every bubble's region, as the browser's Show bubble outlines. */
+  /**
+   * Whether the comic reader outlines every bubble's region, as the browser's Show bubble outlines.
+   */
   var comicOutlines: Boolean
     get() = prefs.getBoolean("comicOutlines", false)
     set(value) = prefs.edit { putBoolean("comicOutlines", value) }
 
   /**
-   * Whether the comic at [path] reads right to left. Only asked of a comic without a study document,
-   * which has no reading direction of its own; left to right until the reader flips it.
+   * Whether the comic at [path] reads right to left. Only asked of a comic without a study
+   * document, which has no reading direction of its own; left to right until the reader flips it.
    */
   fun comicRtl(path: String): Boolean = prefs.getBoolean("comicRtl:$path", false)
 
@@ -107,7 +120,10 @@ class Settings @Inject constructor(@ApplicationContext context: Context) {
     get() = prefs.getBoolean("showSubtitles", true)
     set(value) = prefs.edit { putBoolean("showSubtitles", value) }
 
-  /** The quiz type last chosen in the Quiz me dialog (a [com.petitesroues.android.quiz.QuizPack.TYPES] id). */
+  /**
+   * The quiz type last chosen in the Quiz me dialog (a
+   * [com.petitesroues.android.quiz.QuizPack.TYPES] id).
+   */
   var quizType: String
     get() = prefs.getString("quizType", null) ?: "to-source"
     set(value) = prefs.edit { putString("quizType", value) }
