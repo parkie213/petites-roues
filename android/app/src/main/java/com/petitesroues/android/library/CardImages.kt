@@ -10,8 +10,11 @@ import androidx.compose.ui.graphics.asAndroidBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import com.petitesroues.android.comic.CbzReader
 import com.petitesroues.library.shelves.Shelves.CardArt
+import dagger.hilt.android.qualifiers.ApplicationContext
 import java.io.File
 import java.security.MessageDigest
+import javax.inject.Inject
+import javax.inject.Singleton
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
@@ -45,7 +48,8 @@ sealed interface CardSource {
  * folder, so comics do not reopen their CBZ on every visit. The disk copies are cleared on
  * refresh, when posters may have changed.
  */
-class CardImages(private val context: Context) {
+@Singleton
+class CardImages @Inject constructor(@ApplicationContext private val context: Context) {
   private val memory = LruCache<String, ImageBitmap>(64)
   private val folder = File(context.cacheDir, "cards")
 

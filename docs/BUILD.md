@@ -176,9 +176,10 @@ For Java-only iteration, install sibling modules first:
 `android/` is a standalone, read-only phone app: the video player and comic reader
 without edit mode. It reads its own folder, `Internal storage/Petites roues`, where titles copied
 from a paired desktop (above) go, plus any folders added through the Storage Access Framework,
-such as one Syncthing keeps. It never edits documents and keeps its own index and progress in a local SQLite
-database. Kotlin, Jetpack Compose and Media3;
-Android 14 or newer.
+such as one Syncthing keeps. It never edits documents and keeps its own index and progress in two
+local SQLite databases (Room): the index is a cache rebuilt by Refresh, and progress is kept across
+updates. Kotlin, Jetpack Compose, Media3, Hilt and Room; Android 14 or newer. [android/README.md](../android/README.md)
+maps the code and explains the databases.
 
 It finds and links content with the desktop's rules from `java/library`: every study document
 and every video or CBZ in the chosen folders, documents linked to media by fingerprint from any
@@ -191,7 +192,8 @@ the same jars the server builds against. Gradle installs it with Maven whenever 
 build, including an Android Studio sync, so the app never compiles against a stale jar; Maven
 skips work that is up to date. Jackson comes with the jar, at the version Spring Boot manages.
 Keep `petitesRoues` in `android/gradle/libs.versions.toml` equal to the project version in
-`java/pom.xml`. Building needs the JDK in `.java-version`, as Maven does.
+`java/pom.xml`. Building needs the JDK in `.java-version`, as Maven does; Gradle passes the JDK
+it runs on to Maven, so Android Studio's Gradle JDK must be Java 25 (its bundled JDK is).
 
 ```bash
 cd android

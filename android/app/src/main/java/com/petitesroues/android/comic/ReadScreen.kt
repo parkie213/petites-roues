@@ -103,7 +103,8 @@ import com.petitesroues.android.quiz.QuizBadge
 import com.petitesroues.android.quiz.QuizDialog
 import com.petitesroues.android.quiz.QuizPack
 import com.petitesroues.android.quiz.QuizShare
-import com.petitesroues.android.library.LibraryStore
+import com.petitesroues.android.data.Progress
+import com.petitesroues.android.data.ProgressStore
 import com.petitesroues.android.library.Title
 import com.petitesroues.model.document.ComicBox
 import com.petitesroues.model.document.Line
@@ -140,7 +141,8 @@ import kotlin.math.roundToInt
 fun ReadScreen(
   title: Title,
   document: StudyDocument,
-  store: LibraryStore,
+  saved: Progress?,
+  progress: ProgressStore,
   settings: Settings,
   onBack: () -> Unit,
   onFlipDirection: (() -> Unit)? = null,
@@ -162,8 +164,7 @@ fun ReadScreen(
   ImmersiveReading(landscape)
 
   var page by remember {
-    val saved = store.progress(title.progressKey)?.pageId
-    mutableIntStateOf(pages.indexOfFirst { it.id() == saved }.coerceAtLeast(0))
+    mutableIntStateOf(pages.indexOfFirst { it.id() == saved?.pageId }.coerceAtLeast(0))
   }
   var selected by remember { mutableStateOf<ComicBox?>(null) }
   // The sentence shown when the selected box is a text block.
@@ -227,7 +228,7 @@ fun ReadScreen(
             val first = views[view].first()
             if (page !in views[view]) page = first
             close()
-            store.savePage(title.progressKey, pages[first].id(), (first + 1).toDouble() / pages.size)
+            progress.savePage(title.progressKey, pages[first].id(), (first + 1).toDouble() / pages.size)
           }
       }
       HorizontalPager(

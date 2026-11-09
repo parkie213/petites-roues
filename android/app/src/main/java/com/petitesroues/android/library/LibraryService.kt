@@ -2,6 +2,8 @@ package com.petitesroues.android.library
 
 import android.content.ContentResolver
 import android.net.Uri
+import com.petitesroues.android.data.CachedFingerprint
+import com.petitesroues.android.data.IndexDao
 import com.petitesroues.documents.StudyDocumentReader
 import com.petitesroues.library.discovery.ContentScanner
 import com.petitesroues.library.discovery.MediaKind
@@ -12,6 +14,8 @@ import com.petitesroues.media.MediaFingerprint
 import com.petitesroues.model.document.ComicDocument
 import com.petitesroues.model.document.StudyDocument
 import com.petitesroues.model.document.VideoDocument
+import javax.inject.Inject
+import javax.inject.Singleton
 
 /**
  * Builds the phone's library from the chosen content folders and opens title documents. Refresh is
@@ -21,10 +25,13 @@ import com.petitesroues.model.document.VideoDocument
  * CBZ in any chosen folder, with posters found beside the media. A document links to media whose
  * fingerprint its reference records, in any folder, by the shared rule ([MediaLinks]).
  */
-class LibraryService(
+@Singleton
+class LibraryService
+@Inject
+constructor(
   private val resolver: ContentResolver,
-  private val store: LibraryStore,
-  private val reader: StudyDocumentReader = StudyDocumentReader(),
+  private val index: IndexDao,
+  private val reader: StudyDocumentReader,
 ) {
   /** Titles that could not be indexed, with the reason, for the refresh summary. */
   data class Problem(val path: String, val message: String)
@@ -55,7 +62,7 @@ class LibraryService(
     val roots = mutableSetOf<String>()
     var bytes = 0L
     var measured = true
-    val previous by lazy { store.titles() }
+    val previous by lazy { index.titles() }
     for (tree in trees) {
       val folder: ContentFolder = if (AppFolder.isFile(tree)) FileContentTree(tree) else SafContentTree(resolver, tree)
       try {
@@ -91,7 +98,7 @@ class LibraryService(
     for (candidate in candidates)
       if (MediaLinks.key(candidate.kind(), candidate.fingerprint()) !in referenced) titles += unreferenced(candidate)
     progress.report(LibraryProgress(null, "saving", 0, 0, null))
-    store.replaceTitles(titles)
+    index.replaceTitles(titles)
     return Refreshed(problems, bytes.takeIf { measured })
   }
 
@@ -105,9 +112,9 @@ class LibraryService(
     problems: MutableList<Problem>,
     progress: LibraryProgress.Listener,
   ): List<MediaLinks.Candidate<ContentScanner.Media<Uri>>> {
-    val cache = store.fingerprints()
+    val cache = index.fingerprints()
     val result = mutableListOf<MediaLinks.Candidate<ContentScanner.Media<Uri>>>()
-    val seen = mutableMapOf<String, LibraryStore.Fingerprint>()
+    val seen = mutableMapOf<String, CachedFingerprint>()
     for (folder in scanned) {
       val files = folder.discovery.media()
       files.forEachIndexed { done, media ->
@@ -120,14 +127,14 @@ class LibraryService(
           val fingerprint =
             if (cached != null && media.unchangedSince(cached.size, cached.modifiedMillis)) cached.fingerprint
             else SafContentTree.open(resolver, media.handle()).use(MediaFingerprint::of)
-          seen[uri] = LibraryStore.Fingerprint(media.size(), media.modifiedMillis(), fingerprint)
+          seen[uri] = CachedFingerprint(uri, media.size(), media.modifiedMillis(), fingerprint)
           result += MediaLinks.Candidate(media, media.kind(), fingerprint, folder.root)
         } catch (failure: Exception) {
           problems += Problem(path, failure.message ?: failure.toString())
         }
       }
     }
-    store.replaceFingerprints(seen)
+    index.replaceFingerprints(seen.values)
     return result
   }
 

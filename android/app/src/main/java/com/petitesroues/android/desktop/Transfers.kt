@@ -26,6 +26,8 @@ import com.petitesroues.sync.SyncStatus
 import com.petitesroues.sync.TitleDownloader
 import com.petitesroues.sync.TransferFolder
 import com.petitesroues.sync.TransferPlan
+import dagger.hilt.android.AndroidEntryPoint
+import javax.inject.Inject
 import java.io.IOException
 import java.util.concurrent.CancellationException
 import kotlin.concurrent.thread
@@ -112,7 +114,10 @@ object Transfers {
 }
 
 /** Runs [Transfers]' job on a worker thread, with a progress notification. */
+@AndroidEntryPoint
 class TransferJobService : JobService() {
+  @Inject lateinit var settings: Settings
+
   @Volatile private var stopped = false
 
   private val notifications by lazy { getSystemService(NotificationManager::class.java) }
@@ -146,7 +151,6 @@ class TransferJobService : JobService() {
   }
 
   private fun download(params: JobParameters) {
-    val settings = Settings(this)
     var reschedule = false
     try {
       val tree = downloadFolder(settings) ?: error("Allow file access so titles can be copied into ${AppFolder.LABEL}")
