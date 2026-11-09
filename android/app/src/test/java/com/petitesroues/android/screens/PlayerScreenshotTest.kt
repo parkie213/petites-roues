@@ -27,9 +27,9 @@ import org.robolectric.annotation.GraphicsMode
 class PlayerScreenshotTest {
   @get:Rule val compose = createComposeRule()
 
-  @Test
-  fun controls() {
+  private fun player(controlsOnLeft: Boolean) {
     val context = ApplicationProvider.getApplicationContext<Application>()
+    val settings = Settings(context).apply { this.controlsOnLeft = controlsOnLeft }
     val document = Examples.document(PEPPA)
     val title =
       Examples.title(
@@ -47,7 +47,7 @@ class PlayerScreenshotTest {
           document,
           null,
           Examples.progress(context),
-          Settings(context),
+          settings,
           onBack = {},
         )
       }
@@ -59,6 +59,11 @@ class PlayerScreenshotTest {
     }
     compose.onRoot().captureRoboImage()
   }
+
+  @Test fun controls() = player(controlsOnLeft = false)
+
+  /** The rail moved to the left with the top bar's swap button. */
+  @Test fun controlsOnLeft() = player(controlsOnLeft = true)
 
   private companion object {
     const val PEPPA = "series/peppa-pig/s01e01"

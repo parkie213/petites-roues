@@ -42,6 +42,7 @@ import androidx.compose.material.icons.filled.SkipPrevious
 import androidx.compose.material.icons.filled.Speed
 import androidx.compose.material.icons.filled.Subtitles
 import androidx.compose.material.icons.filled.SubtitlesOff
+import androidx.compose.material.icons.filled.SwapHoriz
 import androidx.compose.material.icons.filled.Translate
 import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material3.DropdownMenu
@@ -124,6 +125,9 @@ private val railButton = 42.dp
 private val railPadding = 5.dp
 private val railMargin = 12.dp
 
+/** How far subtitles and the seek bar keep from the side the rail is on. */
+private val railClearance = 140.dp
+
 /**
  * The full-screen landscape player: the video with tappable phrase subtitles, a pill of line
  * shortcuts and study toggles on the right. Tapping the video reveals transport controls without
@@ -156,6 +160,7 @@ fun WatchScreen(
   var explored by remember { mutableStateOf<Explored?>(null) }
   var controlsVisible by remember { mutableStateOf(true) }
   var railExpanded by remember { mutableStateOf(true) }
+  var controlsLeft by remember { mutableStateOf(settings.controlsOnLeft) }
   val toggle = { playback.toggle() }
 
   LaunchedEffect(controlsVisible, playback.playing) {
@@ -236,7 +241,11 @@ fun WatchScreen(
       Modifier.align(Alignment.BottomCenter)
         .fillMaxWidth()
         .windowInsetsPadding(WindowInsets.displayCutout.only(WindowInsetsSides.Horizontal))
-        .padding(start = 24.dp, end = 140.dp, bottom = 12.dp),
+        .padding(
+          start = if (controlsLeft) railClearance else 24.dp,
+          end = if (controlsLeft) 24.dp else railClearance,
+          bottom = 12.dp,
+        ),
       horizontalAlignment = Alignment.CenterHorizontally,
       verticalArrangement = Arrangement.spacedBy(6.dp),
     ) {
@@ -325,12 +334,16 @@ fun WatchScreen(
     }
 
     Column(
-      Modifier.align(Alignment.BottomEnd)
+      Modifier.align(if (controlsLeft) Alignment.BottomStart else Alignment.BottomEnd)
         .windowInsetsPadding(
           WindowInsets.displayCutout.only(WindowInsetsSides.Horizontal + WindowInsetsSides.Bottom)
         )
-        .padding(end = railMargin, bottom = 6.dp),
-      horizontalAlignment = Alignment.End,
+        .padding(
+          start = if (controlsLeft) railMargin else 0.dp,
+          end = if (controlsLeft) 0.dp else railMargin,
+          bottom = 6.dp,
+        ),
+      horizontalAlignment = if (controlsLeft) Alignment.Start else Alignment.End,
       verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {
       if (railExpanded)
@@ -338,69 +351,80 @@ fun WatchScreen(
           horizontalArrangement = Arrangement.spacedBy(6.dp),
           verticalAlignment = Alignment.Bottom,
         ) {
-          RailPill {
-            RailButton(
-              if (playback.playing) Icons.Filled.Pause else Icons.Filled.PlayArrow,
-              if (playback.playing) "Pause" else "Resume",
-              onClick = toggle,
-            )
-            val phrases = showing.flatMap { cue ->
-              readyAlignment(cue.line(), document)?.source().orEmpty().indices.map {
-                Explored(cue.line().id(), it)
+          val playPill: @Composable () -> Unit = {
+            RailPill {
+              RailButton(
+                if (playback.playing) Icons.Filled.Pause else Icons.Filled.PlayArrow,
+                if (playback.playing) "Pause" else "Resume",
+                onClick = toggle,
+              )
+              val phrases = showing.flatMap { cue ->
+                readyAlignment(cue.line(), document)?.source().orEmpty().indices.map {
+                  Explored(cue.line().id(), it)
+                }
               }
-            }
-            RailButton(
-              Icons.Filled.FindInPage,
-              "Next phrase explanation",
-              dimmed = phrases.isEmpty(),
-            ) {
-              if (phrases.isNotEmpty()) {
-                playback.pause()
-                help = null
-                controlsVisible = false
-                explored = phrases[(phrases.indexOf(explored) + 1) % phrases.size]
+              RailButton(
+                Icons.Filled.FindInPage,
+                "Next phrase explanation",
+                dimmed = phrases.isEmpty(),
+              ) {
+                if (phrases.isNotEmpty()) {
+                  playback.pause()
+                  help = null
+                  controlsVisible = false
+                  explored = phrases[(phrases.indexOf(explored) + 1) % phrases.size]
+                }
               }
             }
           }
-          RailPill {
-            RailButton(Icons.Filled.SkipPrevious, "Previous line") {
-              explored = null
-              playback.step(-1)
+          val linePill: @Composable () -> Unit = {
+            RailPill {
+              RailButton(Icons.Filled.SkipPrevious, "Previous line") {
+                explored = null
+                playback.step(-1)
+              }
+              RailButton(Icons.Filled.Replay, "Replay line") {
+                explored = null
+                playback.replay(maxOf(0, timeline.current(time)))
+              }
+              RailButton(Icons.Filled.SkipNext, "Next line") {
+                explored = null
+                playback.step(1)
+              }
+              Box(
+                Modifier.padding(vertical = 4.dp)
+                  .size(width = 22.dp, height = 1.dp)
+                  .background(Color(0x40FFFFFF))
+              )
+              RailButton(Icons.Filled.PauseCircleOutline, "Auto-pause", selected = autoPause) {
+                autoPause = !autoPause
+              }
+              RailButton(
+                Icons.Filled.Translate,
+                "Line translation",
+                selected = help == Help.TRANSLATION,
+              ) {
+                explored = null
+                help = if (help == Help.TRANSLATION) null else Help.TRANSLATION
+              }
+              RailButton(
+                Icons.AutoMirrored.Filled.Notes,
+                "Sentence notes",
+                selected = help == Help.NOTES,
+                dimmed = sentenceNotes.isEmpty(),
+                badge = sentenceNotes.isNotEmpty(),
+              ) {
+                explored = null
+                help = if (help == Help.NOTES) null else Help.NOTES
+              }
             }
-            RailButton(Icons.Filled.Replay, "Replay line") {
-              explored = null
-              playback.replay(maxOf(0, timeline.current(time)))
-            }
-            RailButton(Icons.Filled.SkipNext, "Next line") {
-              explored = null
-              playback.step(1)
-            }
-            Box(
-              Modifier.padding(vertical = 4.dp)
-                .size(width = 22.dp, height = 1.dp)
-                .background(Color(0x40FFFFFF))
-            )
-            RailButton(Icons.Filled.PauseCircleOutline, "Auto-pause", selected = autoPause) {
-              autoPause = !autoPause
-            }
-            RailButton(
-              Icons.Filled.Translate,
-              "Line translation",
-              selected = help == Help.TRANSLATION,
-            ) {
-              explored = null
-              help = if (help == Help.TRANSLATION) null else Help.TRANSLATION
-            }
-            RailButton(
-              Icons.AutoMirrored.Filled.Notes,
-              "Sentence notes",
-              selected = help == Help.NOTES,
-              dimmed = sentenceNotes.isEmpty(),
-              badge = sentenceNotes.isNotEmpty(),
-            ) {
-              explored = null
-              help = if (help == Help.NOTES) null else Help.NOTES
-            }
+          }
+          if (controlsLeft) {
+            linePill()
+            playPill()
+          } else {
+            playPill()
+            linePill()
           }
         }
       Surface(color = Color(0xCC101419), shape = CircleShape) {
@@ -425,6 +449,11 @@ fun WatchScreen(
         onSeek = playback::seek,
         onSpeed = { speed = it },
         onQuiz = { quizzing = true },
+        controlsLeft = controlsLeft,
+        onSwapSides = {
+          controlsLeft = !controlsLeft
+          settings.controlsOnLeft = controlsLeft
+        },
         onSubtitles = {
           subtitles = !subtitles
           settings.showSubtitles = subtitles
@@ -534,6 +563,8 @@ private fun TransportBar(
   onSpeed: (Float) -> Unit,
   onSubtitles: () -> Unit,
   onQuiz: () -> Unit,
+  controlsLeft: Boolean,
+  onSwapSides: () -> Unit,
   modifier: Modifier = Modifier,
 ) {
   var speedMenu by remember { mutableStateOf(false) }
@@ -545,10 +576,13 @@ private fun TransportBar(
       .windowInsetsPadding(
         WindowInsets.displayCutout.only(WindowInsetsSides.Horizontal + WindowInsetsSides.Top)
       )
-      // Stops short of the rail pill, so the two sit side by side instead of overlapping.
-      .padding(start = 8.dp, end = 140.dp, top = 2.dp, bottom = 8.dp)
+      .padding(start = 8.dp, end = 8.dp, top = 2.dp, bottom = 8.dp)
   ) {
-    Row(verticalAlignment = Alignment.CenterVertically) {
+    // The top row stays put when the rail changes sides, so the swap button doesn't move away.
+    Row(
+      verticalAlignment = Alignment.CenterVertically,
+      modifier = Modifier.padding(end = railClearance - 8.dp),
+    ) {
       IconButton(onClick = onBack) {
         Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back", tint = Color.White)
       }
@@ -581,24 +615,39 @@ private fun TransportBar(
           )
         }
       }
+      IconButton(onClick = onSwapSides) {
+        Icon(
+          Icons.Filled.SwapHoriz,
+          if (controlsLeft) "Move controls to the right" else "Move controls to the left",
+          tint = Color.White,
+        )
+      }
     }
     Spacer(Modifier.weight(1f))
-    Row(verticalAlignment = Alignment.CenterVertically) {
-      if (duration > 0)
-        ThinSlider(
-          time.toFloat(),
-          0f..duration.toFloat(),
-          onValueChange = { onSeek(it.toDouble()) },
-          modifier = Modifier.weight(1f).padding(horizontal = 12.dp),
-        )
-      else Box(Modifier.weight(1f))
+    // The seek bar and time stop short of the rail, so the two sit side by side.
+    Column(
+      Modifier.padding(
+        start = if (controlsLeft) railClearance - 8.dp else 0.dp,
+        end = if (controlsLeft) 0.dp else railClearance - 8.dp,
+      )
+    ) {
+      Row(verticalAlignment = Alignment.CenterVertically) {
+        if (duration > 0)
+          ThinSlider(
+            time.toFloat(),
+            0f..duration.toFloat(),
+            onValueChange = { onSeek(it.toDouble()) },
+            modifier = Modifier.weight(1f).padding(horizontal = 12.dp),
+          )
+        else Box(Modifier.weight(1f))
+      }
+      Text(
+        "${clock(time)} / ${clock(duration)}",
+        color = Color(0xFFC8D4E0),
+        fontSize = 13.sp,
+        modifier = Modifier.padding(start = 12.dp),
+      )
     }
-    Text(
-      "${clock(time)} / ${clock(duration)}",
-      color = Color(0xFFC8D4E0),
-      fontSize = 13.sp,
-      modifier = Modifier.padding(start = 12.dp),
-    )
   }
 }
 

@@ -141,4 +141,9 @@ class Settings @Inject constructor(@ApplicationContext context: Context) {
   var playbackSpeed: Float
     get() = prefs.getFloat("playbackSpeed", 1f)
     set(value) = prefs.edit { putFloat("playbackSpeed", value) }
+
+  /** Whether the video player's controls rail sits on the left instead of the right. */
+  var controlsOnLeft: Boolean
+    get() = prefs.getBoolean("controlsOnLeft", false)
+    set(value) = prefs.edit { putBoolean("controlsOnLeft", value) }
 }
