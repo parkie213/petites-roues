@@ -11,17 +11,20 @@ import android.app.job.JobService
 import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
-import android.os.PersistableBundle
+import android.net.Uri
 import android.os.SystemClock
 import android.util.Log
 import com.petitesroues.android.MainActivity
 import com.petitesroues.android.Settings
 import com.petitesroues.android.library.AppFolder
 import com.petitesroues.android.library.LibraryUsage
+import com.petitesroues.model.sync.Desktop
 import com.petitesroues.model.sync.DesktopTitle
 import com.petitesroues.sync.DesktopClient
 import com.petitesroues.sync.DesktopException
+import com.petitesroues.sync.SyncStatus
 import com.petitesroues.sync.TitleDownloader
+import com.petitesroues.sync.TransferFolder
 import com.petitesroues.sync.TransferPlan
 import java.io.IOException
 import java.util.concurrent.CancellationException
@@ -31,10 +34,12 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.update
 
 /**
- * Copying titles from the paired desktop into the download folder, as one user-initiated data
- * transfer job: Android's mechanism for downloads the person started, which keeps going with the
- * screen off and shows a notification. The shared [TitleDownloader] does the work; this object
- * starts and stops it and publishes its progress to the app's screens.
+ * Syncing with the paired desktop: updates to every title already in the download folder, and the
+ * new titles of the series the phone follows ([Settings.followed], [SyncStatus]). It runs as one
+ * user-initiated data transfer job, Android's mechanism for downloads the person started, which
+ * keeps going with the screen off and shows a notification. The shared [TitleDownloader] does the
+ * work; this object starts and stops it, checks what a sync would fetch, and publishes both to the
+ * app's screens.
  */
 object Transfers {
   /**
@@ -57,18 +62,40 @@ object Transfers {
   )
 
   private const val JOB = 1
-  internal const val TITLES = "titles"
   internal val state = MutableStateFlow(Status())
   val status: StateFlow<Status> = state
 
-  /** Starts downloading the titles with these [ids]; [bytes] is the estimate the system is told. */
-  fun start(context: Context, ids: Collection<String>, bytes: Long) {
+  private val pendingTitles = MutableStateFlow(0)
+
+  /** How many titles the last [check] found a sync would fetch; the library badges its desktop button. */
+  val pending: StateFlow<Int> = pendingTitles
+
+  /**
+   * Compares the paired desktop's titles with the download folder, and publishes the count as
+   * [pending]. Reaches the desktop and reads files, so it runs off the main thread.
+   *
+   * @throws IllegalStateException without a download folder
+   */
+  fun check(context: Context, settings: Settings): SyncStatus {
+    val tree = downloadFolder(settings) ?: error("Allow file access so titles can be copied into ${AppFolder.LABEL}")
+    val titles = reachDesktop(context, settings, DesktopClient()::titles)
+    val sync = SyncStatus.of(titles, settings.followed, settings.chosen, transferFolder(context.contentResolver, tree))
+    settings.chosen = sync.stillChosen()
+    pendingTitles.value = sync.toSync().size
+    return sync
+  }
+
+  /**
+   * Starts a sync; [bytes] is the estimate the system is told. A sync already under way is left to
+   * run: it goes round again if the followed series or chosen titles changed meanwhile.
+   */
+  fun start(context: Context, bytes: Long) {
+    if (state.value.running) return
     val job =
       JobInfo.Builder(JOB, ComponentName(context, TransferJobService::class.java))
         .setUserInitiated(true)
         .setRequiredNetworkType(JobInfo.NETWORK_TYPE_UNMETERED)
         .setEstimatedNetworkBytes(bytes, 0)
-        .setExtras(PersistableBundle().apply { putStringArray(TITLES, ids.toTypedArray()) })
         .build()
     val scheduled = context.getSystemService(JobScheduler::class.java).schedule(job) == JobScheduler.RESULT_SUCCESS
     state.update {
@@ -119,48 +146,28 @@ class TransferJobService : JobService() {
   }
 
   private fun download(params: JobParameters) {
-    val ids = params.extras.getStringArray(Transfers.TITLES)?.toSet().orEmpty()
     val settings = Settings(this)
     var reschedule = false
     try {
       val tree = downloadFolder(settings) ?: error("Allow file access so titles can be copied into ${AppFolder.LABEL}")
       val folder = transferFolder(contentResolver, tree)
       val client = DesktopClient()
-      // The desktop as reached, at a new address if it moved.
-      val (desktop, titles) = reachDesktop(this, settings) { it to client.titles(it) }
-      val plan = TransferPlan.of(titles.filter { it.id() in ids }, folder)
-      val free = runCatching { LibraryUsage.free(this, listOf(tree)).firstOrNull() }.getOrNull()
-      if (free != null && plan.remaining() > free)
-        error(
-          "This needs ${LibraryUsage.format(plan.remaining())} but only ${LibraryUsage.format(free)} is free on the phone"
-        )
-      var shown = 0L
-      TitleDownloader(client).run(
-        desktop,
-        plan,
-        folder,
-        object : TitleDownloader.Listener {
-          override fun progress(title: DesktopTitle, done: Long, total: Long) {
-            val now = SystemClock.elapsedRealtime()
-            if (now - shown < 500 && done < total) return
-            shown = now
-            Transfers.state.update { it.copy(running = true, title = title.title(), done = done, total = total, message = null) }
-            val text = "${title.title()} · ${LibraryUsage.format(done)} of ${LibraryUsage.format(total)}"
-            notifications.notify(NOTIFICATION, notification(text, done, total))
-          }
-
-          override fun finished(title: DesktopTitle) =
-            Transfers.state.update { it.copy(finished = it.finished + 1) }
-
-          override fun cancelled(): Boolean = stopped
-        },
-      )
-      val count = plan.titles().size
+      var count = 0
+      // Following a series or choosing a title during a round changes what to fetch, so it goes round again.
+      do {
+        val followed = settings.followed
+        val chosen = settings.chosen
+        // The desktop as reached, at a new address if it moved.
+        val (desktop, titles) = reachDesktop(this, settings) { it to client.titles(it) }
+        val plan = TransferPlan.of(SyncStatus.of(titles, followed, chosen, folder).toSync(), folder)
+        download(client, desktop, plan, folder, tree)
+        count += plan.titles().size
+      } while ((settings.followed != followed || !chosen.containsAll(settings.chosen)) && !stopped)
       Transfers.state.update {
         it.copy(
           running = false,
           title = null,
-          message = if (count == 0) "Everything chosen is already on the phone" else "Copied $count ${if (count == 1) "title" else "titles"}",
+          message = if (count == 0) "Everything is up to date" else "Copied $count ${if (count == 1) "title" else "titles"}",
         )
       }
     } catch (_: CancellationException) {
@@ -180,6 +187,33 @@ class TransferJobService : JobService() {
       }
     }
     if (!stopped) jobFinished(params, reschedule)
+  }
+
+  /** Downloads one round's [plan], after checking it fits in the phone's free space. */
+  private fun download(client: DesktopClient, desktop: Desktop, plan: TransferPlan, folder: TransferFolder, tree: Uri) {
+    val free = runCatching { LibraryUsage.free(this, listOf(tree)).firstOrNull() }.getOrNull()
+    if (free != null && plan.remaining() > free)
+      error("This needs ${LibraryUsage.format(plan.remaining())} but only ${LibraryUsage.format(free)} is free on the phone")
+    var shown = 0L
+    TitleDownloader(client).run(
+      desktop,
+      plan,
+      folder,
+      object : TitleDownloader.Listener {
+        override fun progress(title: DesktopTitle, done: Long, total: Long) {
+          val now = SystemClock.elapsedRealtime()
+          if (now - shown < 500 && done < total) return
+          shown = now
+          Transfers.state.update { it.copy(running = true, title = title.title(), done = done, total = total, message = null) }
+          val text = "${title.title()} · ${LibraryUsage.format(done)} of ${LibraryUsage.format(total)}"
+          notifications.notify(NOTIFICATION, notification(text, done, total))
+        }
+
+        override fun finished(title: DesktopTitle) = Transfers.state.update { it.copy(finished = it.finished + 1) }
+
+        override fun cancelled(): Boolean = stopped
+      },
+    )
   }
 
   private companion object {

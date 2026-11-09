@@ -40,7 +40,7 @@ import kotlinx.coroutines.withContext
  */
 private const val LOCAL_NETWORK = "android.permission.ACCESS_LOCAL_NETWORK"
 
-private fun mayReachLocalNetwork(context: Context): Boolean =
+internal fun mayReachLocalNetwork(context: Context): Boolean =
   Build.VERSION.SDK_INT < 37 || context.checkSelfPermission(LOCAL_NETWORK) == PackageManager.PERMISSION_GRANTED
 
 /** The name this phone gives the desktop when pairing: the one set in its system settings, else its model. */
@@ -54,7 +54,7 @@ private fun phoneName(context: Context): String =
  * on demand, and can forget it (the desktop keeps listing the phone until it is forgotten there
  * too). Scanning uses Google Play services' scanner, so the app needs no camera permission; it
  * does need Android 17's local network permission, which it asks for before scanning or testing.
- * Once paired, [onGetTitles] opens the desktop's titles to copy to the phone.
+ * Once paired, [onGetTitles] opens syncing with the desktop ([DesktopTitlesScreen]).
  */
 @Composable
 fun DesktopDialog(settings: Settings, onGetTitles: () -> Unit, onDismiss: () -> Unit) {
@@ -167,7 +167,7 @@ fun DesktopDialog(settings: Settings, onGetTitles: () -> Unit, onDismiss: () -> 
     },
     dismissButton = {
       Row {
-        if (paired != null) TextButton(onClick = { withLocalNetwork(onGetTitles) }, enabled = !busy) { Text("Get titles") }
+        if (paired != null) TextButton(onClick = { withLocalNetwork(onGetTitles) }, enabled = !busy) { Text("Sync") }
         if (paired != null)
           TextButton(
             onClick = {

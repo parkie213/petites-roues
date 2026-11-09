@@ -38,6 +38,8 @@ import androidx.compose.material.icons.outlined.Description
 import androidx.compose.material.icons.outlined.Lightbulb
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Badge
+import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.Button
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
@@ -106,7 +108,8 @@ data class Browse(val group: String? = null, val season: Int? = null)
  * library's posters use ([Shelves]): shelves a document names, else Comics, Series and Films. A series card opens its tomes or episodes;
  * a title card opens the title where it was left. Refresh rescans the folders; the folder button
  * lists the content folders, where more can be added or removed; the desktop button pairs with the
- * desktop app ([onDesktop]). A title card shows how far
+ * desktop app or syncs with it ([onDesktop]), badged with how many titles a sync would fetch
+ * ([desktopPending]). A title card shows how far
  * through it the saved position is, which its menu can clear.
  */
 @OptIn(ExperimentalMaterial3Api::class)
@@ -120,6 +123,7 @@ fun LibraryScreen(
   onAddFolder: () -> Unit,
   onRemoveFolder: (Uri) -> Unit,
   onRefresh: () -> Unit,
+  desktopPending: Int,
   onDesktop: () -> Unit,
   onGetTitles: () -> Unit,
   onAllowFiles: () -> Unit,
@@ -166,7 +170,9 @@ fun LibraryScreen(
               Icon(Icons.Filled.Refresh, "Refresh library")
             }
           IconButton(onClick = onDesktop) {
-            Icon(Icons.Filled.Computer, "Desktop")
+            BadgedBox(badge = { if (desktopPending > 0) Badge { Text("$desktopPending") } }) {
+              Icon(Icons.Filled.Computer, if (desktopPending > 0) "Desktop, $desktopPending to sync" else "Desktop")
+            }
           }
           IconButton(onClick = { if (state.folders.isEmpty()) onAddFolder() else managing = true }) {
             Icon(Icons.Filled.FolderOpen, "Content folders")

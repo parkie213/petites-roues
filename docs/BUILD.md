@@ -94,8 +94,15 @@ answering, for example after the router gives the computer a new one, the phone 
 announcement, connects to the new address (still checking the pin) and saves it. A firewall must
 let multicast DNS through (UDP 5353; Ubuntu's ufw allows it by default).
 
-Once paired, **Get titles** in the app's Desktop dialog lists the desktop's titles by series.
-Tick some and **Copy**: each title's media, posters and document (as the player serves it, with
+Once paired, the app's desktop button opens **Sync**: one row per series (or standalone title),
+saying how many of its titles are on the phone. Its checkbox follows the series. Ticking it copies
+the titles the phone lacks, and later syncs bring the ones the desktop adds. Every sync also
+fetches updates to whatever is already on the phone, followed or not. Unfollowing deletes nothing.
+Tapping a series shows its titles, each with its own checkbox to copy just that one without
+following the series.
+The app checks the desktop when the library opens and badges the desktop button with how many
+titles a sync would fetch. The Sync button fetches them, and the pairing dialog is the computer
+icon on that screen. Each title's media, posters and document (as the player serves it, with
 pending edits) download into `Internal storage/Petites roues`, with a subfolder per desktop
 repository. That folder is the app's own content folder: it needs **All files access**
 (`MANAGE_EXTERNAL_STORAGE`), granted once from the empty library or the copy screen, and it stays
@@ -103,10 +110,10 @@ when the app is uninstalled. **Change** picks another folder with the system pic
 matches its document's reference fingerprint; hand links do not reach the phone yet. Downloads
 run as a user-initiated job with a notification and keep going with the screen off. They resume
 from a hidden `.part` file after a cut, and are checked against the media's fingerprint before
-they are moved into place. Asking again skips files already there. Documents and the notes and
+they are moved into place. Syncing again skips files already there. Documents and the notes and
 quizzes pages carry a hash of the bytes served, so a title whose document changed on the desktop
-shows **Update available** and fetches only the document. The desktop's notes and quizzes are one
-entry at the top of the list, **Notes and quizzes**, copied to `<repository>/notes|quizzes/` and
+counts as an update and fetches only the document. The desktop's notes and quizzes are one
+row at the top of the list, **Notes and quizzes**, followed like a series and copied to `<repository>/notes|quizzes/` and
 read by the app's Notes and Quiz me screens. The listing is
 `GET /phone/titles`, and each file names its own route: `GET /phone/titles/{id}/{role}` (media
 and posters accept `Range`) or `GET /phone/pages/{repository}/{folder}/{name}`.
