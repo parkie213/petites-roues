@@ -43,6 +43,22 @@ async function waitForServer(server) {
 }
 
 /**
+ * Forgets every title's reading and playback progress, whichever test saved it. A player saves its
+ * position as it unloads, and that save can land after its own test was undone, so each recording
+ * also starts with this.
+ */
+export async function forgetProgress() {
+  const library = await (await fetch(`${api}/library`)).json();
+  for (const entry of library.repositories.flatMap((repo) => repo.entries))
+    if (entry.progress != null)
+      await fetch(
+        `${api}/titles/${encodeURIComponent(entry.id)}/` +
+          (entry.type === "comic" ? "comic/progress" : "progress"),
+        { method: "DELETE" },
+      );
+}
+
+/**
  * Undoes what [requests] (`METHOD /path` keys) saved on the real server: reading and playback
  * progress is forgotten, queued subtitle edits are discarded and added folders are removed, so a
  * test leaves the library as it found it.
@@ -60,10 +76,7 @@ export async function forget(requests) {
     new Set(
       requests.flatMap((request) => pattern.exec(request)?.slice(1) ?? []),
     );
-  for (const path of changed(
-    /^PUT (\/api\/titles\/[^/]+\/(?:comic\/)?progress)$/,
-  ))
-    await fetch(api + path, { method: "DELETE" });
+  await forgetProgress();
   for (const title of changed(
     /^(?:PUT|POST|DELETE) \/api\/titles\/([^/]+)\/(?:cues|timings)\b/,
   )) {
