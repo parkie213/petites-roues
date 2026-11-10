@@ -11,6 +11,8 @@
     "build": "vite build",
     "start": "node server.mjs",
     "test": "node --test test/*.test.mjs",
+    "e2e": "playwright test",
+    "e2e:record": "RECORD=1 playwright test",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "lint": "eslint ."
@@ -27,6 +29,7 @@
   },
   "devDependencies": {
     "@eslint/js": "10.0.1",
+    "@playwright/test": "1.65.0",
     "@vitejs/plugin-react": "6.1.2",
     "eslint": "10.14.0",
     "eslint-plugin-react-hooks": "7.1.1",

@@ -36,5 +36,19 @@ specialized visualizations and answer feedback. Avoid blanket button or input
 rules: standard controls should use Mantine props and the shared theme.
 
 Run `npm test`, `npm run build`, `npm run format:check` and `npm run lint` from `web/`; CI runs all four. ESLint checks the React hooks rules (hooks in a fixed order, effects listing what they read).
-Use isolated fixtures for browser testing so checks do not change the user's
-saved playback position or study content.
+
+## End-to-end tests
+
+`e2e/` holds Playwright journeys through the built app: the library, a series, the player, the
+comic reader, notes and quizzes, and adding a folder. `npm run e2e` replays API responses recorded
+in `e2e/fixtures/`, so it needs only Node and a browser (`npx playwright install chromium` once).
+A request with no recording fails the test.
+
+`npm run e2e:record` records them again from the real Java server: build it first
+(`./java/mvnw -f java/pom.xml -pl server -am package -DskipTests`). It starts the jar with a
+throwaway library holding `example/media-fr` and `example/documents-fr`, so your own library and
+saved progress are untouched. Re-record after changing what a journey does or what the API
+returns, and commit the fixtures with the change. Recording is repeatable (times, random ids,
+file versions and exact video positions are saved as fixed stand-ins), so CI records again and
+fails if the fixtures changed: that is how the frontend's canned responses are kept honest
+against the API.
