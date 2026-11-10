@@ -8,7 +8,8 @@ import { forget } from "./real-server.mjs";
  * The browser tests' API: recorded from the real Java server, then replayed.
  *
  * `npm run e2e:record` runs each test against the real server (see `real-server.mjs`) and saves
- * every `/api` response it makes, in order, to `fixtures/<file>/<test>.json`; images go to
+ * an answer to every `/api` request it makes, in order, to `fixtures/<file>/<test>.json` (a GET's
+ * as the recorder fetches it again, a save's as the page received it); images go to
  * `fixtures/blobs/`, named by their content, and a video as the `example/` file it came from.
  * Run-to-run values (times, free space, random ids) are recorded as fixed stand-ins, so recording
  * twice gives the same files. `npm run e2e` replays them, so the tests need only
@@ -158,7 +159,8 @@ async function save(request, response) {
   return { ...entry, blob: name };
 }
 
-const events = /\/api\/jobs\/[^/]+\/events$/;
+// The error reading a response's body after the page moved on from it.
+const abandoned = (error) => /disposed|navigated away/.test(error.message);
 
 async function record(page, file, run) {
   const entries = [];
@@ -166,45 +168,51 @@ async function record(page, file, run) {
   const failures = [];
   const keep = (saving) => {
     const saved = saving
-      .then((entry) => entries.push(entry))
-      .catch((error) => {
-        // A response the browser abandoned (the page navigated away) has no body; anything else
-        // is a fault in recording.
-        if (!/disposed|navigated away/.test(error.message))
-          failures.push(error);
-      });
+      .then((entry) => entry && entries.push(entry))
+      .catch((error) => failures.push(error));
     pending.add(saved);
     saved.finally(() => pending.delete(saved));
   };
-  // Responses are watched rather than intercepted: answering a request ourselves would hold up
-  // the keepalive progress save a page sends as it unloads, and the navigation with it.
-  page.on("response", (response) => {
-    const { pathname } = new URL(response.url());
-    if (!pathname.startsWith("/api/") || events.test(pathname)) return;
-    // A redirect (a card or video to its current version) is recorded with the response it ends
-    // at: each hop as a redirect, then the target.
-    if (response.status() >= 300 && response.status() < 400) return;
-    const redirects = [];
-    for (
-      let from = response.request().redirectedFrom();
-      from;
-      from = from.redirectedFrom()
-    )
-      redirects.unshift({
-        request: key(from),
+  const isApi = (request) =>
+    new URL(request.url()).pathname.startsWith("/api/");
+  // GETs [url] for the recording, following redirects (a card or video to its current version)
+  // one by one so each is recorded as such, as the page's own would be.
+  const fetchGet = async (url) => {
+    for (;;) {
+      const asked = { method: () => "GET", url: () => url };
+      const response = await page.request.get(url, { maxRedirects: 0 });
+      const location = response.headers().location;
+      if (response.status() < 300 || response.status() >= 400 || !location)
+        return save(asked, response);
+      const target = new URL(location, url);
+      entries.push({
+        request: key(asked),
         status: 302,
-        location: key(from.redirectedTo()).split(" ")[1],
+        location: target.pathname + target.search,
       });
-    entries.push(...redirects);
-    keep(save(response.request(), response));
+      url = target.href;
+    }
+  };
+  // Each GET is fetched again by the recorder the moment the page asks, and that copy saved: the
+  // page's own may never finish (it moved on, or closed a job's event stream as the job ended),
+  // and whether it did would otherwise change the recording.
+  page.on("request", (request) => {
+    if (!isApi(request) || request.method() !== "GET") return;
+    if (request.redirectedFrom()) return; // fetched with the request it came from
+    keep(fetchGet(request.url()));
   });
-  // A job's event stream is fetched whole and saved here: the page closes it as the job finishes,
-  // before the server ends it, which would leave nothing to watch, and on a fast machine before
-  // the page's own copy can be read.
-  await page.route(events, async (route) => {
-    const response = await route.fetch();
-    keep(save(route.request(), response));
-    await route.fulfill({ response });
+  // Saves can't be sent twice, so the page's own answers are kept. Responses are watched rather
+  // than intercepted: answering a request ourselves would hold up the keepalive progress save a
+  // page sends as it unloads, and the navigation with it.
+  page.on("response", (response) => {
+    const request = response.request();
+    if (!isApi(request) || request.method() === "GET") return;
+    keep(
+      save(request, response).catch((error) => {
+        // A save the page abandoned as it unloaded has no answer to keep.
+        if (!abandoned(error)) throw error;
+      }),
+    );
   });
   await run(page);
   // What the page is still loading when the test ends (posters behind Back) is saved too.
@@ -219,9 +227,22 @@ async function record(page, file, run) {
   const unordered = (entry) => entry.request.replace(randomId, "");
   entries.sort((a, b) => unordered(a).localeCompare(unordered(b)));
   const standIn = idStandIns();
+  // The server remembers its last job (another test's Add folder, say) until it restarts; a test
+  // that started none is recorded as seeing none, as on a fresh library.
+  if (!entries.some((entry) => entry.request === "POST /api/jobs"))
+    for (const [index, entry] of entries.entries())
+      if (entry.request === "GET /api/jobs/latest")
+        entries[index] = { request: entry.request, status: 204, type: "" };
   const saved = entries
+    // How often a page saves (its position, say) depends on timing. A PUT replaces what it saves,
+    // so only its last answer is kept, and replay gives that to every save.
+    .filter(
+      (entry, index, all) =>
+        !entry.request.startsWith("PUT ") ||
+        entry.request !== all[index + 1]?.request,
+    )
     .map((entry) => standIn(JSON.stringify(entry)))
-    // How often a page saves its position depends on timing; one save answers them all.
+    // Identical answers to the same request are kept once.
     .filter((entry, index, all) => entry !== all[index - 1])
     .map((entry) => JSON.parse(entry));
   await mkdir(path.dirname(file), { recursive: true });

@@ -1,12 +1,7 @@
 import path from "node:path";
-import { test, expect, RECORD } from "./api.mjs";
-import { removeFolder } from "./real-server.mjs";
+import { test, expect } from "./api.mjs";
 
 const folder = path.resolve(import.meta.dirname, "../../example/media-de");
-
-test.afterEach(async () => {
-  if (RECORD) await removeFolder(folder);
-});
 
 test("Add folder adds the chosen folder's titles to the library", async ({
   page,
