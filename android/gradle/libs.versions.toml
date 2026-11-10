@@ -16,6 +16,9 @@ ktfmt = "0.64"
 roborazzi = "1.78.0"
 robolectric = "4.17"
 hilt = "2.60.1"
+androidxHilt = "1.4.0"
+coroutines = "1.11.0"
+turbine = "1.2.1"
 ksp = "2.3.13"
 room = "2.8.5"
 androidxTest = "1.7.0"
@@ -36,6 +39,9 @@ markdown-renderer-m3 = { module = "com.mikepenz:multiplatform-markdown-renderer-
 junit = { module = "junit:junit", version.ref = "junit" }
 hilt-android = { module = "com.google.dagger:hilt-android", version.ref = "hilt" }
 hilt-compiler = { module = "com.google.dagger:hilt-compiler", version.ref = "hilt" }
+hilt-viewmodel-compose = { module = "androidx.hilt:hilt-lifecycle-viewmodel-compose", version.ref = "androidxHilt" }
+kotlinx-coroutines-test = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-test", version.ref = "coroutines" }
+turbine = { module = "app.cash.turbine:turbine", version.ref = "turbine" }
 room-runtime = { module = "androidx.room:room-runtime", version.ref = "room" }
 room-compiler = { module = "androidx.room:room-compiler", version.ref = "room" }
 kotlinx-serialization-core = { module = "org.jetbrains.kotlinx:kotlinx-serialization-core", version = "1.8.1" }

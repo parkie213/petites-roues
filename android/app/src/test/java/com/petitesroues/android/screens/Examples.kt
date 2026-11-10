@@ -21,6 +21,9 @@ import kotlinx.coroutines.Dispatchers
 object Examples {
   private val root = File(System.getProperty("examples") ?: error("Run through Gradle"))
 
+  /** An example folder (`documents-fr`, `media-fr`), as a content folder the library can read. */
+  fun folder(name: String): Uri = Uri.fromFile(File(root, name))
+
   /** An example media file, as a file URI. */
   fun media(path: String): Uri = Uri.fromFile(File(root, "media-fr/$path"))
 

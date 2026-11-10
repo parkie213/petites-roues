@@ -37,7 +37,10 @@ fail the build too. Lint's notices about newer library versions are switched off
 turn on StrictMode, which logs disk, database and network access on the main thread and leaked
 resources: `adb logcat -s StrictMode`.
 
-JVM tests run on Robolectric, so they draw real screens without a phone. The screenshot tests
+JVM tests run on Robolectric, so they reach Android APIs and draw real screens without a phone.
+ViewModel tests (`LibraryViewModelTest`) use real Room databases in memory and refresh the
+repository's `example/` folders through the real `LibraryService`, with `kotlinx-coroutines-test`
+(`runTest`, `MainDispatcherRule`) and Turbine for the states a `StateFlow` passes through. The screenshot tests
 (`app/src/test/.../screens/`) draw the library, Notes and Quiz me, the comic reader and the
 player and compare them with the PNGs committed in `app/src/test/screenshots/`. The library uses
 a small made-up catalogue (`Fixtures`) with the `example/` comic and poster as card art, and the
@@ -67,15 +70,18 @@ doesn't wipe the phone's pairing, folders or progress.
 | `PetitesRouesApp`, `di/` | The Hilt application and `DataModule`, which provides the databases, DAOs and app-wide scope |
 | `MainActivity` | The single activity: library, Notes and Quiz me tabs, and the open title |
 | `data/` | Room: the library index and reading/playback progress |
-| `library/` | Refreshing the index from the content folders (`LibraryService`), the library screen, card images |
+| `library/` | Refreshing the index from the content folders (`LibraryService`), the library's state and actions (`LibraryViewModel`), the library screen, card images |
 | `player/`, `comic/` | The video player and the comic reader |
 | `desktop/` | Pairing and syncing with the desktop, as a user-initiated background job (`Transfers`) |
 | `pages/`, `quiz/`, `study/` | Notes and quiz pages, quiz sharing, and the phrase and note display shared by both players |
 | `Settings` | Small per-device preferences in SharedPreferences: folders, pairing, followed series, toggles |
 
 Hilt injects the app-wide objects (`Settings`, `LibraryService`, `ProgressStore`, `CardImages`,
-the DAOs) into `MainActivity` and the sync job (`TransferJobService`). Compose screens receive
-what they need as parameters. Discovery, linking documents to media by fingerprint, shelves and
+the DAOs) into `MainActivity`, the sync job (`TransferJobService`) and ViewModels. A screen's work
+(loading, refreshing, saving) belongs in a `@HiltViewModel` that exposes `StateFlow`s and is
+obtained with `hiltViewModel()`; the composables draw that state and call back into it.
+`LibraryViewModel` is the first; the player, reader and desktop screens still keep their state in
+Compose. Blocking work runs on the injected `@IoDispatcher`, so tests can control it. Discovery, linking documents to media by fingerprint, shelves and
 sync rules come from the shared Java library, so the phone and the desktop agree.
 
 ## Databases
