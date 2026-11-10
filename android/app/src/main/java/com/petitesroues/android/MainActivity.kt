@@ -57,6 +57,7 @@ import com.petitesroues.android.library.TitleUiState
 import com.petitesroues.android.library.TitleViewModel
 import com.petitesroues.android.pages.Section
 import com.petitesroues.android.pages.StudyPages
+import com.petitesroues.android.player.PlayerViewModel
 import com.petitesroues.android.player.WatchScreen
 import com.petitesroues.android.quiz.QuizShare
 import dagger.hilt.android.AndroidEntryPoint
@@ -240,8 +241,13 @@ class MainActivity : ComponentActivity() {
     when (val state = opened) {
       is TitleUiState.Ready ->
         when {
-          state.title.kind == TitleKind.VIDEO ->
-            WatchScreen(state.title, state.document, state.saved, progress, settings, onBack)
+          state.title.kind == TitleKind.VIDEO -> {
+            val player =
+              hiltViewModel<PlayerViewModel, PlayerViewModel.Factory> {
+                it.create(state.title, state.document, state.saved)
+              }
+            WatchScreen(player, onBack)
+          }
           state.title.pagesOnly ->
             ReadScreen(
               state.title,
