@@ -22,13 +22,21 @@ test("an episode steps through its subtitles, and Back returns to its series", a
   ).toBeVisible();
   await page.keyboard.press("ArrowRight");
   await expect(page.getByRole("button", { name: "Bien sûr." })).toBeVisible();
+  // Keys work from a subtitle phrase too, as after reading its note.
+  await page.getByRole("button", { name: "Bien sûr." }).focus();
   await page.keyboard.press("t");
   const translation = page.getByRole("group", { name: "Translation" });
   await expect(
     translation.getByRole("button", { name: "Of course." }),
   ).toBeVisible();
 
-  // The controls fade while watching; pointing at the top edge brings them back.
+  // The key left the controls hidden, so they don't cover the video. Read at once, as the controls
+  // would fade again by themselves.
+  expect(
+    await page.locator(".video-player").getAttribute("data-controls-visible"),
+  ).toBeNull();
+
+  // Pointing at the top edge brings the controls back.
   await page.mouse.move(640, 10);
   await page.getByRole("link", { name: "Back to library" }).click();
   await expect(
