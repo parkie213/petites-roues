@@ -13,6 +13,9 @@ export default defineConfig({
   testDir: "e2e",
   // Reference screenshots, made in Playwright's Docker image (`npm run e2e:screenshots`).
   snapshotPathTemplate: "{testDir}/screenshots/{testFileName}/{arg}{ext}",
+  // Chromium sometimes smooths the same text a shade differently from run to run (a few dozen
+  // pixels on the reader's toolbar); a moved or restyled element changes thousands.
+  expect: { toHaveScreenshot: { maxDiffPixels: 100 } },
   // Recording shares one real server, so it runs one test at a time.
   fullyParallel: !RECORD,
   workers: RECORD ? 1 : undefined,
