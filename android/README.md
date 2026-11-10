@@ -40,7 +40,9 @@ resources: `adb logcat -s StrictMode`.
 JVM tests run on Robolectric, so they reach Android APIs and draw real screens without a phone.
 ViewModel tests (`LibraryViewModelTest`, `TitleViewModelTest`) use real Room databases in memory and refresh the
 repository's `example/` folders through the real `LibraryService`, with `kotlinx-coroutines-test`
-(`runTest`, `MainDispatcherRule`) and Turbine for the states a `StateFlow` passes through. The screenshot tests
+(`runTest`, `MainDispatcherRule`) and Turbine for the states a `StateFlow` passes through.
+`NavigationTest` starts the whole Hilt app over the same in-memory databases (`TestDataModule`
+replaces `DataModule`) and taps from the library into a title and back. The screenshot tests
 (`app/src/test/.../screens/`) draw the library, Notes and Quiz me, the comic reader and the
 player and compare them with the PNGs committed in `app/src/test/screenshots/`. The library uses
 a small made-up catalogue (`Fixtures`) with the `example/` comic and poster as card art, and the
@@ -68,7 +70,7 @@ doesn't wipe the phone's pairing, folders or progress.
 | Package | What is in it |
 | --- | --- |
 | `PetitesRouesApp`, `di/` | The Hilt application and `DataModule`, which provides the databases, DAOs and app-wide scope |
-| `MainActivity` | The single activity: library, Notes and Quiz me tabs, and the open title |
+| `MainActivity`, `Routes` | The single activity and its Navigation 3 back stack: the library (with Notes and Quiz me), an open title, the desktop's titles |
 | `data/` | Room: the library index and reading/playback progress |
 | `library/` | Refreshing the index from the content folders (`LibraryService`), the library's state and actions (`LibraryViewModel`), the library screen, card images |
 | `player/`, `comic/` | The video player and the comic reader |
@@ -81,6 +83,9 @@ the DAOs) into `MainActivity`, the sync job (`TransferJobService`) and ViewModel
 (loading, refreshing, saving) belongs in a `@HiltViewModel` that exposes `StateFlow`s and is
 obtained with `hiltViewModel()`; the composables draw that state and call back into it.
 `LibraryViewModel` owns the library and `TitleViewModel` opens a title for the player or reader;
+each title on the back stack gets its own, created by path with assisted injection
+(`hiltViewModel<TitleViewModel, TitleViewModel.Factory> { it.create(path) }`) and cleared when
+the title is popped. The back stack is saved, so an open title survives process death;
 the player, reader and desktop screens still keep their own state in Compose. Blocking work runs on the injected `@IoDispatcher`, so tests can control it. Discovery, linking documents to media by fingerprint, shelves and
 sync rules come from the shared Java library, so the phone and the desktop agree.
 

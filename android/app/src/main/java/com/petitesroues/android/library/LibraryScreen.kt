@@ -67,6 +67,8 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -451,7 +453,12 @@ private class Cards(
         Modifier.fillMaxWidth()
           .aspectRatio(2f / 3f)
           .clip(RoundedCornerShape(5.dp))
-          .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
+          // The art is what is tapped, so it carries the card's name for TalkBack.
+          .then(
+            if (onClick != null)
+              Modifier.clickable(onClick = onClick).semantics { contentDescription = name }
+            else Modifier
+          )
       ) {
         Art(CardSource.of(art), name, comic)
         language?.let {

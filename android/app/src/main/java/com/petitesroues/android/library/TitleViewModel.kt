@@ -6,12 +6,15 @@ import androidx.lifecycle.viewModelScope
 import com.petitesroues.android.Settings
 import com.petitesroues.android.comic.CbzReader
 import com.petitesroues.android.comic.bareComic
+import com.petitesroues.android.data.IndexDao
 import com.petitesroues.android.data.Progress
 import com.petitesroues.android.data.ProgressStore
 import com.petitesroues.android.di.IoDispatcher
 import com.petitesroues.model.document.StudyDocument
+import dagger.assisted.Assisted
+import dagger.assisted.AssistedFactory
+import dagger.assisted.AssistedInject
 import dagger.hilt.android.lifecycle.HiltViewModel
-import javax.inject.Inject
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Job
@@ -22,18 +25,15 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 /**
- * What the title screen shows: nothing, "Opening title…", why the title couldn't be opened, or the
- * player or reader for it. This is the screen's state; a [Title] itself is an unchanging record.
+ * What the title screen shows: "Opening title…", why the title couldn't be opened, or the player or
+ * reader for it. This is the screen's state; a [Title] itself is an unchanging record.
  */
 sealed interface TitleUiState {
-  /** No title is open. */
-  data object Closed : TitleUiState
+  /** The title's document and progress are being read. */
+  data object Opening : TitleUiState
 
-  /** [title]'s document and progress are being read. */
-  data class Opening(val title: Title) : TitleUiState
-
-  /** [title] could not be opened, for the reason in [message]. */
-  data class Failed(val title: Title, val message: String?) : TitleUiState
+  /** The title named [name] could not be opened, for the reason in [message]. */
+  data class Failed(val name: String, val message: String?) : TitleUiState
 
   /**
    * [title] is ready to watch or read: its [document], where it was left ([saved], or null), and
@@ -48,39 +48,37 @@ sealed interface TitleUiState {
 }
 
 /**
- * Opens a title for the player or the reader: reads its study document (or builds a pages-only one
- * for a comic without), and where it was left. Opening the title that is already open does nothing,
- * so the open title survives the activity being recreated; [close] forgets it, so the next open
- * reads progress afresh.
+ * Opens the title at [path] for the player or the reader: finds it in the index, reads its study
+ * document (or builds a pages-only one for a comic without), and where it was left. One lives as
+ * long as its title screen is on the back stack, so reopening a title reads its progress afresh.
  */
-@HiltViewModel
+@HiltViewModel(assistedFactory = TitleViewModel.Factory::class)
 class TitleViewModel
-@Inject
+@AssistedInject
 constructor(
+  @Assisted private val path: String,
+  private val index: IndexDao,
   private val settings: Settings,
   private val progress: ProgressStore,
   private val library: LibraryService,
   private val resolver: ContentResolver,
   @IoDispatcher private val io: CoroutineDispatcher,
 ) : ViewModel() {
-  private val _state = MutableStateFlow<TitleUiState>(TitleUiState.Closed)
-
-  /** The open title, or where opening it has got to. */
-  val state: StateFlow<TitleUiState> = _state.asStateFlow()
-
-  private var loading: Job? = null
-
-  /** Opens [title], unless it is already open. */
-  fun open(title: Title) {
-    if (_state.value.path == title.path) return
-    _state.value = TitleUiState.Opening(title)
-    load(title, rtl = title.pagesOnly && settings.comicRtl(title.path), saved = null)
+  /** Creates the ViewModel for the title at a path. */
+  @AssistedFactory
+  interface Factory {
+    fun create(path: String): TitleViewModel
   }
 
-  /** Closes the open title. */
-  fun close() {
-    loading?.cancel()
-    _state.value = TitleUiState.Closed
+  private val _state = MutableStateFlow<TitleUiState>(TitleUiState.Opening)
+
+  /** Where opening the title has got to. */
+  val state: StateFlow<TitleUiState> = _state.asStateFlow()
+
+  private var loading: Job = viewModelScope.launch {
+    val title = withContext(io) { index.title(path) }
+    if (title == null) _state.value = TitleUiState.Failed(path, "it is no longer in the library")
+    else load(title, rtl = title.pagesOnly && settings.comicRtl(path), saved = null)
   }
 
   /**
@@ -91,24 +89,22 @@ constructor(
     val ready = _state.value as? TitleUiState.Ready ?: return
     if (!ready.title.pagesOnly) return
     val rtl = !ready.rtl
-    settings.setComicRtl(ready.title.path, rtl)
-    load(ready.title, rtl, ready.saved)
+    settings.setComicRtl(path, rtl)
+    loading.cancel()
+    loading = viewModelScope.launch { load(ready.title, rtl, ready.saved) }
   }
 
   /** Reads [title]'s document; [saved] is the progress already read, or null to read it. */
-  private fun load(title: Title, rtl: Boolean, saved: Progress?) {
-    loading?.cancel()
-    loading = viewModelScope.launch {
-      _state.value =
-        try {
-          val left = saved ?: progress.find(title.progressKey)
-          TitleUiState.Ready(title, withContext(io) { document(title, rtl) }, left, rtl)
-        } catch (failure: CancellationException) {
-          throw failure
-        } catch (failure: Exception) {
-          TitleUiState.Failed(title, failure.message)
-        }
-    }
+  private suspend fun load(title: Title, rtl: Boolean, saved: Progress?) {
+    _state.value =
+      try {
+        val left = saved ?: progress.find(title.progressKey)
+        TitleUiState.Ready(title, withContext(io) { document(title, rtl) }, left, rtl)
+      } catch (failure: CancellationException) {
+        throw failure
+      } catch (failure: Exception) {
+        TitleUiState.Failed(title.name, failure.message)
+      }
   }
 
   private fun document(title: Title, rtl: Boolean): StudyDocument =
@@ -117,13 +113,4 @@ constructor(
         bareComic(title, it.pages(), rtl)
       }
     else library.read(checkNotNull(title.documentUri) { "it has no study document" })
-
-  private val TitleUiState.path: String?
-    get() =
-      when (this) {
-        TitleUiState.Closed -> null
-        is TitleUiState.Opening -> title.path
-        is TitleUiState.Failed -> title.path
-        is TitleUiState.Ready -> title.path
-      }
 }

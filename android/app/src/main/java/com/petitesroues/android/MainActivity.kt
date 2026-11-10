@@ -9,6 +9,9 @@ import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.ContentTransform
+import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.ExitTransition
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -33,6 +36,11 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.navigation3.rememberViewModelStoreNavEntryDecorator
+import androidx.navigation3.runtime.entryProvider
+import androidx.navigation3.runtime.rememberNavBackStack
+import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
+import androidx.navigation3.ui.NavDisplay
 import com.petitesroues.android.comic.ReadScreen
 import com.petitesroues.android.data.ProgressStore
 import com.petitesroues.android.desktop.DesktopDialog
@@ -43,9 +51,7 @@ import com.petitesroues.android.library.AppFolder
 import com.petitesroues.android.library.Browse
 import com.petitesroues.android.library.CardImages
 import com.petitesroues.android.library.LibraryScreen
-import com.petitesroues.android.library.LibraryService
 import com.petitesroues.android.library.LibraryViewModel
-import com.petitesroues.android.library.Title
 import com.petitesroues.android.library.TitleKind
 import com.petitesroues.android.library.TitleUiState
 import com.petitesroues.android.library.TitleViewModel
@@ -56,19 +62,18 @@ import com.petitesroues.android.quiz.QuizShare
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 /**
- * The single activity: the library, and the player or comic reader for the open title. The app only
- * reads the content folder; documents are written on the desktop by agents. Hilt injects the
- * app-wide objects it works with.
+ * The single activity: the library, the player or comic reader for an open title, and the desktop's
+ * titles, as a back stack of routes ([LibraryRoute], [TitleRoute], [DesktopTitlesRoute]) that
+ * survives the app being stopped. The app only reads the content folder; documents are written on
+ * the desktop by agents. Hilt injects the app-wide objects it works with.
  */
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
   @Inject lateinit var settings: Settings
   @Inject lateinit var progress: ProgressStore
-  @Inject lateinit var library: LibraryService
   @Inject lateinit var images: CardImages
 
   override fun onCreate(savedInstanceState: Bundle?) {
@@ -80,41 +85,26 @@ class MainActivity : ComponentActivity() {
 
   @Composable
   private fun App() {
+    // The library outlives its screen, so a refresh carries on while a title or the desktop is
+    // open.
     val libraryModel: LibraryViewModel = hiltViewModel()
-    val state by libraryModel.state.collectAsStateWithLifecycle()
-    val section by libraryModel.section.collectAsStateWithLifecycle()
-    val pages by libraryModel.pages.collectAsStateWithLifecycle()
-    var openPath by rememberSaveable { mutableStateOf<String?>(null) }
-    // Kept here so returning from a title restores the open series and the shelves' scroll.
-    var browseGroup by rememberSaveable { mutableStateOf<String?>(null) }
-    var browseSeason by rememberSaveable { mutableStateOf<Int?>(null) }
-    val shelvesScroll = rememberLazyGridState()
-
-    val addFolder =
-      rememberLauncherForActivityResult(ActivityResultContracts.OpenDocumentTree()) { tree: Uri? ->
-        tree?.let(libraryModel::addFolder)
-      }
-
-    // Back from the system's All files access page: the app's own folder joins the library if
-    // allowed.
-    val allowFiles =
-      rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) {
-        libraryModel.refresh()
-      }
+    val backStack = rememberNavBackStack(LibraryRoute)
+    val openDesktopTitles = {
+      if (backStack.lastOrNull() != DesktopTitlesRoute) backStack.add(DesktopTitlesRoute)
+    }
 
     var desktopOpen by remember { mutableStateOf(false) }
-    var titlesOpen by rememberSaveable { mutableStateOf(false) }
     if (desktopOpen)
       DesktopDialog(
         settings,
         onGetTitles = {
           desktopOpen = false
-          titlesOpen = true
+          openDesktopTitles()
         },
       ) {
         desktopOpen = false
         // Forgetting the desktop leaves nothing to sync with.
-        if (settings.desktop == null) titlesOpen = false
+        if (settings.desktop == null) backStack.removeAll { it == DesktopTitlesRoute }
       }
 
     val transfer by Transfers.status.collectAsState()
@@ -125,79 +115,131 @@ class MainActivity : ComponentActivity() {
       if (settings.desktop != null && mayReachLocalNetwork(this@MainActivity))
         withContext(Dispatchers.IO) { runCatching { Transfers.check(this@MainActivity, settings) } }
     }
-    if (titlesOpen) {
-      DesktopTitlesScreen(settings, onDesktop = { desktopOpen = true }) { titlesOpen = false }
-      return
-    }
 
-    val open = openPath?.let { path -> state.titles.firstOrNull { it.path == path } }
-    if (open == null) {
-      LaunchedEffect(Unit) { libraryModel.onShown() }
-      LibraryScreen(
-        state,
-        images,
-        Browse(browseGroup, browseSeason),
-        shelvesScroll,
-        onBrowse = {
-          browseGroup = it.group
-          browseSeason = it.season
+    val noTransition = ContentTransform(EnterTransition.None, ExitTransition.None)
+    NavDisplay(
+      backStack = backStack,
+      onBack = { backStack.removeLastOrNull() },
+      entryDecorators =
+        listOf(
+          rememberSaveableStateHolderNavEntryDecorator(),
+          rememberViewModelStoreNavEntryDecorator(),
+        ),
+      transitionSpec = { noTransition },
+      popTransitionSpec = { noTransition },
+      predictivePopTransitionSpec = { noTransition },
+      entryProvider =
+        entryProvider {
+          entry<LibraryRoute> {
+            Library(
+              libraryModel,
+              pending,
+              onOpen = { backStack.add(TitleRoute(it)) },
+              // Paired, the desktop button goes straight to syncing; pairing is a button there.
+              onDesktop = {
+                if (settings.desktop != null && mayReachLocalNetwork(this@MainActivity))
+                  openDesktopTitles()
+                else desktopOpen = true
+              },
+              onGetTitles = {
+                if (settings.desktop == null) desktopOpen = true else openDesktopTitles()
+              },
+            )
+          }
+          entry<TitleRoute> { route ->
+            AppTheme(dark = true) { TitleScreen(route.path) { backStack.removeLastOrNull() } }
+          }
+          entry<DesktopTitlesRoute> {
+            DesktopTitlesScreen(settings, onDesktop = { desktopOpen = true }) {
+              backStack.removeLastOrNull()
+            }
+          }
         },
-        onAddFolder = { addFolder.launch(null) },
-        onRemoveFolder = libraryModel::removeFolder,
-        onRefresh = libraryModel::refresh,
-        desktopPending = pending,
-        // Paired, the desktop button goes straight to syncing; pairing is a button there.
-        onDesktop = {
-          if (settings.desktop != null && mayReachLocalNetwork(this@MainActivity)) titlesOpen = true
-          else desktopOpen = true
-        },
-        onGetTitles = { if (settings.desktop == null) desktopOpen = true else titlesOpen = true },
-        onAllowFiles = { allowFiles.launch(AppFolder.allowIntent(this@MainActivity)) },
-        section = section,
-        onSection = libraryModel::selectSection,
-        study = {
-          StudyPages(
-            section,
-            pages,
-            remembered = settings.generalQuiz.takeIf { section == Section.QUIZZES },
-            onBack = { libraryModel.selectSection(Section.LIBRARY) },
-            onOpened = { if (section == Section.QUIZZES) settings.generalQuiz = it.key },
-            onChat = { quiz, app -> QuizShare.share(this@MainActivity, quiz, app) },
-            onCopy = { quiz ->
-              getSystemService(ClipboardManager::class.java)
-                .setPrimaryClip(
-                  ClipData.newPlainText(quiz.title, QuizShare.prompt(this@MainActivity, quiz))
-                )
-            },
-          )
-        },
-        onOpen = { openPath = it.path },
-        onClearProgress = libraryModel::clearProgress,
-      )
-    } else
-      AppTheme(dark = true) {
-        TitleScreen(open) { openPath = null }
+    )
+  }
+
+  /** The library screen over [model], opening the title at a path with [onOpen]. */
+  @Composable
+  private fun Library(
+    model: LibraryViewModel,
+    desktopPending: Int,
+    onOpen: (String) -> Unit,
+    onDesktop: () -> Unit,
+    onGetTitles: () -> Unit,
+  ) {
+    val state by model.state.collectAsStateWithLifecycle()
+    val section by model.section.collectAsStateWithLifecycle()
+    val pages by model.pages.collectAsStateWithLifecycle()
+    // Saved with the library's place on the back stack, so returning from a title restores the
+    // open series and the shelves' scroll.
+    var browseGroup by rememberSaveable { mutableStateOf<String?>(null) }
+    var browseSeason by rememberSaveable { mutableStateOf<Int?>(null) }
+    val shelvesScroll = rememberLazyGridState()
+
+    val addFolder =
+      rememberLauncherForActivityResult(ActivityResultContracts.OpenDocumentTree()) { tree: Uri? ->
+        tree?.let(model::addFolder)
       }
+    // Back from the system's All files access page: the app's own folder joins the library if
+    // allowed.
+    val allowFiles =
+      rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) {
+        model.refresh()
+      }
+
+    LaunchedEffect(Unit) { model.onShown() }
+    LibraryScreen(
+      state,
+      images,
+      Browse(browseGroup, browseSeason),
+      shelvesScroll,
+      onBrowse = {
+        browseGroup = it.group
+        browseSeason = it.season
+      },
+      onAddFolder = { addFolder.launch(null) },
+      onRemoveFolder = model::removeFolder,
+      onRefresh = model::refresh,
+      desktopPending = desktopPending,
+      onDesktop = onDesktop,
+      onGetTitles = onGetTitles,
+      onAllowFiles = { allowFiles.launch(AppFolder.allowIntent(this@MainActivity)) },
+      section = section,
+      onSection = model::selectSection,
+      study = {
+        StudyPages(
+          section,
+          pages,
+          remembered = settings.generalQuiz.takeIf { section == Section.QUIZZES },
+          onBack = { model.selectSection(Section.LIBRARY) },
+          onOpened = { if (section == Section.QUIZZES) settings.generalQuiz = it.key },
+          onChat = { quiz, app -> QuizShare.share(this@MainActivity, quiz, app) },
+          onCopy = { quiz ->
+            getSystemService(ClipboardManager::class.java)
+              .setPrimaryClip(
+                ClipData.newPlainText(quiz.title, QuizShare.prompt(this@MainActivity, quiz))
+              )
+          },
+        )
+      },
+      onOpen = { onOpen(it.path) },
+      onClearProgress = model::clearProgress,
+    )
   }
 
   /**
-   * Shows the player or reader for [title] once [TitleViewModel] has opened it, and a placeholder
-   * while it opens or when it can't be.
+   * The player or reader for the title at [path] once [TitleViewModel] has opened it, and a
+   * placeholder while it opens or when it can't be.
    */
   @Composable
-  private fun TitleScreen(title: Title, onBack: () -> Unit) {
-    val model: TitleViewModel = hiltViewModel()
-    LaunchedEffect(title.path) { model.open(title) }
+  private fun TitleScreen(path: String, onBack: () -> Unit) {
+    val model = hiltViewModel<TitleViewModel, TitleViewModel.Factory> { it.create(path) }
     val opened by model.state.collectAsStateWithLifecycle()
-    val back = {
-      model.close()
-      onBack()
-    }
     when (val state = opened) {
-      is TitleUiState.Ready if state.title.path == title.path ->
+      is TitleUiState.Ready ->
         when {
-          title.kind == TitleKind.VIDEO ->
-            WatchScreen(state.title, state.document, state.saved, progress, settings, back)
+          state.title.kind == TitleKind.VIDEO ->
+            WatchScreen(state.title, state.document, state.saved, progress, settings, onBack)
           state.title.pagesOnly ->
             ReadScreen(
               state.title,
@@ -205,21 +247,21 @@ class MainActivity : ComponentActivity() {
               state.saved,
               progress,
               settings,
-              back,
+              onBack,
               model::flipDirection,
             )
-          else -> ReadScreen(state.title, state.document, state.saved, progress, settings, back)
+          else -> ReadScreen(state.title, state.document, state.saved, progress, settings, onBack)
         }
-      is TitleUiState.Failed if state.title.path == title.path -> {
-        BackHandler(onBack = back)
+      is TitleUiState.Failed -> {
+        BackHandler(onBack = onBack)
         Box(
           Modifier.fillMaxSize().background(Color.Black).padding(24.dp),
           contentAlignment = Alignment.Center,
         ) {
-          Text("Cannot open ${title.name}: ${state.message}", color = Color(0xFFFFB4A9))
+          Text("Cannot open ${state.name}: ${state.message}", color = Color(0xFFFFB4A9))
         }
       }
-      else ->
+      TitleUiState.Opening ->
         Box(Modifier.fillMaxSize().background(Color.Black), contentAlignment = Alignment.Center) {
           Column(
             horizontalAlignment = Alignment.CenterHorizontally,

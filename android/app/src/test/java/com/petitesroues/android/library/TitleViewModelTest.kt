@@ -30,7 +30,10 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.annotation.Config
 
-/** Opening the repository's `example/` titles, with progress in a real database in memory. */
+/**
+ * Opening the repository's `example/` titles by path, from a real index and progress database in
+ * memory.
+ */
 @RunWith(AndroidJUnit4::class)
 @Config(application = Application::class, sdk = [SDK])
 class TitleViewModelTest {
@@ -67,6 +70,7 @@ class TitleViewModelTest {
         .allowMainThreadQueries()
         .build()
     settings = Settings(context)
+    indexDatabase.index().replaceTitles(listOf(episode, comic, pagesOnly))
   }
 
   @After
@@ -75,8 +79,10 @@ class TitleViewModelTest {
     progressDatabase.close()
   }
 
-  private fun viewModel() =
+  private fun viewModel(title: Title) =
     TitleViewModel(
+      title.path,
+      indexDatabase.index(),
       settings,
       ProgressStore(progressDatabase.progress(), CoroutineScope(Dispatchers.Unconfined)),
       LibraryService(context.contentResolver, indexDatabase.index(), StudyDocumentReader()),
@@ -84,45 +90,36 @@ class TitleViewModelTest {
       main.dispatcher,
     )
 
-  private suspend fun TitleViewModel.awaitReady() =
-    state.first { it is TitleUiState.Ready || it is TitleUiState.Failed } as TitleUiState.Ready
+  /** Waits until the title has opened or failed to. */
+  private suspend fun TitleViewModel.awaitOpened() = state.first { it != TitleUiState.Opening }
+
+  private suspend fun TitleViewModel.awaitReady() = awaitOpened() as TitleUiState.Ready
 
   @Test
   fun `an episode opens with its document and where it was left`() = runTest {
     progressDatabase.progress().save(Progress(episode.progressKey, positionSeconds = 30.0))
-    val model = viewModel()
-    model.state.test {
-      assertEquals(TitleUiState.Closed, awaitItem())
-      model.open(episode)
-      assertEquals(TitleUiState.Opening(episode), awaitItem())
-      val ready = awaitItem() as TitleUiState.Ready
-      assertEquals("peppa-pig-example-s01e01", ready.document.id())
-      assertEquals(30.0, ready.saved?.positionSeconds)
-    }
+    val ready = viewModel(episode).awaitReady()
+    assertEquals(episode, ready.title)
+    assertEquals("peppa-pig-example-s01e01", ready.document.id())
+    assertEquals(30.0, ready.saved?.positionSeconds)
   }
 
   @Test
   fun `a comic opens with its document on the page it was left at`() = runTest {
     progressDatabase.progress().save(Progress(comic.progressKey, pageId = "page-2"))
-    val model = viewModel()
-    model.open(comic)
-    val ready = model.awaitReady()
+    val ready = viewModel(comic).awaitReady()
     assertEquals("lulu-example-le-parapluie", ready.document.id())
     assertEquals("page-2", ready.saved?.pageId)
   }
 
   @Test
   fun `a title never opened has no progress`() = runTest {
-    val model = viewModel()
-    model.open(episode)
-    assertNull(model.awaitReady().saved)
+    assertNull(viewModel(episode).awaitReady().saved)
   }
 
   @Test
   fun `a comic without a document reads its CBZ's pages, left to right at first`() = runTest {
-    val model = viewModel()
-    model.open(pagesOnly)
-    val ready = model.awaitReady()
+    val ready = viewModel(pagesOnly).awaitReady()
     assertEquals(4, ready.document.comic().pages().size)
     assertEquals(ReadingDirection.LTR, ready.document.comic().readingDirection())
   }
@@ -130,8 +127,7 @@ class TitleViewModelTest {
   @Test
   fun `flipping a pages-only comic rebuilds it without closing the reader, and is remembered`() =
     runTest {
-      val model = viewModel()
-      model.open(pagesOnly)
+      val model = viewModel(pagesOnly)
       model.awaitReady()
       model.state.test {
         awaitItem()
@@ -147,35 +143,23 @@ class TitleViewModelTest {
   @Test
   fun `a pages-only comic opens in the direction chosen for it`() = runTest {
     settings.setComicRtl(pagesOnly.path, true)
-    val model = viewModel()
-    model.open(pagesOnly)
-    assertTrue(model.awaitReady().rtl)
+    assertTrue(viewModel(pagesOnly).awaitReady().rtl)
   }
 
   @Test
   fun `a document that can't be read says why`() = runTest {
     val missing = episode.copy(path = "missing", documentUri = Uri.parse("file:///no/such.json"))
-    val model = viewModel()
-    model.open(missing)
-    val failed =
-      model.state.first { it is TitleUiState.Failed || it is TitleUiState.Ready }
-        as TitleUiState.Failed
-    assertEquals(missing, failed.title)
+    indexDatabase.index().replaceTitles(listOf(missing))
+    val failed = viewModel(missing).awaitOpened() as TitleUiState.Failed
+    assertEquals(missing.name, failed.name)
   }
 
   @Test
-  fun `opening the open title again keeps it, and closing forgets it`() = runTest {
-    val model = viewModel()
-    model.open(episode)
-    val ready = model.awaitReady()
-    model.state.test {
-      awaitItem()
-      model.open(episode)
-      expectNoEvents()
-      model.close()
-      assertEquals(TitleUiState.Closed, awaitItem())
-    }
-    assertEquals("peppa-pig-example-s01e01", ready.document.id())
+  fun `a title no longer in the index says so`() = runTest {
+    indexDatabase.index().replaceTitles(emptyList())
+    val failed = viewModel(episode).awaitOpened() as TitleUiState.Failed
+    assertEquals(episode.path, failed.name)
+    assertEquals("it is no longer in the library", failed.message)
   }
 
   private companion object {
