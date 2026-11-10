@@ -265,7 +265,7 @@ export function Watch({ id, fingerprint }) {
   const page = (
     <main className="left watch">
       <div
-        className={`video-player${quickEdit || quizOpen ? " watch-editing" : ""}`}
+        className={`video-player${quickEdit || quizOpen ? " watch-editing" : ""}${quickEdit ? " watch-timeline" : ""}`}
         ref={container}
         data-controls-visible={controlsVisible || undefined}
         onPointerMove={handlePlayerPointer}
@@ -446,7 +446,7 @@ export function Watch({ id, fingerprint }) {
             cue={quickEdit.cue}
             cues={cues}
             video={video}
-            time={time}
+            heldTime={heldTime}
             seek={seek}
             play={play}
             pause={pause}

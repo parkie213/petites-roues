@@ -81,16 +81,35 @@
   border-top: 1px solid #ffffff18;
   padding-top: 14px;
 }
-.subtitle-edit-boundaries {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 14px;
+.subtitle-edit-times {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-variant-numeric: tabular-nums;
 }
-.subtitle-edit-track {
-  border: 1px solid #ffffff20;
-  border-radius: 6px;
-  padding: 18px 12px 10px;
-  margin-top: 16px;
+.subtitle-edit-times .mantine-Button-root[aria-pressed="true"] {
+  color: #ffb3a5;
+  background: #df796724;
+}
+/* The timeline sits under the video, beside the panel, while a line is edited. */
+.subtitle-timeline {
+  --timeline: 64px;
+  position: absolute;
+  left: 0;
+  right: 440px;
+  bottom: 0;
+  height: var(--timeline);
+  z-index: 6;
+  background: #16191e;
+  border-top: 1px solid #ffffff1a;
+}
+.subtitle-timeline canvas {
+  display: block;
+  touch-action: none;
+}
+.subtitle-timeline canvas:focus-visible {
+  outline: 2px solid #df7967;
+  outline-offset: -2px;
 }
 .subtitle-edit-panel > footer {
   display: flex;
@@ -109,9 +128,18 @@
   opacity: 1;
   pointer-events: auto;
 }
+.watch-timeline .video-stage {
+  margin-bottom: 64px;
+}
+.watch .watch-timeline > .playback-toolbar {
+  bottom: 64px;
+}
 @media (max-width: 900px) {
   .subtitle-edit-panel {
     width: 360px;
+  }
+  .subtitle-timeline {
+    right: 360px;
   }
   .watch-editing .video-stage {
     margin-right: 360px;
@@ -139,6 +167,16 @@
   }
   .watch .watch-editing > .playback-toolbar {
     bottom: 60dvh;
+  }
+  .subtitle-timeline {
+    right: 0;
+    bottom: 60dvh;
+  }
+  .watch-timeline .video-stage {
+    margin-bottom: calc(60dvh + 64px);
+  }
+  .watch .watch-timeline > .playback-toolbar {
+    bottom: calc(60dvh + 64px);
   }
   .subtitle-edit-panel > header {
     padding: 12px 16px 8px;

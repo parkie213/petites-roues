@@ -49,13 +49,13 @@ test("a line's neighbours are linked by default only where they meet it", () => 
   });
   assert.equal(neighbours(lines, lines[2]).next, null);
 });
-test("linked neighbours move with a boundary by the same amount, keeping any gap", () => {
+test("linked neighbours join the line's boundaries, closing any gap", () => {
   const both = { previous: true, next: true };
   assert.deepEqual(
     neighbourTimings(lines, lines[1], { start: 2.4, end: 4.1 }, both),
     [
       { id: "a", start: 1, end: 2.4 },
-      { id: "c", start: 4.34, end: 6 },
+      { id: "c", start: 4.1, end: 6 },
     ],
   );
   assert.deepEqual(
@@ -71,7 +71,7 @@ test("linked neighbours move with a boundary by the same amount, keeping any gap
     [],
   );
   assert.deepEqual(
-    neighbourTimings(lines, lines[1], { start: 2.5, end: 4 }, both),
+    neighbourTimings(lines, lines[1], { start: 2.5, end: 4.24 }, both),
     [],
   );
   assert.throws(
@@ -79,7 +79,7 @@ test("linked neighbours move with a boundary by the same amount, keeping any gap
     /previous line/,
   );
   assert.throws(
-    () => neighbourTimings(lines, lines[1], { start: 2.5, end: 5.8 }, both),
+    () => neighbourTimings(lines, lines[1], { start: 2.5, end: 6 }, both),
     /next line/,
   );
 });

@@ -1137,7 +1137,7 @@
     }
   },
   {
-    "request": "PUT /api/titles/peppa-pig-example-s01e01/cues/a5ce11b2-3e58-3652-a46e-0969f2a861f5",
+    "request": "PUT /api/titles/peppa-pig-example-s01e01/cues/b65a6f06-3525-357f-9286-49eba2ef8b82",
     "status": 200,
     "type": "application/json",
     "json": {
@@ -1239,66 +1239,14 @@
             "line": {
               "id": "b65a6f06-3525-357f-9286-49eba2ef8b82",
               "source": "Bien sûr. Allez-y et amusez-vous bien.",
-              "translation": "Of course. Go ahead and have fun.",
+              "translation": "Of course. Off you go and have fun.",
               "notes": [
                 "Both commands address the children together. In affirmative commands, the pronouns follow the verb with a hyphen: `allez-y`, `amusez-vous`."
               ],
-              "alignment": {
-                "source": [
-                  "Bien sûr.",
-                  "Allez-y",
-                  "et",
-                  "amusez-vous bien."
-                ],
-                "translation": [
-                  "Of course.",
-                  "Go ahead",
-                  "and",
-                  "have fun."
-                ],
-                "links": [
-                  {
-                    "source": [
-                      0
-                    ],
-                    "translation": [
-                      0
-                    ],
-                    "note": "`Bien sûr` is the fixed expression of course; here it grants permission."
-                  },
-                  {
-                    "source": [
-                      1
-                    ],
-                    "translation": [
-                      1
-                    ],
-                    "note": "`Allez → aller` = go, second-person plural imperative addressing the children. `Allez-y` means go ahead here; `y` points to going out/the proposed activity."
-                  },
-                  {
-                    "source": [
-                      2
-                    ],
-                    "translation": [
-                      2
-                    ],
-                    "note": "`Et` = and, joining the two commands."
-                  },
-                  {
-                    "source": [
-                      3
-                    ],
-                    "translation": [
-                      3
-                    ],
-                    "note": "`Amusez-vous → s'amuser` = have fun/enjoy yourselves, second-person plural imperative. `Amuser quelqu'un` means entertain someone; pronominal `s'amuser` means have fun oneself. `Bien` wishes them a good time."
-                  }
-                ]
-              },
               "continuesPrevious": false
             },
             "start": 7.02,
-            "end": 9.82
+            "end": 14.1
           },
           {
             "line": {
@@ -1351,7 +1299,7 @@
               },
               "continuesPrevious": false
             },
-            "start": 13.79,
+            "start": 14.1,
             "end": 23
           },
           {
