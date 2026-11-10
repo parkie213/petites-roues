@@ -268,7 +268,6 @@ export function Watch({ id, fingerprint }) {
         data-controls-visible={controlsVisible || undefined}
         onPointerMove={handlePlayerPointer}
         onPointerDown={handlePlayerPointer}
-        onKeyDownCapture={wakeControls}
       >
         <Group className="watch-bar" gap="sm" wrap="nowrap">
           <ActionIcon
