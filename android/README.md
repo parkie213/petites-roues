@@ -38,7 +38,7 @@ turn on StrictMode, which logs disk, database and network access on the main thr
 resources: `adb logcat -s StrictMode`.
 
 JVM tests run on Robolectric, so they reach Android APIs and draw real screens without a phone.
-ViewModel tests (`LibraryViewModelTest`) use real Room databases in memory and refresh the
+ViewModel tests (`LibraryViewModelTest`, `TitleViewModelTest`) use real Room databases in memory and refresh the
 repository's `example/` folders through the real `LibraryService`, with `kotlinx-coroutines-test`
 (`runTest`, `MainDispatcherRule`) and Turbine for the states a `StateFlow` passes through. The screenshot tests
 (`app/src/test/.../screens/`) draw the library, Notes and Quiz me, the comic reader and the
@@ -80,8 +80,8 @@ Hilt injects the app-wide objects (`Settings`, `LibraryService`, `ProgressStore`
 the DAOs) into `MainActivity`, the sync job (`TransferJobService`) and ViewModels. A screen's work
 (loading, refreshing, saving) belongs in a `@HiltViewModel` that exposes `StateFlow`s and is
 obtained with `hiltViewModel()`; the composables draw that state and call back into it.
-`LibraryViewModel` is the first; the player, reader and desktop screens still keep their state in
-Compose. Blocking work runs on the injected `@IoDispatcher`, so tests can control it. Discovery, linking documents to media by fingerprint, shelves and
+`LibraryViewModel` owns the library and `TitleViewModel` opens a title for the player or reader;
+the player, reader and desktop screens still keep their own state in Compose. Blocking work runs on the injected `@IoDispatcher`, so tests can control it. Discovery, linking documents to media by fingerprint, shelves and
 sync rules come from the shared Java library, so the phone and the desktop agree.
 
 ## Databases

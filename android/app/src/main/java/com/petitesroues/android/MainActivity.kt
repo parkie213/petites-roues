@@ -5,6 +5,7 @@ import android.content.ClipboardManager
 import android.net.Uri
 import android.os.Bundle
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
@@ -32,10 +33,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.petitesroues.android.comic.CbzReader
 import com.petitesroues.android.comic.ReadScreen
-import com.petitesroues.android.comic.bareComic
-import com.petitesroues.android.data.Progress
 import com.petitesroues.android.data.ProgressStore
 import com.petitesroues.android.desktop.DesktopDialog
 import com.petitesroues.android.desktop.DesktopTitlesScreen
@@ -49,11 +47,12 @@ import com.petitesroues.android.library.LibraryService
 import com.petitesroues.android.library.LibraryViewModel
 import com.petitesroues.android.library.Title
 import com.petitesroues.android.library.TitleKind
+import com.petitesroues.android.library.TitleUiState
+import com.petitesroues.android.library.TitleViewModel
 import com.petitesroues.android.pages.Section
 import com.petitesroues.android.pages.StudyPages
 import com.petitesroues.android.player.WatchScreen
 import com.petitesroues.android.quiz.QuizShare
-import com.petitesroues.model.document.StudyDocument
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
 import kotlinx.coroutines.Dispatchers
@@ -133,7 +132,7 @@ class MainActivity : ComponentActivity() {
 
     val open = openPath?.let { path -> state.titles.firstOrNull { it.path == path } }
     if (open == null) {
-      LaunchedEffect(Unit) { libraryModel.show() }
+      LaunchedEffect(Unit) { libraryModel.onShown() }
       LibraryScreen(
         state,
         images,
@@ -182,33 +181,45 @@ class MainActivity : ComponentActivity() {
   }
 
   /**
-   * Loads the title's document and where it was left, then shows the player or reader for it. A
-   * comic without a study document reads from a pages-only one built from its CBZ, in the direction
-   * chosen for it.
+   * Shows the player or reader for [title] once [TitleViewModel] has opened it, and a placeholder
+   * while it opens or when it can't be.
    */
   @Composable
   private fun TitleScreen(title: Title, onBack: () -> Unit) {
-    val bare = title.documentUri == null && title.kind == TitleKind.COMIC
-    var rtl by remember(title) { mutableStateOf(bare && settings.comicRtl(title.path)) }
-    var loaded by remember(title) { mutableStateOf<Result<StudyDocument>?>(null) }
-    var saved by remember(title) { mutableStateOf<Progress?>(null) }
-    LaunchedEffect(title, rtl) {
-      saved = progress.find(title.progressKey)
-      loaded =
-        withContext(Dispatchers.IO) {
-          runCatching {
-            if (bare)
-              CbzReader(contentResolver, checkNotNull(title.mediaUri) { "its CBZ is missing" })
-                .use {
-                  bareComic(title, it.pages(), rtl)
-                }
-            else library.read(checkNotNull(title.documentUri) { "it has no study document" })
-          }
-        }
+    val model: TitleViewModel = hiltViewModel()
+    LaunchedEffect(title.path) { model.open(title) }
+    val opened by model.state.collectAsStateWithLifecycle()
+    val back = {
+      model.close()
+      onBack()
     }
-    val document = loaded?.getOrNull()
-    when {
-      loaded == null ->
+    when (val state = opened) {
+      is TitleUiState.Ready if state.title.path == title.path ->
+        when {
+          title.kind == TitleKind.VIDEO ->
+            WatchScreen(state.title, state.document, state.saved, progress, settings, back)
+          state.title.pagesOnly ->
+            ReadScreen(
+              state.title,
+              state.document,
+              state.saved,
+              progress,
+              settings,
+              back,
+              model::flipDirection,
+            )
+          else -> ReadScreen(state.title, state.document, state.saved, progress, settings, back)
+        }
+      is TitleUiState.Failed if state.title.path == title.path -> {
+        BackHandler(onBack = back)
+        Box(
+          Modifier.fillMaxSize().background(Color.Black).padding(24.dp),
+          contentAlignment = Alignment.Center,
+        ) {
+          Text("Cannot open ${title.name}: ${state.message}", color = Color(0xFFFFB4A9))
+        }
+      }
+      else ->
         Box(Modifier.fillMaxSize().background(Color.Black), contentAlignment = Alignment.Center) {
           Column(
             horizontalAlignment = Alignment.CenterHorizontally,
@@ -222,26 +233,6 @@ class MainActivity : ComponentActivity() {
             )
           }
         }
-      document == null -> {
-        androidx.activity.compose.BackHandler(onBack = onBack)
-        Box(
-          Modifier.fillMaxSize().background(Color.Black).padding(24.dp),
-          contentAlignment = Alignment.Center,
-        ) {
-          Text(
-            "Cannot open ${title.name}: ${loaded!!.exceptionOrNull()?.message}",
-            color = Color(0xFFFFB4A9),
-          )
-        }
-      }
-      title.kind == TitleKind.VIDEO ->
-        WatchScreen(title, document, saved, progress, settings, onBack)
-      bare ->
-        ReadScreen(title, document, saved, progress, settings, onBack) {
-          rtl = !rtl
-          settings.setComicRtl(title.path, rtl)
-        }
-      else -> ReadScreen(title, document, saved, progress, settings, onBack)
     }
   }
 }

@@ -91,13 +91,13 @@ class LibraryViewModelTest {
     )
 
   /** Skips states until one matches [done], and returns it. */
-  private suspend fun ReceiveTurbine<LibraryState>.awaitUntil(
-    done: (LibraryState) -> Boolean
-  ): LibraryState {
+  private suspend fun ReceiveTurbine<LibraryUiState>.awaitUntil(
+    done: (LibraryUiState) -> Boolean
+  ): LibraryUiState {
     while (true) awaitItem().let { if (done(it)) return it }
   }
 
-  private val LibraryState.documentIds
+  private val LibraryUiState.documentIds
     get() = titles.map { it.documentId }.toSet()
 
   /**
@@ -113,7 +113,7 @@ class LibraryViewModelTest {
     )
 
   /** Waits for the first state that matches [done]: some of the work runs on other threads. */
-  private suspend fun LibraryViewModel.awaitState(done: (LibraryState) -> Boolean) =
+  private suspend fun LibraryViewModel.awaitState(done: (LibraryUiState) -> Boolean) =
     state.first(done)
 
   @Test
@@ -136,7 +136,7 @@ class LibraryViewModelTest {
   @Test
   fun `showing an empty library with folders refreshes it`() = runTest {
     val model = viewModel()
-    model.show()
+    model.onShown()
     assertEquals(examples, model.awaitState { it.titles.isNotEmpty() }.documentIds)
   }
 
@@ -146,7 +146,7 @@ class LibraryViewModelTest {
     val model = viewModel()
     model.state.test {
       awaitItem()
-      model.show()
+      model.onShown()
       val shown = awaitItem()
       assertEquals(examples, shown.documentIds)
       assertFalse(shown.refreshing)
@@ -192,7 +192,7 @@ class LibraryViewModelTest {
   fun `clearing a title's progress forgets where it was left`() = runTest {
     progressDatabase.progress().save(Progress("peppa-pig-example-s01e01", 30.0, fraction = 0.5))
     val model = viewModel()
-    model.show()
+    model.onShown()
     val shown = model.awaitState { it.titles.isNotEmpty() && it.progress.isNotEmpty() }
     val title = shown.titles.single { it.documentId == "peppa-pig-example-s01e01" }
     assertEquals(0.5, shown.progress[title.progressKey]?.fraction)

@@ -85,8 +85,8 @@ import com.petitesroues.library.shelves.Shelves.Group
 import com.petitesroues.library.shelves.Shelves.Slot
 import java.util.Locale
 
-/** What the library screen shows; the activity owns loading and refreshing. */
-data class LibraryState(
+/** What the library screen shows; [LibraryViewModel] owns loading and refreshing. */
+data class LibraryUiState(
   val folders: List<Uri>,
   val titles: List<Title>,
   val progress: Map<String, Progress>,
@@ -114,7 +114,7 @@ data class Browse(val group: String? = null, val season: Int? = null)
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LibraryScreen(
-  state: LibraryState,
+  state: LibraryUiState,
   images: CardImages,
   browse: Browse,
   shelvesScroll: LazyGridState,

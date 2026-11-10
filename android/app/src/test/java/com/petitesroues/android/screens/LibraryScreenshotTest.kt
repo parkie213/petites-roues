@@ -16,7 +16,7 @@ import com.petitesroues.android.library.Browse
 import com.petitesroues.android.library.CardImages
 import com.petitesroues.android.library.CardSource
 import com.petitesroues.android.library.LibraryScreen
-import com.petitesroues.android.library.LibraryState
+import com.petitesroues.android.library.LibraryUiState
 import com.petitesroues.android.pages.MarkdownPage
 import com.petitesroues.android.pages.Section
 import com.petitesroues.android.pages.StudyPages
@@ -36,7 +36,7 @@ class LibraryScreenshotTest {
   @get:Rule val compose = createComposeRule()
 
   private fun library(
-    state: LibraryState,
+    state: LibraryUiState,
     browse: Browse = Browse(),
     section: Section = Section.LIBRARY,
     pages: List<MarkdownPage> = emptyList(),
@@ -86,18 +86,18 @@ class LibraryScreenshotTest {
   private val folders = listOf(Uri.parse("file:///fixtures"))
 
   private val stocked =
-    LibraryState(folders, Fixtures.titles, Fixtures.progress, false, emptyList(), null)
+    LibraryUiState(folders, Fixtures.titles, Fixtures.progress, false, emptyList(), null)
 
   @Test
   fun empty() {
-    library(LibraryState(emptyList(), emptyList(), emptyMap(), false, emptyList(), null))
+    library(LibraryUiState(emptyList(), emptyList(), emptyMap(), false, emptyList(), null))
     compose.onRoot().captureRoboImage()
   }
 
   @Test
   fun shelves() {
     library(
-      LibraryState(
+      LibraryUiState(
         folders,
         Fixtures.titles,
         Fixtures.progress,
