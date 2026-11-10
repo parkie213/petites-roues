@@ -37,6 +37,13 @@ rules: standard controls should use Mantine props and the shared theme.
 
 Run `npm test`, `npm run build`, `npm run format:check` and `npm run lint` from `web/`; CI runs all four. ESLint checks the React hooks rules (hooks in a fixed order, effects listing what they read).
 
+`npm test` runs Vitest over `test/` (`npx vitest` watches instead). Plain modules and the Node
+server are tested in Node. A test that renders components or hooks starts with
+`// @vitest-environment jsdom` and uses React Testing Library, as in `listen-button.test.jsx`
+and `use-playback-progress.test.jsx`; `test/setup.mjs` supplies the browser APIs Mantine needs
+that jsdom lacks. Stand in for `fetch`, `Audio` and other globals with `vi.stubGlobal`, which
+Vitest undoes after each test.
+
 ## End-to-end tests
 
 `e2e/` holds Playwright journeys through the built app: the library, a series, the player, the

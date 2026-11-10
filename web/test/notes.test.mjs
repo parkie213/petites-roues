@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import test from "node:test";
+import { test } from "vitest";
 import { findNote, noteGroups, notePath } from "../src/library/notes.js";
 
 const note = (repository, id, repositoryName = repository) => ({

@@ -42,4 +42,12 @@ export default [
     files: ["*.mjs", "test/**/*.mjs", "e2e/**/*.mjs"],
     languageOptions: { globals: globals.node },
   },
+  {
+    // Tests that render components run in jsdom, a simulated browser inside Node.
+    files: ["test/**/*.jsx"],
+    languageOptions: {
+      globals: { ...globals.browser, ...globals.node },
+      parserOptions: { ecmaFeatures: { jsx: true } },
+    },
+  },
 ];

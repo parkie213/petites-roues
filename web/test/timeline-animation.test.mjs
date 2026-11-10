@@ -1,8 +1,8 @@
-import test from "node:test";
+import { onTestFinished, test } from "vitest";
 import assert from "node:assert/strict";
 import { animateTimeline } from "../src/player/timeline-animation.js";
 
-test("timeline follows every media frame without React clock updates and honours pauses, seeks and holds", (t) => {
+test("timeline follows every media frame without React clock updates and honours pauses, seeks and holds", () => {
   const previousRequest = globalThis.requestAnimationFrame;
   const previousCancel = globalThis.cancelAnimationFrame;
   let nextFrame;
@@ -15,7 +15,7 @@ test("timeline follows every media frame without React clock updates and honours
   globalThis.cancelAnimationFrame = (frame) => {
     cancelled = frame;
   };
-  t.after(() => {
+  onTestFinished(() => {
     globalThis.requestAnimationFrame = previousRequest;
     globalThis.cancelAnimationFrame = previousCancel;
   });
