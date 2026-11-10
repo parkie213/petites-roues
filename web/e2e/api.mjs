@@ -289,6 +289,23 @@ async function replay(page, file, run) {
   );
 }
 
+/**
+ * Compares [page] with its reference screenshot [name]. Screenshots are only compared in
+ * Playwright's Docker image (`npm run e2e:screenshots`, as CI runs them), where text renders the
+ * same for everyone; elsewhere, and while recording, this does nothing. A video's own frame is
+ * hidden for it, since a pause can land a frame apart from run to run; what the page draws over
+ * the video stays.
+ */
+export async function looksLike(page, name) {
+  if (!process.env.SCREENSHOTS || RECORD) return;
+  // Injected rather than passed as the screenshot's `style`, which left the video showing.
+  const hidden = await page.addStyleTag({
+    content: "video { visibility: hidden !important; }",
+  });
+  await expect(page).toHaveScreenshot(`${name}.png`);
+  await hidden.evaluate((style) => style.remove());
+}
+
 /** Playwright's `test`, with every page's `/api` requests recorded or replayed. */
 export const test = base.extend({
   page: async ({ page }, use, info) => {

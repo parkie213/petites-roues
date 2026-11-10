@@ -1,4 +1,4 @@
-import { test, expect } from "./api.mjs";
+import { test, expect, looksLike } from "./api.mjs";
 
 test("Notes shows the example's note", async ({ page }) => {
   await page.goto("/");
@@ -10,6 +10,7 @@ test("Notes shows the example's note", async ({ page }) => {
   await expect(
     page.getByText("J'adore sauter dans les flaques.", { exact: false }),
   ).toBeVisible();
+  await looksLike(page, "notes");
 });
 
 test("Quiz me shows the example's quiz, ready to continue in a chat", async ({

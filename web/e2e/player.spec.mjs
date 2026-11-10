@@ -1,4 +1,4 @@
-import { test, expect } from "./api.mjs";
+import { test, expect, looksLike } from "./api.mjs";
 
 test("an episode steps through its subtitles, and Back returns to its series", async ({
   page,
@@ -35,6 +35,7 @@ test("an episode steps through its subtitles, and Back returns to its series", a
   expect(
     await page.locator(".video-player").getAttribute("data-controls-visible"),
   ).toBeNull();
+  await looksLike(page, "player");
 
   // Pointing at the top edge brings the controls back.
   await page.mouse.move(640, 10);
