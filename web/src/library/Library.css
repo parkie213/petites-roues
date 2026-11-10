@@ -161,8 +161,7 @@
   display: flex;
   gap: 24px;
 }
-.library-filters button,
-.library-attention-filter {
+.library-filters button {
   border: 0;
   background: transparent;
   color: var(--tx);
@@ -170,12 +169,10 @@
   font-size: 13px;
   position: relative;
 }
-.library-filters button[aria-pressed="true"],
-.library-attention-filter[aria-pressed="true"] {
+.library-filters button[aria-pressed="true"] {
   color: var(--acc);
 }
-.library-filters button[aria-pressed="true"]:after,
-.library-attention-filter[aria-pressed="true"]:after {
+.library-filters button[aria-pressed="true"]:after {
   content: "";
   position: absolute;
   bottom: 0;
@@ -184,10 +181,21 @@
   height: 2px;
   background: var(--acc);
 }
-.library-attention-filter {
-  display: flex;
+/* The warning count reads as part of the counts beside it, and filters the posters to it. */
+.library-warnings {
+  display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: 5px;
+  border: 0;
+  padding: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+.library-warnings:hover,
+.library-warnings[aria-pressed="true"] {
+  color: var(--acc);
 }
 .library-attention-dot {
   width: 7px;

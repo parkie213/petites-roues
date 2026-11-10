@@ -28,7 +28,7 @@ test("the summary counts what posters show, and documents that found no media", 
   assert.deepEqual(summary, {
     counts: "3 videos · 1 comic",
     unlinked: "1 study document without media",
-    attention: "3 need attention",
+    attention: "3 warnings",
   });
   assert.deepEqual(
     librarySummary([
