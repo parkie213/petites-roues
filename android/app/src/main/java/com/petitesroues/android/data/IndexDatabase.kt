@@ -125,6 +125,9 @@ abstract class IndexDao {
   /** Every indexed title, ordered by path. */
   fun titles(): List<Title> = allTitles().map(IndexedTitle::toTitle)
 
+  /** The indexed title at [path], or null when the last refresh didn't find it. */
+  fun title(path: String): Title? = titleAt(path)?.toTitle()
+
   /** Replaces the whole index with one refresh's titles, all or nothing. */
   @Transaction
   open fun replaceTitles(titles: List<Title>) {
@@ -143,6 +146,9 @@ abstract class IndexDao {
   }
 
   @Query("SELECT * FROM title ORDER BY path") protected abstract fun allTitles(): List<IndexedTitle>
+
+  @Query("SELECT * FROM title WHERE path = :path")
+  protected abstract fun titleAt(path: String): IndexedTitle?
 
   @Query("DELETE FROM title") protected abstract fun deleteTitles()
 
