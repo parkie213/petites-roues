@@ -1,9 +1,7 @@
 package com.petitesroues.android.desktop
 
 import android.Manifest
-import android.content.Intent
 import android.net.Uri
-import android.util.Log
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -43,12 +41,8 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -57,13 +51,13 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.petitesroues.android.Settings
 import com.petitesroues.android.library.AppFolder
 import com.petitesroues.android.library.LibraryUsage
 import com.petitesroues.sync.SyncStatus
 import java.text.Normalizer
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
 
 /**
  * Syncing with the paired desktop: one row per series (or standalone title, or the notes and
@@ -75,78 +69,50 @@ import kotlinx.coroutines.withContext
  * it found ([Transfers]). Titles land in the download folder, the app's own [AppFolder] once All
  * files access is allowed, or another folder chosen with the picker (granted for writing, and added
  * to the content folders), and appear in the library as each finishes. [onDesktop] opens the
- * pairing dialog.
+ * pairing dialog. [DesktopTitlesViewModel] holds all of this; the screen keeps only which series
+ * are open and the search.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun DesktopTitlesScreen(settings: Settings, onDesktop: () -> Unit, onBack: () -> Unit) {
+fun DesktopTitlesScreen(
+  onDesktop: () -> Unit,
+  onBack: () -> Unit,
+  model: DesktopTitlesViewModel = hiltViewModel(),
+) {
   BackHandler(onBack = onBack)
   val context = LocalContext.current
-  val transfer by Transfers.status.collectAsState()
-  var folder by remember { mutableStateOf(downloadFolder(settings)) }
-  var followed by remember { mutableStateOf(settings.followed) }
+  val state by model.state.collectAsStateWithLifecycle()
+  val transfer by model.transfer.collectAsStateWithLifecycle()
+  val folder = state.folder
+  val sync = state.sync
   // The series whose titles are shown.
   var opened by rememberSaveable { mutableStateOf(listOf<String>()) }
-  // Bumped by following a series or choosing a title, to check again.
-  var changes by remember { mutableIntStateOf(0) }
   var search by rememberSaveable { mutableStateOf("") }
-  var sync by remember { mutableStateOf<SyncStatus?>(null) }
-  var problem by remember { mutableStateOf<String?>(null) }
-  // Set by ticking a series: start once the check has counted what it adds.
-  var startAfterCheck by remember { mutableStateOf(false) }
 
   val chooseFolder =
     rememberLauncherForActivityResult(ActivityResultContracts.OpenDocumentTree()) { tree: Uri? ->
-      if (tree == null) return@rememberLauncherForActivityResult
-      context.contentResolver.takePersistableUriPermission(
-        tree,
-        Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION,
-      )
-      settings.downloadFolder = tree
-      if (tree !in settings.contentTrees) settings.contentTrees += tree
-      folder = tree
+      tree?.let(model::chooseFolder)
     }
   // Back from the system's All files access page, allowed or not.
   val allowFiles =
     rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) {
-      folder = downloadFolder(settings)
+      model.fileAccessChanged()
     }
-  // Notifications show the download's progress; it runs whether or not they are allowed.
+  // Notifications show the download's progress; it runs whether or not they are allowed. Ticking a
+  // series or title asks too, since the sync it starts follows the check.
+  val askThenSync =
+    rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { model.sync() }
   val askNotifications =
-    rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) {
-      Transfers.start(context, sync?.remaining() ?: 0)
-    }
-
-  LaunchedEffect(folder, changes, transfer.finished, transfer.running) {
-    if (settings.desktop == null || folder == null) return@LaunchedEffect
-    withContext(Dispatchers.IO) { runCatching { Transfers.check(context, settings) } }
-      .onSuccess {
-        sync = it
-        problem = null
-        if (startAfterCheck) {
-          startAfterCheck = false
-          if (it.toSync().isNotEmpty())
-            askNotifications.launch(Manifest.permission.POST_NOTIFICATIONS)
-        }
-      }
-      .onFailure {
-        Log.w("Transfers", "Checking the desktop's titles failed", it)
-        problem = "Could not reach the desktop: ${it.message ?: it.javaClass.simpleName}"
-      }
-  }
+    rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) {}
 
   fun follow(group: SyncStatus.Group, follow: Boolean) {
-    followed = if (follow) followed + group.key() else followed - group.key()
-    settings.followed = followed
-    startAfterCheck = follow
-    changes++
+    model.follow(group.key(), follow)
+    if (follow) askNotifications.launch(Manifest.permission.POST_NOTIFICATIONS)
   }
 
   fun choose(entry: SyncStatus.Entry, choose: Boolean) {
-    val id = entry.title().id()
-    settings.chosen = if (choose) settings.chosen + id else settings.chosen - id
-    startAfterCheck = choose
-    changes++
+    model.choose(entry.title().id(), choose)
+    if (choose) askNotifications.launch(Manifest.permission.POST_NOTIFICATIONS)
   }
 
   /** Each group's row, its titles when opened, and a divider. */
@@ -177,7 +143,7 @@ fun DesktopTitlesScreen(settings: Settings, onDesktop: () -> Unit, onBack: () ->
         },
         title = {
           Text(
-            "Sync with ${settings.desktop?.name() ?: "the desktop"}",
+            "Sync with ${state.desktop ?: "the desktop"}",
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
           )
@@ -195,13 +161,10 @@ fun DesktopTitlesScreen(settings: Settings, onDesktop: () -> Unit, onBack: () ->
         ) {
           FolderLine(
             folder,
-            custom = settings.downloadFolder != null,
+            custom = state.customFolder,
             onAllow = { allowFiles.launch(AppFolder.allowIntent(context)) },
             onChoose = { chooseFolder.launch(null) },
-            onDefault = {
-              settings.downloadFolder = null
-              folder = downloadFolder(settings)
-            },
+            onDefault = model::useDefaultFolder,
           )
           if (transfer.running) {
             if (transfer.total > 0)
@@ -217,13 +180,13 @@ fun DesktopTitlesScreen(settings: Settings, onDesktop: () -> Unit, onBack: () ->
                 Modifier.weight(1f),
                 style = MaterialTheme.typography.bodyMedium,
               )
-              TextButton(onClick = { Transfers.stop(context) }) { Text("Stop") }
+              TextButton(onClick = model::stop) { Text("Stop") }
             }
           } else {
             transfer.message?.let { Text(it, style = MaterialTheme.typography.bodyMedium) }
             val fetch = sync?.toSync().orEmpty()
             Button(
-              onClick = { askNotifications.launch(Manifest.permission.POST_NOTIFICATIONS) },
+              onClick = { askThenSync.launch(Manifest.permission.POST_NOTIFICATIONS) },
               enabled = fetch.isNotEmpty() && folder != null,
               modifier = Modifier.fillMaxWidth(),
             ) {
@@ -231,7 +194,7 @@ fun DesktopTitlesScreen(settings: Settings, onDesktop: () -> Unit, onBack: () ->
                 when {
                   sync == null -> "Sync"
                   fetch.isEmpty() -> "Up to date"
-                  else -> "Sync ${titles(fetch.size)} · ${LibraryUsage.format(sync!!.remaining())}"
+                  else -> "Sync ${titles(fetch.size)} · ${LibraryUsage.format(sync.remaining())}"
                 }
               )
             }
@@ -245,7 +208,7 @@ fun DesktopTitlesScreen(settings: Settings, onDesktop: () -> Unit, onBack: () ->
       when {
         folder == null ->
           Text("Allow file access to sync titles into ${AppFolder.LABEL}.", Modifier.padding(24.dp))
-        problem != null -> Text(problem!!, Modifier.padding(24.dp))
+        state.problem != null -> Text(state.problem!!, Modifier.padding(24.dp))
         groups == null -> CircularProgressIndicator(Modifier.align(Alignment.Center))
         groups.isEmpty() -> Text("The desktop has no titles to copy yet.", Modifier.padding(24.dp))
         else -> {

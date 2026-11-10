@@ -39,7 +39,9 @@ resources: `adb logcat -s StrictMode`.
 
 JVM tests run on Robolectric, so they reach Android APIs and draw real screens without a phone.
 ViewModel tests (`LibraryViewModelTest`, `TitleViewModelTest`) use real Room databases in memory and refresh the
-repository's `example/` folders through the real `LibraryService`, with `kotlinx-coroutines-test`
+repository's `example/` folders through the real `LibraryService`; the desktop's
+(`DesktopTitlesViewModelTest`, `DesktopPairingViewModelTest`) talk to a `FakeDesktop` in place of
+the network. They run with `kotlinx-coroutines-test`
 (`runTest`, `MainDispatcherRule`) and Turbine for the states a `StateFlow` passes through.
 `NavigationTest` starts the whole Hilt app over the same in-memory databases (`TestDataModule`
 replaces `DataModule`) and taps from the library into a title and back. The screenshot tests
@@ -74,19 +76,20 @@ doesn't wipe the phone's pairing, folders or progress.
 | `data/` | Room: the library index and reading/playback progress |
 | `library/` | Refreshing the index from the content folders (`LibraryService`), the library's state and actions (`LibraryViewModel`), the library screen, card images |
 | `player/`, `comic/` | The video player and the comic reader |
-| `desktop/` | Pairing and syncing with the desktop, as a user-initiated background job (`Transfers`) |
+| `desktop/` | Pairing (`DesktopPairingViewModel`) and syncing with the desktop (`DesktopTitlesViewModel`), as a user-initiated background job (`Transfers`) |
 | `pages/`, `quiz/`, `study/` | Notes and quiz pages, quiz sharing, and the phrase and note display shared by both players |
 | `Settings` | Small per-device preferences in SharedPreferences: folders, pairing, followed series, toggles |
 
 Hilt injects the app-wide objects (`Settings`, `LibraryService`, `ProgressStore`, `CardImages`,
-the DAOs) into `MainActivity`, the sync job (`TransferJobService`) and ViewModels. A screen's work
+`Transfers`, `DesktopClient`, the DAOs) into `MainActivity`, the sync job (`TransferJobService`) and ViewModels. A screen's work
 (loading, refreshing, saving) belongs in a `@HiltViewModel` that exposes `StateFlow`s and is
 obtained with `hiltViewModel()`; the composables draw that state and call back into it.
 `LibraryViewModel` owns the library and `TitleViewModel` opens a title for the player or reader;
 each title on the back stack gets its own, created by path with assisted injection
 (`hiltViewModel<TitleViewModel, TitleViewModel.Factory> { it.create(path) }`) and cleared when
 the title is popped. The back stack is saved, so an open title survives process death;
-the player, reader and desktop screens still keep their own state in Compose. Blocking work runs on the injected `@IoDispatcher`, so tests can control it. Discovery, linking documents to media by fingerprint, shelves and
+the desktop's two ViewModels pair with it and sync from it. The player and reader still keep their
+own state in Compose. Blocking work runs on the injected `@IoDispatcher`, so tests can control it. Discovery, linking documents to media by fingerprint, shelves and
 sync rules come from the shared Java library, so the phone and the desktop agree.
 
 ## Databases

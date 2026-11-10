@@ -51,6 +51,7 @@ constructor(
   private val images: CardImages,
   private val pageScanner: MarkdownPageScanner,
   private val resolver: ContentResolver,
+  private val transfers: Transfers,
   @IoDispatcher private val io: CoroutineDispatcher,
   private val saved: SavedStateHandle,
 ) : ViewModel() {
@@ -75,7 +76,7 @@ constructor(
   init {
     // Each title copied from the desktop shows up once the library has refreshed.
     viewModelScope.launch {
-      Transfers.status
+      transfers.status
         .map { it.finished }
         .distinctUntilChanged()
         .filter { it > 0 }
