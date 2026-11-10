@@ -11,8 +11,10 @@ import com.github.takahirom.roborazzi.captureRoboImage
 import com.petitesroues.android.AppTheme
 import com.petitesroues.android.Settings
 import com.petitesroues.android.comic.ReadScreen
+import com.petitesroues.android.comic.ReaderViewModel
 import com.petitesroues.android.data.Progress
 import com.petitesroues.android.library.TitleKind
+import kotlinx.coroutines.Dispatchers
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -30,18 +32,18 @@ class ReaderScreenshotTest {
     val context = ApplicationProvider.getApplicationContext<Application>()
     val document = Examples.document(LULU)
     val title = Examples.title(LULU, "$LULU.cbz", TitleKind.COMIC, document)
-    compose.setContent {
-      AppTheme {
-        ReadScreen(
-          title,
-          document,
-          saved,
-          Examples.progress(context),
-          Settings(context),
-          onBack = {},
-        )
-      }
-    }
+    val model =
+      ReaderViewModel(
+        title,
+        document.sourceLanguage(),
+        saved,
+        context,
+        context.contentResolver,
+        Settings(context),
+        Examples.progress(context),
+        Dispatchers.IO,
+      )
+    compose.setContent { AppTheme { ReadScreen(model, document, onBack = {}) } }
     // Pages decode on a background thread behind a spinner; capture once it has gone.
     compose.waitUntil(timeoutMillis = 10_000) {
       compose

@@ -24,7 +24,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -42,11 +41,9 @@ import androidx.navigation3.runtime.rememberNavBackStack
 import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
 import androidx.navigation3.ui.NavDisplay
 import com.petitesroues.android.comic.ReadScreen
-import com.petitesroues.android.data.ProgressStore
+import com.petitesroues.android.comic.ReaderViewModel
 import com.petitesroues.android.desktop.DesktopDialog
 import com.petitesroues.android.desktop.DesktopTitlesScreen
-import com.petitesroues.android.desktop.Transfers
-import com.petitesroues.android.desktop.mayReachLocalNetwork
 import com.petitesroues.android.library.AppFolder
 import com.petitesroues.android.library.Browse
 import com.petitesroues.android.library.CardImages
@@ -62,8 +59,6 @@ import com.petitesroues.android.player.WatchScreen
 import com.petitesroues.android.quiz.QuizShare
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
 
 /**
  * The single activity: the library, the player or comic reader for an open title, and the desktop's
@@ -74,9 +69,7 @@ import kotlinx.coroutines.withContext
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
   @Inject lateinit var settings: Settings
-  @Inject lateinit var progress: ProgressStore
   @Inject lateinit var images: CardImages
-  @Inject lateinit var transfers: Transfers
 
   override fun onCreate(savedInstanceState: Bundle?) {
     super.onCreate(savedInstanceState)
@@ -105,18 +98,9 @@ class MainActivity : ComponentActivity() {
         onDismiss = {
           desktopOpen = false
           // Forgetting the desktop leaves nothing to sync with.
-          if (settings.desktop == null) backStack.removeAll { it == DesktopTitlesRoute }
+          if (!libraryModel.paired) backStack.removeAll { it == DesktopTitlesRoute }
         },
       )
-
-    val transfer by transfers.status.collectAsState()
-    // What a sync would fetch badges the desktop button; an unreachable desktop just leaves it as
-    // it was.
-    val pending by transfers.pending.collectAsState()
-    LaunchedEffect(transfer.finished) {
-      if (settings.desktop != null && mayReachLocalNetwork(this@MainActivity))
-        withContext(Dispatchers.IO) { runCatching { transfers.check() } }
-    }
 
     val noTransition = ContentTransform(EnterTransition.None, ExitTransition.None)
     NavDisplay(
@@ -135,16 +119,13 @@ class MainActivity : ComponentActivity() {
           entry<LibraryRoute> {
             Library(
               libraryModel,
-              pending,
               onOpen = { backStack.add(TitleRoute(it)) },
               // Paired, the desktop button goes straight to syncing; pairing is a button there.
               onDesktop = {
-                if (settings.desktop != null && mayReachLocalNetwork(this@MainActivity))
-                  openDesktopTitles()
-                else desktopOpen = true
+                if (libraryModel.desktopReachable) openDesktopTitles() else desktopOpen = true
               },
               onGetTitles = {
-                if (settings.desktop == null) desktopOpen = true else openDesktopTitles()
+                if (libraryModel.paired) openDesktopTitles() else desktopOpen = true
               },
             )
           }
@@ -165,7 +146,6 @@ class MainActivity : ComponentActivity() {
   @Composable
   private fun Library(
     model: LibraryViewModel,
-    desktopPending: Int,
     onOpen: (String) -> Unit,
     onDesktop: () -> Unit,
     onGetTitles: () -> Unit,
@@ -173,6 +153,7 @@ class MainActivity : ComponentActivity() {
     val state by model.state.collectAsStateWithLifecycle()
     val section by model.section.collectAsStateWithLifecycle()
     val pages by model.pages.collectAsStateWithLifecycle()
+    val desktopPending by model.desktopPending.collectAsStateWithLifecycle()
     // Saved with the library's place on the back stack, so returning from a title restores the
     // open series and the shelves' scroll.
     var browseGroup by rememberSaveable { mutableStateOf<String?>(null) }
@@ -248,17 +229,18 @@ class MainActivity : ComponentActivity() {
               }
             WatchScreen(player, onBack)
           }
-          state.title.pagesOnly ->
+          else -> {
+            val reader =
+              hiltViewModel<ReaderViewModel, ReaderViewModel.Factory> {
+                it.create(state.title, state.document.sourceLanguage(), state.saved)
+              }
             ReadScreen(
-              state.title,
+              reader,
               state.document,
-              state.saved,
-              progress,
-              settings,
               onBack,
-              model::flipDirection,
+              onFlipDirection = model::flipDirection.takeIf { state.title.pagesOnly },
             )
-          else -> ReadScreen(state.title, state.document, state.saved, progress, settings, onBack)
+          }
         }
       is TitleUiState.Failed -> {
         BackHandler(onBack = onBack)

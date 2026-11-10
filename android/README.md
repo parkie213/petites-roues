@@ -41,7 +41,8 @@ JVM tests run on Robolectric, so they reach Android APIs and draw real screens w
 ViewModel tests (`LibraryViewModelTest`, `TitleViewModelTest`) use real Room databases in memory and refresh the
 repository's `example/` folders through the real `LibraryService`; the desktop's
 (`DesktopTitlesViewModelTest`, `DesktopPairingViewModelTest`) talk to a `FakeDesktop` in place of
-the network, and `PlayerViewModelTest` runs a real ExoPlayer on the example episode. They run with `kotlinx-coroutines-test`
+the network, `PlayerViewModelTest` runs a real ExoPlayer on the example episode, and `ReaderViewModelTest` the
+example comic's CBZ. They run with `kotlinx-coroutines-test`
 (`runTest`, `MainDispatcherRule`) and Turbine for the states a `StateFlow` passes through.
 `NavigationTest` starts the whole Hilt app over the same in-memory databases (`TestDataModule`
 replaces `DataModule`) and taps from the library into a title and back. The screenshot tests
@@ -89,8 +90,9 @@ each title on the back stack gets its own, created by path with assisted injecti
 (`hiltViewModel<TitleViewModel, TitleViewModel.Factory> { it.create(path) }`) and cleared when
 the title is popped. The back stack is saved, so an open title survives process death;
 the desktop's two ViewModels pair with it and sync from it; `PlayerViewModel` owns the video's
-player and saves its position, so playback survives the activity being recreated. The reader still
-keeps its own state in Compose. Blocking work runs on the injected `@IoDispatcher`, so tests can control it. Discovery, linking documents to media by fingerprint, shelves and
+player and saves its position, so playback survives the activity being recreated, and `ReaderViewModel` does the same for a
+comic's archive, read-aloud voice and page. `LibraryViewModel` also counts what a sync with the
+desktop would fetch, so no composable does file or network work. Blocking work runs on the injected `@IoDispatcher`, so tests can control it. Discovery, linking documents to media by fingerprint, shelves and
 sync rules come from the shared Java library, so the phone and the desktop agree.
 
 ## Databases

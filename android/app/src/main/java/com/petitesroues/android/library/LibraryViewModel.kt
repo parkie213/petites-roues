@@ -12,6 +12,7 @@ import com.petitesroues.android.Settings
 import com.petitesroues.android.data.IndexDao
 import com.petitesroues.android.data.ProgressStore
 import com.petitesroues.android.desktop.Transfers
+import com.petitesroues.android.desktop.mayReachLocalNetwork
 import com.petitesroues.android.di.IoDispatcher
 import com.petitesroues.android.pages.MarkdownPage
 import com.petitesroues.android.pages.MarkdownPageScanner
@@ -73,6 +74,17 @@ constructor(
 
   private var reading: Job? = null
 
+  /** How many titles a sync with the desktop would fetch, as last checked; badges its button. */
+  val desktopPending: StateFlow<Int> = transfers.pending
+
+  /** Whether the phone is paired with a desktop. */
+  val paired: Boolean
+    get() = settings.desktop != null
+
+  /** Whether the paired desktop may be reached: the app is allowed onto the local network. */
+  val desktopReachable: Boolean
+    get() = paired && mayReachLocalNetwork(context)
+
   init {
     // Each title copied from the desktop shows up once the library has refreshed.
     viewModelScope.launch {
@@ -81,6 +93,14 @@ constructor(
         .distinctUntilChanged()
         .filter { it > 0 }
         .collect { refresh() }
+    }
+    // Counts what a sync would fetch, at launch and after each title copied; an unreachable desktop
+    // leaves the last count.
+    viewModelScope.launch {
+      transfers.status
+        .map { it.finished }
+        .distinctUntilChanged()
+        .collect { if (desktopReachable) withContext(io) { runCatching { transfers.check() } } }
     }
   }
 

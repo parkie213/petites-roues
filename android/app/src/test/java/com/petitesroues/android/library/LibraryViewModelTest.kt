@@ -33,6 +33,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
+import org.junit.rules.TemporaryFolder
 import org.junit.runner.RunWith
 import org.robolectric.annotation.Config
 import org.robolectric.shadows.ShadowEnvironment
@@ -45,6 +46,7 @@ import org.robolectric.shadows.ShadowEnvironment
 @Config(application = Application::class, sdk = [SDK])
 class LibraryViewModelTest {
   @get:Rule val main = MainDispatcherRule()
+  @get:Rule val downloads = TemporaryFolder()
 
   private val context = ApplicationProvider.getApplicationContext<Application>()
   private val documents = Examples.folder("documents-fr")
@@ -54,6 +56,7 @@ class LibraryViewModelTest {
   private lateinit var progressDatabase: ProgressDatabase
   private lateinit var settings: Settings
   private lateinit var library: LibraryService
+  private val desktop = FakeDesktop()
 
   @Before
   fun setUp() {
@@ -88,7 +91,7 @@ class LibraryViewModelTest {
       CardImages(context),
       MarkdownPageScanner(context.contentResolver),
       context.contentResolver,
-      Transfers(context, settings, FakeDesktop()),
+      Transfers(context, settings, desktop),
       main.dispatcher,
       SavedStateHandle(),
     )
@@ -213,5 +216,27 @@ class LibraryViewModelTest {
     assertEquals(listOf("Verbs followed by an infinitive"), model.pages.value?.map { it.title })
     model.selectSection(Section.LIBRARY)
     assertNull(model.pages.value)
+  }
+
+  @Test
+  fun `a paired desktop is checked for what a sync would fetch`() = runTest {
+    desktop.titles = listOf(FakeDesktop.comic("Lulu", 1), FakeDesktop.comic("Lulu", 2))
+    settings.desktop = FakeDesktop.DESKTOP
+    settings.downloadFolder = Uri.fromFile(downloads.root)
+    settings.followed = setOf("Lulu")
+
+    val model = viewModel()
+
+    assertTrue(model.paired)
+    assertEquals(2, model.desktopPending.first { it > 0 })
+  }
+
+  @Test
+  fun `an unpaired phone has nothing to fetch`() {
+    val model = viewModel()
+
+    assertFalse(model.paired)
+    assertFalse(model.desktopReachable)
+    assertEquals(0, model.desktopPending.value)
   }
 }
