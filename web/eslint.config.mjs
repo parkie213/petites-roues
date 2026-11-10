@@ -12,7 +12,15 @@ import globals from "globals";
  * own piece of work.
  */
 export default [
-  { ignores: ["dist/", "content/", "node_modules/"] },
+  {
+    ignores: [
+      "dist/",
+      "content/",
+      "node_modules/",
+      "test-results/",
+      "playwright-report/",
+    ],
+  },
   js.configs.recommended,
   {
     plugins: { "react-hooks": reactHooks },
@@ -31,7 +39,7 @@ export default [
     },
   },
   {
-    files: ["*.mjs", "test/**/*.mjs"],
+    files: ["*.mjs", "test/**/*.mjs", "e2e/**/*.mjs"],
     languageOptions: { globals: globals.node },
   },
 ];

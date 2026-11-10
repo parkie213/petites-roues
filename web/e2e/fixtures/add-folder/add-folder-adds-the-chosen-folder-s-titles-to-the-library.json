@@ -1,0 +1,1000 @@
+[
+  {
+    "request": "GET /api/jobs/00000000-0000-4000-8000-000000000001/events",
+    "status": 200,
+    "type": "text/event-stream",
+    "text": "event:job\ndata:{\"id\":\"00000000-0000-4000-8000-000000000001\",\"kind\":\"add\",\"state\":\"succeeded\",\"progress\":{\"folder\":\"media-de\",\"phase\":\"saving\",\"done\":0,\"total\":0,\"current\":null},\"error\":null}\n\n"
+  },
+  {
+    "request": "GET /api/jobs/latest",
+    "status": 204,
+    "type": ""
+  },
+  {
+    "request": "GET /api/library",
+    "status": 200,
+    "type": "application/json",
+    "json": {
+      "repositories": [
+        {
+          "repository": {
+            "id": "00000000-0000-4000-8000-000000000002",
+            "name": "documents-fr",
+            "localPath": "<repository>/example/documents-fr",
+            "lastRefreshedAt": "2026-01-01T00:00:00Z",
+            "titles": 3,
+            "missing": 0,
+            "media": 0
+          },
+          "entries": [
+            {
+              "id": "lulu-example-le-parapluie",
+              "documentId": "lulu-example-le-parapluie",
+              "title": "Le parapluie de Lulu",
+              "series": null,
+              "season": null,
+              "episode": null,
+              "volume": null,
+              "shelf": null,
+              "sourceLanguage": "fr",
+              "sourceUrl": null,
+              "repositoryId": "00000000-0000-4000-8000-000000000002",
+              "repositoryName": "documents-fr",
+              "relativePath": "comics/lulu/le-parapluie-de-lulu/document.json",
+              "durationSeconds": null,
+              "documentAvailable": true,
+              "videoAvailable": false,
+              "unavailable": {},
+              "type": "comic",
+              "mediaAvailable": true,
+              "posterAvailable": false,
+              "seriesPosterAvailable": false,
+              "progress": null,
+              "mediaRepositoryId": "00000000-0000-4000-8000-000000000003",
+              "mediaPath": "comics/lulu/le-parapluie-de-lulu.cbz",
+              "mediaLinkedByHand": false
+            },
+            {
+              "id": "peppa-pig-example-s01e01",
+              "documentId": "peppa-pig-example-s01e01",
+              "title": "Les Flaques de Boue - one-minute example",
+              "series": "Peppa Pig",
+              "season": 1,
+              "episode": 1,
+              "volume": null,
+              "shelf": null,
+              "sourceLanguage": "fr",
+              "sourceUrl": "https://www.youtube.com/watch?v=Mh_GJPIaPTI",
+              "repositoryId": "00000000-0000-4000-8000-000000000002",
+              "repositoryName": "documents-fr",
+              "relativePath": "series/peppa-pig/s01e01/document.json",
+              "durationSeconds": 62.849,
+              "documentAvailable": true,
+              "videoAvailable": true,
+              "unavailable": {},
+              "type": "video",
+              "mediaAvailable": true,
+              "posterAvailable": false,
+              "seriesPosterAvailable": true,
+              "progress": null,
+              "mediaRepositoryId": "00000000-0000-4000-8000-000000000003",
+              "mediaPath": "series/peppa-pig/s01e01-les-flaques-de-boue.mp4",
+              "mediaLinkedByHand": false
+            },
+            {
+              "id": "peppa-pig-example-s01e02",
+              "documentId": "peppa-pig-example-s01e02",
+              "title": "À la recherche de Mr. Dinosaure - one-minute example",
+              "series": "Peppa Pig",
+              "season": 1,
+              "episode": 2,
+              "volume": null,
+              "shelf": null,
+              "sourceLanguage": "fr",
+              "sourceUrl": "https://www.youtube.com/watch?v=M9FrHb4npsc",
+              "repositoryId": "00000000-0000-4000-8000-000000000002",
+              "repositoryName": "documents-fr",
+              "relativePath": "series/peppa-pig/s01e02/document.json",
+              "durationSeconds": 59,
+              "documentAvailable": true,
+              "videoAvailable": false,
+              "unavailable": {
+                "title": "No video matches its reference"
+              },
+              "type": "video",
+              "mediaAvailable": false,
+              "posterAvailable": false,
+              "seriesPosterAvailable": false,
+              "progress": null,
+              "mediaRepositoryId": null,
+              "mediaPath": null,
+              "mediaLinkedByHand": false
+            }
+          ],
+          "media": []
+        },
+        {
+          "repository": {
+            "id": "00000000-0000-4000-8000-000000000003",
+            "name": "media-fr",
+            "localPath": "<repository>/example/media-fr",
+            "lastRefreshedAt": "2026-01-01T00:00:00Z",
+            "titles": 0,
+            "missing": 0,
+            "media": 3
+          },
+          "entries": [],
+          "media": [
+            {
+              "repositoryId": "00000000-0000-4000-8000-000000000003",
+              "relativePath": "comics/lulu/le-parapluie-de-lulu.cbz",
+              "series": "Lulu",
+              "title": "Le parapluie de lulu",
+              "kind": "comic",
+              "fingerprint": "v1:7de12dfdfe43bebb28a4907886ff180444276491db4897898162a138bc060199",
+              "titleId": "lulu-example-le-parapluie",
+              "linkedByHand": false,
+              "durationSeconds": null,
+              "posterAvailable": false,
+              "seriesPosterAvailable": false,
+              "warnings": []
+            },
+            {
+              "repositoryId": "00000000-0000-4000-8000-000000000003",
+              "relativePath": "series/peppa-pig/s01e01-les-flaques-de-boue.mp4",
+              "series": "Peppa pig",
+              "title": "Les flaques de boue",
+              "kind": "video",
+              "fingerprint": "v1:b561c1578fd731cb893d41a87b6199b53b1e1d210088acdb82d208d64fcf87f9",
+              "titleId": "peppa-pig-example-s01e01",
+              "linkedByHand": false,
+              "durationSeconds": 62.849,
+              "posterAvailable": false,
+              "seriesPosterAvailable": true,
+              "warnings": []
+            },
+            {
+              "repositoryId": "00000000-0000-4000-8000-000000000003",
+              "relativePath": "series/peppa-pig/s01e02-a-la-recherche-de-mr-dinosaure.mp4",
+              "series": "Peppa pig",
+              "title": "A la recherche de mr dinosaure",
+              "kind": "video",
+              "fingerprint": "v1:85b6c41190770a5e25e59cdba91338c8cd184cc1b2442e7fbaa2d177cd7992a7",
+              "titleId": null,
+              "linkedByHand": false,
+              "durationSeconds": 59,
+              "posterAvailable": false,
+              "seriesPosterAvailable": true,
+              "warnings": [
+                "No study document"
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "request": "GET /api/library",
+    "status": 200,
+    "type": "application/json",
+    "json": {
+      "repositories": [
+        {
+          "repository": {
+            "id": "00000000-0000-4000-8000-000000000002",
+            "name": "documents-fr",
+            "localPath": "<repository>/example/documents-fr",
+            "lastRefreshedAt": "2026-01-01T00:00:00Z",
+            "titles": 3,
+            "missing": 0,
+            "media": 0
+          },
+          "entries": [
+            {
+              "id": "lulu-example-le-parapluie",
+              "documentId": "lulu-example-le-parapluie",
+              "title": "Le parapluie de Lulu",
+              "series": null,
+              "season": null,
+              "episode": null,
+              "volume": null,
+              "shelf": null,
+              "sourceLanguage": "fr",
+              "sourceUrl": null,
+              "repositoryId": "00000000-0000-4000-8000-000000000002",
+              "repositoryName": "documents-fr",
+              "relativePath": "comics/lulu/le-parapluie-de-lulu/document.json",
+              "durationSeconds": null,
+              "documentAvailable": true,
+              "videoAvailable": false,
+              "unavailable": {},
+              "type": "comic",
+              "mediaAvailable": true,
+              "posterAvailable": false,
+              "seriesPosterAvailable": false,
+              "progress": null,
+              "mediaRepositoryId": "00000000-0000-4000-8000-000000000003",
+              "mediaPath": "comics/lulu/le-parapluie-de-lulu.cbz",
+              "mediaLinkedByHand": false
+            },
+            {
+              "id": "peppa-pig-example-s01e01",
+              "documentId": "peppa-pig-example-s01e01",
+              "title": "Les Flaques de Boue - one-minute example",
+              "series": "Peppa Pig",
+              "season": 1,
+              "episode": 1,
+              "volume": null,
+              "shelf": null,
+              "sourceLanguage": "fr",
+              "sourceUrl": "https://www.youtube.com/watch?v=Mh_GJPIaPTI",
+              "repositoryId": "00000000-0000-4000-8000-000000000002",
+              "repositoryName": "documents-fr",
+              "relativePath": "series/peppa-pig/s01e01/document.json",
+              "durationSeconds": 62.849,
+              "documentAvailable": true,
+              "videoAvailable": true,
+              "unavailable": {},
+              "type": "video",
+              "mediaAvailable": true,
+              "posterAvailable": false,
+              "seriesPosterAvailable": true,
+              "progress": null,
+              "mediaRepositoryId": "00000000-0000-4000-8000-000000000003",
+              "mediaPath": "series/peppa-pig/s01e01-les-flaques-de-boue.mp4",
+              "mediaLinkedByHand": false
+            },
+            {
+              "id": "peppa-pig-example-s01e02",
+              "documentId": "peppa-pig-example-s01e02",
+              "title": "À la recherche de Mr. Dinosaure - one-minute example",
+              "series": "Peppa Pig",
+              "season": 1,
+              "episode": 2,
+              "volume": null,
+              "shelf": null,
+              "sourceLanguage": "fr",
+              "sourceUrl": "https://www.youtube.com/watch?v=M9FrHb4npsc",
+              "repositoryId": "00000000-0000-4000-8000-000000000002",
+              "repositoryName": "documents-fr",
+              "relativePath": "series/peppa-pig/s01e02/document.json",
+              "durationSeconds": 59,
+              "documentAvailable": true,
+              "videoAvailable": false,
+              "unavailable": {
+                "title": "No video matches its reference"
+              },
+              "type": "video",
+              "mediaAvailable": false,
+              "posterAvailable": false,
+              "seriesPosterAvailable": false,
+              "progress": null,
+              "mediaRepositoryId": null,
+              "mediaPath": null,
+              "mediaLinkedByHand": false
+            }
+          ],
+          "media": []
+        },
+        {
+          "repository": {
+            "id": "00000000-0000-4000-8000-000000000004",
+            "name": "media-de",
+            "localPath": "<repository>/example/media-de",
+            "lastRefreshedAt": "2026-01-01T00:00:00Z",
+            "titles": 0,
+            "missing": 0,
+            "media": 1
+          },
+          "entries": [],
+          "media": [
+            {
+              "repositoryId": "00000000-0000-4000-8000-000000000004",
+              "relativePath": "series/masha-and-the-bear/083-bienenalarm.mp4",
+              "series": "Masha and the bear",
+              "title": "Bienenalarm",
+              "kind": "video",
+              "fingerprint": "v1:fadb5c924b0af2e5f17446026908cb4336e5aabcdf2ed9680f7888c33b377aa4",
+              "titleId": null,
+              "linkedByHand": false,
+              "durationSeconds": 64.04,
+              "posterAvailable": false,
+              "seriesPosterAvailable": false,
+              "warnings": [
+                "No study document"
+              ]
+            }
+          ]
+        },
+        {
+          "repository": {
+            "id": "00000000-0000-4000-8000-000000000003",
+            "name": "media-fr",
+            "localPath": "<repository>/example/media-fr",
+            "lastRefreshedAt": "2026-01-01T00:00:00Z",
+            "titles": 0,
+            "missing": 0,
+            "media": 3
+          },
+          "entries": [],
+          "media": [
+            {
+              "repositoryId": "00000000-0000-4000-8000-000000000003",
+              "relativePath": "comics/lulu/le-parapluie-de-lulu.cbz",
+              "series": "Lulu",
+              "title": "Le parapluie de lulu",
+              "kind": "comic",
+              "fingerprint": "v1:7de12dfdfe43bebb28a4907886ff180444276491db4897898162a138bc060199",
+              "titleId": "lulu-example-le-parapluie",
+              "linkedByHand": false,
+              "durationSeconds": null,
+              "posterAvailable": false,
+              "seriesPosterAvailable": false,
+              "warnings": []
+            },
+            {
+              "repositoryId": "00000000-0000-4000-8000-000000000003",
+              "relativePath": "series/peppa-pig/s01e01-les-flaques-de-boue.mp4",
+              "series": "Peppa pig",
+              "title": "Les flaques de boue",
+              "kind": "video",
+              "fingerprint": "v1:b561c1578fd731cb893d41a87b6199b53b1e1d210088acdb82d208d64fcf87f9",
+              "titleId": "peppa-pig-example-s01e01",
+              "linkedByHand": false,
+              "durationSeconds": 62.849,
+              "posterAvailable": false,
+              "seriesPosterAvailable": true,
+              "warnings": []
+            },
+            {
+              "repositoryId": "00000000-0000-4000-8000-000000000003",
+              "relativePath": "series/peppa-pig/s01e02-a-la-recherche-de-mr-dinosaure.mp4",
+              "series": "Peppa pig",
+              "title": "A la recherche de mr dinosaure",
+              "kind": "video",
+              "fingerprint": "v1:85b6c41190770a5e25e59cdba91338c8cd184cc1b2442e7fbaa2d177cd7992a7",
+              "titleId": null,
+              "linkedByHand": false,
+              "durationSeconds": 59,
+              "posterAvailable": false,
+              "seriesPosterAvailable": true,
+              "warnings": [
+                "No study document"
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "request": "GET /api/library/posters",
+    "status": 200,
+    "type": "application/json",
+    "json": {
+      "shelves": [
+        {
+          "key": "comics",
+          "label": "Comics",
+          "groups": [
+            {
+              "key": "comics:lulu@fr",
+              "shelf": "comics",
+              "type": "comic",
+              "language": "fr",
+              "name": "Lulu",
+              "single": false,
+              "slots": [
+                {
+                  "key": "d:lulu-example-le-parapluie",
+                  "entry": {
+                    "id": "lulu-example-le-parapluie",
+                    "documentId": "lulu-example-le-parapluie",
+                    "title": "Le parapluie de Lulu",
+                    "series": null,
+                    "season": null,
+                    "episode": null,
+                    "volume": null,
+                    "shelf": null,
+                    "sourceLanguage": "fr",
+                    "type": "comic",
+                    "repositoryId": "00000000-0000-4000-8000-000000000002",
+                    "durationSeconds": null,
+                    "documentAvailable": true,
+                    "videoAvailable": false,
+                    "mediaAvailable": true,
+                    "posterAvailable": false,
+                    "seriesPosterAvailable": false,
+                    "unavailable": {},
+                    "progress": null,
+                    "fingerprint": null,
+                    "mediaPath": "comics/lulu/le-parapluie-de-lulu.cbz",
+                    "mediaRepositoryId": "00000000-0000-4000-8000-000000000003",
+                    "linkedByHand": false
+                  },
+                  "copies": [
+                    {
+                      "id": "lulu-example-le-parapluie",
+                      "documentId": "lulu-example-le-parapluie",
+                      "title": "Le parapluie de Lulu",
+                      "series": null,
+                      "season": null,
+                      "episode": null,
+                      "volume": null,
+                      "shelf": null,
+                      "sourceLanguage": "fr",
+                      "type": "comic",
+                      "repositoryId": "00000000-0000-4000-8000-000000000002",
+                      "durationSeconds": null,
+                      "documentAvailable": true,
+                      "videoAvailable": false,
+                      "mediaAvailable": true,
+                      "posterAvailable": false,
+                      "seriesPosterAvailable": false,
+                      "unavailable": {},
+                      "progress": null,
+                      "fingerprint": null,
+                      "mediaPath": "comics/lulu/le-parapluie-de-lulu.cbz",
+                      "mediaRepositoryId": "00000000-0000-4000-8000-000000000003",
+                      "linkedByHand": false
+                    }
+                  ],
+                  "label": "Le parapluie de Lulu",
+                  "detail": null,
+                  "art": {
+                    "url": "/api/titles/lulu-example-le-parapluie/card"
+                  }
+                }
+              ],
+              "seasons": [],
+              "count": "1 tome",
+              "art": {
+                "url": "/api/titles/lulu-example-le-parapluie/card"
+              }
+            }
+          ]
+        },
+        {
+          "key": "series",
+          "label": "Series",
+          "groups": [
+            {
+              "key": "series:peppa pig@fr",
+              "shelf": "series",
+              "type": "video",
+              "language": "fr",
+              "name": "Peppa Pig",
+              "single": false,
+              "slots": [
+                {
+                  "key": "fr:s1e1",
+                  "entry": {
+                    "id": "peppa-pig-example-s01e01",
+                    "documentId": "peppa-pig-example-s01e01",
+                    "title": "Les Flaques de Boue - one-minute example",
+                    "series": "Peppa Pig",
+                    "season": 1,
+                    "episode": 1,
+                    "volume": null,
+                    "shelf": null,
+                    "sourceLanguage": "fr",
+                    "type": "video",
+                    "repositoryId": "00000000-0000-4000-8000-000000000002",
+                    "durationSeconds": 62.849,
+                    "documentAvailable": true,
+                    "videoAvailable": true,
+                    "mediaAvailable": true,
+                    "posterAvailable": false,
+                    "seriesPosterAvailable": true,
+                    "unavailable": {},
+                    "progress": null,
+                    "fingerprint": null,
+                    "mediaPath": "series/peppa-pig/s01e01-les-flaques-de-boue.mp4",
+                    "mediaRepositoryId": "00000000-0000-4000-8000-000000000003",
+                    "linkedByHand": false
+                  },
+                  "copies": [
+                    {
+                      "id": "peppa-pig-example-s01e01",
+                      "documentId": "peppa-pig-example-s01e01",
+                      "title": "Les Flaques de Boue - one-minute example",
+                      "series": "Peppa Pig",
+                      "season": 1,
+                      "episode": 1,
+                      "volume": null,
+                      "shelf": null,
+                      "sourceLanguage": "fr",
+                      "type": "video",
+                      "repositoryId": "00000000-0000-4000-8000-000000000002",
+                      "durationSeconds": 62.849,
+                      "documentAvailable": true,
+                      "videoAvailable": true,
+                      "mediaAvailable": true,
+                      "posterAvailable": false,
+                      "seriesPosterAvailable": true,
+                      "unavailable": {},
+                      "progress": null,
+                      "fingerprint": null,
+                      "mediaPath": "series/peppa-pig/s01e01-les-flaques-de-boue.mp4",
+                      "mediaRepositoryId": "00000000-0000-4000-8000-000000000003",
+                      "linkedByHand": false
+                    }
+                  ],
+                  "label": "Les Flaques de Boue - one-minute example",
+                  "detail": "S1 · E1",
+                  "art": null
+                },
+                {
+                  "key": "s1e2",
+                  "entry": {
+                    "id": "media:00000000-0000-4000-8000-000000000003/series/peppa-pig/s01e02-a-la-recherche-de-mr-dinosaure.mp4",
+                    "documentId": "media:00000000-0000-4000-8000-000000000003/series/peppa-pig/s01e02-a-la-recherche-de-mr-dinosaure.mp4",
+                    "title": "A la recherche de mr dinosaure",
+                    "series": "Peppa pig",
+                    "season": 1,
+                    "episode": 2,
+                    "volume": null,
+                    "shelf": null,
+                    "sourceLanguage": null,
+                    "type": "video",
+                    "repositoryId": "00000000-0000-4000-8000-000000000003",
+                    "durationSeconds": 59,
+                    "documentAvailable": false,
+                    "videoAvailable": false,
+                    "mediaAvailable": true,
+                    "posterAvailable": false,
+                    "seriesPosterAvailable": true,
+                    "unavailable": {
+                      "media-0": "No study document"
+                    },
+                    "progress": null,
+                    "fingerprint": "v1:85b6c41190770a5e25e59cdba91338c8cd184cc1b2442e7fbaa2d177cd7992a7",
+                    "mediaPath": "series/peppa-pig/s01e02-a-la-recherche-de-mr-dinosaure.mp4",
+                    "mediaRepositoryId": "00000000-0000-4000-8000-000000000003",
+                    "linkedByHand": false
+                  },
+                  "copies": [
+                    {
+                      "id": "media:00000000-0000-4000-8000-000000000003/series/peppa-pig/s01e02-a-la-recherche-de-mr-dinosaure.mp4",
+                      "documentId": "media:00000000-0000-4000-8000-000000000003/series/peppa-pig/s01e02-a-la-recherche-de-mr-dinosaure.mp4",
+                      "title": "A la recherche de mr dinosaure",
+                      "series": "Peppa pig",
+                      "season": 1,
+                      "episode": 2,
+                      "volume": null,
+                      "shelf": null,
+                      "sourceLanguage": null,
+                      "type": "video",
+                      "repositoryId": "00000000-0000-4000-8000-000000000003",
+                      "durationSeconds": 59,
+                      "documentAvailable": false,
+                      "videoAvailable": false,
+                      "mediaAvailable": true,
+                      "posterAvailable": false,
+                      "seriesPosterAvailable": true,
+                      "unavailable": {
+                        "media-0": "No study document"
+                      },
+                      "progress": null,
+                      "fingerprint": "v1:85b6c41190770a5e25e59cdba91338c8cd184cc1b2442e7fbaa2d177cd7992a7",
+                      "mediaPath": "series/peppa-pig/s01e02-a-la-recherche-de-mr-dinosaure.mp4",
+                      "mediaRepositoryId": "00000000-0000-4000-8000-000000000003",
+                      "linkedByHand": false
+                    }
+                  ],
+                  "label": "A la recherche de mr dinosaure",
+                  "detail": "S1 · E2",
+                  "art": null
+                }
+              ],
+              "seasons": [
+                1
+              ],
+              "count": "2 episodes",
+              "art": {
+                "url": "/api/titles/peppa-pig-example-s01e01/series-card"
+              }
+            }
+          ]
+        }
+      ],
+      "folders": [
+        "00000000-0000-4000-8000-000000000003"
+      ],
+      "multilingual": false
+    }
+  },
+  {
+    "request": "GET /api/library/posters",
+    "status": 200,
+    "type": "application/json",
+    "json": {
+      "shelves": [
+        {
+          "key": "comics",
+          "label": "Comics",
+          "groups": [
+            {
+              "key": "comics:lulu@fr",
+              "shelf": "comics",
+              "type": "comic",
+              "language": "fr",
+              "name": "Lulu",
+              "single": false,
+              "slots": [
+                {
+                  "key": "d:lulu-example-le-parapluie",
+                  "entry": {
+                    "id": "lulu-example-le-parapluie",
+                    "documentId": "lulu-example-le-parapluie",
+                    "title": "Le parapluie de Lulu",
+                    "series": null,
+                    "season": null,
+                    "episode": null,
+                    "volume": null,
+                    "shelf": null,
+                    "sourceLanguage": "fr",
+                    "type": "comic",
+                    "repositoryId": "00000000-0000-4000-8000-000000000002",
+                    "durationSeconds": null,
+                    "documentAvailable": true,
+                    "videoAvailable": false,
+                    "mediaAvailable": true,
+                    "posterAvailable": false,
+                    "seriesPosterAvailable": false,
+                    "unavailable": {},
+                    "progress": null,
+                    "fingerprint": null,
+                    "mediaPath": "comics/lulu/le-parapluie-de-lulu.cbz",
+                    "mediaRepositoryId": "00000000-0000-4000-8000-000000000003",
+                    "linkedByHand": false
+                  },
+                  "copies": [
+                    {
+                      "id": "lulu-example-le-parapluie",
+                      "documentId": "lulu-example-le-parapluie",
+                      "title": "Le parapluie de Lulu",
+                      "series": null,
+                      "season": null,
+                      "episode": null,
+                      "volume": null,
+                      "shelf": null,
+                      "sourceLanguage": "fr",
+                      "type": "comic",
+                      "repositoryId": "00000000-0000-4000-8000-000000000002",
+                      "durationSeconds": null,
+                      "documentAvailable": true,
+                      "videoAvailable": false,
+                      "mediaAvailable": true,
+                      "posterAvailable": false,
+                      "seriesPosterAvailable": false,
+                      "unavailable": {},
+                      "progress": null,
+                      "fingerprint": null,
+                      "mediaPath": "comics/lulu/le-parapluie-de-lulu.cbz",
+                      "mediaRepositoryId": "00000000-0000-4000-8000-000000000003",
+                      "linkedByHand": false
+                    }
+                  ],
+                  "label": "Le parapluie de Lulu",
+                  "detail": null,
+                  "art": {
+                    "url": "/api/titles/lulu-example-le-parapluie/card"
+                  }
+                }
+              ],
+              "seasons": [],
+              "count": "1 tome",
+              "art": {
+                "url": "/api/titles/lulu-example-le-parapluie/card"
+              }
+            }
+          ]
+        },
+        {
+          "key": "series",
+          "label": "Series",
+          "groups": [
+            {
+              "key": "series:masha and the bear",
+              "shelf": "series",
+              "type": "video",
+              "language": null,
+              "name": "Masha and the bear",
+              "single": false,
+              "slots": [
+                {
+                  "key": "se83",
+                  "entry": {
+                    "id": "media:00000000-0000-4000-8000-000000000004/series/masha-and-the-bear/083-bienenalarm.mp4",
+                    "documentId": "media:00000000-0000-4000-8000-000000000004/series/masha-and-the-bear/083-bienenalarm.mp4",
+                    "title": "Bienenalarm",
+                    "series": "Masha and the bear",
+                    "season": null,
+                    "episode": 83,
+                    "volume": null,
+                    "shelf": null,
+                    "sourceLanguage": null,
+                    "type": "video",
+                    "repositoryId": "00000000-0000-4000-8000-000000000004",
+                    "durationSeconds": 64.04,
+                    "documentAvailable": false,
+                    "videoAvailable": false,
+                    "mediaAvailable": true,
+                    "posterAvailable": false,
+                    "seriesPosterAvailable": false,
+                    "unavailable": {
+                      "media-0": "No study document"
+                    },
+                    "progress": null,
+                    "fingerprint": "v1:fadb5c924b0af2e5f17446026908cb4336e5aabcdf2ed9680f7888c33b377aa4",
+                    "mediaPath": "series/masha-and-the-bear/083-bienenalarm.mp4",
+                    "mediaRepositoryId": "00000000-0000-4000-8000-000000000004",
+                    "linkedByHand": false
+                  },
+                  "copies": [
+                    {
+                      "id": "media:00000000-0000-4000-8000-000000000004/series/masha-and-the-bear/083-bienenalarm.mp4",
+                      "documentId": "media:00000000-0000-4000-8000-000000000004/series/masha-and-the-bear/083-bienenalarm.mp4",
+                      "title": "Bienenalarm",
+                      "series": "Masha and the bear",
+                      "season": null,
+                      "episode": 83,
+                      "volume": null,
+                      "shelf": null,
+                      "sourceLanguage": null,
+                      "type": "video",
+                      "repositoryId": "00000000-0000-4000-8000-000000000004",
+                      "durationSeconds": 64.04,
+                      "documentAvailable": false,
+                      "videoAvailable": false,
+                      "mediaAvailable": true,
+                      "posterAvailable": false,
+                      "seriesPosterAvailable": false,
+                      "unavailable": {
+                        "media-0": "No study document"
+                      },
+                      "progress": null,
+                      "fingerprint": "v1:fadb5c924b0af2e5f17446026908cb4336e5aabcdf2ed9680f7888c33b377aa4",
+                      "mediaPath": "series/masha-and-the-bear/083-bienenalarm.mp4",
+                      "mediaRepositoryId": "00000000-0000-4000-8000-000000000004",
+                      "linkedByHand": false
+                    }
+                  ],
+                  "label": "Bienenalarm",
+                  "detail": "E83",
+                  "art": null
+                }
+              ],
+              "seasons": [],
+              "count": "1 episode",
+              "art": null
+            },
+            {
+              "key": "series:peppa pig@fr",
+              "shelf": "series",
+              "type": "video",
+              "language": "fr",
+              "name": "Peppa Pig",
+              "single": false,
+              "slots": [
+                {
+                  "key": "fr:s1e1",
+                  "entry": {
+                    "id": "peppa-pig-example-s01e01",
+                    "documentId": "peppa-pig-example-s01e01",
+                    "title": "Les Flaques de Boue - one-minute example",
+                    "series": "Peppa Pig",
+                    "season": 1,
+                    "episode": 1,
+                    "volume": null,
+                    "shelf": null,
+                    "sourceLanguage": "fr",
+                    "type": "video",
+                    "repositoryId": "00000000-0000-4000-8000-000000000002",
+                    "durationSeconds": 62.849,
+                    "documentAvailable": true,
+                    "videoAvailable": true,
+                    "mediaAvailable": true,
+                    "posterAvailable": false,
+                    "seriesPosterAvailable": true,
+                    "unavailable": {},
+                    "progress": null,
+                    "fingerprint": null,
+                    "mediaPath": "series/peppa-pig/s01e01-les-flaques-de-boue.mp4",
+                    "mediaRepositoryId": "00000000-0000-4000-8000-000000000003",
+                    "linkedByHand": false
+                  },
+                  "copies": [
+                    {
+                      "id": "peppa-pig-example-s01e01",
+                      "documentId": "peppa-pig-example-s01e01",
+                      "title": "Les Flaques de Boue - one-minute example",
+                      "series": "Peppa Pig",
+                      "season": 1,
+                      "episode": 1,
+                      "volume": null,
+                      "shelf": null,
+                      "sourceLanguage": "fr",
+                      "type": "video",
+                      "repositoryId": "00000000-0000-4000-8000-000000000002",
+                      "durationSeconds": 62.849,
+                      "documentAvailable": true,
+                      "videoAvailable": true,
+                      "mediaAvailable": true,
+                      "posterAvailable": false,
+                      "seriesPosterAvailable": true,
+                      "unavailable": {},
+                      "progress": null,
+                      "fingerprint": null,
+                      "mediaPath": "series/peppa-pig/s01e01-les-flaques-de-boue.mp4",
+                      "mediaRepositoryId": "00000000-0000-4000-8000-000000000003",
+                      "linkedByHand": false
+                    }
+                  ],
+                  "label": "Les Flaques de Boue - one-minute example",
+                  "detail": "S1 · E1",
+                  "art": null
+                },
+                {
+                  "key": "s1e2",
+                  "entry": {
+                    "id": "media:00000000-0000-4000-8000-000000000003/series/peppa-pig/s01e02-a-la-recherche-de-mr-dinosaure.mp4",
+                    "documentId": "media:00000000-0000-4000-8000-000000000003/series/peppa-pig/s01e02-a-la-recherche-de-mr-dinosaure.mp4",
+                    "title": "A la recherche de mr dinosaure",
+                    "series": "Peppa pig",
+                    "season": 1,
+                    "episode": 2,
+                    "volume": null,
+                    "shelf": null,
+                    "sourceLanguage": null,
+                    "type": "video",
+                    "repositoryId": "00000000-0000-4000-8000-000000000003",
+                    "durationSeconds": 59,
+                    "documentAvailable": false,
+                    "videoAvailable": false,
+                    "mediaAvailable": true,
+                    "posterAvailable": false,
+                    "seriesPosterAvailable": true,
+                    "unavailable": {
+                      "media-0": "No study document"
+                    },
+                    "progress": null,
+                    "fingerprint": "v1:85b6c41190770a5e25e59cdba91338c8cd184cc1b2442e7fbaa2d177cd7992a7",
+                    "mediaPath": "series/peppa-pig/s01e02-a-la-recherche-de-mr-dinosaure.mp4",
+                    "mediaRepositoryId": "00000000-0000-4000-8000-000000000003",
+                    "linkedByHand": false
+                  },
+                  "copies": [
+                    {
+                      "id": "media:00000000-0000-4000-8000-000000000003/series/peppa-pig/s01e02-a-la-recherche-de-mr-dinosaure.mp4",
+                      "documentId": "media:00000000-0000-4000-8000-000000000003/series/peppa-pig/s01e02-a-la-recherche-de-mr-dinosaure.mp4",
+                      "title": "A la recherche de mr dinosaure",
+                      "series": "Peppa pig",
+                      "season": 1,
+                      "episode": 2,
+                      "volume": null,
+                      "shelf": null,
+                      "sourceLanguage": null,
+                      "type": "video",
+                      "repositoryId": "00000000-0000-4000-8000-000000000003",
+                      "durationSeconds": 59,
+                      "documentAvailable": false,
+                      "videoAvailable": false,
+                      "mediaAvailable": true,
+                      "posterAvailable": false,
+                      "seriesPosterAvailable": true,
+                      "unavailable": {
+                        "media-0": "No study document"
+                      },
+                      "progress": null,
+                      "fingerprint": "v1:85b6c41190770a5e25e59cdba91338c8cd184cc1b2442e7fbaa2d177cd7992a7",
+                      "mediaPath": "series/peppa-pig/s01e02-a-la-recherche-de-mr-dinosaure.mp4",
+                      "mediaRepositoryId": "00000000-0000-4000-8000-000000000003",
+                      "linkedByHand": false
+                    }
+                  ],
+                  "label": "A la recherche de mr dinosaure",
+                  "detail": "S1 · E2",
+                  "art": null
+                }
+              ],
+              "seasons": [
+                1
+              ],
+              "count": "2 episodes",
+              "art": {
+                "url": "/api/titles/peppa-pig-example-s01e01/series-card"
+              }
+            }
+          ]
+        }
+      ],
+      "folders": [
+        "00000000-0000-4000-8000-000000000004",
+        "00000000-0000-4000-8000-000000000003"
+      ],
+      "multilingual": false
+    }
+  },
+  {
+    "request": "GET /api/library/usage",
+    "status": 200,
+    "type": "application/json",
+    "json": {
+      "libraryBytes": 2379292,
+      "disks": [
+        {
+          "repositories": [
+            "documents-fr",
+            "media-fr"
+          ],
+          "freeBytes": 500000000000,
+          "totalBytes": 500000000000
+        }
+      ]
+    }
+  },
+  {
+    "request": "GET /api/library/usage",
+    "status": 200,
+    "type": "application/json",
+    "json": {
+      "libraryBytes": 3512861,
+      "disks": [
+        {
+          "repositories": [
+            "documents-fr",
+            "media-de",
+            "media-fr"
+          ],
+          "freeBytes": 500000000000,
+          "totalBytes": 500000000000
+        }
+      ]
+    }
+  },
+  {
+    "request": "GET /api/titles/lulu-example-le-parapluie/card",
+    "status": 302,
+    "location": "/api/titles/lulu-example-le-parapluie/card/recorded"
+  },
+  {
+    "request": "GET /api/titles/lulu-example-le-parapluie/card/recorded",
+    "status": 200,
+    "type": "image/jpeg",
+    "blob": "2770f5618e42f033.jpg"
+  },
+  {
+    "request": "GET /api/titles/peppa-pig-example-s01e01/series-card",
+    "status": 302,
+    "location": "/api/titles/peppa-pig-example-s01e01/series-card/recorded"
+  },
+  {
+    "request": "GET /api/titles/peppa-pig-example-s01e01/series-card/recorded",
+    "status": 200,
+    "type": "image/jpeg",
+    "blob": "91bd481f7f827bbe.jpg"
+  },
+  {
+    "request": "POST /api/files/choose",
+    "status": 200,
+    "type": "application/json",
+    "json": {
+      "path": "<repository>/example/media-de"
+    }
+  },
+  {
+    "request": "POST /api/jobs",
+    "status": 202,
+    "type": "application/json",
+    "json": {
+      "id": "00000000-0000-4000-8000-000000000001",
+      "kind": "add",
+      "state": "running",
+      "progress": null,
+      "error": null
+    }
+  }
+]
