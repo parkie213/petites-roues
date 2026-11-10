@@ -1,4 +1,4 @@
-import test from "node:test";
+import { test, vi } from "vitest";
 import assert from "node:assert/strict";
 import { playerDocument, request } from "../src/shared/api.js";
 import { alignmentState } from "../src/player/alignment.js";
@@ -108,9 +108,9 @@ test("chunks of a language written without spaces join directly", () => {
   assert.equal(alignmentState({ ...cue, source: "我们 去 公园。" }), "missing");
 });
 
-test("request leaves local catalogue and review records outside the portable document model", async (t) => {
+test("request leaves local catalogue and review records outside the portable document model", async () => {
   const records = [{ cueIds: ["cue"], kind: "edit" }];
-  t.mock.method(globalThis, "fetch", async () => ({
+  vi.spyOn(globalThis, "fetch").mockImplementation(async () => ({
     ok: true,
     json: async () => records,
   }));

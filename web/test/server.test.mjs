@@ -1,9 +1,9 @@
-import test from "node:test";
+import { onTestFinished, test } from "vitest";
 import assert from "node:assert/strict";
 import http from "node:http";
 import { createServer } from "../server.mjs";
 
-test("Node serves React routes and streams API requests, downloads and ranges", async (t) => {
+test("Node serves React routes and streams API requests, downloads and ranges", async () => {
   let calls = 0;
   const backend = http.createServer(async (req, res) => {
     calls++;
@@ -47,7 +47,7 @@ test("Node serves React routes and streams API requests, downloads and ranges", 
   const api = `http://127.0.0.1:${backend.address().port}`;
   const frontend = await createServer({ apiTarget: api });
   await new Promise((resolve) => frontend.listen(0, "127.0.0.1", resolve));
-  t.after(() => {
+  onTestFinished(() => {
     frontend.closeAllConnections();
     frontend.close();
     backend.closeAllConnections();
