@@ -49,7 +49,6 @@ import com.petitesroues.android.library.Title
 import com.petitesroues.android.library.TitleKind
 import com.petitesroues.android.library.TitleState
 import com.petitesroues.android.library.TitleViewModel
-import com.petitesroues.android.library.pagesOnly
 import com.petitesroues.android.pages.Section
 import com.petitesroues.android.pages.StudyPages
 import com.petitesroues.android.player.WatchScreen

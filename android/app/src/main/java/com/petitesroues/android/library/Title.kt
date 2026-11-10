@@ -52,6 +52,13 @@ data class Title(
   val progressKey: String
     get() = documentId
 
+  /**
+   * A comic with no study document: it reads from a pages-only document built from its CBZ, in the
+   * direction chosen for it.
+   */
+  val pagesOnly: Boolean
+    get() = documentUri == null && kind == TitleKind.COMIC
+
   /** The content folder the title came from. */
   val folder: String
     get() = path.substringBefore('/')

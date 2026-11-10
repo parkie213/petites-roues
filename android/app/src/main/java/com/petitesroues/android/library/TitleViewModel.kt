@@ -45,13 +45,6 @@ sealed interface TitleState {
 }
 
 /**
- * A comic with no study document: it reads from a pages-only document built from its CBZ, in the
- * direction chosen for it.
- */
-val Title.pagesOnly: Boolean
-  get() = documentUri == null && kind == TitleKind.COMIC
-
-/**
  * Opens a title for the player or the reader: reads its study document (or builds a pages-only one
  * for a comic without), and where it was left. Opening the title that is already open does nothing,
  * so the open title survives the activity being recreated; [close] forgets it, so the next open
