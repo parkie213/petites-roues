@@ -121,9 +121,40 @@ silently choosing another language. It does not fall back to automatically gener
 The live MP4 is remuxed without re-encoding and tagged with the provider-declared language;
 this tag is not audio verification. Check the speech as usual before transcription.
 
-Then use `new_title.py` as above, set `shelf` to `YouTube` and `sourceUrl` to the original video
+Then use `new_title.py` as above, set `shelf` to `YouTube` (or `Music videos` for a song) and `sourceUrl` to the original video
 URL, and explicitly Refresh the registered folders. Downloading does not annotate, register
 folders or refresh the catalogue.
+
+### Music videos
+
+Use the same download, document and three-stage annotation tools, with a different source-text
+review. The speech transcription step below is only a possible draft for singing; it does not
+establish the lyrics. For a music video, follow this order:
+
+1. **Catalogue the performance.** Use shelf `Music videos`, title `Artist — Song`, the original
+   video URL and its thumbnail. Check the actual sung language before choosing `sourceLanguage`.
+2. **Establish the words.** Check supplied captions or artist-published lyrics against this
+   recording: a live performance, edit or remix can differ from the published song. Preserve
+   supplied files and source references under `content-archive/`. Keep contractions, slang,
+   deliberate fragments and audible ad-libs; do not silently rewrite them into formal prose.
+   Record unresolved words in `listeningCheck`, and explain only what is clear.
+3. **Time the lyrics.** Create a cue for each short, meaningful sung phrase, with timings checked
+   against the performance. Keep instrumental passages empty and remove hallucinated lyrics.
+   Every chorus occurrence needs its own cue IDs and timings; check later repetitions for
+   changed words and ad-libs rather than assuming they are identical.
+4. **Review a representative sample.** Include a verse, a chorus and any unusual slang or
+   poetic construction, then follow the translation, breakdown and notes stages and their
+   reviews below. For a short song, checking the whole lyric transcript before annotation is
+   practical. Use a spelling list only when names or other special spellings need one.
+5. **Teach the meaning.** Translate naturally without forcing English rhyme or metre. Explain
+   omitted words, colloquial forms, poetic word order and metaphors where they affect meaning;
+   distinguish a supported interpretation from an ambiguous image. Mention sung pronunciation
+   only when verified in the recording and useful for recognising the words, and distinguish
+   it from ordinary conversational pronunciation. Review against the teaching guide as usual.
+
+Reviewed translations, breakdowns and notes may be reused for an exact repeated lyric when
+its meaning and referents also match. Preserve each occurrence's identity, timing and checks,
+and validate the resulting document through the app. Review changed repetitions separately.
 
 ## Transcribe a video
 
