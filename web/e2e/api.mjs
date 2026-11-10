@@ -2,7 +2,7 @@ import { createHash } from "node:crypto";
 import { mkdir, readdir, readFile, stat, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { test as base, expect } from "@playwright/test";
-import { forgetProgress } from "./real-server.mjs";
+import { forget } from "./real-server.mjs";
 
 /**
  * The browser tests' API: recorded from the real Java server, then replayed.
@@ -212,8 +212,8 @@ async function record(page, file, run) {
   await Promise.allSettled([...pending]);
   if (failures.length)
     throw new AggregateError(failures, "Saving responses failed");
-  // Progress the test saved is forgotten, so the next test starts from the same library.
-  await forgetProgress(entries.map((entry) => entry.request));
+  // What the test saved is undone, so the next test starts from the same library.
+  await forget(entries.map((entry) => entry.request));
   // Responses that arrive together (two posters) come in either order, so they are saved sorted by
   // request, each request's own responses still in order; stand-ins are numbered after that.
   const unordered = (entry) => entry.request.replace(randomId, "");

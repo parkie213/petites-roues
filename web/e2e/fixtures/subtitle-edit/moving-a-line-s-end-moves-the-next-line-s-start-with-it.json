@@ -1,0 +1,1835 @@
+[
+  {
+    "request": "GET /api/jobs/latest",
+    "status": 200,
+    "type": "application/json",
+    "json": {
+      "id": "00000000-0000-4000-8000-000000000001",
+      "kind": "add",
+      "state": "succeeded",
+      "progress": {
+        "folder": "media-de",
+        "phase": "saving",
+        "done": 0,
+        "total": 0,
+        "current": null
+      },
+      "error": null
+    }
+  },
+  {
+    "request": "GET /api/library",
+    "status": 200,
+    "type": "application/json",
+    "json": {
+      "repositories": [
+        {
+          "repository": {
+            "id": "00000000-0000-4000-8000-000000000002",
+            "name": "documents-fr",
+            "localPath": "<repository>/example/documents-fr",
+            "lastRefreshedAt": "2026-01-01T00:00:00Z",
+            "titles": 3,
+            "missing": 0,
+            "media": 0
+          },
+          "entries": [
+            {
+              "id": "lulu-example-le-parapluie",
+              "documentId": "lulu-example-le-parapluie",
+              "title": "Le parapluie de Lulu",
+              "series": null,
+              "season": null,
+              "episode": null,
+              "volume": null,
+              "shelf": null,
+              "sourceLanguage": "fr",
+              "sourceUrl": null,
+              "repositoryId": "00000000-0000-4000-8000-000000000002",
+              "repositoryName": "documents-fr",
+              "relativePath": "comics/lulu/le-parapluie-de-lulu/document.json",
+              "durationSeconds": null,
+              "documentAvailable": true,
+              "videoAvailable": false,
+              "unavailable": {},
+              "type": "comic",
+              "mediaAvailable": true,
+              "posterAvailable": false,
+              "seriesPosterAvailable": false,
+              "progress": null,
+              "mediaRepositoryId": "00000000-0000-4000-8000-000000000003",
+              "mediaPath": "comics/lulu/le-parapluie-de-lulu.cbz",
+              "mediaLinkedByHand": false
+            },
+            {
+              "id": "peppa-pig-example-s01e01",
+              "documentId": "peppa-pig-example-s01e01",
+              "title": "Les Flaques de Boue - one-minute example",
+              "series": "Peppa Pig",
+              "season": 1,
+              "episode": 1,
+              "volume": null,
+              "shelf": null,
+              "sourceLanguage": "fr",
+              "sourceUrl": "https://www.youtube.com/watch?v=Mh_GJPIaPTI",
+              "repositoryId": "00000000-0000-4000-8000-000000000002",
+              "repositoryName": "documents-fr",
+              "relativePath": "series/peppa-pig/s01e01/document.json",
+              "durationSeconds": 62.849,
+              "documentAvailable": true,
+              "videoAvailable": true,
+              "unavailable": {},
+              "type": "video",
+              "mediaAvailable": true,
+              "posterAvailable": false,
+              "seriesPosterAvailable": true,
+              "progress": null,
+              "mediaRepositoryId": "00000000-0000-4000-8000-000000000003",
+              "mediaPath": "series/peppa-pig/s01e01-les-flaques-de-boue.mp4",
+              "mediaLinkedByHand": false
+            },
+            {
+              "id": "peppa-pig-example-s01e02",
+              "documentId": "peppa-pig-example-s01e02",
+              "title": "À la recherche de Mr. Dinosaure - one-minute example",
+              "series": "Peppa Pig",
+              "season": 1,
+              "episode": 2,
+              "volume": null,
+              "shelf": null,
+              "sourceLanguage": "fr",
+              "sourceUrl": "https://www.youtube.com/watch?v=M9FrHb4npsc",
+              "repositoryId": "00000000-0000-4000-8000-000000000002",
+              "repositoryName": "documents-fr",
+              "relativePath": "series/peppa-pig/s01e02/document.json",
+              "durationSeconds": 59,
+              "documentAvailable": true,
+              "videoAvailable": false,
+              "unavailable": {
+                "title": "No video matches its reference"
+              },
+              "type": "video",
+              "mediaAvailable": false,
+              "posterAvailable": false,
+              "seriesPosterAvailable": false,
+              "progress": null,
+              "mediaRepositoryId": null,
+              "mediaPath": null,
+              "mediaLinkedByHand": false
+            }
+          ],
+          "media": []
+        },
+        {
+          "repository": {
+            "id": "00000000-0000-4000-8000-000000000003",
+            "name": "media-fr",
+            "localPath": "<repository>/example/media-fr",
+            "lastRefreshedAt": "2026-01-01T00:00:00Z",
+            "titles": 0,
+            "missing": 0,
+            "media": 3
+          },
+          "entries": [],
+          "media": [
+            {
+              "repositoryId": "00000000-0000-4000-8000-000000000003",
+              "relativePath": "comics/lulu/le-parapluie-de-lulu.cbz",
+              "series": "Lulu",
+              "title": "Le parapluie de lulu",
+              "kind": "comic",
+              "fingerprint": "v1:7de12dfdfe43bebb28a4907886ff180444276491db4897898162a138bc060199",
+              "titleId": "lulu-example-le-parapluie",
+              "linkedByHand": false,
+              "durationSeconds": null,
+              "posterAvailable": false,
+              "seriesPosterAvailable": false,
+              "warnings": []
+            },
+            {
+              "repositoryId": "00000000-0000-4000-8000-000000000003",
+              "relativePath": "series/peppa-pig/s01e01-les-flaques-de-boue.mp4",
+              "series": "Peppa pig",
+              "title": "Les flaques de boue",
+              "kind": "video",
+              "fingerprint": "v1:b561c1578fd731cb893d41a87b6199b53b1e1d210088acdb82d208d64fcf87f9",
+              "titleId": "peppa-pig-example-s01e01",
+              "linkedByHand": false,
+              "durationSeconds": 62.849,
+              "posterAvailable": false,
+              "seriesPosterAvailable": true,
+              "warnings": []
+            },
+            {
+              "repositoryId": "00000000-0000-4000-8000-000000000003",
+              "relativePath": "series/peppa-pig/s01e02-a-la-recherche-de-mr-dinosaure.mp4",
+              "series": "Peppa pig",
+              "title": "A la recherche de mr dinosaure",
+              "kind": "video",
+              "fingerprint": "v1:85b6c41190770a5e25e59cdba91338c8cd184cc1b2442e7fbaa2d177cd7992a7",
+              "titleId": null,
+              "linkedByHand": false,
+              "durationSeconds": 59,
+              "posterAvailable": false,
+              "seriesPosterAvailable": true,
+              "warnings": [
+                "No study document"
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "request": "GET /api/library/posters",
+    "status": 200,
+    "type": "application/json",
+    "json": {
+      "shelves": [
+        {
+          "key": "comics",
+          "label": "Comics",
+          "groups": [
+            {
+              "key": "comics:lulu@fr",
+              "shelf": "comics",
+              "type": "comic",
+              "language": "fr",
+              "name": "Lulu",
+              "single": false,
+              "slots": [
+                {
+                  "key": "d:lulu-example-le-parapluie",
+                  "entry": {
+                    "id": "lulu-example-le-parapluie",
+                    "documentId": "lulu-example-le-parapluie",
+                    "title": "Le parapluie de Lulu",
+                    "series": null,
+                    "season": null,
+                    "episode": null,
+                    "volume": null,
+                    "shelf": null,
+                    "sourceLanguage": "fr",
+                    "type": "comic",
+                    "repositoryId": "00000000-0000-4000-8000-000000000002",
+                    "durationSeconds": null,
+                    "documentAvailable": true,
+                    "videoAvailable": false,
+                    "mediaAvailable": true,
+                    "posterAvailable": false,
+                    "seriesPosterAvailable": false,
+                    "unavailable": {},
+                    "progress": null,
+                    "fingerprint": null,
+                    "mediaPath": "comics/lulu/le-parapluie-de-lulu.cbz",
+                    "mediaRepositoryId": "00000000-0000-4000-8000-000000000003",
+                    "linkedByHand": false
+                  },
+                  "copies": [
+                    {
+                      "id": "lulu-example-le-parapluie",
+                      "documentId": "lulu-example-le-parapluie",
+                      "title": "Le parapluie de Lulu",
+                      "series": null,
+                      "season": null,
+                      "episode": null,
+                      "volume": null,
+                      "shelf": null,
+                      "sourceLanguage": "fr",
+                      "type": "comic",
+                      "repositoryId": "00000000-0000-4000-8000-000000000002",
+                      "durationSeconds": null,
+                      "documentAvailable": true,
+                      "videoAvailable": false,
+                      "mediaAvailable": true,
+                      "posterAvailable": false,
+                      "seriesPosterAvailable": false,
+                      "unavailable": {},
+                      "progress": null,
+                      "fingerprint": null,
+                      "mediaPath": "comics/lulu/le-parapluie-de-lulu.cbz",
+                      "mediaRepositoryId": "00000000-0000-4000-8000-000000000003",
+                      "linkedByHand": false
+                    }
+                  ],
+                  "label": "Le parapluie de Lulu",
+                  "detail": null,
+                  "art": {
+                    "url": "/api/titles/lulu-example-le-parapluie/card"
+                  }
+                }
+              ],
+              "seasons": [],
+              "count": "1 tome",
+              "art": {
+                "url": "/api/titles/lulu-example-le-parapluie/card"
+              }
+            }
+          ]
+        },
+        {
+          "key": "series",
+          "label": "Series",
+          "groups": [
+            {
+              "key": "series:peppa pig@fr",
+              "shelf": "series",
+              "type": "video",
+              "language": "fr",
+              "name": "Peppa Pig",
+              "single": false,
+              "slots": [
+                {
+                  "key": "fr:s1e1",
+                  "entry": {
+                    "id": "peppa-pig-example-s01e01",
+                    "documentId": "peppa-pig-example-s01e01",
+                    "title": "Les Flaques de Boue - one-minute example",
+                    "series": "Peppa Pig",
+                    "season": 1,
+                    "episode": 1,
+                    "volume": null,
+                    "shelf": null,
+                    "sourceLanguage": "fr",
+                    "type": "video",
+                    "repositoryId": "00000000-0000-4000-8000-000000000002",
+                    "durationSeconds": 62.849,
+                    "documentAvailable": true,
+                    "videoAvailable": true,
+                    "mediaAvailable": true,
+                    "posterAvailable": false,
+                    "seriesPosterAvailable": true,
+                    "unavailable": {},
+                    "progress": null,
+                    "fingerprint": null,
+                    "mediaPath": "series/peppa-pig/s01e01-les-flaques-de-boue.mp4",
+                    "mediaRepositoryId": "00000000-0000-4000-8000-000000000003",
+                    "linkedByHand": false
+                  },
+                  "copies": [
+                    {
+                      "id": "peppa-pig-example-s01e01",
+                      "documentId": "peppa-pig-example-s01e01",
+                      "title": "Les Flaques de Boue - one-minute example",
+                      "series": "Peppa Pig",
+                      "season": 1,
+                      "episode": 1,
+                      "volume": null,
+                      "shelf": null,
+                      "sourceLanguage": "fr",
+                      "type": "video",
+                      "repositoryId": "00000000-0000-4000-8000-000000000002",
+                      "durationSeconds": 62.849,
+                      "documentAvailable": true,
+                      "videoAvailable": true,
+                      "mediaAvailable": true,
+                      "posterAvailable": false,
+                      "seriesPosterAvailable": true,
+                      "unavailable": {},
+                      "progress": null,
+                      "fingerprint": null,
+                      "mediaPath": "series/peppa-pig/s01e01-les-flaques-de-boue.mp4",
+                      "mediaRepositoryId": "00000000-0000-4000-8000-000000000003",
+                      "linkedByHand": false
+                    }
+                  ],
+                  "label": "Les Flaques de Boue - one-minute example",
+                  "detail": "S1 · E1",
+                  "art": null
+                },
+                {
+                  "key": "s1e2",
+                  "entry": {
+                    "id": "media:00000000-0000-4000-8000-000000000003/series/peppa-pig/s01e02-a-la-recherche-de-mr-dinosaure.mp4",
+                    "documentId": "media:00000000-0000-4000-8000-000000000003/series/peppa-pig/s01e02-a-la-recherche-de-mr-dinosaure.mp4",
+                    "title": "A la recherche de mr dinosaure",
+                    "series": "Peppa pig",
+                    "season": 1,
+                    "episode": 2,
+                    "volume": null,
+                    "shelf": null,
+                    "sourceLanguage": null,
+                    "type": "video",
+                    "repositoryId": "00000000-0000-4000-8000-000000000003",
+                    "durationSeconds": 59,
+                    "documentAvailable": false,
+                    "videoAvailable": false,
+                    "mediaAvailable": true,
+                    "posterAvailable": false,
+                    "seriesPosterAvailable": true,
+                    "unavailable": {
+                      "media-0": "No study document"
+                    },
+                    "progress": null,
+                    "fingerprint": "v1:85b6c41190770a5e25e59cdba91338c8cd184cc1b2442e7fbaa2d177cd7992a7",
+                    "mediaPath": "series/peppa-pig/s01e02-a-la-recherche-de-mr-dinosaure.mp4",
+                    "mediaRepositoryId": "00000000-0000-4000-8000-000000000003",
+                    "linkedByHand": false
+                  },
+                  "copies": [
+                    {
+                      "id": "media:00000000-0000-4000-8000-000000000003/series/peppa-pig/s01e02-a-la-recherche-de-mr-dinosaure.mp4",
+                      "documentId": "media:00000000-0000-4000-8000-000000000003/series/peppa-pig/s01e02-a-la-recherche-de-mr-dinosaure.mp4",
+                      "title": "A la recherche de mr dinosaure",
+                      "series": "Peppa pig",
+                      "season": 1,
+                      "episode": 2,
+                      "volume": null,
+                      "shelf": null,
+                      "sourceLanguage": null,
+                      "type": "video",
+                      "repositoryId": "00000000-0000-4000-8000-000000000003",
+                      "durationSeconds": 59,
+                      "documentAvailable": false,
+                      "videoAvailable": false,
+                      "mediaAvailable": true,
+                      "posterAvailable": false,
+                      "seriesPosterAvailable": true,
+                      "unavailable": {
+                        "media-0": "No study document"
+                      },
+                      "progress": null,
+                      "fingerprint": "v1:85b6c41190770a5e25e59cdba91338c8cd184cc1b2442e7fbaa2d177cd7992a7",
+                      "mediaPath": "series/peppa-pig/s01e02-a-la-recherche-de-mr-dinosaure.mp4",
+                      "mediaRepositoryId": "00000000-0000-4000-8000-000000000003",
+                      "linkedByHand": false
+                    }
+                  ],
+                  "label": "A la recherche de mr dinosaure",
+                  "detail": "S1 · E2",
+                  "art": null
+                }
+              ],
+              "seasons": [
+                1
+              ],
+              "count": "2 episodes",
+              "art": {
+                "url": "/api/titles/peppa-pig-example-s01e01/series-card"
+              }
+            }
+          ]
+        }
+      ],
+      "folders": [
+        "00000000-0000-4000-8000-000000000003"
+      ],
+      "multilingual": false
+    }
+  },
+  {
+    "request": "GET /api/library/usage",
+    "status": 200,
+    "type": "application/json",
+    "json": {
+      "libraryBytes": 2379292,
+      "disks": [
+        {
+          "repositories": [
+            "documents-fr",
+            "media-fr"
+          ],
+          "freeBytes": 500000000000,
+          "totalBytes": 500000000000
+        }
+      ]
+    }
+  },
+  {
+    "request": "GET /api/titles/lulu-example-le-parapluie/card",
+    "status": 302,
+    "location": "/api/titles/lulu-example-le-parapluie/card/recorded"
+  },
+  {
+    "request": "GET /api/titles/lulu-example-le-parapluie/card/recorded",
+    "status": 200,
+    "type": "image/jpeg",
+    "blob": "2770f5618e42f033.jpg"
+  },
+  {
+    "request": "GET /api/titles/peppa-pig-example-s01e01",
+    "status": 200,
+    "type": "application/json",
+    "json": {
+      "id": "peppa-pig-example-s01e01",
+      "title": "Les Flaques de Boue - one-minute example",
+      "sourceLanguage": "fr",
+      "translationLanguage": "en",
+      "notesLanguage": "en",
+      "series": "Peppa Pig",
+      "sourceUrl": "https://www.youtube.com/watch?v=Mh_GJPIaPTI",
+      "video": {
+        "season": 1,
+        "episode": 1,
+        "reference": {
+          "fingerprint": "v1:b561c1578fd731cb893d41a87b6199b53b1e1d210088acdb82d208d64fcf87f9",
+          "sizeBytes": 882882,
+          "durationSeconds": 62.849
+        },
+        "cues": [
+          {
+            "line": {
+              "id": "a5ce11b2-3e58-3652-a46e-0969f2a861f5",
+              "source": "Il ne pleut plus maintenant. Est-ce qu'on peut sortir jouer ?",
+              "translation": "It isn't raining any more now. Can we go outside and play?",
+              "notes": [
+                "`Est-ce que` introduces a yes/no question without reversing subject and verb. It becomes `est-ce qu'` before `on`; English instead puts can before we.",
+                "`On peut sortir jouer` chains two infinitives: we can go out to play. `Sortir` follows `peut`, and `jouer` states the purpose of going out; English supplies and in this translation."
+              ],
+              "alignment": {
+                "source": [
+                  "Il ne pleut plus",
+                  "maintenant.",
+                  "Est-ce qu'on peut",
+                  "sortir",
+                  "jouer ?"
+                ],
+                "translation": [
+                  "It isn't raining any more",
+                  "now.",
+                  "Can we",
+                  "go outside",
+                  "and play?"
+                ],
+                "links": [
+                  {
+                    "source": [
+                      0
+                    ],
+                    "translation": [
+                      0
+                    ],
+                    "note": "`Pleut → pleuvoir` = rain, third-person singular present indicative. Weather `il` is impersonal: it does not name a person. `Ne … plus` makes the rain something that has stopped: not any more/no longer."
+                  },
+                  {
+                    "source": [
+                      1
+                    ],
+                    "translation": [
+                      1
+                    ],
+                    "note": "`Maintenant` = now."
+                  },
+                  {
+                    "source": [
+                      2
+                    ],
+                    "translation": [
+                      2
+                    ],
+                    "note": "`Peut → pouvoir` = can/be allowed to, third-person singular present indicative with `on`. Here `on` means we, the children asking permission. `Est-ce que` marks the question; `est → être` is third-person singular present indicative inside that fixed question formula."
+                  },
+                  {
+                    "source": [
+                      3
+                    ],
+                    "translation": [
+                      3
+                    ],
+                    "note": "`Sortir` = go out, an infinitive after `peut`; here it means going outside."
+                  },
+                  {
+                    "source": [
+                      4
+                    ],
+                    "translation": [
+                      4
+                    ],
+                    "note": "`Jouer` = play, an infinitive expressing what they want to go out to do. English adds and to connect go outside and play."
+                  }
+                ]
+              },
+              "continuesPrevious": false
+            },
+            "start": 2.5,
+            "end": 6.92,
+            "listeningCheck": "The opening form of address is uncertain in the automatic transcript and has been omitted here. Check the opening against the audio; the transcript and timings still need a listening review."
+          },
+          {
+            "line": {
+              "id": "b65a6f06-3525-357f-9286-49eba2ef8b82",
+              "source": "Bien sûr. Allez-y et amusez-vous bien.",
+              "translation": "Of course. Go ahead and have fun.",
+              "notes": [
+                "Both commands address the children together. In affirmative commands, the pronouns follow the verb with a hyphen: `allez-y`, `amusez-vous`."
+              ],
+              "alignment": {
+                "source": [
+                  "Bien sûr.",
+                  "Allez-y",
+                  "et",
+                  "amusez-vous bien."
+                ],
+                "translation": [
+                  "Of course.",
+                  "Go ahead",
+                  "and",
+                  "have fun."
+                ],
+                "links": [
+                  {
+                    "source": [
+                      0
+                    ],
+                    "translation": [
+                      0
+                    ],
+                    "note": "`Bien sûr` is the fixed expression of course; here it grants permission."
+                  },
+                  {
+                    "source": [
+                      1
+                    ],
+                    "translation": [
+                      1
+                    ],
+                    "note": "`Allez → aller` = go, second-person plural imperative addressing the children. `Allez-y` means go ahead here; `y` points to going out/the proposed activity."
+                  },
+                  {
+                    "source": [
+                      2
+                    ],
+                    "translation": [
+                      2
+                    ],
+                    "note": "`Et` = and, joining the two commands."
+                  },
+                  {
+                    "source": [
+                      3
+                    ],
+                    "translation": [
+                      3
+                    ],
+                    "note": "`Amusez-vous → s'amuser` = have fun/enjoy yourselves, second-person plural imperative. `Amuser quelqu'un` means entertain someone; pronominal `s'amuser` means have fun oneself. `Bien` wishes them a good time."
+                  }
+                ]
+              },
+              "continuesPrevious": false
+            },
+            "start": 6.92,
+            "end": 9.82
+          },
+          {
+            "line": {
+              "id": "0c0abb38-65f1-3af0-a80f-b3b026d39c96",
+              "source": "Peppa adore sauter dans les flaques de boue.",
+              "translation": "Peppa loves jumping in muddy puddles.",
+              "notes": [
+                "`Adorer + infinitive` names an activity someone loves. French uses the infinitive `sauter`, where this English translation uses jumping."
+              ],
+              "alignment": {
+                "source": [
+                  "Peppa adore",
+                  "sauter",
+                  "dans les flaques de boue."
+                ],
+                "translation": [
+                  "Peppa loves",
+                  "jumping",
+                  "in muddy puddles."
+                ],
+                "links": [
+                  {
+                    "source": [
+                      0
+                    ],
+                    "translation": [
+                      0
+                    ],
+                    "note": "`Adore → adorer` = love/really like here, third-person singular present indicative with `Peppa`. It expresses enjoyment rather than worship."
+                  },
+                  {
+                    "source": [
+                      1
+                    ],
+                    "translation": [
+                      1
+                    ],
+                    "note": "`Sauter` = jump, an infinitive after `adore`; English renders the activity as jumping."
+                  },
+                  {
+                    "source": [
+                      2
+                    ],
+                    "translation": [
+                      2
+                    ],
+                    "note": "`Dans` = in/into; `une flaque` = a puddle and `la boue` = mud. `Les flaques de boue` literally means the puddles of mud; English naturally says muddy puddles without the article here."
+                  }
+                ]
+              },
+              "continuesPrevious": false
+            },
+            "start": 13.79,
+            "end": 23
+          },
+          {
+            "line": {
+              "id": "dedfe945-d403-3a91-913e-bce5f4307f65",
+              "source": "J'adore sauter dans les flaques de boue.",
+              "translation": "I love jumping in muddy puddles.",
+              "notes": [
+                "`J'adore` expresses Peppa's own enthusiasm. French uses an infinitive for the enjoyed activity: `adorer sauter` = love jumping."
+              ],
+              "alignment": {
+                "source": [
+                  "J'adore",
+                  "sauter",
+                  "dans les flaques de boue."
+                ],
+                "translation": [
+                  "I love",
+                  "jumping",
+                  "in muddy puddles."
+                ],
+                "links": [
+                  {
+                    "source": [
+                      0
+                    ],
+                    "translation": [
+                      0
+                    ],
+                    "note": "`Adore → adorer` = love/really like, first-person singular present indicative with `je`, shortened to `j'` before the vowel."
+                  },
+                  {
+                    "source": [
+                      1
+                    ],
+                    "translation": [
+                      1
+                    ],
+                    "note": "`Sauter` = jump, an infinitive after `adore`, translated here as jumping."
+                  },
+                  {
+                    "source": [
+                      2
+                    ],
+                    "translation": [
+                      2
+                    ],
+                    "note": "`Dans les flaques de boue` = in muddy puddles: `dans` = in/into, `une flaque` = a puddle and `la boue` = mud. French uses a noun with `de` where English uses the adjective muddy."
+                  }
+                ]
+              },
+              "continuesPrevious": false
+            },
+            "start": 23.3,
+            "end": 25.6
+          },
+          {
+            "line": {
+              "id": "bee41b70-ca55-3103-b868-0ced0f40cb9c",
+              "source": "Si tu as envie de sauter dans les flaques, tu dois mettre tes bottes en caoutchouc.",
+              "translation": "If you want to jump in the puddles, you must put on your rubber boots.",
+              "notes": [
+                "`Si` introduces the condition; the second clause states the requirement if that condition applies. Both `as` and `dois` are present indicative.",
+                "`Mettre` changes meaning with its object: with clothes, `mettre ses bottes` means put on one’s boots, rather than simply put them somewhere."
+              ],
+              "alignment": {
+                "source": [
+                  "Si",
+                  "tu as envie de",
+                  "sauter",
+                  "dans les flaques,",
+                  "tu dois",
+                  "mettre",
+                  "tes bottes en caoutchouc."
+                ],
+                "translation": [
+                  "If",
+                  "you want to",
+                  "jump",
+                  "in the puddles,",
+                  "you must",
+                  "put on",
+                  "your rubber boots."
+                ],
+                "links": [
+                  {
+                    "source": [
+                      0
+                    ],
+                    "translation": [
+                      0
+                    ],
+                    "note": "`Si` = if, introducing the condition."
+                  },
+                  {
+                    "source": [
+                      1
+                    ],
+                    "translation": [
+                      1
+                    ],
+                    "note": "`As → avoir` = have, second-person singular present indicative with `tu`. `Avoir envie de + infinitive` means want to/feel like doing something; `envie` expresses desire here, not jealousy. English puts the desire directly into want."
+                  },
+                  {
+                    "source": [
+                      2
+                    ],
+                    "translation": [
+                      2
+                    ],
+                    "note": "`Sauter` = jump, an infinitive after `avoir envie de`; it names the desired activity."
+                  },
+                  {
+                    "source": [
+                      3
+                    ],
+                    "translation": [
+                      3
+                    ],
+                    "note": "`Dans` = in/into; `les flaques` = the puddles, plural of `une flaque`."
+                  },
+                  {
+                    "source": [
+                      4
+                    ],
+                    "translation": [
+                      4
+                    ],
+                    "note": "`Dois → devoir` = must/have to, second-person singular present indicative with `tu`. It introduces the required action, expressed by the following infinitive."
+                  },
+                  {
+                    "source": [
+                      5
+                    ],
+                    "translation": [
+                      5
+                    ],
+                    "note": "`Mettre` = put on here, an infinitive after `dois`. Its object is clothing: the boots."
+                  },
+                  {
+                    "source": [
+                      6
+                    ],
+                    "translation": [
+                      6
+                    ],
+                    "note": "`Tes bottes en caoutchouc` = your rubber boots: `une botte` = a boot, `tes` = your before a plural noun, and `le caoutchouc` = rubber. `En` introduces the material, which English places before boots."
+                  }
+                ]
+              },
+              "continuesPrevious": false
+            },
+            "start": 29.56,
+            "end": 34.44
+          },
+          {
+            "line": {
+              "id": "bf0855b9-8b66-37e0-8c22-852f7f910017",
+              "source": "D'accord, maman.",
+              "translation": "Okay, Mummy.",
+              "notes": [],
+              "alignment": {
+                "source": [
+                  "D'accord,",
+                  "maman."
+                ],
+                "translation": [
+                  "Okay,",
+                  "Mummy."
+                ],
+                "links": [
+                  {
+                    "source": [
+                      0
+                    ],
+                    "translation": [
+                      0
+                    ],
+                    "note": "`D'accord` = okay/agreed, accepting the instruction."
+                  },
+                  {
+                    "source": [
+                      1
+                    ],
+                    "translation": [
+                      1
+                    ],
+                    "note": "`Maman` is a familiar way to address one’s mother, like Mummy or Mum."
+                  }
+                ]
+              },
+              "continuesPrevious": false
+            },
+            "start": 35.22,
+            "end": 36.18
+          },
+          {
+            "line": {
+              "id": "c95af3af-2039-3fa0-bf92-bac27cfa7a10",
+              "source": "George aussi aime bien sauter dans les flaques de boue.",
+              "translation": "George likes jumping in muddy puddles too.",
+              "notes": [
+                "`Aussi` includes George alongside someone else: George too. French puts it after his name here; this English translation places too at the end. George remains the subject of `aime`."
+              ],
+              "alignment": {
+                "source": [
+                  "George",
+                  "aussi",
+                  "aime bien",
+                  "sauter",
+                  "dans les flaques de boue."
+                ],
+                "translation": [
+                  "George",
+                  "likes",
+                  "jumping",
+                  "in muddy puddles",
+                  "too."
+                ],
+                "links": [
+                  {
+                    "source": [
+                      0
+                    ],
+                    "translation": [
+                      0
+                    ],
+                    "note": "`George` names the person who enjoys the activity."
+                  },
+                  {
+                    "source": [
+                      1
+                    ],
+                    "translation": [
+                      4
+                    ],
+                    "note": "`Aussi` = too/as well here, adding George to the people who like it."
+                  },
+                  {
+                    "source": [
+                      2
+                    ],
+                    "translation": [
+                      1
+                    ],
+                    "note": "`Aime → aimer` = like, third-person singular present indicative with `George`. `Aimer bien` commonly means like/enjoy; `bien` does not literally mean that he loves well."
+                  },
+                  {
+                    "source": [
+                      3
+                    ],
+                    "translation": [
+                      2
+                    ],
+                    "note": "`Sauter` = jump, an infinitive naming the activity after `aime bien`; English uses jumping."
+                  },
+                  {
+                    "source": [
+                      4
+                    ],
+                    "translation": [
+                      3
+                    ],
+                    "note": "`Dans les flaques de boue` = in muddy puddles: `dans` = in/into, `une flaque` = a puddle, and `la boue` = mud. `De boue` describes the kind of puddle."
+                  }
+                ]
+              },
+              "continuesPrevious": false
+            },
+            "start": 43.6,
+            "end": 48.96
+          },
+          {
+            "line": {
+              "id": "3f99d471-14a3-3011-83ea-a66d7dad4904",
+              "source": "George, si tu as envie de sauter dans les flaques de boue, tu dois mettre tes bottes en caoutchouc.",
+              "translation": "George, if you want to jump in muddy puddles, you must put on your rubber boots.",
+              "notes": [
+                "`George` is a direct address. The subject of both clauses is `tu`, meaning the person being addressed: George.",
+                "`Si` sets the condition for the requirement in `tu dois`. The desire and obligation both use present indicative forms, `as` and `dois`."
+              ],
+              "alignment": {
+                "source": [
+                  "George,",
+                  "si",
+                  "tu as envie de",
+                  "sauter",
+                  "dans les flaques de boue,",
+                  "tu dois",
+                  "mettre",
+                  "tes bottes en caoutchouc."
+                ],
+                "translation": [
+                  "George,",
+                  "if",
+                  "you want to",
+                  "jump",
+                  "in muddy puddles,",
+                  "you must",
+                  "put on",
+                  "your rubber boots."
+                ],
+                "links": [
+                  {
+                    "source": [
+                      0
+                    ],
+                    "translation": [
+                      0
+                    ],
+                    "note": "`George` names the person being addressed."
+                  },
+                  {
+                    "source": [
+                      1
+                    ],
+                    "translation": [
+                      1
+                    ],
+                    "note": "`Si` = if, opening the condition."
+                  },
+                  {
+                    "source": [
+                      2
+                    ],
+                    "translation": [
+                      2
+                    ],
+                    "note": "`As → avoir` = have, second-person singular present indicative with `tu`. `Avoir envie de + infinitive` means want to/feel like doing something; `envie` expresses desire here, not jealousy. English puts the desire directly into want."
+                  },
+                  {
+                    "source": [
+                      3
+                    ],
+                    "translation": [
+                      3
+                    ],
+                    "note": "`Sauter` = jump, an infinitive after `avoir envie de`; it names the activity George wants to do."
+                  },
+                  {
+                    "source": [
+                      4
+                    ],
+                    "translation": [
+                      4
+                    ],
+                    "note": "`Dans les flaques de boue` = in muddy puddles: `dans` = in/into, `une flaque` = a puddle and `la boue` = mud. English uses muddy for the description `de boue`."
+                  },
+                  {
+                    "source": [
+                      5
+                    ],
+                    "translation": [
+                      5
+                    ],
+                    "note": "`Dois → devoir` = must/have to, second-person singular present indicative with `tu`. It introduces the required action, expressed by the following infinitive."
+                  },
+                  {
+                    "source": [
+                      6
+                    ],
+                    "translation": [
+                      6
+                    ],
+                    "note": "`Mettre` = put on with clothing, an infinitive after `dois`. George is the person who must put the boots on."
+                  },
+                  {
+                    "source": [
+                      7
+                    ],
+                    "translation": [
+                      7
+                    ],
+                    "note": "`Tes bottes en caoutchouc` = your rubber boots: `une botte` = a boot, `tes` = your before a plural noun, and `le caoutchouc` = rubber. `En` introduces the material, which English places before boots."
+                  }
+                ]
+              },
+              "continuesPrevious": false
+            },
+            "start": 49.82,
+            "end": 57.61
+          },
+          {
+            "line": {
+              "id": "f8c57f08-470b-3753-be30-55e793446ed3",
+              "source": "Peppa aime bien s'occuper de son petit frère George.",
+              "translation": "Peppa likes looking after her little brother George.",
+              "notes": [
+                "`Son` agrees with the thing or person possessed, masculine singular `frère`, rather than the gender of the possessor. Here it means her because the brother is Peppa’s; the same form can mean his in another context."
+              ],
+              "alignment": {
+                "source": [
+                  "Peppa aime bien",
+                  "s'occuper de",
+                  "son petit frère George."
+                ],
+                "translation": [
+                  "Peppa likes",
+                  "looking after",
+                  "her little brother George."
+                ],
+                "links": [
+                  {
+                    "source": [
+                      0
+                    ],
+                    "translation": [
+                      0
+                    ],
+                    "note": "`Aime → aimer` = like/enjoy, third-person singular present indicative with `Peppa`. `Aimer bien` expresses enjoyment here and introduces an infinitive naming the activity."
+                  },
+                  {
+                    "source": [
+                      1
+                    ],
+                    "translation": [
+                      1
+                    ],
+                    "note": "`S'occuper de quelqu'un` = look after/take care of someone. `Occuper` alone can mean occupy or keep someone busy; the pronominal construction with `de` has this caring meaning. `S'occuper` is an infinitive after `aime bien`; `se` becomes `s'` before the vowel."
+                  },
+                  {
+                    "source": [
+                      2
+                    ],
+                    "translation": [
+                      2
+                    ],
+                    "note": "`Son petit frère George` = her little brother George. `Un frère` = a brother and `petit frère` means younger/little brother; `son` identifies whose brother he is."
+                  }
+                ]
+              },
+              "continuesPrevious": false
+            },
+            "start": 57.61,
+            "end": 62.15
+          }
+        ]
+      }
+    }
+  },
+  {
+    "request": "GET /api/titles/peppa-pig-example-s01e01/media",
+    "status": 302,
+    "location": "/api/titles/peppa-pig-example-s01e01/media/recorded"
+  },
+  {
+    "request": "GET /api/titles/peppa-pig-example-s01e01/media/recorded",
+    "status": 206,
+    "type": "video/mp4",
+    "file": "example/media-fr/series/peppa-pig/s01e01-les-flaques-de-boue.mp4"
+  },
+  {
+    "request": "GET /api/titles/peppa-pig-example-s01e01/progress",
+    "status": 200,
+    "type": "application/json",
+    "json": {
+      "positionSeconds": 0,
+      "updatedAt": null
+    }
+  },
+  {
+    "request": "GET /api/titles/peppa-pig-example-s01e01/review-queue",
+    "status": 200,
+    "type": "application/json",
+    "json": []
+  },
+  {
+    "request": "GET /api/titles/peppa-pig-example-s01e01/series-card",
+    "status": 302,
+    "location": "/api/titles/peppa-pig-example-s01e01/series-card/recorded"
+  },
+  {
+    "request": "GET /api/titles/peppa-pig-example-s01e01/series-card/recorded",
+    "status": 200,
+    "type": "image/jpeg",
+    "blob": "91bd481f7f827bbe.jpg"
+  },
+  {
+    "request": "POST /api/titles/peppa-pig-example-s01e01/timings",
+    "status": 200,
+    "type": "application/json",
+    "json": {
+      "ok": true,
+      "lines": 9
+    }
+  },
+  {
+    "request": "PUT /api/titles/peppa-pig-example-s01e01/cues/a5ce11b2-3e58-3652-a46e-0969f2a861f5",
+    "status": 200,
+    "type": "application/json",
+    "json": {
+      "id": "peppa-pig-example-s01e01",
+      "title": "Les Flaques de Boue - one-minute example",
+      "sourceLanguage": "fr",
+      "translationLanguage": "en",
+      "notesLanguage": "en",
+      "series": "Peppa Pig",
+      "sourceUrl": "https://www.youtube.com/watch?v=Mh_GJPIaPTI",
+      "video": {
+        "season": 1,
+        "episode": 1,
+        "reference": {
+          "fingerprint": "v1:b561c1578fd731cb893d41a87b6199b53b1e1d210088acdb82d208d64fcf87f9",
+          "sizeBytes": 882882,
+          "durationSeconds": 62.849
+        },
+        "cues": [
+          {
+            "line": {
+              "id": "a5ce11b2-3e58-3652-a46e-0969f2a861f5",
+              "source": "Il ne pleut plus maintenant. Est-ce qu'on peut sortir jouer ?",
+              "translation": "It isn't raining any more now. Can we go outside and play?",
+              "notes": [
+                "`Est-ce que` introduces a yes/no question without reversing subject and verb. It becomes `est-ce qu'` before `on`; English instead puts can before we.",
+                "`On peut sortir jouer` chains two infinitives: we can go out to play. `Sortir` follows `peut`, and `jouer` states the purpose of going out; English supplies and in this translation."
+              ],
+              "alignment": {
+                "source": [
+                  "Il ne pleut plus",
+                  "maintenant.",
+                  "Est-ce qu'on peut",
+                  "sortir",
+                  "jouer ?"
+                ],
+                "translation": [
+                  "It isn't raining any more",
+                  "now.",
+                  "Can we",
+                  "go outside",
+                  "and play?"
+                ],
+                "links": [
+                  {
+                    "source": [
+                      0
+                    ],
+                    "translation": [
+                      0
+                    ],
+                    "note": "`Pleut → pleuvoir` = rain, third-person singular present indicative. Weather `il` is impersonal: it does not name a person. `Ne … plus` makes the rain something that has stopped: not any more/no longer."
+                  },
+                  {
+                    "source": [
+                      1
+                    ],
+                    "translation": [
+                      1
+                    ],
+                    "note": "`Maintenant` = now."
+                  },
+                  {
+                    "source": [
+                      2
+                    ],
+                    "translation": [
+                      2
+                    ],
+                    "note": "`Peut → pouvoir` = can/be allowed to, third-person singular present indicative with `on`. Here `on` means we, the children asking permission. `Est-ce que` marks the question; `est → être` is third-person singular present indicative inside that fixed question formula."
+                  },
+                  {
+                    "source": [
+                      3
+                    ],
+                    "translation": [
+                      3
+                    ],
+                    "note": "`Sortir` = go out, an infinitive after `peut`; here it means going outside."
+                  },
+                  {
+                    "source": [
+                      4
+                    ],
+                    "translation": [
+                      4
+                    ],
+                    "note": "`Jouer` = play, an infinitive expressing what they want to go out to do. English adds and to connect go outside and play."
+                  }
+                ]
+              },
+              "continuesPrevious": false
+            },
+            "start": 2.5,
+            "end": 7.02,
+            "listeningCheck": "The opening form of address is uncertain in the automatic transcript and has been omitted here. Check the opening against the audio; the transcript and timings still need a listening review."
+          },
+          {
+            "line": {
+              "id": "b65a6f06-3525-357f-9286-49eba2ef8b82",
+              "source": "Bien sûr. Allez-y et amusez-vous bien.",
+              "translation": "Of course. Go ahead and have fun.",
+              "notes": [
+                "Both commands address the children together. In affirmative commands, the pronouns follow the verb with a hyphen: `allez-y`, `amusez-vous`."
+              ],
+              "alignment": {
+                "source": [
+                  "Bien sûr.",
+                  "Allez-y",
+                  "et",
+                  "amusez-vous bien."
+                ],
+                "translation": [
+                  "Of course.",
+                  "Go ahead",
+                  "and",
+                  "have fun."
+                ],
+                "links": [
+                  {
+                    "source": [
+                      0
+                    ],
+                    "translation": [
+                      0
+                    ],
+                    "note": "`Bien sûr` is the fixed expression of course; here it grants permission."
+                  },
+                  {
+                    "source": [
+                      1
+                    ],
+                    "translation": [
+                      1
+                    ],
+                    "note": "`Allez → aller` = go, second-person plural imperative addressing the children. `Allez-y` means go ahead here; `y` points to going out/the proposed activity."
+                  },
+                  {
+                    "source": [
+                      2
+                    ],
+                    "translation": [
+                      2
+                    ],
+                    "note": "`Et` = and, joining the two commands."
+                  },
+                  {
+                    "source": [
+                      3
+                    ],
+                    "translation": [
+                      3
+                    ],
+                    "note": "`Amusez-vous → s'amuser` = have fun/enjoy yourselves, second-person plural imperative. `Amuser quelqu'un` means entertain someone; pronominal `s'amuser` means have fun oneself. `Bien` wishes them a good time."
+                  }
+                ]
+              },
+              "continuesPrevious": false
+            },
+            "start": 7.02,
+            "end": 9.82
+          },
+          {
+            "line": {
+              "id": "0c0abb38-65f1-3af0-a80f-b3b026d39c96",
+              "source": "Peppa adore sauter dans les flaques de boue.",
+              "translation": "Peppa loves jumping in muddy puddles.",
+              "notes": [
+                "`Adorer + infinitive` names an activity someone loves. French uses the infinitive `sauter`, where this English translation uses jumping."
+              ],
+              "alignment": {
+                "source": [
+                  "Peppa adore",
+                  "sauter",
+                  "dans les flaques de boue."
+                ],
+                "translation": [
+                  "Peppa loves",
+                  "jumping",
+                  "in muddy puddles."
+                ],
+                "links": [
+                  {
+                    "source": [
+                      0
+                    ],
+                    "translation": [
+                      0
+                    ],
+                    "note": "`Adore → adorer` = love/really like here, third-person singular present indicative with `Peppa`. It expresses enjoyment rather than worship."
+                  },
+                  {
+                    "source": [
+                      1
+                    ],
+                    "translation": [
+                      1
+                    ],
+                    "note": "`Sauter` = jump, an infinitive after `adore`; English renders the activity as jumping."
+                  },
+                  {
+                    "source": [
+                      2
+                    ],
+                    "translation": [
+                      2
+                    ],
+                    "note": "`Dans` = in/into; `une flaque` = a puddle and `la boue` = mud. `Les flaques de boue` literally means the puddles of mud; English naturally says muddy puddles without the article here."
+                  }
+                ]
+              },
+              "continuesPrevious": false
+            },
+            "start": 13.79,
+            "end": 23
+          },
+          {
+            "line": {
+              "id": "dedfe945-d403-3a91-913e-bce5f4307f65",
+              "source": "J'adore sauter dans les flaques de boue.",
+              "translation": "I love jumping in muddy puddles.",
+              "notes": [
+                "`J'adore` expresses Peppa's own enthusiasm. French uses an infinitive for the enjoyed activity: `adorer sauter` = love jumping."
+              ],
+              "alignment": {
+                "source": [
+                  "J'adore",
+                  "sauter",
+                  "dans les flaques de boue."
+                ],
+                "translation": [
+                  "I love",
+                  "jumping",
+                  "in muddy puddles."
+                ],
+                "links": [
+                  {
+                    "source": [
+                      0
+                    ],
+                    "translation": [
+                      0
+                    ],
+                    "note": "`Adore → adorer` = love/really like, first-person singular present indicative with `je`, shortened to `j'` before the vowel."
+                  },
+                  {
+                    "source": [
+                      1
+                    ],
+                    "translation": [
+                      1
+                    ],
+                    "note": "`Sauter` = jump, an infinitive after `adore`, translated here as jumping."
+                  },
+                  {
+                    "source": [
+                      2
+                    ],
+                    "translation": [
+                      2
+                    ],
+                    "note": "`Dans les flaques de boue` = in muddy puddles: `dans` = in/into, `une flaque` = a puddle and `la boue` = mud. French uses a noun with `de` where English uses the adjective muddy."
+                  }
+                ]
+              },
+              "continuesPrevious": false
+            },
+            "start": 23.3,
+            "end": 25.6
+          },
+          {
+            "line": {
+              "id": "bee41b70-ca55-3103-b868-0ced0f40cb9c",
+              "source": "Si tu as envie de sauter dans les flaques, tu dois mettre tes bottes en caoutchouc.",
+              "translation": "If you want to jump in the puddles, you must put on your rubber boots.",
+              "notes": [
+                "`Si` introduces the condition; the second clause states the requirement if that condition applies. Both `as` and `dois` are present indicative.",
+                "`Mettre` changes meaning with its object: with clothes, `mettre ses bottes` means put on one’s boots, rather than simply put them somewhere."
+              ],
+              "alignment": {
+                "source": [
+                  "Si",
+                  "tu as envie de",
+                  "sauter",
+                  "dans les flaques,",
+                  "tu dois",
+                  "mettre",
+                  "tes bottes en caoutchouc."
+                ],
+                "translation": [
+                  "If",
+                  "you want to",
+                  "jump",
+                  "in the puddles,",
+                  "you must",
+                  "put on",
+                  "your rubber boots."
+                ],
+                "links": [
+                  {
+                    "source": [
+                      0
+                    ],
+                    "translation": [
+                      0
+                    ],
+                    "note": "`Si` = if, introducing the condition."
+                  },
+                  {
+                    "source": [
+                      1
+                    ],
+                    "translation": [
+                      1
+                    ],
+                    "note": "`As → avoir` = have, second-person singular present indicative with `tu`. `Avoir envie de + infinitive` means want to/feel like doing something; `envie` expresses desire here, not jealousy. English puts the desire directly into want."
+                  },
+                  {
+                    "source": [
+                      2
+                    ],
+                    "translation": [
+                      2
+                    ],
+                    "note": "`Sauter` = jump, an infinitive after `avoir envie de`; it names the desired activity."
+                  },
+                  {
+                    "source": [
+                      3
+                    ],
+                    "translation": [
+                      3
+                    ],
+                    "note": "`Dans` = in/into; `les flaques` = the puddles, plural of `une flaque`."
+                  },
+                  {
+                    "source": [
+                      4
+                    ],
+                    "translation": [
+                      4
+                    ],
+                    "note": "`Dois → devoir` = must/have to, second-person singular present indicative with `tu`. It introduces the required action, expressed by the following infinitive."
+                  },
+                  {
+                    "source": [
+                      5
+                    ],
+                    "translation": [
+                      5
+                    ],
+                    "note": "`Mettre` = put on here, an infinitive after `dois`. Its object is clothing: the boots."
+                  },
+                  {
+                    "source": [
+                      6
+                    ],
+                    "translation": [
+                      6
+                    ],
+                    "note": "`Tes bottes en caoutchouc` = your rubber boots: `une botte` = a boot, `tes` = your before a plural noun, and `le caoutchouc` = rubber. `En` introduces the material, which English places before boots."
+                  }
+                ]
+              },
+              "continuesPrevious": false
+            },
+            "start": 29.56,
+            "end": 34.44
+          },
+          {
+            "line": {
+              "id": "bf0855b9-8b66-37e0-8c22-852f7f910017",
+              "source": "D'accord, maman.",
+              "translation": "Okay, Mummy.",
+              "notes": [],
+              "alignment": {
+                "source": [
+                  "D'accord,",
+                  "maman."
+                ],
+                "translation": [
+                  "Okay,",
+                  "Mummy."
+                ],
+                "links": [
+                  {
+                    "source": [
+                      0
+                    ],
+                    "translation": [
+                      0
+                    ],
+                    "note": "`D'accord` = okay/agreed, accepting the instruction."
+                  },
+                  {
+                    "source": [
+                      1
+                    ],
+                    "translation": [
+                      1
+                    ],
+                    "note": "`Maman` is a familiar way to address one’s mother, like Mummy or Mum."
+                  }
+                ]
+              },
+              "continuesPrevious": false
+            },
+            "start": 35.22,
+            "end": 36.18
+          },
+          {
+            "line": {
+              "id": "c95af3af-2039-3fa0-bf92-bac27cfa7a10",
+              "source": "George aussi aime bien sauter dans les flaques de boue.",
+              "translation": "George likes jumping in muddy puddles too.",
+              "notes": [
+                "`Aussi` includes George alongside someone else: George too. French puts it after his name here; this English translation places too at the end. George remains the subject of `aime`."
+              ],
+              "alignment": {
+                "source": [
+                  "George",
+                  "aussi",
+                  "aime bien",
+                  "sauter",
+                  "dans les flaques de boue."
+                ],
+                "translation": [
+                  "George",
+                  "likes",
+                  "jumping",
+                  "in muddy puddles",
+                  "too."
+                ],
+                "links": [
+                  {
+                    "source": [
+                      0
+                    ],
+                    "translation": [
+                      0
+                    ],
+                    "note": "`George` names the person who enjoys the activity."
+                  },
+                  {
+                    "source": [
+                      1
+                    ],
+                    "translation": [
+                      4
+                    ],
+                    "note": "`Aussi` = too/as well here, adding George to the people who like it."
+                  },
+                  {
+                    "source": [
+                      2
+                    ],
+                    "translation": [
+                      1
+                    ],
+                    "note": "`Aime → aimer` = like, third-person singular present indicative with `George`. `Aimer bien` commonly means like/enjoy; `bien` does not literally mean that he loves well."
+                  },
+                  {
+                    "source": [
+                      3
+                    ],
+                    "translation": [
+                      2
+                    ],
+                    "note": "`Sauter` = jump, an infinitive naming the activity after `aime bien`; English uses jumping."
+                  },
+                  {
+                    "source": [
+                      4
+                    ],
+                    "translation": [
+                      3
+                    ],
+                    "note": "`Dans les flaques de boue` = in muddy puddles: `dans` = in/into, `une flaque` = a puddle, and `la boue` = mud. `De boue` describes the kind of puddle."
+                  }
+                ]
+              },
+              "continuesPrevious": false
+            },
+            "start": 43.6,
+            "end": 48.96
+          },
+          {
+            "line": {
+              "id": "3f99d471-14a3-3011-83ea-a66d7dad4904",
+              "source": "George, si tu as envie de sauter dans les flaques de boue, tu dois mettre tes bottes en caoutchouc.",
+              "translation": "George, if you want to jump in muddy puddles, you must put on your rubber boots.",
+              "notes": [
+                "`George` is a direct address. The subject of both clauses is `tu`, meaning the person being addressed: George.",
+                "`Si` sets the condition for the requirement in `tu dois`. The desire and obligation both use present indicative forms, `as` and `dois`."
+              ],
+              "alignment": {
+                "source": [
+                  "George,",
+                  "si",
+                  "tu as envie de",
+                  "sauter",
+                  "dans les flaques de boue,",
+                  "tu dois",
+                  "mettre",
+                  "tes bottes en caoutchouc."
+                ],
+                "translation": [
+                  "George,",
+                  "if",
+                  "you want to",
+                  "jump",
+                  "in muddy puddles,",
+                  "you must",
+                  "put on",
+                  "your rubber boots."
+                ],
+                "links": [
+                  {
+                    "source": [
+                      0
+                    ],
+                    "translation": [
+                      0
+                    ],
+                    "note": "`George` names the person being addressed."
+                  },
+                  {
+                    "source": [
+                      1
+                    ],
+                    "translation": [
+                      1
+                    ],
+                    "note": "`Si` = if, opening the condition."
+                  },
+                  {
+                    "source": [
+                      2
+                    ],
+                    "translation": [
+                      2
+                    ],
+                    "note": "`As → avoir` = have, second-person singular present indicative with `tu`. `Avoir envie de + infinitive` means want to/feel like doing something; `envie` expresses desire here, not jealousy. English puts the desire directly into want."
+                  },
+                  {
+                    "source": [
+                      3
+                    ],
+                    "translation": [
+                      3
+                    ],
+                    "note": "`Sauter` = jump, an infinitive after `avoir envie de`; it names the activity George wants to do."
+                  },
+                  {
+                    "source": [
+                      4
+                    ],
+                    "translation": [
+                      4
+                    ],
+                    "note": "`Dans les flaques de boue` = in muddy puddles: `dans` = in/into, `une flaque` = a puddle and `la boue` = mud. English uses muddy for the description `de boue`."
+                  },
+                  {
+                    "source": [
+                      5
+                    ],
+                    "translation": [
+                      5
+                    ],
+                    "note": "`Dois → devoir` = must/have to, second-person singular present indicative with `tu`. It introduces the required action, expressed by the following infinitive."
+                  },
+                  {
+                    "source": [
+                      6
+                    ],
+                    "translation": [
+                      6
+                    ],
+                    "note": "`Mettre` = put on with clothing, an infinitive after `dois`. George is the person who must put the boots on."
+                  },
+                  {
+                    "source": [
+                      7
+                    ],
+                    "translation": [
+                      7
+                    ],
+                    "note": "`Tes bottes en caoutchouc` = your rubber boots: `une botte` = a boot, `tes` = your before a plural noun, and `le caoutchouc` = rubber. `En` introduces the material, which English places before boots."
+                  }
+                ]
+              },
+              "continuesPrevious": false
+            },
+            "start": 49.82,
+            "end": 57.61
+          },
+          {
+            "line": {
+              "id": "f8c57f08-470b-3753-be30-55e793446ed3",
+              "source": "Peppa aime bien s'occuper de son petit frère George.",
+              "translation": "Peppa likes looking after her little brother George.",
+              "notes": [
+                "`Son` agrees with the thing or person possessed, masculine singular `frère`, rather than the gender of the possessor. Here it means her because the brother is Peppa’s; the same form can mean his in another context."
+              ],
+              "alignment": {
+                "source": [
+                  "Peppa aime bien",
+                  "s'occuper de",
+                  "son petit frère George."
+                ],
+                "translation": [
+                  "Peppa likes",
+                  "looking after",
+                  "her little brother George."
+                ],
+                "links": [
+                  {
+                    "source": [
+                      0
+                    ],
+                    "translation": [
+                      0
+                    ],
+                    "note": "`Aime → aimer` = like/enjoy, third-person singular present indicative with `Peppa`. `Aimer bien` expresses enjoyment here and introduces an infinitive naming the activity."
+                  },
+                  {
+                    "source": [
+                      1
+                    ],
+                    "translation": [
+                      1
+                    ],
+                    "note": "`S'occuper de quelqu'un` = look after/take care of someone. `Occuper` alone can mean occupy or keep someone busy; the pronominal construction with `de` has this caring meaning. `S'occuper` is an infinitive after `aime bien`; `se` becomes `s'` before the vowel."
+                  },
+                  {
+                    "source": [
+                      2
+                    ],
+                    "translation": [
+                      2
+                    ],
+                    "note": "`Son petit frère George` = her little brother George. `Un frère` = a brother and `petit frère` means younger/little brother; `son` identifies whose brother he is."
+                  }
+                ]
+              },
+              "continuesPrevious": false
+            },
+            "start": 57.61,
+            "end": 62.15
+          }
+        ]
+      }
+    }
+  },
+  {
+    "request": "PUT /api/titles/peppa-pig-example-s01e01/progress",
+    "status": 200,
+    "type": "application/json",
+    "json": {
+      "positionSeconds": 0,
+      "updatedAt": "2026-01-01T00:00:00Z"
+    }
+  },
+  {
+    "request": "PUT /api/titles/peppa-pig-example-s01e01/progress",
+    "status": 200,
+    "type": "application/json",
+    "json": {
+      "positionSeconds": 2.5,
+      "updatedAt": "2026-01-01T00:00:00Z"
+    }
+  },
+  {
+    "request": "PUT /api/titles/peppa-pig-example-s01e01/progress",
+    "status": 200,
+    "type": "application/json",
+    "json": {
+      "positionSeconds": 7,
+      "updatedAt": "2026-01-01T00:00:00Z"
+    }
+  }
+]

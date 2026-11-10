@@ -50,17 +50,31 @@ export async function removeFolder(localPath) {
 }
 
 /**
- * Forgets the reading and playback progress saved by any of [requests] (`METHOD /path` keys), so
- * a test leaves the library as it found it.
+ * Undoes what [requests] (`METHOD /path` keys) saved on the real server: reading and playback
+ * progress is forgotten and queued subtitle edits are discarded, so a test leaves the library as
+ * it found it.
  */
-export async function forgetProgress(requests) {
-  const saves = requests.filter((request) =>
-    /^PUT \/api\/titles\/[^/]+\/(comic\/)?progress$/.test(request),
-  );
-  for (const save of new Set(saves))
-    await fetch(`http://127.0.0.1:${API_PORT}${save.split(" ")[1]}`, {
-      method: "DELETE",
+export async function forget(requests) {
+  const api = `http://127.0.0.1:${API_PORT}`;
+  const changed = (pattern) =>
+    new Set(
+      requests.flatMap((request) => pattern.exec(request)?.slice(1) ?? []),
+    );
+  for (const path of changed(
+    /^PUT (\/api\/titles\/[^/]+\/(?:comic\/)?progress)$/,
+  ))
+    await fetch(api + path, { method: "DELETE" });
+  for (const title of changed(
+    /^(?:PUT|POST|DELETE) \/api\/titles\/([^/]+)\/(?:cues|timings)\b/,
+  )) {
+    const queue = `${api}/api/titles/${title}/review-queue`;
+    const rows = await (await fetch(queue)).json();
+    await fetch(`${queue}/discard`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(rows.map((row) => row.sequence)),
     });
+  }
 }
 
 export default async function startRealServer() {

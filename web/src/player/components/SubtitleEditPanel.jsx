@@ -3,6 +3,7 @@ import {
   ActionIcon,
   Alert,
   Button,
+  Checkbox,
   Group,
   RangeSlider,
   Stack,
@@ -13,10 +14,21 @@ import {
 import { Crosshair, Play, Scissors, Trash2, X } from "lucide-react";
 import { request } from "../../shared/api.js";
 import { useStudyLanguages } from "../StudyLanguages.jsx";
-import { editClock, editSeconds, splitDraft } from "../subtitle-edit.js";
+import {
+  editClock,
+  editSeconds,
+  neighbourTimings,
+  neighbours,
+  splitDraft,
+} from "../subtitle-edit.js";
 import "./SubtitleEditPanel.css";
 
-/** A nonmodal subtitle editor: playback stays usable, and mutations use the existing review API. */
+/**
+ * A nonmodal subtitle editor: playback stays usable, and mutations use the existing review API.
+ * A boundary the edited line shares with a neighbour can move both lines together, saved as one
+ * timing edit. {@code onPreview} is told while a preview plays, so auto-pause can let it run past
+ * the line's saved end.
+ */
 export function SubtitleEditPanel({
   api,
   cue,
@@ -28,6 +40,7 @@ export function SubtitleEditPanel({
   pause,
   onSaved,
   onClose,
+  onPreview,
   closeRef,
 }) {
   const { sourceName, sourceLanguage, translationLanguage } =
@@ -52,6 +65,8 @@ export function SubtitleEditPanel({
   const [draft, setDraft] = useState(original);
   const [start, setStart] = useState(editClock(original.start));
   const [end, setEnd] = useState(editClock(original.end));
+  const near = neighbours(cues, original);
+  const [link, setLink] = useState(near.touching);
   const [comment, setComment] = useState("");
   const [busy, setBusy] = useState(false);
   const writing = useRef(false);
@@ -91,11 +106,19 @@ export function SubtitleEditPanel({
       frame = requestAnimationFrame(tick);
     }
     frame = requestAnimationFrame(tick);
+    // Pausing, by the preview reaching its end or by hand, ends it.
+    const stopped = () => {
+      previewEnd.current = null;
+      onPreview(false);
+    };
+    element?.addEventListener("pause", stopped);
     return () => {
       cancelAnimationFrame(frame);
+      element?.removeEventListener("pause", stopped);
       if (previewEnd.current !== null) element?.pause();
+      onPreview(false);
     };
-  }, [video]);
+  }, [video, onPreview]);
   useEffect(() => {
     if (!dirty) return;
     const warn = (event) => {
@@ -125,10 +148,18 @@ export function SubtitleEditPanel({
     setDraft(line);
     setStart(editClock(line.start));
     setEnd(editClock(line.end));
+    setLink(neighbours(cues, line).touching);
     setComment("");
     setError("");
     setDeleting(false);
     bounds.current = [Math.max(0, line.start - 2), line.end + 2];
+  }
+  /** Plays from [from] to [to], then pauses there. */
+  function preview(from, to) {
+    seek(Math.max(0, from));
+    previewEnd.current = to;
+    onPreview(true);
+    play();
   }
   function setBoundary(key, value) {
     const rounded = Math.max(0, Math.round(value * 1000) / 1000);
@@ -153,7 +184,10 @@ export function SubtitleEditPanel({
       textCheck: draft.textCheck ?? null,
     };
     let body = payload;
+    let moved = [];
     try {
+      if (operation === "save" && mode === "edit")
+        moved = neighbourTimings(cues, original, times, link);
       if (operation === "split") {
         if (
           comment.trim() ||
@@ -173,6 +207,13 @@ export function SubtitleEditPanel({
     previewEnd.current = null;
     try {
       let saved;
+      // Neighbours move in one timing edit with this line, before any change to its text.
+      if (moved.length)
+        await request(api + "/timings", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify([{ id: original.id, ...times }, ...moved]),
+        });
       const target = `${api}/cues/${encodeURIComponent(original.id)}`;
       if (
         operation === "delete" ||
@@ -355,6 +396,26 @@ export function SubtitleEditPanel({
                       </Button>
                     ))}
                   </Group>
+                  {(key === "start" ? near.previous : near.next) && (
+                    <Checkbox
+                      mt={8}
+                      size="xs"
+                      label={
+                        key === "start"
+                          ? "Previous line follows"
+                          : "Next line follows"
+                      }
+                      checked={link[key === "start" ? "previous" : "next"]}
+                      disabled={busy}
+                      onChange={(e) =>
+                        setLink({
+                          ...link,
+                          [key === "start" ? "previous" : "next"]:
+                            e.currentTarget.checked,
+                        })
+                      }
+                    />
+                  )}
                 </div>
               ))}
             </div>
@@ -383,20 +444,40 @@ export function SubtitleEditPanel({
               <Text size="xs" c="dimmed" mt="sm">
                 Playhead {editClock(time)}
               </Text>
-              <Button
-                mt="xs"
-                size="compact-sm"
-                variant="subtle"
-                leftSection={<Play size={14} />}
-                disabled={busy || !valid}
-                onClick={() => {
-                  seek(times.start);
-                  previewEnd.current = times.end;
-                  play();
-                }}
-              >
-                Preview line
-              </Button>
+              <Group gap={4} mt="xs">
+                <Button
+                  size="compact-sm"
+                  variant="subtle"
+                  leftSection={<Play size={14} />}
+                  disabled={busy || !valid}
+                  onClick={() => preview(times.start, times.end)}
+                >
+                  Preview line
+                </Button>
+                <Button
+                  size="compact-sm"
+                  variant="subtle"
+                  title="Play the line's last two seconds"
+                  disabled={busy || !valid}
+                  onClick={() =>
+                    preview(Math.max(times.start, times.end - 2), times.end)
+                  }
+                >
+                  Last 2 s
+                </Button>
+                {["start", "end"].map((key) => (
+                  <Button
+                    key={key}
+                    size="compact-sm"
+                    variant="subtle"
+                    title={`Play a second either side of the ${key}`}
+                    disabled={busy || !valid}
+                    onClick={() => preview(times[key] - 1, times[key] + 1)}
+                  >
+                    Across {key}
+                  </Button>
+                ))}
+              </Group>
               <Group gap={6} mt={5}>
                 <Button
                   size="compact-xs"
