@@ -30,8 +30,9 @@ test("the library flags what needs attention, and can show only that", async ({
 }) => {
   await page.goto("/");
 
-  // One Peppa Pig episode's video has no study document in the example.
-  const attention = page.getByRole("button", { name: "Needs attention · 1" });
+  // One Peppa Pig episode's video has no study document in the example; the count beside the
+  // library's totals is a filter.
+  const attention = page.getByRole("button", { name: "1 warning" });
   await attention.click();
 
   await expect(attention).toHaveAttribute("aria-pressed", "true");
