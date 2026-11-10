@@ -19,7 +19,7 @@ test("the timeline shows the edited line as drafted, with the neighbours that fo
   assert.deepEqual(draftLines(lines, lines[1], draft, linked, false), [
     { ...lines[0], end: 2.7 },
     draft,
-    { ...lines[2], start: 4.34 },
+    { ...lines[2], start: 4.1 },
   ]);
   assert.deepEqual(
     draftLines(lines, lines[1], draft, { previous: false, next: false }, false),
@@ -58,19 +58,51 @@ test("dragging keeps a short line, rounds to the millisecond and moves a whole l
   assert.deepEqual(dragTimes(times, "move", 3.5, 0.5), { start: 3, end: 4.5 });
 });
 
-test("a dragged end takes the neighbour it meets along unless Alt opens a gap", () => {
+test("a dragged end takes the neighbour it meets along, joins one it reaches, and Alt separates", () => {
   const none = { previous: false, next: false };
-  assert.deepEqual(dragLink(lines, lines[1], "start", false, none), {
+  const b = { start: 2.5, end: 4 };
+  assert.deepEqual(dragLink(lines, lines[1], "start", false, none, b), {
     previous: true,
     next: false,
   });
-  assert.deepEqual(dragLink(lines, lines[1], "start", true, linked), {
+  assert.deepEqual(dragLink(lines, lines[1], "start", true, linked, b), {
     previous: false,
     next: true,
   });
-  // Line c does not meet line b, so it never follows by default.
-  assert.deepEqual(dragLink(lines, lines[1], "move", false, none), {
-    previous: true,
-    next: false,
+  // Line c starts 0.24 s after b ends: dragging b's end follows it only once within the snap.
+  assert.deepEqual(
+    dragLink(
+      lines,
+      lines[1],
+      "end",
+      false,
+      none,
+      { start: 2.5, end: 4.1 },
+      0.07,
+    ),
+    { previous: false, next: false },
+  );
+  assert.deepEqual(
+    dragLink(
+      lines,
+      lines[1],
+      "end",
+      false,
+      none,
+      { start: 2.5, end: 4.2 },
+      0.07,
+    ),
+    { previous: false, next: true },
+  );
+  // Once joined, it stays joined as the end moves on, and the next line starts there.
+  const joined = { previous: false, next: true };
+  const moved = { ...lines[1], start: 2.5, end: 4.6 };
+  assert.deepEqual(
+    dragLink(lines, lines[1], "end", false, joined, moved, 0.07),
+    joined,
+  );
+  assert.deepEqual(draftLines(lines, lines[1], moved, joined, false)[2], {
+    ...lines[2],
+    start: 4.6,
   });
 });

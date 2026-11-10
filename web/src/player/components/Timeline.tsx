@@ -16,6 +16,8 @@ import {
 } from "../timeline.ts";
 
 const HEIGHT = 64;
+// Pixels within which a dragged end joins a neighbour's.
+const SNAP = 7;
 const LANE = { top: 6, height: 30 };
 
 /** What a pointer held down on the timeline is doing. */
@@ -27,7 +29,8 @@ type Drag =
 /**
  * The subtitles laid out under the video while one is edited, centred on the playhead and drawn
  * from the media clock on each frame. The [selected] line shows its handles: drag an end to move
- * it, or the line to move both; Alt opens a gap to a neighbour that would otherwise follow.
+ * it, or the line to move both. An end dragged onto a neighbour's joins them, so they move
+ * together; Alt separates them.
  * Pressing anywhere places the playhead there; pressing another line also edits it, and dragging
  * between lines scrubs. The
  * wheel zooms. The timeline only reports; the editor owns the times it draws.
@@ -43,6 +46,7 @@ export function Timeline({
   onDrag,
   onPick,
   onKeyDown,
+  onDragEnd,
 }: {
   lines: readonly TimelineLine[];
   selected: number;
@@ -57,9 +61,13 @@ export function Timeline({
     at: number,
     offset: number,
     apart: boolean,
+    /** Seconds within which a dragged end joins a neighbour's. */
+    snap: number,
   ) => void;
   onPick: (boundary: Boundary) => void;
   onKeyDown: (event: KeyboardEvent<HTMLCanvasElement>) => void;
+  /** A drag of the line or its ends was let go. */
+  onDragEnd: () => void;
 }) {
   const canvas = useRef<HTMLCanvasElement>(null);
   const drag = useRef<Drag | null>(null);
@@ -224,17 +232,25 @@ export function Timeline({
     const at = seconds(event);
     if (current.kind === "scrub") onSeek(at);
     else if (current.kind === "boundary")
-      onDrag(current.boundary, at, 0, event.altKey);
+      onDrag(current.boundary, at, 0, event.altKey, SNAP / pixelsPerSecond);
     else {
       // A press inside the line that does not move seeks there instead.
       current.moved ||= Math.abs(event.clientX - current.from) > 3;
-      if (current.moved) onDrag("move", at, current.offset, event.altKey);
+      if (current.moved)
+        onDrag(
+          "move",
+          at,
+          current.offset,
+          event.altKey,
+          SNAP / pixelsPerSecond,
+        );
     }
   }
   function up() {
     const current = drag.current;
     drag.current = null;
     if (current?.kind === "move" && !current.moved) onSeek(current.at);
+    else if (current && current.kind !== "scrub") onDragEnd();
   }
   return (
     <div className="subtitle-timeline">
@@ -246,7 +262,10 @@ export function Timeline({
         onPointerDown={down}
         onPointerMove={move}
         onPointerUp={up}
-        onLostPointerCapture={() => (drag.current = null)}
+        onLostPointerCapture={() => {
+          if (drag.current && drag.current.kind !== "scrub") onDragEnd();
+          drag.current = null;
+        }}
         onKeyDown={onKeyDown}
       />
     </div>

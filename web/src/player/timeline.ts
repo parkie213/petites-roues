@@ -100,8 +100,10 @@ export function dragTimes(
 }
 
 /**
- * Which neighbours move with a drag of [mode] on [original]: those it meets, on the side being
- * dragged, unless [apart] (Alt held) opens a gap. The other side keeps [link].
+ * Which neighbours are joined to [original] after a drag of [mode] to [times]. On a side being
+ * dragged, a neighbour stays joined if it was, or if it met the line before editing, and joins
+ * when the line's boundary comes within [snap] seconds of the neighbour's; [apart] (Alt held)
+ * separates it instead. The other side keeps [link].
  */
 export function dragLink(
   lines: readonly TimelineLine[],
@@ -109,10 +111,21 @@ export function dragLink(
   mode: Boundary | "move",
   apart: boolean,
   link: Link,
+  times: Timed,
+  snap = 0,
 ): Link {
-  const { touching } = neighbours(lines, original);
+  const { previous, next, touching } = neighbours(lines, original);
+  const joined = (side: keyof Link, gap: number | null) =>
+    !apart &&
+    (link[side] || touching[side] || (gap !== null && Math.abs(gap) <= snap));
   return {
-    previous: mode === "end" ? link.previous : !apart && touching.previous,
-    next: mode === "start" ? link.next : !apart && touching.next,
+    previous:
+      mode === "end"
+        ? link.previous
+        : joined("previous", previous ? times.start - previous.end : null),
+    next:
+      mode === "start"
+        ? link.next
+        : joined("next", next ? next.start - times.end : null),
   };
 }

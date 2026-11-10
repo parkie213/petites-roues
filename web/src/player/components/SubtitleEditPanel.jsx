@@ -8,7 +8,15 @@ import {
   Text,
   Textarea,
 } from "@mantine/core";
-import { Crosshair, Play, Scissors, Trash2, X } from "lucide-react";
+import {
+  ChevronLeft,
+  ChevronRight,
+  Crosshair,
+  Play,
+  Scissors,
+  Trash2,
+  X,
+} from "lucide-react";
 import { request } from "../../shared/api.ts";
 import { useStudyLanguages } from "../StudyLanguages.jsx";
 import {
@@ -23,10 +31,13 @@ import "./SubtitleEditPanel.css";
 
 /**
  * A nonmodal subtitle editor: playback stays usable, and mutations use the existing review API.
- * Its timeline, under the video, times the line: a boundary the line shares with a neighbour
- * moves both lines unless Alt is held, saved as one timing edit. Pressing another line on the
- * timeline saves this one first, then edits that one. {@code onPreview} is told while a preview
- * plays, so auto-pause can let it run past the line's saved end.
+ * Its timeline, under the video, times the line: a boundary the line shares with a neighbour,
+ * or one dragged onto a neighbour's, moves both lines unless Alt is held, saved as one timing
+ * edit. Pressing another line on the
+ * timeline, or the previous or next line button, saves this one first, then edits that one.
+ * Saving, splitting and deleting keep the editor open, on the saved line, the split's first part
+ * or the line after the deleted one. {@code onPreview} is told while a preview plays, so
+ * auto-pause can let it run past the line's saved end.
  */
 export function SubtitleEditPanel({
   api,
@@ -74,6 +85,11 @@ export function SubtitleEditPanel({
   const [comment, setComment] = useState("");
   const [busy, setBusy] = useState(false);
   const writing = useRef(false);
+  // A timeline drag in progress; its timing is saved when it ends.
+  const [dragging, setDragging] = useState(false);
+  const [timingStatus, setTimingStatus] = useState("");
+  const savedRef = useRef(onSaved);
+  savedRef.current = onSaved;
   const [error, setError] = useState("");
   const [deleting, setDeleting] = useState(false);
   const text = useRef(null);
@@ -96,6 +112,48 @@ export function SubtitleEditPanel({
     changed ||
     Boolean(comment.trim()) ||
     (mode === "add" && Boolean(draft.source.trim()));
+  // Timing saves itself: when a drag ends, or shortly after the last nudge, as one timing edit
+  // with the neighbours joined to the line. Text and comments wait for Save. Each attempt is its
+  // own queued edit; a review batch replays them in order, so only the last one shows.
+  useEffect(() => {
+    if (mode !== "edit" || dragging || busy) return;
+    if (times.start === original.start && times.end === original.end) return;
+    let moved;
+    try {
+      moved = neighbourTimings(cues, original, times, link);
+    } catch {
+      return;
+    }
+    const timer = setTimeout(async () => {
+      if (writing.current) return;
+      writing.current = true;
+      setTimingStatus("Saving timing…");
+      try {
+        await request(api + "/timings", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify([{ id: original.id, ...times }, ...moved]),
+        });
+        const updated = cues.map((line) => {
+          if (line.id === original.id) return { ...line, ...times };
+          const neighbour = moved.find((other) => other.id === line.id);
+          return neighbour ? { ...line, ...neighbour } : line;
+        });
+        savedRef.current({ cues: updated });
+        const line = { ...original, ...times };
+        setOriginal(line);
+        setEditing(line);
+        setLink(neighbours(updated, line).touching);
+        setTimingStatus("Timing saved");
+      } catch (failure) {
+        setError(failure.message);
+        setTimingStatus("");
+      } finally {
+        writing.current = false;
+      }
+    }, 500);
+    return () => clearTimeout(timer);
+  }, [mode, dragging, busy, times, original, link, cues, api]);
   useEffect(() => {
     const element = video.current;
     let frame;
@@ -181,6 +239,7 @@ export function SubtitleEditPanel({
     setLink(neighbours(list, line).touching);
     setComment("");
     setError("");
+    setTimingStatus("");
     setDeleting(false);
   }
   /**
@@ -204,32 +263,39 @@ export function SubtitleEditPanel({
     setTimes(next);
     setLink(nextLink);
   }
-  function drag(mode, at, offset, apart) {
+  function drag(mode, at, offset, apart, snap) {
+    setDragging(true);
     if (mode !== "move") setPicked(mode);
+    const next = dragTimes(times, mode, at, offset);
     retime(
-      dragTimes(times, mode, at, offset),
-      adding ? link : dragLink(cues, original, mode, apart, link),
+      next,
+      adding ? link : dragLink(cues, original, mode, apart, link, next, snap),
     );
   }
   function setBoundary(key, value) {
     setPicked(key);
+    const next = dragTimes(times, key, value);
     retime(
-      dragTimes(times, key, value),
-      adding ? link : dragLink(cues, original, key, false, link),
+      next,
+      adding ? link : dragLink(cues, original, key, false, link, next),
     );
   }
-  /** Timeline and timing keys: arrows nudge the picked end (Shift: 100 ms), [ and ] set it. */
+  /**
+   * Timeline and timing keys: arrows nudge the picked end (Shift: 100 ms), [ and ] set the start
+   * or end to the playhead. Other keys go on to the player, so Space plays and pauses.
+   */
   function timingKey(event) {
-    event.stopPropagation();
     const step = event.shiftKey ? 0.1 : 0.01;
     if (event.key === "ArrowLeft" || event.key === "ArrowRight") {
       event.preventDefault();
+      event.stopPropagation();
       setBoundary(
         picked,
         times[picked] + (event.key === "ArrowLeft" ? -step : step),
       );
     } else if (event.key === "[" || event.key === "]") {
       event.preventDefault();
+      event.stopPropagation();
       setBoundary(
         event.key === "[" ? "start" : "end",
         video.current.currentTime,
@@ -244,7 +310,7 @@ export function SubtitleEditPanel({
     play();
   }
   /**
-   * Saves, splits or deletes the line, then closes, or with [nextId] goes on to edit that line.
+   * Saves, splits or deletes the line, then goes on editing it, or with [nextId] that line.
    */
   async function apply(operation, nextId) {
     if (writing.current) return;
@@ -320,7 +386,15 @@ export function SubtitleEditPanel({
         });
         onSaved(saved);
         if (operation === "delete" || operation === "split") {
-          onClose();
+          const index = cues.findIndex((line) => line.id === original.id);
+          const following =
+            operation === "split"
+              ? saved.cues.find((line) => line.start === original.start)
+              : (saved.cues[index] ?? saved.cues[index - 1]);
+          if (following) {
+            load(following, saved.cues);
+            seek(following.start);
+          } else onClose();
           return;
         }
         const updated =
@@ -347,8 +421,9 @@ export function SubtitleEditPanel({
         onSaved(saved);
         setComment("");
       }
+      // The editor stays open: on the next line asked for, or on this one as saved.
       const latest = saved?.cues ?? cues;
-      const next = nextId && latest.find((line) => line.id === nextId);
+      const next = latest.find((line) => line.id === (nextId ?? body.id));
       if (next) load(next, latest);
       else onClose();
     } catch (failure) {
@@ -369,6 +444,7 @@ export function SubtitleEditPanel({
         onSeek={seek}
         onSelect={switchTo}
         onDrag={drag}
+        onDragEnd={() => setDragging(false)}
         onPick={setPicked}
         onKeyDown={timingKey}
       />
@@ -391,6 +467,28 @@ export function SubtitleEditPanel({
           <h2>
             {mode === "add" ? "Add subtitle" : "Edit subtitle"} <kbd>E</kbd>
           </h2>
+          <Group gap={2} ml="auto" mr="xs">
+            {[
+              ["Previous line", -1, ChevronLeft],
+              ["Next line", 1, ChevronRight],
+            ].map(([label, step, Icon]) => {
+              const line = lines[selected + step];
+              return (
+                <ActionIcon
+                  key={label}
+                  variant="subtle"
+                  aria-label={label}
+                  title={
+                    dirty ? `Save and go to the ${label.toLowerCase()}` : label
+                  }
+                  disabled={busy || selected < 0 || !line?.id}
+                  onClick={() => switchTo(selected + step, line.start)}
+                >
+                  <Icon size={18} />
+                </ActionIcon>
+              );
+            })}
+          </Group>
           <ActionIcon
             variant="subtle"
             aria-label="Close subtitle editor"
@@ -482,9 +580,15 @@ export function SubtitleEditPanel({
                 </Text>
               </div>
               <Text size="xs" c="dimmed" mt={4}>
-                Drag the line or its ends on the timeline; Alt-drag moves only
-                this line. Arrow keys nudge the chosen end.
+                Drag the line or its ends on the timeline. Drag an end onto a
+                neighbour's to join them; Alt-drag separates them. Arrow keys
+                nudge the chosen end. Timing saves itself.
               </Text>
+              {timingStatus && (
+                <Text size="xs" c="dimmed" role="status">
+                  {timingStatus}
+                </Text>
+              )}
               <Group gap={4} mt="xs">
                 <Button
                   size="compact-sm"
@@ -593,7 +697,7 @@ export function SubtitleEditPanel({
           )}
           <Group gap="xs" ml="auto">
             <Button variant="subtle" disabled={busy} onClick={close}>
-              Cancel
+              Close
             </Button>
             <Button
               color="coral"
