@@ -158,14 +158,29 @@ async function save(request, response) {
   return { ...entry, blob: name };
 }
 
+const events = /\/api\/jobs\/[^/]+\/events$/;
+
 async function record(page, file, run) {
   const entries = [];
   const pending = new Set();
   const failures = [];
+  const keep = (saving) => {
+    const saved = saving
+      .then((entry) => entries.push(entry))
+      .catch((error) => {
+        // A response the browser abandoned (the page navigated away) has no body; anything else
+        // is a fault in recording.
+        if (!/disposed|navigated away/.test(error.message))
+          failures.push(error);
+      });
+    pending.add(saved);
+    saved.finally(() => pending.delete(saved));
+  };
   // Responses are watched rather than intercepted: answering a request ourselves would hold up
   // the keepalive progress save a page sends as it unloads, and the navigation with it.
   page.on("response", (response) => {
-    if (!new URL(response.url()).pathname.startsWith("/api/")) return;
+    const { pathname } = new URL(response.url());
+    if (!pathname.startsWith("/api/") || events.test(pathname)) return;
     // A redirect (a card or video to its current version) is recorded with the response it ends
     // at: each hop as a redirect, then the target.
     if (response.status() >= 300 && response.status() < 400) return;
@@ -181,22 +196,16 @@ async function record(page, file, run) {
         location: key(from.redirectedTo()).split(" ")[1],
       });
     entries.push(...redirects);
-    const saved = save(response.request(), response)
-      .then((entry) => entries.push(entry))
-      .catch((error) => {
-        // A response the browser abandoned (the page navigated away) has no body; anything else
-        // is a fault in recording.
-        if (!/disposed|navigated away/.test(error.message))
-          failures.push(error);
-      });
-    pending.add(saved);
-    saved.finally(() => pending.delete(saved));
+    keep(save(response.request(), response));
   });
-  // A job's event stream is fetched whole: the page closes it as the job finishes, before the
-  // server ends it, which would leave nothing to watch.
-  await page.route("**/api/jobs/*/events", async (route) =>
-    route.fulfill({ response: await route.fetch() }),
-  );
+  // A job's event stream is fetched whole and saved here: the page closes it as the job finishes,
+  // before the server ends it, which would leave nothing to watch, and on a fast machine before
+  // the page's own copy can be read.
+  await page.route(events, async (route) => {
+    const response = await route.fetch();
+    keep(save(route.request(), response));
+    await route.fulfill({ response });
+  });
   await run(page);
   // What the page is still loading when the test ends (posters behind Back) is saved too.
   await page.waitForLoadState("networkidle").catch(() => {});
