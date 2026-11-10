@@ -22,3 +22,19 @@ test("a series opens to its episodes", async ({ page }) => {
     page.getByRole("link", { name: /dinosaure/i }).first(),
   ).toBeVisible();
 });
+
+test("the library flags what needs attention, and can show only that", async ({
+  page,
+}) => {
+  await page.goto("/");
+
+  // One Peppa Pig episode's video has no study document in the example.
+  const attention = page.getByRole("button", { name: "Needs attention · 1" });
+  await attention.click();
+
+  await expect(attention).toHaveAttribute("aria-pressed", "true");
+  await expect(page.getByRole("link", { name: "Peppa Pig" })).toBeVisible();
+  await expect(
+    page.getByRole("link", { name: "Lulu", exact: true }),
+  ).toBeHidden();
+});
