@@ -3,38 +3,37 @@ import {
   ActionIcon,
   Alert,
   Button,
-  Checkbox,
   Group,
-  RangeSlider,
   Stack,
   Text,
   Textarea,
-  TextInput,
 } from "@mantine/core";
 import { Crosshair, Play, Scissors, Trash2, X } from "lucide-react";
 import { request } from "../../shared/api.ts";
 import { useStudyLanguages } from "../StudyLanguages.jsx";
 import {
   editClock,
-  editSeconds,
   neighbourTimings,
   neighbours,
   splitDraft,
 } from "../subtitle-edit.js";
+import { draftLines, dragLink, dragTimes } from "../timeline.ts";
+import { Timeline } from "./Timeline.tsx";
 import "./SubtitleEditPanel.css";
 
 /**
  * A nonmodal subtitle editor: playback stays usable, and mutations use the existing review API.
- * A boundary the edited line shares with a neighbour can move both lines together, saved as one
- * timing edit. {@code onPreview} is told while a preview plays, so auto-pause can let it run past
- * the line's saved end.
+ * Its timeline, under the video, times the line: a boundary the line shares with a neighbour
+ * moves both lines unless Alt is held, saved as one timing edit. Pressing another line on the
+ * timeline saves this one first, then edits that one. {@code onPreview} is told while a preview
+ * plays, so auto-pause can let it run past the line's saved end.
  */
 export function SubtitleEditPanel({
   api,
   cue,
   cues,
   video,
-  time,
+  heldTime,
   seek,
   play,
   pause,
@@ -62,11 +61,16 @@ export function SubtitleEditPanel({
     };
   };
   const [original, setOriginal] = useState(cue || blank);
+  // The line the Edit tab returns to from Add.
+  const [editing, setEditing] = useState(cue);
   const [draft, setDraft] = useState(original);
-  const [start, setStart] = useState(editClock(original.start));
-  const [end, setEnd] = useState(editClock(original.end));
-  const near = neighbours(cues, original);
-  const [link, setLink] = useState(near.touching);
+  const [times, setTimes] = useState(() => ({
+    start: original.start,
+    end: original.end,
+  }));
+  const [link, setLink] = useState(() => neighbours(cues, original).touching);
+  // The boundary arrow keys nudge and [ or ] set.
+  const [picked, setPicked] = useState("end");
   const [comment, setComment] = useState("");
   const [busy, setBusy] = useState(false);
   const writing = useRef(false);
@@ -75,13 +79,14 @@ export function SubtitleEditPanel({
   const text = useRef(null);
   const cursor = useRef(0);
   const previewEnd = useRef(null);
-  const bounds = useRef([Math.max(0, original.start - 2), original.end + 2]);
-  const times = { start: editSeconds(start), end: editSeconds(end) };
   const valid =
-    times.start !== null &&
-    times.end !== null &&
     times.end > times.start &&
     times.end <= (video.current?.duration || Infinity);
+  const adding = mode === "add";
+  const lines = timelineLines();
+  const selected = adding
+    ? lines.findIndex((line) => !line.id)
+    : lines.findIndex((line) => line.id === original.id);
   const changed =
     draft.source !== original.source ||
     (draft.translation || "") !== (original.translation || "") ||
@@ -141,18 +146,94 @@ export function SubtitleEditPanel({
       (dirty && !window.confirm("Discard unsaved subtitle changes?"))
     )
       return;
-    const line = next === "add" ? blank() : cue;
+    const line = next === "add" ? blank() : editing;
     if (!line) return;
-    setMode(next);
+    load(line, cues, next);
+  }
+  /** The timeline's lines, with this one as drafted. */
+  function timelineLines() {
+    try {
+      return draftLines(
+        cues,
+        original,
+        { ...original, ...draft, ...times },
+        link,
+        adding,
+      );
+    } catch {
+      // Lines saved elsewhere since moved its neighbours; show it unlinked.
+      return draftLines(
+        cues,
+        original,
+        { ...original, ...draft, ...times },
+        { previous: false, next: false },
+        adding,
+      );
+    }
+  }
+  /** Starts editing (or adding) [line], one of [list]. */
+  function load(line, list, as = "edit") {
+    setMode(as);
     setOriginal(line);
+    if (as === "edit") setEditing(line);
     setDraft(line);
-    setStart(editClock(line.start));
-    setEnd(editClock(line.end));
-    setLink(neighbours(cues, line).touching);
+    setTimes({ start: line.start, end: line.end });
+    setLink(neighbours(list, line).touching);
     setComment("");
     setError("");
     setDeleting(false);
-    bounds.current = [Math.max(0, line.start - 2), line.end + 2];
+  }
+  /** Edits the timeline's [index]th line, after saving this one if it changed. */
+  function switchTo(index) {
+    const line = lines[index];
+    if (busy || !line?.id) return;
+    if (dirty) apply("save", line.id);
+    else {
+      load(line, cues);
+      seek(line.start);
+    }
+  }
+  /** Moves the line's times as a timeline drag or nudge asks, unless a neighbour would vanish. */
+  function retime(next, nextLink) {
+    try {
+      if (!adding) neighbourTimings(cues, original, next, nextLink);
+    } catch {
+      return;
+    }
+    setTimes(next);
+    setLink(nextLink);
+  }
+  function drag(mode, at, offset, apart) {
+    if (mode !== "move") setPicked(mode);
+    retime(
+      dragTimes(times, mode, at, offset),
+      adding ? link : dragLink(cues, original, mode, apart, link),
+    );
+  }
+  function setBoundary(key, value) {
+    setPicked(key);
+    retime(
+      dragTimes(times, key, value),
+      adding ? link : dragLink(cues, original, key, false, link),
+    );
+  }
+  /** Timeline and timing keys: arrows nudge the picked end (Shift: 100 ms), [ and ] set it. */
+  function timingKey(event) {
+    event.stopPropagation();
+    const step = event.shiftKey ? 0.1 : 0.01;
+    if (event.key === "ArrowLeft" || event.key === "ArrowRight") {
+      event.preventDefault();
+      setBoundary(
+        picked,
+        times[picked] + (event.key === "ArrowLeft" ? -step : step),
+      );
+    } else if (event.key === "[" || event.key === "]") {
+      event.preventDefault();
+      setBoundary(
+        event.key === "[" ? "start" : "end",
+        video.current.currentTime,
+      );
+    }
   }
   /** Plays from [from] to [to], then pauses there. */
   function preview(from, to) {
@@ -161,11 +242,10 @@ export function SubtitleEditPanel({
     onPreview(true);
     play();
   }
-  function setBoundary(key, value) {
-    const rounded = Math.max(0, Math.round(value * 1000) / 1000);
-    (key === "start" ? setStart : setEnd)(editClock(rounded));
-  }
-  async function apply(operation) {
+  /**
+   * Saves, splits or deletes the line, then closes, or with [nextId] goes on to edit that line.
+   */
+  async function apply(operation, nextId) {
     if (writing.current) return;
     if (operation !== "delete" && (!valid || !draft.source.trim())) {
       setError(
@@ -250,11 +330,7 @@ export function SubtitleEditPanel({
           throw Error(
             "Subtitle saved. Close and reopen the panel before adding a comment.",
           );
-        setOriginal(updated);
-        setDraft(updated);
-        setStart(editClock(updated.start));
-        setEnd(editClock(updated.end));
-        setMode("edit");
+        load(updated, saved.cues);
         // Use the returned ID so a failed comment can be retried without adding a second cue.
         body = updated;
       } else body = original;
@@ -270,7 +346,12 @@ export function SubtitleEditPanel({
         onSaved(saved);
         setComment("");
       }
-      onClose();
+      const latest = saved?.cues ?? cues;
+      const next = nextId && latest.find((line) => line.id === nextId);
+      if (next) {
+        load(next, latest);
+        seek(next.start);
+      } else onClose();
     } catch (failure) {
       setError(failure.message);
     } finally {
@@ -279,170 +360,131 @@ export function SubtitleEditPanel({
     }
   }
   return (
-    <aside
-      className="subtitle-edit-panel"
-      aria-label="Subtitle editor"
-      onKeyDown={(event) => {
-        event.stopPropagation();
-        if (event.key === "Escape") {
-          event.preventDefault();
-          close();
-        }
-        if (event.key === "Enter" && (event.ctrlKey || event.metaKey)) {
-          event.preventDefault();
-          apply("save");
-        }
-      }}
-    >
-      <header>
-        <h2>
-          {mode === "add" ? "Add subtitle" : "Edit subtitle"} <kbd>E</kbd>
-        </h2>
-        <ActionIcon
-          variant="subtle"
-          aria-label="Close subtitle editor"
-          disabled={busy}
-          onClick={close}
-        >
-          <X size={18} />
-        </ActionIcon>
-      </header>
-      <div className="subtitle-edit-scroll">
-        <Group className="subtitle-edit-tabs" gap="lg">
-          <button
-            disabled={!cue || busy}
-            aria-pressed={mode === "edit"}
-            onClick={() => changeMode("edit")}
+    <>
+      <Timeline
+        lines={lines}
+        selected={selected}
+        picked={picked}
+        videoRef={video}
+        heldTimeRef={heldTime}
+        onSeek={seek}
+        onSelect={switchTo}
+        onDrag={drag}
+        onPick={setPicked}
+        onKeyDown={timingKey}
+      />
+      <aside
+        className="subtitle-edit-panel"
+        aria-label="Subtitle editor"
+        onKeyDown={(event) => {
+          event.stopPropagation();
+          if (event.key === "Escape") {
+            event.preventDefault();
+            close();
+          }
+          if (event.key === "Enter" && (event.ctrlKey || event.metaKey)) {
+            event.preventDefault();
+            apply("save");
+          }
+        }}
+      >
+        <header>
+          <h2>
+            {mode === "add" ? "Add subtitle" : "Edit subtitle"} <kbd>E</kbd>
+          </h2>
+          <ActionIcon
+            variant="subtle"
+            aria-label="Close subtitle editor"
+            disabled={busy}
+            onClick={close}
           >
-            Edit
-          </button>
-          <button
-            disabled={busy}
-            aria-pressed={mode === "add"}
-            onClick={() => changeMode("add")}
-          >
-            Add at playhead
-          </button>
-        </Group>
-        <Stack gap="md">
-          <Textarea
-            ref={text}
-            label={sourceName}
-            lang={sourceLanguage}
-            value={draft.source}
-            autosize
-            minRows={2}
-            maxRows={5}
-            disabled={busy}
-            onSelect={(e) => {
-              cursor.current = e.currentTarget.selectionStart;
-            }}
-            onChange={(e) =>
-              setDraft({ ...draft, source: e.currentTarget.value })
-            }
-          />
-          <Textarea
-            label="Translation"
-            lang={translationLanguage}
-            value={draft.translation || ""}
-            autosize
-            minRows={2}
-            maxRows={5}
-            disabled={busy}
-            onChange={(e) =>
-              setDraft({ ...draft, translation: e.currentTarget.value })
-            }
-          />
-          <section className="subtitle-edit-timing">
-            <h3>Timing</h3>
-            <div className="subtitle-edit-boundaries">
-              {["start", "end"].map((key) => (
-                <div key={key}>
-                  <TextInput
-                    label={key === "start" ? "Start" : "End"}
-                    aria-label={`${key} time`}
-                    value={key === "start" ? start : end}
-                    disabled={busy}
-                    onChange={(e) =>
-                      (key === "start" ? setStart : setEnd)(
-                        e.currentTarget.value,
-                      )
-                    }
-                    rightSection={
-                      <ActionIcon
-                        size="sm"
-                        variant="subtle"
-                        disabled={busy}
-                        aria-label={`Set ${key} to playhead`}
-                        onClick={() =>
-                          setBoundary(key, video.current.currentTime)
-                        }
-                      >
-                        <Crosshair size={15} />
-                      </ActionIcon>
-                    }
-                  />
-                  <Group gap={4} grow mt={5}>
-                    {[-0.1, 0.1].map((delta) => (
-                      <Button
-                        key={delta}
-                        variant="default"
-                        size="compact-xs"
-                        aria-label={`Nudge ${key} ${delta < 0 ? "earlier" : "later"} by 100 milliseconds`}
-                        disabled={busy || times[key] === null}
-                        onClick={() => setBoundary(key, times[key] + delta)}
-                      >
-                        {delta < 0 ? "−" : "+"} 100 ms
-                      </Button>
-                    ))}
-                  </Group>
-                  {(key === "start" ? near.previous : near.next) && (
-                    <Checkbox
-                      mt={8}
-                      size="xs"
-                      label={
-                        key === "start"
-                          ? "Previous line follows"
-                          : "Next line follows"
-                      }
-                      checked={link[key === "start" ? "previous" : "next"]}
+            <X size={18} />
+          </ActionIcon>
+        </header>
+        <div className="subtitle-edit-scroll">
+          <Group className="subtitle-edit-tabs" gap="lg">
+            <button
+              disabled={!cue || busy}
+              aria-pressed={mode === "edit"}
+              onClick={() => changeMode("edit")}
+            >
+              Edit
+            </button>
+            <button
+              disabled={busy}
+              aria-pressed={mode === "add"}
+              onClick={() => changeMode("add")}
+            >
+              Add at playhead
+            </button>
+          </Group>
+          <Stack gap="md">
+            <Textarea
+              ref={text}
+              label={sourceName}
+              lang={sourceLanguage}
+              value={draft.source}
+              autosize
+              minRows={2}
+              maxRows={5}
+              disabled={busy}
+              onSelect={(e) => {
+                cursor.current = e.currentTarget.selectionStart;
+              }}
+              onChange={(e) =>
+                setDraft({ ...draft, source: e.currentTarget.value })
+              }
+            />
+            <Textarea
+              label="Translation"
+              lang={translationLanguage}
+              value={draft.translation || ""}
+              autosize
+              minRows={2}
+              maxRows={5}
+              disabled={busy}
+              onChange={(e) =>
+                setDraft({ ...draft, translation: e.currentTarget.value })
+              }
+            />
+            <section className="subtitle-edit-timing">
+              <h3>Timing</h3>
+              <div className="subtitle-edit-times" onKeyDown={timingKey}>
+                {["start", "end"].map((key) => (
+                  <Group key={key} gap={2} wrap="nowrap">
+                    <Button
+                      size="compact-sm"
+                      variant="subtle"
+                      aria-label={`${key} time`}
+                      aria-pressed={picked === key}
+                      title={`Arrow keys nudge the ${key}; ${key === "start" ? "[" : "]"} sets it to the playhead`}
                       disabled={busy}
-                      onChange={(e) =>
-                        setLink({
-                          ...link,
-                          [key === "start" ? "previous" : "next"]:
-                            e.currentTarget.checked,
-                        })
+                      onClick={() => setPicked(key)}
+                    >
+                      {editClock(times[key])}
+                    </Button>
+                    <ActionIcon
+                      size="sm"
+                      variant="subtle"
+                      disabled={busy}
+                      aria-label={`Set ${key} to playhead`}
+                      title={`Set ${key} to playhead (${key === "start" ? "[" : "]"})`}
+                      onClick={() =>
+                        setBoundary(key, video.current.currentTime)
                       }
-                    />
-                  )}
-                </div>
-              ))}
-            </div>
-            <div className="subtitle-edit-track">
-              <RangeSlider
-                aria-label="Subtitle boundaries"
-                thumbFromLabel="Subtitle start"
-                thumbToLabel="Subtitle end"
-                color="coral"
-                min={Math.min(bounds.current[0], times.start ?? 0)}
-                max={Math.max(bounds.current[1], times.end ?? 0)}
-                step={0.01}
-                minRange={0.01}
-                value={
-                  valid
-                    ? [times.start, times.end]
-                    : [original.start, original.end]
-                }
-                label={editClock}
-                disabled={busy}
-                onChange={([a, b]) => {
-                  setStart(editClock(a));
-                  setEnd(editClock(b));
-                }}
-              />
-              <Text size="xs" c="dimmed" mt="sm">
-                Playhead {editClock(time)}
+                    >
+                      <Crosshair size={14} />
+                    </ActionIcon>
+                    {key === "start" && <span aria-hidden="true">→</span>}
+                  </Group>
+                ))}
+                <Text size="xs" c="dimmed" ml="auto">
+                  {(times.end - times.start).toFixed(2)} s
+                </Text>
+              </div>
+              <Text size="xs" c="dimmed" mt={4}>
+                Drag the line or its ends on the timeline; Alt-drag moves only
+                this line. Arrow keys nudge the chosen end.
               </Text>
               <Group gap={4} mt="xs">
                 <Button
@@ -478,111 +520,93 @@ export function SubtitleEditPanel({
                   </Button>
                 ))}
               </Group>
-              <Group gap={6} mt={5}>
-                <Button
-                  size="compact-xs"
-                  variant="subtle"
-                  onClick={() =>
-                    seek(Math.max(0, (video.current?.currentTime || 0) - 0.1))
-                  }
-                >
-                  − 100 ms
-                </Button>
-                <Button
-                  size="compact-xs"
-                  variant="subtle"
-                  onClick={() => seek((video.current?.currentTime || 0) + 0.1)}
-                >
-                  + 100 ms
-                </Button>
-              </Group>
-            </div>
-            {mode === "edit" && (
-              <>
-                <Button
-                  fullWidth
-                  variant="default"
-                  mt="sm"
-                  leftSection={<Scissors size={16} />}
-                  disabled={busy}
-                  onClick={() => apply("split")}
-                >
-                  Split at cursor &amp; playhead
-                </Button>
-                <Text size="xs" c="dimmed" mt={5}>
-                  Place the {sourceName} text cursor at the break; seek to the
-                  split time.
-                </Text>
-              </>
+              {mode === "edit" && (
+                <>
+                  <Button
+                    fullWidth
+                    variant="default"
+                    mt="sm"
+                    leftSection={<Scissors size={16} />}
+                    disabled={busy}
+                    onClick={() => apply("split")}
+                  >
+                    Split at cursor &amp; playhead
+                  </Button>
+                  <Text size="xs" c="dimmed" mt={5}>
+                    Place the {sourceName} text cursor at the break; seek to the
+                    split time.
+                  </Text>
+                </>
+              )}
+            </section>
+            <Textarea
+              label="Comment for review"
+              placeholder="What should be checked?"
+              value={comment}
+              minRows={2}
+              autosize
+              disabled={busy}
+              onChange={(e) => setComment(e.currentTarget.value)}
+            />
+            <Text size="xs" c="dimmed">
+              Changes use the existing annotation review queue.
+            </Text>
+            {error && (
+              <Alert color="red" role="alert">
+                {error}
+              </Alert>
             )}
-          </section>
-          <Textarea
-            label="Comment for review"
-            placeholder="What should be checked?"
-            value={comment}
-            minRows={2}
-            autosize
-            disabled={busy}
-            onChange={(e) => setComment(e.currentTarget.value)}
-          />
-          <Text size="xs" c="dimmed">
-            Changes use the existing annotation review queue.
-          </Text>
-          {error && (
-            <Alert color="red" role="alert">
-              {error}
-            </Alert>
+            {deleting && (
+              <Alert color="red" title="Delete this subtitle?">
+                This removes the line and queues the deletion for review.
+                <Group mt="sm">
+                  <Button
+                    color="red"
+                    size="xs"
+                    disabled={busy}
+                    onClick={() => apply("delete")}
+                  >
+                    Confirm delete
+                  </Button>
+                  <Button
+                    size="xs"
+                    variant="default"
+                    onClick={() => setDeleting(false)}
+                  >
+                    Keep subtitle
+                  </Button>
+                </Group>
+              </Alert>
+            )}
+          </Stack>
+        </div>
+        <footer>
+          {mode === "edit" && (
+            <Button
+              color="red"
+              variant="subtle"
+              disabled={busy}
+              leftSection={<Trash2 size={16} />}
+              onClick={() => setDeleting(true)}
+            >
+              Delete
+            </Button>
           )}
-          {deleting && (
-            <Alert color="red" title="Delete this subtitle?">
-              This removes the line and queues the deletion for review.
-              <Group mt="sm">
-                <Button
-                  color="red"
-                  size="xs"
-                  disabled={busy}
-                  onClick={() => apply("delete")}
-                >
-                  Confirm delete
-                </Button>
-                <Button
-                  size="xs"
-                  variant="default"
-                  onClick={() => setDeleting(false)}
-                >
-                  Keep subtitle
-                </Button>
-              </Group>
-            </Alert>
-          )}
-        </Stack>
-      </div>
-      <footer>
-        {mode === "edit" && (
-          <Button
-            color="red"
-            variant="subtle"
-            disabled={busy}
-            leftSection={<Trash2 size={16} />}
-            onClick={() => setDeleting(true)}
-          >
-            Delete
-          </Button>
-        )}
-        <Group gap="xs" ml="auto">
-          <Button variant="subtle" disabled={busy} onClick={close}>
-            Cancel
-          </Button>
-          <Button
-            color="coral"
-            loading={busy}
-            disabled={!dirty || !valid}
-            onClick={() => apply("save")}
-          >
-            Save changes
-          </Button>
-        </Group>
-      </footer>
-    </aside>
+          <Group gap="xs" ml="auto">
+            <Button variant="subtle" disabled={busy} onClick={close}>
+              Cancel
+            </Button>
+            <Button
+              color="coral"
+              loading={busy}
+              disabled={!dirty || !valid}
+              onClick={() => apply("save")}
+            >
+              Save changes
+            </Button>
+          </Group>
+        </footer>
+      </aside>
+    </>
   );
 }
