@@ -12,7 +12,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.displayCutout
@@ -29,7 +28,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Notes
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.FindInPage
@@ -39,14 +37,8 @@ import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Replay
 import androidx.compose.material.icons.filled.SkipNext
 import androidx.compose.material.icons.filled.SkipPrevious
-import androidx.compose.material.icons.filled.Speed
-import androidx.compose.material.icons.filled.Subtitles
-import androidx.compose.material.icons.filled.SubtitlesOff
-import androidx.compose.material.icons.filled.SwapHoriz
 import androidx.compose.material.icons.filled.Translate
 import androidx.compose.material.icons.filled.Tune
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LocalContentColor
@@ -57,18 +49,14 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.withFrameMillis
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shadow
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
@@ -80,14 +68,9 @@ import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import androidx.lifecycle.compose.LifecycleStartEffect
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.ui.compose.ContentFrame
-import com.petitesroues.android.Settings
-import com.petitesroues.android.ThinSlider
-import com.petitesroues.android.data.Progress
-import com.petitesroues.android.data.ProgressStore
-import com.petitesroues.android.library.Title
-import com.petitesroues.android.quiz.QuizBadge
 import com.petitesroues.android.quiz.QuizDialog
 import com.petitesroues.android.quiz.QuizPack
 import com.petitesroues.android.quiz.QuizShare
@@ -98,11 +81,8 @@ import com.petitesroues.android.study.TranslationContext
 import com.petitesroues.android.study.phraseNotes
 import com.petitesroues.android.study.readyAlignment
 import com.petitesroues.model.ChunkSeparator
-import com.petitesroues.model.document.StudyDocument
 import kotlin.math.abs
 import kotlinx.coroutines.delay
-
-private val speeds = listOf(0.5f, 0.6f, 0.8f, 1f, 1.25f, 1.5f)
 
 private enum class Help {
   TRANSLATION,
@@ -121,12 +101,6 @@ private val subtitleStyle =
   )
 private val panelStyle = TextStyle(color = Color(0xFFE0E2E6), fontSize = 15.sp, lineHeight = 22.sp)
 private val panelBackground = Color(0xF520242A)
-private val railButton = 42.dp
-private val railPadding = 5.dp
-private val railMargin = 12.dp
-
-/** How far subtitles and the seek bar keep from the side the rail is on. */
-private val railClearance = 140.dp
 
 /**
  * The full-screen landscape player: the video with tappable phrase subtitles, a pill of line
@@ -141,26 +115,19 @@ private val railClearance = 140.dp
 // ContentFrame, the Compose video surface, is Media3 API still marked unstable.
 @OptIn(UnstableApi::class)
 @Composable
-fun WatchScreen(
-  title: Title,
-  document: StudyDocument,
-  saved: Progress?,
-  progress: ProgressStore,
-  settings: Settings,
-  onBack: () -> Unit,
-) {
+fun WatchScreen(model: PlayerViewModel, onBack: () -> Unit) {
   val context = LocalContext.current
-  val timeline = remember(document) { CueTimeline(document.video().cues()) }
-  val playback = remember(document) { VideoPlayback(context, title.mediaUri!!, timeline) }
-  var autoPause by remember { mutableStateOf(settings.autoPause) }
-  var speed by remember { mutableFloatStateOf(settings.playbackSpeed) }
-  var subtitles by remember { mutableStateOf(settings.showSubtitles) }
+  val title = model.title
+  val document = model.document
+  val timeline = model.timeline
+  val playback = model.playback
+  val choices by model.state.collectAsStateWithLifecycle()
+  val controlsLeft = choices.controlsLeft
   var quizzing by remember { mutableStateOf(false) }
   var help by remember { mutableStateOf<Help?>(null) }
   var explored by remember { mutableStateOf<Explored?>(null) }
   var controlsVisible by remember { mutableStateOf(true) }
   var railExpanded by remember { mutableStateOf(true) }
-  var controlsLeft by remember { mutableStateOf(settings.controlsOnLeft) }
   val toggle = { playback.toggle() }
 
   LaunchedEffect(controlsVisible, playback.playing) {
@@ -173,38 +140,12 @@ fun WatchScreen(
   FullScreenLandscape(keepScreenOn = playback.playing)
   BackHandler(onBack = onBack)
 
-  DisposableEffect(playback) {
-    saved?.positionSeconds?.let(playback::seek)
-    onDispose {
-      progress.savePosition(title.progressKey, playback.position, playback.fraction)
-      playback.release()
-    }
-  }
-  LaunchedEffect(autoPause) {
-    playback.autoPause = autoPause
-    settings.autoPause = autoPause
-  }
-  LaunchedEffect(speed) {
-    playback.setSpeed(speed)
-    settings.playbackSpeed = speed
-  }
-  LaunchedEffect(playback) {
-    var lastSave = 0L
-    while (true) {
-      withFrameMillis { now ->
-        playback.tick()
-        if (playback.playing && now - lastSave > 5000) {
-          lastSave = now
-          progress.savePosition(title.progressKey, playback.position, playback.fraction)
-        }
-      }
-    }
-  }
+  LaunchedEffect(playback) { while (true) withFrameMillis { playback.tick() } }
   LaunchedEffect(playback.playing) {
     if (playback.playing) {
       help = null
       explored = null
-    } else progress.savePosition(title.progressKey, playback.position, playback.fraction)
+    }
   }
   LifecycleStartEffect(playback) { onStopOrDispose { playback.pause() } }
 
@@ -305,7 +246,7 @@ fun WatchScreen(
             )
         }
       }
-      if (subtitles)
+      if (choices.subtitles)
         for (cue in showing) {
           val line = cue.line()
           val alignment = readyAlignment(line, document)
@@ -396,8 +337,12 @@ fun WatchScreen(
                   .size(width = 22.dp, height = 1.dp)
                   .background(Color(0x40FFFFFF))
               )
-              RailButton(Icons.Filled.PauseCircleOutline, "Auto-pause", selected = autoPause) {
-                autoPause = !autoPause
+              RailButton(
+                Icons.Filled.PauseCircleOutline,
+                "Auto-pause",
+                selected = choices.autoPause,
+              ) {
+                model.setAutoPause(!choices.autoPause)
               }
               RailButton(
                 Icons.Filled.Translate,
@@ -442,21 +387,17 @@ fun WatchScreen(
         title = title.name,
         time = time,
         duration = playback.durationSeconds,
-        speed = speed,
-        subtitles = subtitles,
+        speed = choices.speed,
+        subtitles = choices.subtitles,
         status = playback.error,
         onBack = onBack,
         onSeek = playback::seek,
-        onSpeed = { speed = it },
+        onSpeed = model::setSpeed,
         onQuiz = { quizzing = true },
         controlsLeft = controlsLeft,
-        onSwapSides = {
-          controlsLeft = !controlsLeft
-          settings.controlsOnLeft = controlsLeft
-        },
+        onSwapSides = model::swapSides,
         onSubtitles = {
-          subtitles = !subtitles
-          settings.showSubtitles = subtitles
+          model.toggleSubtitles()
           explored = null
         },
         modifier = Modifier.fillMaxSize(),
@@ -479,10 +420,10 @@ fun WatchScreen(
     if (quizzing)
       QuizDialog(
         document,
-        initialType = settings.quizType,
+        initialType = model.quizType,
         onDismiss = { quizzing = false },
         onShare = { type, _ ->
-          settings.quizType = type
+          model.quizShared(type)
           quizzing = false
           QuizShare.share(context, document, timeline.cues, timeline.current(time), type)
         },
@@ -504,159 +445,6 @@ private fun Panel(content: @Composable () -> Unit) {
   ) {
     content()
   }
-}
-
-/** One column of persistent shortcuts; both columns share the minimise button beneath them. */
-@Composable
-private fun RailPill(content: @Composable () -> Unit) {
-  Column(
-    Modifier.background(Color(0xCC101419), RoundedCornerShape(28.dp))
-      .border(1.dp, Color(0x1FFFFFFF), RoundedCornerShape(28.dp))
-      .padding(railPadding),
-    horizontalAlignment = Alignment.CenterHorizontally,
-    verticalArrangement = Arrangement.spacedBy(2.dp),
-  ) {
-    content()
-  }
-}
-
-/** A round button in the right-hand rail pill; a selected toggle uses the warm brand accent. */
-@Composable
-private fun RailButton(
-  icon: ImageVector,
-  label: String,
-  selected: Boolean = false,
-  dimmed: Boolean = false,
-  badge: Boolean = false,
-  onClick: () -> Unit,
-) {
-  Box {
-    IconButton(
-      onClick = onClick,
-      modifier =
-        Modifier.size(railButton)
-          .alpha(if (dimmed && !selected) 0.4f else 1f)
-          .background(if (selected) Color(0x994B302C) else Color.Transparent, CircleShape),
-    ) {
-      Icon(icon, contentDescription = label, tint = Color.White.copy(alpha = 0.9f))
-    }
-    if (badge)
-      Box(
-        Modifier.align(Alignment.TopEnd)
-          .padding(top = 4.dp, end = 4.dp)
-          .size(9.dp)
-          .background(Color(0xFFE8B97E), CircleShape)
-      )
-  }
-}
-
-@Composable
-private fun TransportBar(
-  title: String,
-  time: Double,
-  duration: Double,
-  speed: Float,
-  subtitles: Boolean,
-  status: String?,
-  onBack: () -> Unit,
-  onSeek: (Double) -> Unit,
-  onSpeed: (Float) -> Unit,
-  onSubtitles: () -> Unit,
-  onQuiz: () -> Unit,
-  controlsLeft: Boolean,
-  onSwapSides: () -> Unit,
-  modifier: Modifier = Modifier,
-) {
-  var speedMenu by remember { mutableStateOf(false) }
-  Column(
-    modifier
-      .background(
-        Brush.verticalGradient(listOf(Color(0xCC000000), Color(0x66000000), Color.Transparent))
-      )
-      .windowInsetsPadding(
-        WindowInsets.displayCutout.only(WindowInsetsSides.Horizontal + WindowInsetsSides.Top)
-      )
-      .padding(start = 8.dp, end = 8.dp, top = 2.dp, bottom = 8.dp)
-  ) {
-    // The top row stays put when the rail changes sides, so the swap button doesn't move away.
-    Row(
-      verticalAlignment = Alignment.CenterVertically,
-      modifier = Modifier.padding(end = railClearance - 8.dp),
-    ) {
-      IconButton(onClick = onBack) {
-        Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back", tint = Color.White)
-      }
-      Text(
-        status ?: title,
-        color = if (status != null) Color(0xFFFFB4A9) else Color.White,
-        fontSize = 15.sp,
-        maxLines = 1,
-        modifier = Modifier.weight(1f),
-      )
-      QuizBadge(onQuiz)
-      IconButton(onClick = onSubtitles) {
-        Icon(
-          if (subtitles) Icons.Filled.Subtitles else Icons.Filled.SubtitlesOff,
-          contentDescription = if (subtitles) "Hide subtitles" else "Show subtitles",
-          tint = Color.White,
-        )
-      }
-      Box {
-        IconButton(onClick = { speedMenu = true }) {
-          Icon(Icons.Filled.Speed, "Playback speed", tint = Color.White)
-        }
-        DropdownMenu(expanded = speedMenu, onDismissRequest = { speedMenu = false }) {
-          for (option in speeds) DropdownMenuItem(
-            text = { Text(if (option == speed) "✓ ${option}×" else "   ${option}×") },
-            onClick = {
-              onSpeed(option)
-              speedMenu = false
-            },
-          )
-        }
-      }
-      IconButton(onClick = onSwapSides) {
-        Icon(
-          Icons.Filled.SwapHoriz,
-          if (controlsLeft) "Move controls to the right" else "Move controls to the left",
-          tint = Color.White,
-        )
-      }
-    }
-    Spacer(Modifier.weight(1f))
-    // The seek bar and time stop short of the rail, so the two sit side by side.
-    Column(
-      Modifier.padding(
-        start = if (controlsLeft) railClearance - 8.dp else 0.dp,
-        end = if (controlsLeft) 0.dp else railClearance - 8.dp,
-      )
-    ) {
-      Row(verticalAlignment = Alignment.CenterVertically) {
-        if (duration > 0)
-          ThinSlider(
-            time.toFloat(),
-            0f..duration.toFloat(),
-            onValueChange = { onSeek(it.toDouble()) },
-            modifier = Modifier.weight(1f).padding(horizontal = 12.dp),
-          )
-        else Box(Modifier.weight(1f))
-      }
-      Text(
-        "${clock(time)} / ${clock(duration)}",
-        color = Color(0xFFC8D4E0),
-        fontSize = 13.sp,
-        modifier = Modifier.padding(start = 12.dp),
-      )
-    }
-  }
-}
-
-private fun clock(seconds: Double): String {
-  val total = seconds.toInt().coerceAtLeast(0)
-  val h = total / 3600
-  val m = total % 3600 / 60
-  val s = total % 60
-  return if (h > 0) "%d:%02d:%02d".format(h, m, s) else "%d:%02d".format(m, s)
 }
 
 /** Locks landscape and hides the system bars while the player is on screen. */

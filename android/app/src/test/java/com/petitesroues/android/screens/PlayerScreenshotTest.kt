@@ -10,6 +10,7 @@ import com.github.takahirom.roborazzi.captureRoboImage
 import com.petitesroues.android.AppTheme
 import com.petitesroues.android.Settings
 import com.petitesroues.android.library.TitleKind
+import com.petitesroues.android.player.PlayerViewModel
 import com.petitesroues.android.player.WatchScreen
 import org.junit.Rule
 import org.junit.Test
@@ -40,18 +41,9 @@ class PlayerScreenshotTest {
       )
     // The player redraws every frame while it is open, so it never idles: step the clock by hand.
     compose.mainClock.autoAdvance = false
-    compose.setContent {
-      AppTheme {
-        WatchScreen(
-          title,
-          document,
-          null,
-          Examples.progress(context),
-          settings,
-          onBack = {},
-        )
-      }
-    }
+    val model =
+      PlayerViewModel(title, document, null, context, settings, Examples.progress(context))
+    compose.setContent { AppTheme { WatchScreen(model, onBack = {}) } }
     // ExoPlayer reads the file's length on its own thread; capture once the player shows it.
     compose.waitUntil(timeoutMillis = 10_000) {
       compose.mainClock.advanceTimeBy(100)
