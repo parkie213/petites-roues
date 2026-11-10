@@ -26,9 +26,10 @@ from openrouter import load
 
 MODEL = "openai/gpt-6-luna"
 GUIDE = Path(__file__).resolve().parent.parent / "agents/guides/translation-notes.md"
-CONTRACT = """Write the learner notes for every assigned cue, applying the guide below (Link notes, Sentence notes, Style, Accuracy and the traps). Each cue's translation and phrase breakdown are fixed and already reviewed: write one note for each of its links, in the order given, explaining why that French means that English here, then the sentence notes (often none). Read neighbouring cues for context. Return only assigned IDs exactly once in input order. A cue with a listeningCheck or textCheck has doubtful source text: do not explain the doubtful words as if they were certain. Return JSON only:
+CONTRACT = """Write the learner notes for every assigned cue, applying the guide below (Link notes, Sentence notes, Style, Accuracy and the traps). Each cue's translation and phrase breakdown are fixed and already reviewed: write one note for each of its links, in the order given, explaining why the source has that translated meaning here, in the declared notesLanguage, then the sentence notes (often none). Read neighbouring cues for context. Return only assigned IDs exactly once in input order. A cue with a listeningCheck or textCheck has doubtful source text: do not explain the doubtful words as if they were certain. Return JSON only:
 {"cues":[{"id":"assigned-id","linkNotes":["note for link 0","note for link 1"],"notes":["one teaching point per string"]}]}
-linkNotes must have exactly one nonempty string per link. No markdown fences. Final-check all IDs and note counts before returning.
+Listening and text checks are review metadata, not teaching material. Never put instructions to verify audio, references to transcripts/captions/models, or warnings about uncertainty in linkNotes or notes. A check may concern only one word, intonation, or whether text was spoken: do not discard the clear parts of the cue. Explain only the undisputed words and constructions. For a wholly disputed fragment, a brief description of its unfinished form is enough; do not invent grammar to fill it out. Leave the original check untouched.
+linkNotes must have exactly one nonempty string per link. No markdown fences. Final-check all IDs, note counts and absence of review warnings before returning.
 
 TEACHING GUIDE:
 """
