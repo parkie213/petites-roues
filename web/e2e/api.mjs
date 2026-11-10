@@ -2,7 +2,7 @@ import { createHash } from "node:crypto";
 import { mkdir, readdir, readFile, stat, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { test as base, expect } from "@playwright/test";
-import { forget } from "./real-server.mjs";
+import { forget, forgetProgress } from "./real-server.mjs";
 
 /**
  * The browser tests' API: recorded from the real Java server, then replayed.
@@ -163,6 +163,8 @@ async function save(request, response) {
 const abandoned = (error) => /disposed|navigated away/.test(error.message);
 
 async function record(page, file, run) {
+  // A previous test's last progress save may have landed after it was undone.
+  await forgetProgress();
   const entries = [];
   const pending = new Set();
   const failures = [];
