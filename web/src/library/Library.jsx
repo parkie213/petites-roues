@@ -249,6 +249,24 @@ export function Library({ actionsTarget }) {
                 title={usage || undefined}
               >
                 {summary.counts}
+                {selection.view === "posters" && summary.attention && (
+                  <>
+                    {summary.counts && " · "}
+                    <button
+                      type="button"
+                      className="library-warnings"
+                      aria-pressed={attentionOnly}
+                      title="Show only what needs attention"
+                      onClick={() => setAttentionOnly(!attentionOnly)}
+                    >
+                      <span
+                        aria-hidden="true"
+                        className="library-attention-dot"
+                      />
+                      {summary.attention}
+                    </button>
+                  </>
+                )}
               </Text>
             )}
             {data?.repos.length > 0 && (
@@ -289,20 +307,6 @@ export function Library({ actionsTarget }) {
                     </button>
                   ))}
                 </div>
-                {summary?.attention && (
-                  <button
-                    type="button"
-                    className="library-attention-filter"
-                    aria-pressed={attentionOnly}
-                    onClick={() => setAttentionOnly(!attentionOnly)}
-                  >
-                    <span
-                      aria-hidden="true"
-                      className="library-attention-dot"
-                    />
-                    Needs attention · {parseInt(summary.attention, 10)}
-                  </button>
-                )}
               </>
             )}
             {summary?.unlinked && (

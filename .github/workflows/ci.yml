@@ -11,7 +11,7 @@ permissions:
   contents: read
 
 # The shared Java library (the document model) is built and tested once; the server and the
-# Android app are then built against that same jar.
+# Android app are then built against that same jar. The web app needs neither, so runs alongside.
 jobs:
   library:
     runs-on: ubuntu-26.04
@@ -59,30 +59,60 @@ jobs:
       - name: Install frontend dependencies
         run: npm ci
         working-directory: web
-      - name: Check frontend formatting
-        run: npm run format:check
-        working-directory: web
-      - name: Lint frontend
-        run: npm run lint
-        working-directory: web
-      - name: Build frontend
-        run: npm run build
-        working-directory: web
-      - name: Test frontend
-        run: npm test
-        working-directory: web
       - name: Install the browser for end-to-end tests
         run: npx playwright install --with-deps chromium
         working-directory: web
-      # The journeys replay responses recorded from the server; recording them again from the
+      # The web journeys replay responses recorded from this server. Recording them again from the
       # server just verified, and finding nothing changed, shows the API hasn't drifted from them.
-      - name: Record end-to-end responses from the server, and check they match the committed ones
-        run: npm run e2e:record && git diff --exit-code e2e/fixtures && test -z "$(git status --porcelain e2e/fixtures)"
+      # A journey that fails on its recordings too is the web's to fix, and the web job reports it;
+      # one that passes on them but fails here was broken by the server.
+      - name: Check the API still answers the web's recorded journeys
+        run: |
+          if ! npm run e2e:record; then
+            if npm run e2e; then
+              echo "::error::A journey passes on its recordings but fails against this server"
+              exit 1
+            fi
+            echo "::warning::Journeys fail on their recordings too; the web job reports them"
+          fi
+          git diff --exit-code e2e/fixtures
+          test -z "$(git status --porcelain e2e/fixtures)"
         working-directory: web
+      - name: Keep the recording report when the API check failed
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: playwright-recording-report
+          path: web/playwright-report
+          if-no-files-found: ignore
+
+  # The web app on its own, with no Java: its journeys replayed from their recordings, and
+  # screenshots compared in Playwright's Docker image.
+  web:
+    runs-on: ubuntu-26.04
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - name: Install dependencies
+        run: npm ci
+      - name: Check formatting
+        run: npm run format:check
+      - name: Lint
+        run: npm run lint
+      - name: Build
+        run: npm run build
+      - name: Unit tests
+        run: npm test
       # In Playwright's Docker image, as locally, so screenshots match their references.
-      - name: Run end-to-end tests and screenshots against the recordings
+      - name: End-to-end journeys and screenshots against the recordings
         run: npm run e2e:screenshots
-        working-directory: web
       - name: Keep the end-to-end report when a journey failed
         if: failure()
         uses: actions/upload-artifact@v7
