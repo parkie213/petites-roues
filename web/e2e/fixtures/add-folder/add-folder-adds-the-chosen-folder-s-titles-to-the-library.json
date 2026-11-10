@@ -3,7 +3,7 @@
     "request": "GET /api/jobs/00000000-0000-4000-8000-000000000001/events",
     "status": 200,
     "type": "text/event-stream",
-    "text": "event:job\ndata:{\"id\":\"00000000-0000-4000-8000-000000000001\",\"kind\":\"add\",\"state\":\"running\",\"progress\":{\"folder\":\"media-de\",\"phase\":\"media\",\"done\":0,\"total\":1,\"current\":\"series/masha-and-the-bear/083-bienenalarm.mp4\"},\"error\":null}\n\nevent:job\ndata:{\"id\":\"00000000-0000-4000-8000-000000000001\",\"kind\":\"add\",\"state\":\"running\",\"progress\":{\"folder\":\"media-de\",\"phase\":\"saving\",\"done\":0,\"total\":0,\"current\":null},\"error\":null}\n\nevent:job\ndata:{\"id\":\"00000000-0000-4000-8000-000000000001\",\"kind\":\"add\",\"state\":\"succeeded\",\"progress\":{\"folder\":\"media-de\",\"phase\":\"saving\",\"done\":0,\"total\":0,\"current\":null},\"error\":null}\n\n"
+    "text": "event:job\ndata:{\"id\":\"00000000-0000-4000-8000-000000000001\",\"kind\":\"add\",\"state\":\"succeeded\",\"progress\":{\"folder\":\"media-de\",\"phase\":\"saving\",\"done\":0,\"total\":0,\"current\":null},\"error\":null}\n\n"
   },
   {
     "request": "GET /api/jobs/latest",

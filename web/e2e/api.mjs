@@ -53,6 +53,9 @@ const coarse = { positionSeconds: 10, progress: 100 };
  */
 function stable(value, name) {
   if (Array.isArray(value)) return value.map((item) => stable(item));
+  // How far a running job has got depends on the machine's speed.
+  if (value?.kind && value.state === "running" && value.progress)
+    return stable({ ...value, progress: null }, name);
   if (value && typeof value === "object")
     return Object.fromEntries(
       Object.entries(value).map(([k, v]) => [k, stable(v, k)]),
@@ -137,6 +140,10 @@ async function save(request, response) {
   const text = () => portable(body.toString());
   if (type.includes("json"))
     return { ...entry, json: stable(JSON.parse(text())) };
+  // A job's event stream is kept to its last event, the outcome: how many progress events come
+  // before it depends on the machine's speed.
+  if (type.startsWith("text/event-stream"))
+    return { ...entry, text: text().trim().split(/\n\n+/).at(-1) + "\n\n" };
   if (type.startsWith("text/")) return { ...entry, text: text() };
   if (body.length === 0) return entry;
   if (type.startsWith("video/")) {
@@ -154,11 +161,14 @@ async function save(request, response) {
 async function record(page, file, run) {
   const entries = [];
   const pending = new Set();
+  const failures = [];
   // Responses are watched rather than intercepted: answering a request ourselves would hold up
   // the keepalive progress save a page sends as it unloads, and the navigation with it.
   page.on("response", (response) => {
     if (!new URL(response.url()).pathname.startsWith("/api/")) return;
-    // A redirect (a card or video to its current version) is recorded as such, then its target.
+    // A redirect (a card or video to its current version) is recorded with the response it ends
+    // at: each hop as a redirect, then the target.
+    if (response.status() >= 300 && response.status() < 400) return;
     const redirects = [];
     for (
       let from = response.request().redirectedFrom();
@@ -173,7 +183,12 @@ async function record(page, file, run) {
     entries.push(...redirects);
     const saved = save(response.request(), response)
       .then((entry) => entries.push(entry))
-      .catch(() => {}); // a response the browser abandoned (the page navigated away) has no body
+      .catch((error) => {
+        // A response the browser abandoned (the page navigated away) has no body; anything else
+        // is a fault in recording.
+        if (!/disposed|navigated away/.test(error.message))
+          failures.push(error);
+      });
     pending.add(saved);
     saved.finally(() => pending.delete(saved));
   });
@@ -186,6 +201,8 @@ async function record(page, file, run) {
   // What the page is still loading when the test ends (posters behind Back) is saved too.
   await page.waitForLoadState("networkidle").catch(() => {});
   await Promise.allSettled([...pending]);
+  if (failures.length)
+    throw new AggregateError(failures, "Saving responses failed");
   // Progress the test saved is forgotten, so the next test starts from the same library.
   await forgetProgress(entries.map((entry) => entry.request));
   // Responses that arrive together (two posters) come in either order, so they are saved sorted by
