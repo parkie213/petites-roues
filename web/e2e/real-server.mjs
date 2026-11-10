@@ -13,6 +13,10 @@ import path from "node:path";
 export const API_PORT = 18877;
 const api = `http://127.0.0.1:${API_PORT}/api`;
 const repository = path.resolve(import.meta.dirname, "../..");
+// The library every test starts from.
+const folders = ["media-fr", "documents-fr"].map((name) =>
+  path.join(repository, "example", name),
+);
 
 async function jar() {
   const target = path.join(repository, "java/server/target");
@@ -38,24 +42,20 @@ async function waitForServer(server) {
   throw Error("The Java server did not start within a minute");
 }
 
-/** Removes the folder at [localPath] from the real server's library, undoing a test's Add. */
-export async function removeFolder(localPath) {
-  const folders = await (await fetch(`${api}/repositories`)).json();
-  for (const { id } of folders.filter(
-    (folder) => folder.localPath === localPath,
-  ))
-    await fetch(`${api}/repositories/${encodeURIComponent(id)}`, {
-      method: "DELETE",
-    });
-}
-
 /**
  * Undoes what [requests] (`METHOD /path` keys) saved on the real server: reading and playback
- * progress is forgotten and queued subtitle edits are discarded, so a test leaves the library as
- * it found it.
+ * progress is forgotten, queued subtitle edits are discarded and added folders are removed, so a
+ * test leaves the library as it found it.
  */
 export async function forget(requests) {
   const api = `http://127.0.0.1:${API_PORT}`;
+  for (const { id, localPath } of await (
+    await fetch(`${api}/api/repositories`)
+  ).json())
+    if (!folders.includes(localPath))
+      await fetch(`${api}/api/repositories/${encodeURIComponent(id)}`, {
+        method: "DELETE",
+      });
   const changed = (pattern) =>
     new Set(
       requests.flatMap((request) => pattern.exec(request)?.slice(1) ?? []),
@@ -94,16 +94,14 @@ export default async function startRealServer() {
   server.stderr.pipe(log);
   try {
     await waitForServer(server);
-    for (const name of ["media-fr", "documents-fr"]) {
+    for (const localPath of folders) {
       const response = await fetch(`${api}/repositories`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          localPath: path.join(repository, "example", name),
-        }),
+        body: JSON.stringify({ localPath }),
       });
       if (!response.ok)
-        throw Error(`Adding ${name} failed: ${await response.text()}`);
+        throw Error(`Adding ${localPath} failed: ${await response.text()}`);
     }
   } catch (error) {
     server.kill();

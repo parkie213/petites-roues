@@ -11,6 +11,8 @@ const WEB_PORT = 18875;
 
 export default defineConfig({
   testDir: "e2e",
+  // Reference screenshots, made in Playwright's Docker image (`npm run e2e:screenshots`).
+  snapshotPathTemplate: "{testDir}/screenshots/{testFileName}/{arg}{ext}",
   // Recording shares one real server, so it runs one test at a time.
   fullyParallel: !RECORD,
   workers: RECORD ? 1 : undefined,

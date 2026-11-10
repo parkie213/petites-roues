@@ -44,6 +44,14 @@ comic reader, notes and quizzes, and adding a folder. `npm run e2e` replays API 
 in `e2e/fixtures/`, so it needs only Node and a browser (`npx playwright install chromium` once).
 A request with no recording fails the test.
 
+The journeys also screenshot each main screen, compared with references in `e2e/screenshots/`.
+Text and images render slightly differently from machine to machine, so screenshots are only
+compared in Playwright's Docker image: `npm run e2e:screenshots` runs the journeys there, as CI
+does (it needs Docker), and plain `npm run e2e` skips them. After an intended visual change, run
+`npm run e2e:screenshots -- --update-snapshots` and commit the new references; a failing run
+leaves the expected, actual and diff images in `test-results/`. A video's frame is hidden in
+screenshots, since a pause can land a frame apart between runs.
+
 `npm run e2e:record` records them again from the real Java server: build it first
 (`./java/mvnw -f java/pom.xml -pl server -am package -DskipTests`). It starts the jar with a
 throwaway library holding `example/media-fr` and `example/documents-fr`, so your own library and

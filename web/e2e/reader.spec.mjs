@@ -1,4 +1,4 @@
-import { test, expect } from "./api.mjs";
+import { test, expect, looksLike } from "./api.mjs";
 
 test("the comic opens on its cover, and its pages turn", async ({ page }) => {
   await page.goto("/");
@@ -31,6 +31,7 @@ test("tapping a bubble explains it, and Back returns to the library", async ({
     .getByRole("button", { name: "Bubble 1: Oh non, il pleut !" })
     .click();
   await expect(page.getByText("Oh no, it's raining!").first()).toBeVisible();
+  await looksLike(page, "reader-bubble");
 
   await page.getByRole("link", { name: "Back to library" }).click();
   await expect(page.getByRole("link", { name: "Peppa Pig" })).toBeVisible();

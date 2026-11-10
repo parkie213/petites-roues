@@ -84,10 +84,12 @@ public class Ffmpeg {
   /**
    * Writes {@code target} as a JPEG of {@code image} (JPEG, PNG or WebP) at most {@code width}
    * pixels wide, keeping its aspect ratio; smaller images are not enlarged. The file appears
-   * complete or not at all.
+   * complete or not at all, even when several threads write the same target at once: each writes
+   * its own temporary file beside it and moves that into place.
    */
   public void thumbnail(Path image, int width, Path target) throws IOException {
-    Path partial = target.resolveSibling(target.getFileName() + ".partial.jpg");
+    Path partial =
+        Files.createTempFile(target.getParent(), target.getFileName() + ".", ".partial.jpg");
     try {
       run(
           List.of(
@@ -107,7 +109,8 @@ public class Ffmpeg {
               "-update",
               "1",
               partial.toString()));
-      Files.move(partial, target, StandardCopyOption.REPLACE_EXISTING);
+      Files.move(
+          partial, target, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);
     } finally {
       Files.deleteIfExists(partial);
     }

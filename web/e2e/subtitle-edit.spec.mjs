@@ -1,4 +1,4 @@
-import { test, expect } from "./api.mjs";
+import { test, expect, looksLike } from "./api.mjs";
 
 test("moving a line's end moves the next line's start with it", async ({
   page,
@@ -17,6 +17,7 @@ test("moving a line's end moves the next line's start with it", async ({
   const editor = page.getByRole("complementary", { name: "Subtitle editor" });
   await expect(editor.getByLabel("end time")).toHaveValue("0:06.920");
   await expect(editor.getByLabel("Next line follows")).toBeChecked();
+  await looksLike(page, "subtitle-editor");
   await editor
     .getByRole("button", { name: "Nudge end later by 100 milliseconds" })
     .click();

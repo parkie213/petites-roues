@@ -1,4 +1,4 @@
-import { test, expect } from "./api.mjs";
+import { test, expect, looksLike } from "./api.mjs";
 
 test("the library shelves the example's comic and series", async ({ page }) => {
   await page.goto("/");
@@ -8,6 +8,7 @@ test("the library shelves the example's comic and series", async ({ page }) => {
     page.getByRole("link", { name: "Lulu", exact: true }),
   ).toBeVisible();
   await expect(page.getByRole("link", { name: "Peppa Pig" })).toBeVisible();
+  await looksLike(page, "library");
 });
 
 test("a series opens to its episodes", async ({ page }) => {
@@ -21,6 +22,7 @@ test("a series opens to its episodes", async ({ page }) => {
   await expect(
     page.getByRole("link", { name: /dinosaure/i }).first(),
   ).toBeVisible();
+  await looksLike(page, "series");
 });
 
 test("the library flags what needs attention, and can show only that", async ({
