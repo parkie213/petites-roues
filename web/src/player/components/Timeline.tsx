@@ -28,7 +28,8 @@ type Drag =
  * The subtitles laid out under the video while one is edited, centred on the playhead and drawn
  * from the media clock on each frame. The [selected] line shows its handles: drag an end to move
  * it, or the line to move both; Alt opens a gap to a neighbour that would otherwise follow.
- * Pressing another line selects it, and pressing between lines (or dragging there) seeks. The
+ * Pressing anywhere places the playhead there; pressing another line also edits it, and dragging
+ * between lines scrubs. The
  * wheel zooms. The timeline only reports; the editor owns the times it draws.
  */
 export function Timeline({
@@ -50,7 +51,7 @@ export function Timeline({
   videoRef: RefObject<HTMLVideoElement | null>;
   heldTimeRef: RefObject<number>;
   onSeek: (seconds: number) => void;
-  onSelect: (index: number) => void;
+  onSelect: (index: number, at: number) => void;
   onDrag: (
     mode: Boundary | "move",
     at: number,
@@ -187,7 +188,7 @@ export function Timeline({
     if (event.button !== 0 || !pixelsPerSecond) return;
     const target = hit(event);
     if (target.kind === "select") {
-      onSelect(target.index);
+      onSelect(target.index, target.at);
       return;
     }
     canvas.current!.setPointerCapture(event.pointerId);

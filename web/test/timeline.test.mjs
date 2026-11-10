@@ -38,11 +38,12 @@ test("pressing the timeline grabs the edited line's ends or body, selects anothe
   assert.deepEqual(at(253), { kind: "boundary", boundary: "start" });
   assert.deepEqual(at(396), { kind: "boundary", boundary: "end" });
   assert.deepEqual(at(300), { kind: "move", offset: 0.5 });
-  assert.deepEqual(at(150), { kind: "select", index: 0 });
+  assert.deepEqual(at(150), { kind: "select", index: 0, at: 1.5 });
   assert.deepEqual(at(410), { kind: "seek", at: 4.1 });
   assert.deepEqual(timelineHit(lines, 300, 0, 100, -1), {
     kind: "select",
     index: 1,
+    at: 3,
   });
 });
 

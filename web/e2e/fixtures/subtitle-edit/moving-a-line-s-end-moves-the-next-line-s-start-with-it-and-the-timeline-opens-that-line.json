@@ -1797,7 +1797,7 @@
     "status": 200,
     "type": "application/json",
     "json": {
-      "positionSeconds": 7,
+      "positionSeconds": 8.3,
       "updatedAt": "2026-01-01T00:00:00Z"
     }
   }

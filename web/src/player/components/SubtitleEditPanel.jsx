@@ -183,15 +183,16 @@ export function SubtitleEditPanel({
     setError("");
     setDeleting(false);
   }
-  /** Edits the timeline's [index]th line, after saving this one if it changed. */
-  function switchTo(index) {
+  /**
+   * A press at [at] seconds on the timeline's [index]th line: the playhead goes there, and that
+   * line is edited, after saving this one if it changed.
+   */
+  function switchTo(index, at) {
     const line = lines[index];
     if (busy || !line?.id) return;
+    seek(at);
     if (dirty) apply("save", line.id);
-    else {
-      load(line, cues);
-      seek(line.start);
-    }
+    else load(line, cues);
   }
   /** Moves the line's times as a timeline drag or nudge asks, unless a neighbour would vanish. */
   function retime(next, nextLink) {
@@ -348,10 +349,8 @@ export function SubtitleEditPanel({
       }
       const latest = saved?.cues ?? cues;
       const next = nextId && latest.find((line) => line.id === nextId);
-      if (next) {
-        load(next, latest);
-        seek(next.start);
-      } else onClose();
+      if (next) load(next, latest);
+      else onClose();
     } catch (failure) {
       setError(failure.message);
     } finally {

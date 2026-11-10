@@ -51,13 +51,14 @@ export function draftLines<T extends TimelineLine>(
 export type TimelineHit =
   | { kind: "boundary"; boundary: Boundary }
   | { kind: "move"; offset: number }
-  | { kind: "select"; index: number }
+  | { kind: "select"; index: number; at: number }
   | { kind: "seek"; at: number };
 
 /**
  * What pressing the timeline does at [x] pixels from its left edge, which shows [viewStart]
  * seconds at [pixelsPerSecond]: near an end of the [selected] line it grabs that boundary, inside
- * that line it grabs the whole line, inside another line it selects it, and elsewhere it seeks.
+ * that line it grabs the whole line, inside another line it selects it (and seeks there), and
+ * elsewhere it seeks.
  */
 export function timelineHit(
   lines: readonly Timed[],
@@ -79,7 +80,7 @@ export function timelineHit(
       return { kind: "move", offset: at - line.start };
   }
   const index = lines.findIndex((line) => at >= line.start && at < line.end);
-  return index >= 0 ? { kind: "select", index } : { kind: "seek", at };
+  return index >= 0 ? { kind: "select", index, at } : { kind: "seek", at };
 }
 
 /**
