@@ -31,7 +31,9 @@ OpenRouter, and don't send reviews, whole documents or anything else there.
 `prepare/spellings.py` finds and corrects misheard names from a title's character list; it calls no model.
 
 Each script takes `--model` to try something else. All of them need Python 3 (standard
-library only) and `OPENROUTER_API_KEY` in the environment, and print the reported cost.
+library only) and `OPENROUTER_API_KEY` in the environment or a literal assignment in
+`~/.config/openrouter/env`, and print the reported cost. The environment takes precedence;
+if it contains an expired key, update or unset it before using the config file.
 `translate.py`, `phrases.py` and `notes.py` also need the app running, because they validate
 through the app and queue their output for review (set `PETITES_ROUES_URL` if the app is not
 on `http://localhost:8877`).
@@ -54,6 +56,18 @@ breakdown review → notes → notes review**. Always check a sample before runn
   means fixing the document, not the app. Structural validity says nothing about teaching
   quality: that is the review's job.
 - Keep originals: the source video/CBZ, any original subtitles and the raw run output.
+
+## Check setup
+
+Before downloading or starting model work:
+
+```bash
+python3 prepare/preflight.py --youtube
+```
+
+This checks FFmpeg, ffprobe, yt-dlp, the running app and OpenRouter authentication without
+making a generation request. Leave off `--youtube` for existing local media. Credentials
+are never printed, and the config file is read as data rather than executed as shell.
 
 ## Start the document
 
@@ -91,7 +105,56 @@ Then **Refresh** the documents folder in the library. Add other metadata such as
 [the document format](DOCUMENT-FORMAT.md#metadata-and-review-fields)). For a document that
 already exists, record its media with `prepare/reference.py --document path/to/document.json --media FILE`.
 
-To download a video first: `yt-dlp -t mp4 --no-playlist -o 'video.%(ext)s' 'VIDEO_URL'`.
+### YouTube downloads
+
+```bash
+python3 prepare/youtube.py 'VIDEO_URL' \
+  --media-dir ~/media/fr/youtube/channel/video \
+  --archive-dir content-archive/my-title/originals
+```
+
+Use fresh, separate directories. This downloads one video (no playlist), restricts audio
+selection to `--source` (default `fr`), and preserves the untouched download, supplied source-language
+and `--translation` (default `en`) subtitles, metadata and thumbnail in the archive. It writes
+an MP4 and `poster.*` in the media folder. Missing source-language audio fails instead of
+silently choosing another language. It does not fall back to automatically generated subtitles.
+The live MP4 is remuxed without re-encoding and tagged with the provider-declared language;
+this tag is not audio verification. Check the speech as usual before transcription.
+
+Then use `new_title.py` as above, set `shelf` to `YouTube` (or `Music videos` for a song) and `sourceUrl` to the original video
+URL, and explicitly Refresh the registered folders. Downloading does not annotate, register
+folders or refresh the catalogue.
+
+### Music videos
+
+Use the same download, document and three-stage annotation tools, with a different source-text
+review. The speech transcription step below is only a possible draft for singing; it does not
+establish the lyrics. For a music video, follow this order:
+
+1. **Catalogue the performance.** Use shelf `Music videos`, title `Artist — Song`, the original
+   video URL and its thumbnail. Check the actual sung language before choosing `sourceLanguage`.
+2. **Establish the words.** Check supplied captions or artist-published lyrics against this
+   recording: a live performance, edit or remix can differ from the published song. Preserve
+   supplied files and source references under `content-archive/`. Keep contractions, slang,
+   deliberate fragments and audible ad-libs; do not silently rewrite them into formal prose.
+   Record unresolved words in `listeningCheck`, and explain only what is clear.
+3. **Time the lyrics.** Create a cue for each short, meaningful sung phrase, with timings checked
+   against the performance. Keep instrumental passages empty and remove hallucinated lyrics.
+   Every chorus occurrence needs its own cue IDs and timings; check later repetitions for
+   changed words and ad-libs rather than assuming they are identical.
+4. **Review a representative sample.** Include a verse, a chorus and any unusual slang or
+   poetic construction, then follow the translation, breakdown and notes stages and their
+   reviews below. For a short song, checking the whole lyric transcript before annotation is
+   practical. Use a spelling list only when names or other special spellings need one.
+5. **Teach the meaning.** Translate naturally without forcing English rhyme or metre. Explain
+   omitted words, colloquial forms, poetic word order and metaphors where they affect meaning;
+   distinguish a supported interpretation from an ambiguous image. Mention sung pronunciation
+   only when verified in the recording and useful for recognising the words, and distinguish
+   it from ordinary conversational pronunciation. Review against the teaching guide as usual.
+
+Reviewed translations, breakdowns and notes may be reused for an exact repeated lyric when
+its meaning and referents also match. Preserve each occurrence's identity, timing and checks,
+and validate the resulting document through the app. Review changed repetitions separately.
 
 ## Transcribe a video
 
@@ -213,7 +276,19 @@ while an agent has a review batch open on the title. `--no-write` keeps the answ
 directory only, and `--cues FILE` (a list of cue IDs) limits a run to a sample.
 
 For a new title, take the transcribed sample through all three stages and their reviews before
-transcribing and annotating the rest.
+transcribing and annotating the rest. For a short video that fits in one transcription chunk,
+choose an annotation sample across the whole video rather than just its opening:
+
+```bash
+python3 prepare/sample.py --document DOC --out content-archive/my-title/sample-cues.txt --count 10
+```
+
+The helper suggests a spread of cues, including short and long lines, a continuation and an
+open check when available. Inspect its printed selection and substitute an idiom or slang
+example if needed; it does not detect idioms or verify speech. Pass the same file with
+`--cues` to all three annotation scripts. Sample files are never overwritten. Sparse samples
+carry at most sixteen neighbouring context cues per request, not all the intervening text.
+
 
 ### Translate
 
@@ -236,10 +311,10 @@ python3 prepare/phrases.py --document content/my-title/document.json \
 
 With each translation fixed, the model divides the line into chunks and links them to the
 English, following the guide's *Chunking* and *Links* sections. By default it handles translated
-cues with no breakdown; `--all` redoes every translated cue. A chunk of seven or
-more words is sent back once, asking for a split at a clause or adverbial boundary, or for it to
-stay whole only when the English wraps around it. A long chunk that survives is named in that
-cue's review request.
+cues with no breakdown; `--all` redoes every translated cue. Chunks of seven or more words are named as length advisories in the
+review request; length alone does not trigger a repair call. Keep a complete construction
+when splitting would teach a misleading pairing. Structural faults, such as a lone connector
+or an auxiliary cut off from its verb, still trigger a reconsideration request.
 
 Then review the breakdowns (see [Review](#review)) before writing notes: changing a chunk later
 means rewriting its notes.

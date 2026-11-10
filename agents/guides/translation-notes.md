@@ -181,6 +181,14 @@ delete a sentence note that only restates them, the most common first-pass fault
 
 ## Traps seen in first-pass notes
 
+- **Review warnings in teaching notes.** Listening/text checks belong in their check fields.
+  Do not replace a useful link note with instructions to verify a transcript. A check about
+  one word, intonation or whether a heading is spoken does not make every word doubtful:
+  explain the clear parts and omit claims about the disputed part.
+- **Short clauses and repeated reactions over-split.** Keep `je suis très content` together,
+  including the adjective, and keep `ah oui, oui !` as one reaction. Word count alone does
+  not justify splitting an idiom or a reusable construction.
+
 Machine-written notes got these wrong; check them every time.
 
 - **Negative `falloir`.** `Il ne faut pas toucher` = you mustn't touch, a prohibition, not

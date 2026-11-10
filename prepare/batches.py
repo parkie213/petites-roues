@@ -44,10 +44,18 @@ def plan(document, wanted, size):
     return batches + [current] if current else batches
 
 
+def context_indices(assigned, total):
+    """At most sixteen nearby context cues, even when a sample spans a long document."""
+    assigned = set(assigned)
+    nearby = {j for i in assigned for j in range(max(0, i - 8), min(total, i + 9))
+              if j not in assigned}
+    return sorted(sorted(nearby, key=lambda j: (min(abs(j - i) for i in assigned), j))[:16])
+
+
 def create(run_dir, document, raw, guide, model, title, wanted, size, slim):
     """Writes a new run directory: manifest, guide, base document and one input per batch.
-    SLIM turns a cue into what the model sees; each batch carries up to eight neighbouring
-    cues on either side as context only."""
+    SLIM turns a cue into what the model sees; each batch carries at most sixteen nearby
+    cues as context only, without filling gaps between scattered sample cues."""
     run_dir.mkdir(parents=True)
     cues = cues_of(document)
     (run_dir / "teaching-guide.md").write_text(guide, encoding="utf-8")
@@ -57,7 +65,7 @@ def create(run_dir, document, raw, guide, model, title, wanted, size, slim):
     for n, ids in enumerate(plan(document, wanted, size), 1):
         batch_dir = run_dir / f"batch-{n:03}"
         batch_dir.mkdir()
-        near = range(max(0, min(ids) - 8), min(len(cues), max(ids) + 9))
+        near = context_indices(ids, len(cues))
         save(batch_dir / "input.json", {
             "title": document["title"], "sourceLanguage": document["sourceLanguage"],
             "translationLanguage": document["translationLanguage"], "notesLanguage": document["notesLanguage"],

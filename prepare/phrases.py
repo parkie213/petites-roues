@@ -12,10 +12,11 @@ IDs, one per line. Existing breakdowns are not shown to the model.
 
 The prompt carries only the parts of the guide this stage needs: its introduction and the
 chunking and link rules. Needs the app running: each cue in an answer is accepted once it passes
-the app's validator. A breakdown with a known fault (a chunk of LONG or more words and, for
-French, a lone connector or a pronoun, negation or auxiliary cut off from its verb) is sent back
+the app's validator. A breakdown with a known structural fault (for French, a lone connector, or a pronoun,
+negation or auxiliary cut off from its verb) is sent back
 once with what to reconsider; the second answer is accepted either way and any fault left is
-named in the cue's review request. Up to two repair requests resend only the cues that failed.
+named in the cue's review request. Length is advisory only and never triggers a retry.
+Up to two repair requests resend only the cues that failed.
 Rerunning the same command resumes.
 
 Then updates DOC in place for every accepted cue whose source and translation still match
@@ -36,7 +37,9 @@ MODEL = "openai/gpt-6-luna"
 LONG = 7
 GUIDE = Path(__file__).resolve().parent.parent / "agents/guides/translation-notes.md"
 SECTIONS = ("Chunking: the core rule",)
-CONTRACT = """Write the phrase breakdown for every assigned cue, applying the Chunking and Links rules of the guide below. Each cue's translation is fixed: divide that exact text. This stage writes no notes; they are written later for the reviewed chunks. Read neighbouring cues for context. Return only assigned IDs exactly once in input order. Return JSON only:
+CONTRACT = """Write the phrase breakdown for every assigned cue, applying the Chunking and Links rules of the guide below. Each cue's translation is fixed: divide that exact text. This stage writes no notes; they are written later for the reviewed chunks. Read neighbouring cues for context.
+Start with reusable constructions and clauses, not individual words. Keep an idiom with the verb and complements that give it its meaning. For French, keep short être clauses complete, including their complement. A spoken topic repeated by a pronoun can stay with its predicate when English combines them. Keep a repeated short exclamation as one chunk. A long chunk is acceptable when splitting would break a construction or produce a misleading English pairing; length alone is not an error. Split independent clauses and reusable time/place phrases when their English can also stand alone.
+Return only assigned IDs exactly once in input order. Return JSON only:
 {"cues":[{"id":"assigned-id","alignment":{"source":["exact source chunks"],"translation":["translation chunks"],"links":[{"source":[0],"translation":[0]}]}}]}
 Source chunks joined with SOURCE_JOIN, and translation chunks joined with TRANSLATION_JOIN, must exactly reproduce source/translation respectively, punctuation included. Every chunk must belong to exactly one link, translation indices in each link must be contiguous. Indices are zero-based. No markdown fences. Final-check all IDs, joins and links before returning.
 
@@ -105,13 +108,10 @@ AUXILIARIES = {"AI", "AS", "A", "AVONS", "AVEZ", "ONT", "AVAIS", "AVAIT", "AVION
 
 
 def faults(alignment, language):
-    """Known breakdown faults, each phrased as what to reconsider. Length applies to every language;
-    the rest are French patterns found in reviews: a lone connector, and a subject pronoun, `ne` or
-    an auxiliary or `être` form cut off from the verb or complement in the next chunk."""
+    """French structural faults: a lone connector, or a subject, negation or auxiliary
+    cut off from its verb or complement. Length advisories are handled separately."""
     chunks = alignment["source"]
-    found = [f"Chunk “{c}” has {words(c)} words. Split off any clause, time or place expression, adverbial "
-             "or gerund that has its own unbroken English. Keep it whole only if the English wraps around it."
-             for c in chunks if words(c) >= LONG]
+    found = []
     if not language.lower().startswith("fr"):
         return found
     for n, chunk in enumerate(chunks):
@@ -179,6 +179,8 @@ def main():
     spent, sent, answers, failed = batches.run_all(
         args.run_dir, manifest, lambda batch: prompt_for(batch, guide, base), accept, args.workers)
     remaining = {i: lint(a) for i, a in answers.items() if lint(a)}
+    long_chunks = {i: [c for c in a["alignment"]["source"] if words(c) >= LONG]
+                   for i, a in answers.items()}
     print(f"Accepted {len(answers)} of {len(sent)} cues ({len(remaining)} still with a flagged fault); "
           f"this run cost USD {spent}")
     if args.no_write:
@@ -198,6 +200,10 @@ def main():
     requests = [{"cueId": i, "text": f"First-pass phrase breakdown from {model}: check chunks and links only; "
                  "notes come later."
                  + "".join(f" Kept despite the check: {f}" for f in remaining.get(i, []))} for i in applied]
+    for request in requests:
+        long = long_chunks.get(request["cueId"], [])
+        if long:
+            request["text"] += " Length advisory only (no automatic retry): " + "; ".join(long)
     requests += [{"cueId": i, "text": f"{model} could not write a phrase breakdown: " + "; ".join(e)[:1800]}
                  for i, e in failed.items() if i not in changed]
     queued = batches.queue(args.run_dir, title, requests)

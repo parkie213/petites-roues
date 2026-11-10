@@ -7,6 +7,7 @@ import json
 import os
 import urllib.error
 import urllib.request
+from urllib.parse import urlparse
 from pathlib import Path
 
 URL = os.environ.get("PETITES_ROUES_URL", "http://localhost:8877").rstrip("/")
@@ -17,8 +18,13 @@ def call(method, path, body=None):
     request = urllib.request.Request(URL + path, data=data, method=method,
                                      headers={"Content-Type": "application/json"})
     try:
-        with urllib.request.urlopen(request, timeout=120) as response:
-            return json.load(response)
+        # Local app calls must not go through an HTTP proxy configured for internet traffic.
+        opener = (urllib.request.build_opener(urllib.request.ProxyHandler({}))
+                  if urlparse(URL).hostname in {"localhost", "127.0.0.1", "::1"}
+                  else urllib.request.build_opener())
+        with opener.open(request, timeout=120) as response:
+            raw = response.read()
+            return json.loads(raw) if raw.strip() else None
     except urllib.error.HTTPError as error:
         raise SystemExit(f"{method} {path}: HTTP {error.code} {error.read().decode(errors='replace')}")
     except urllib.error.URLError as error:
