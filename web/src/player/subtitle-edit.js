@@ -21,3 +21,43 @@ export function splitDraft(draft, cursor, at) {
     throw Error("Seek to a split time strictly between Start and End.");
   return { at, first, second, start: draft.start, end: draft.end };
 }
+/**
+ * The lines either side of [line] in [cues], and whether each meets it with no gap, so moving
+ * their shared boundary should move both by default.
+ */
+export function neighbours(cues, line) {
+  const index = cues.findIndex((cue) => cue.id === line.id);
+  const previous = index > 0 ? cues[index - 1] : null;
+  const next = index >= 0 ? (cues[index + 1] ?? null) : null;
+  return {
+    previous,
+    next,
+    touching: {
+      previous: Boolean(previous) && Math.abs(line.start - previous.end) < 0.01,
+      next: Boolean(next) && Math.abs(next.start - line.end) < 0.01,
+    },
+  };
+}
+/**
+ * New timings for the neighbours of [line] that move with it: when [line]'s start moves to
+ * [times].start, a linked previous line's end moves by the same amount, and likewise the next
+ * line's start with its end, keeping any gap between them. Throws if a neighbour would be left
+ * with no time of its own.
+ */
+export function neighbourTimings(cues, line, times, link) {
+  const { previous, next } = neighbours(cues, line);
+  const ms = (seconds) => Math.round(seconds * 1000) / 1000;
+  const moved = [];
+  if (link.previous && previous && times.start !== line.start) {
+    const end = ms(previous.end + times.start - line.start);
+    if (end <= previous.start)
+      throw Error("Start moves past the previous line's start.");
+    moved.push({ id: previous.id, start: previous.start, end });
+  }
+  if (link.next && next && times.end !== line.end) {
+    const start = ms(next.start + times.end - line.end);
+    if (start >= next.end) throw Error("End moves past the next line's end.");
+    moved.push({ id: next.id, start, end: next.end });
+  }
+  return moved;
+}

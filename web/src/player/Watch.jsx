@@ -89,6 +89,7 @@ export function Watch({ id, fingerprint }) {
   );
   const [videoHelp, setVideoHelp] = useState(null);
   const [quickEdit, setQuickEdit] = useState(null);
+  const [previewing, setPreviewing] = useState(false);
   const [quizOpen, setQuizOpen] = useState(false);
   const closeEditor = useRef(null);
   const [activePhraseCues, setActivePhraseCues] = useState(() => new Set());
@@ -123,7 +124,8 @@ export function Watch({ id, fingerprint }) {
     api,
     doc,
     cues,
-    autoPause: quickEdit ? false : autoPause,
+    // The editor's previews play past the saved line ends they would otherwise pause at.
+    autoPause: autoPause && !previewing,
     speed: 1,
     setSelected: () => {},
     setStatus,
@@ -458,6 +460,7 @@ export function Watch({ id, fingerprint }) {
               pause();
               setQuickEdit(null);
             }}
+            onPreview={setPreviewing}
           />
         )}
         {quizOpen && (
