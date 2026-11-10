@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-import { request } from "../shared/api.js";
-import { libraryReturnPath } from "../shared/library-return.js";
+import { request } from "../shared/api.ts";
+import { libraryReturnPath } from "../shared/library-return.ts";
 
 /** Loads the study document and review queue, with the library page to return to. */
 export function useStudyDocument({ api, setStatus }) {

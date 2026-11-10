@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useRef, useState } from "react";
-import { responseError } from "../shared/api.js";
+import { responseError } from "../shared/api.ts";
 
 const ReadAloudContext = createContext(null);
 

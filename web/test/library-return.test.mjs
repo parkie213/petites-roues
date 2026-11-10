@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import {
   libraryReturnPath,
   rememberLibraryPage,
-} from "../src/shared/library-return.js";
+} from "../src/shared/library-return.ts";
 
 test("viewers return to the library page last shown, else the default view", () => {
   const store = new Map();

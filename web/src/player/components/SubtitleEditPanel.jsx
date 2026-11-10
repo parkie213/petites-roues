@@ -12,7 +12,7 @@ import {
   TextInput,
 } from "@mantine/core";
 import { Crosshair, Play, Scissors, Trash2, X } from "lucide-react";
-import { request } from "../../shared/api.js";
+import { request } from "../../shared/api.ts";
 import { useStudyLanguages } from "../StudyLanguages.jsx";
 import {
   editClock,

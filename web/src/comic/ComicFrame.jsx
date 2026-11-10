@@ -8,8 +8,8 @@ import {
   ZoomIn,
   ZoomOut,
 } from "lucide-react";
-import { useStoredState } from "../shared/storage.js";
-import { libraryReturnPath } from "../shared/library-return.js";
+import { useStoredState } from "../shared/storage.ts";
+import { libraryReturnPath } from "../shared/library-return.ts";
 import { adjacentView, pageStep, spreadPages } from "./navigation.js";
 import "./ComicReader.css";
 

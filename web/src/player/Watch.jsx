@@ -18,10 +18,10 @@ import {
   Pause,
   Lightbulb,
 } from "lucide-react";
-import { titlePath } from "../shared/api.js";
-import { findMedia, mediaName } from "../shared/media.js";
-import { useStoredState } from "../shared/storage.js";
-import { activeCues, currentCue } from "./model.js";
+import { titlePath } from "../shared/api.ts";
+import { findMedia, mediaName } from "../shared/media.ts";
+import { useStoredState } from "../shared/storage.ts";
+import { activeCues, currentCue } from "./model.ts";
 import { useStudyDocument } from "./useStudyDocument.js";
 import { usePlayerPlayback } from "./usePlayerPlayback.js";
 import {

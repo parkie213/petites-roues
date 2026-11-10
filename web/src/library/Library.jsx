@@ -25,7 +25,7 @@ import {
   TriangleAlert,
 } from "lucide-react";
 import { ConnectPhone } from "./ConnectPhone.jsx";
-import { chooseOnComputer, request } from "../shared/api.js";
+import { chooseOnComputer, request } from "../shared/api.ts";
 import { LibraryBrowser } from "./LibraryBrowser.jsx";
 import { JobProgress } from "./JobProgress.jsx";
 import { jobSucceeded } from "./library-job.js";
@@ -41,9 +41,9 @@ import {
   storedView,
 } from "./navigation.js";
 import "./Library.css";
-import { librarySummary } from "./summary.js";
+import { librarySummary } from "./summary.ts";
 import { languagesIn, rememberLanguage, storedLanguage } from "./language.js";
-import { rememberLibraryPage } from "../shared/library-return.js";
+import { rememberLibraryPage } from "../shared/library-return.ts";
 import { Documents } from "./Documents.jsx";
 
 export function Library({ actionsTarget }) {

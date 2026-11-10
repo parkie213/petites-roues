@@ -14,7 +14,7 @@ import {
 } from "@mantine/core";
 import { BookOpen, Copy, Ellipsis, Film } from "lucide-react";
 import { clock } from "../player/quiz.js";
-import { request, responseError, titlePath } from "../shared/api.js";
+import { request, responseError, titlePath } from "../shared/api.ts";
 import { openHref, warnings } from "./cards.js";
 import { LinkDialog } from "./LinkDialog.jsx";
 import { unlinkMedia } from "./media-links.js";

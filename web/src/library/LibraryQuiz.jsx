@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { QuizShare } from "../player/components/QuizShare.jsx";
-import { request } from "../shared/api.js";
-import { useStoredState } from "../shared/storage.js";
+import { request } from "../shared/api.ts";
+import { useStoredState } from "../shared/storage.ts";
 import { generalQuizBrief, generalQuizFileName, quizKey } from "./quizzes.js";
 
 /**

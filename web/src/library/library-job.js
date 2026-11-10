@@ -1,4 +1,4 @@
-import { request, responseError } from "../shared/api.js";
+import { request, responseError } from "../shared/api.ts";
 
 const plural = (n, word) => `${n} ${word}${n === 1 ? "" : "s"}`;
 

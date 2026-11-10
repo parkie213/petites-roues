@@ -35,7 +35,13 @@ Component styles beside the alignment and listening views describe their
 specialized visualizations and answer feedback. Avoid blanket button or input
 rules: standard controls should use Mantine props and the shared theme.
 
-Run `npm test`, `npm run build`, `npm run format:check` and `npm run lint` from `web/`; CI runs all four. ESLint checks the React hooks rules (hooks in a fixed order, effects listing what they read).
+Run `npm test`, `npm run build`, `npm run format:check`, `npm run lint` and `npm run typecheck` from `web/`; CI runs all five. ESLint checks the React hooks rules (hooks in a fixed order, effects listing what they read).
+
+The sources are moving to TypeScript a file at a time. `.ts` and `.tsx` files are checked in strict
+mode by `npm run typecheck` (`tsc`; Vite only strips the types). JavaScript files sit beside them
+unchecked until they are converted. The API's JSON shapes are written by hand in
+`src/shared/types.ts`, following the Java records that produce them; import TypeScript files with
+their `.ts` extension.
 
 `npm test` runs Vitest over `test/` (`npx vitest` watches instead). Plain modules and the Node
 server are tested in Node. A test that renders components or hooks starts with

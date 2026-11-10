@@ -5,7 +5,7 @@
  * be linked and make the calls.
  */
 import { clock } from "../player/quiz.js";
-import { responseError } from "../shared/api.js";
+import { responseError } from "../shared/api.ts";
 
 const collator = new Intl.Collator(undefined, { numeric: true });
 

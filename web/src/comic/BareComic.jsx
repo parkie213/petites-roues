@@ -1,10 +1,10 @@
 import { useEffect, useState } from "react";
 import { Alert, Badge, Button, Loader, Text } from "@mantine/core";
 import { ArrowRightLeft } from "lucide-react";
-import { responseError } from "../shared/api.js";
-import { findMedia, mediaName } from "../shared/media.js";
-import { libraryReturnPath } from "../shared/library-return.js";
-import { useStoredState } from "../shared/storage.js";
+import { responseError } from "../shared/api.ts";
+import { findMedia, mediaName } from "../shared/media.ts";
+import { libraryReturnPath } from "../shared/library-return.ts";
+import { useStoredState } from "../shared/storage.ts";
 import { ComicPageView } from "./ComicPageView.jsx";
 import {
   ComicStage,

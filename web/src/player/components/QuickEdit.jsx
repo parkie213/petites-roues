@@ -8,7 +8,7 @@ import {
   Text,
   Textarea,
 } from "@mantine/core";
-import { request } from "../../shared/api.js";
+import { request } from "../../shared/api.ts";
 import { useStudyLanguages } from "../StudyLanguages.jsx";
 
 const json = (method, body) => ({

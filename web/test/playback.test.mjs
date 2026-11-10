@@ -5,7 +5,7 @@ import {
   playbackSpaceTarget,
   subtitleSeekTime,
 } from "../src/player/playback.js";
-import { currentCue } from "../src/player/model.js";
+import { currentCue } from "../src/player/model.ts";
 
 test("subtitle arrows restart, step between cues and stop at the ends", () => {
   const cues = [{ start: 2 }, { start: 5 }, { start: 10 }];

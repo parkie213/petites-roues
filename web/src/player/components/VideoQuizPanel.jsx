@@ -11,7 +11,7 @@ import rules from "../../../../agents/workflows/subtitle-quiz.md?raw";
 import types from "../../../../agents/workflows/quiz-types.md?raw";
 import { QUIZ_TYPES, quizBrief, quizFileName, quizType } from "../quiz.js";
 import { editClock, editSeconds } from "../subtitle-edit.js";
-import { useStoredState } from "../../shared/storage.js";
+import { useStoredState } from "../../shared/storage.ts";
 import { QuizActions } from "../../library/QuizActions.jsx";
 import "./SubtitleEditPanel.css";
 import "./VideoQuizPanel.css";
