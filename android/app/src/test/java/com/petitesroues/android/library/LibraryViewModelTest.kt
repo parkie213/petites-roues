@@ -13,10 +13,12 @@ import com.petitesroues.android.data.IndexDatabase
 import com.petitesroues.android.data.Progress
 import com.petitesroues.android.data.ProgressDatabase
 import com.petitesroues.android.data.ProgressStore
+import com.petitesroues.android.desktop.Transfers
 import com.petitesroues.android.pages.MarkdownPageScanner
 import com.petitesroues.android.pages.Section
 import com.petitesroues.android.screens.Examples
 import com.petitesroues.android.screens.SDK
+import com.petitesroues.android.testing.FakeDesktop
 import com.petitesroues.android.testing.MainDispatcherRule
 import com.petitesroues.documents.StudyDocumentReader
 import kotlinx.coroutines.CoroutineScope
@@ -86,6 +88,7 @@ class LibraryViewModelTest {
       CardImages(context),
       MarkdownPageScanner(context.contentResolver),
       context.contentResolver,
+      Transfers(context, settings, FakeDesktop()),
       main.dispatcher,
       SavedStateHandle(),
     )

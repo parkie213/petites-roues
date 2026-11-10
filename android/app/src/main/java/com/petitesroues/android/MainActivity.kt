@@ -75,6 +75,7 @@ class MainActivity : ComponentActivity() {
   @Inject lateinit var settings: Settings
   @Inject lateinit var progress: ProgressStore
   @Inject lateinit var images: CardImages
+  @Inject lateinit var transfers: Transfers
 
   override fun onCreate(savedInstanceState: Bundle?) {
     super.onCreate(savedInstanceState)
@@ -96,24 +97,24 @@ class MainActivity : ComponentActivity() {
     var desktopOpen by remember { mutableStateOf(false) }
     if (desktopOpen)
       DesktopDialog(
-        settings,
         onGetTitles = {
           desktopOpen = false
           openDesktopTitles()
         },
-      ) {
-        desktopOpen = false
-        // Forgetting the desktop leaves nothing to sync with.
-        if (settings.desktop == null) backStack.removeAll { it == DesktopTitlesRoute }
-      }
+        onDismiss = {
+          desktopOpen = false
+          // Forgetting the desktop leaves nothing to sync with.
+          if (settings.desktop == null) backStack.removeAll { it == DesktopTitlesRoute }
+        },
+      )
 
-    val transfer by Transfers.status.collectAsState()
+    val transfer by transfers.status.collectAsState()
     // What a sync would fetch badges the desktop button; an unreachable desktop just leaves it as
     // it was.
-    val pending by Transfers.pending.collectAsState()
+    val pending by transfers.pending.collectAsState()
     LaunchedEffect(transfer.finished) {
       if (settings.desktop != null && mayReachLocalNetwork(this@MainActivity))
-        withContext(Dispatchers.IO) { runCatching { Transfers.check(this@MainActivity, settings) } }
+        withContext(Dispatchers.IO) { runCatching { transfers.check() } }
     }
 
     val noTransition = ContentTransform(EnterTransition.None, ExitTransition.None)
@@ -150,9 +151,10 @@ class MainActivity : ComponentActivity() {
             AppTheme(dark = true) { TitleScreen(route.path) { backStack.removeLastOrNull() } }
           }
           entry<DesktopTitlesRoute> {
-            DesktopTitlesScreen(settings, onDesktop = { desktopOpen = true }) {
-              backStack.removeLastOrNull()
-            }
+            DesktopTitlesScreen(
+              onDesktop = { desktopOpen = true },
+              onBack = { backStack.removeLastOrNull() },
+            )
           }
         },
     )

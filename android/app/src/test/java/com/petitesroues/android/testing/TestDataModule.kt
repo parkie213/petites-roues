@@ -11,6 +11,7 @@ import com.petitesroues.android.di.ApplicationScope
 import com.petitesroues.android.di.DataModule
 import com.petitesroues.android.di.IoDispatcher
 import com.petitesroues.documents.StudyDocumentReader
+import com.petitesroues.sync.DesktopClient
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -47,6 +48,8 @@ object TestDataModule {
     context.contentResolver
 
   @Provides @Singleton fun studyDocumentReader(): StudyDocumentReader = StudyDocumentReader()
+
+  @Provides @Singleton fun desktopClient(): DesktopClient = FakeDesktop()
 
   @Provides
   @Singleton

@@ -27,9 +27,11 @@ import com.petitesroues.sync.TitleDownloader
 import com.petitesroues.sync.TransferFolder
 import com.petitesroues.sync.TransferPlan
 import dagger.hilt.android.AndroidEntryPoint
+import dagger.hilt.android.qualifiers.ApplicationContext
 import java.io.IOException
 import java.util.concurrent.CancellationException
 import javax.inject.Inject
+import javax.inject.Singleton
 import kotlin.concurrent.thread
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -40,10 +42,17 @@ import kotlinx.coroutines.flow.update
  * new titles of the series the phone follows ([Settings.followed], [SyncStatus]). It runs as one
  * user-initiated data transfer job, Android's mechanism for downloads the person started, which
  * keeps going with the screen off and shows a notification. The shared [TitleDownloader] does the
- * work; this object starts and stops it, checks what a sync would fetch, and publishes both to the
- * app's screens.
+ * work; this singleton starts and stops it, checks what a sync would fetch, and publishes both to
+ * the app's screens.
  */
-object Transfers {
+@Singleton
+class Transfers
+@Inject
+constructor(
+  @ApplicationContext private val context: Context,
+  private val settings: Settings,
+  private val client: DesktopClient,
+) {
   /**
    * The current or last download.
    *
@@ -63,7 +72,6 @@ object Transfers {
     val finished: Int = 0,
   )
 
-  private const val JOB = 1
   internal val state = MutableStateFlow(Status())
   val status: StateFlow<Status> = state
 
@@ -81,11 +89,11 @@ object Transfers {
    *
    * @throws IllegalStateException without a download folder
    */
-  fun check(context: Context, settings: Settings): SyncStatus {
+  fun check(): SyncStatus {
     val tree =
       downloadFolder(settings)
         ?: error("Allow file access so titles can be copied into ${AppFolder.LABEL}")
-    val titles = reachDesktop(context, settings, DesktopClient()::titles)
+    val titles = reachDesktop(context, settings, client::titles)
     val sync =
       SyncStatus.of(
         titles,
@@ -102,7 +110,7 @@ object Transfers {
    * Starts a sync; [bytes] is the estimate the system is told. A sync already under way is left to
    * run: it goes round again if the followed series or chosen titles changed meanwhile.
    */
-  fun start(context: Context, bytes: Long) {
+  fun start(bytes: Long) {
     if (state.value.running) return
     val job =
       JobInfo.Builder(JOB, ComponentName(context, TransferJobService::class.java))
@@ -121,9 +129,13 @@ object Transfers {
   }
 
   /** Stops the download; what was fetched stays, and downloading again resumes it. */
-  fun stop(context: Context) {
+  fun stop() {
     context.getSystemService(JobScheduler::class.java).cancel(JOB)
     state.update { it.copy(running = false, message = "Stopped. Download again to resume.") }
+  }
+
+  private companion object {
+    const val JOB = 1
   }
 }
 
@@ -131,6 +143,8 @@ object Transfers {
 @AndroidEntryPoint
 class TransferJobService : JobService() {
   @Inject lateinit var settings: Settings
+  @Inject lateinit var transfers: Transfers
+  @Inject lateinit var client: DesktopClient
 
   @Volatile private var stopped = false
 
@@ -157,7 +171,7 @@ class TransferJobService : JobService() {
       params.stopReason == JobParameters.STOP_REASON_CANCELLED_BY_APP ||
         params.stopReason == JobParameters.STOP_REASON_USER
     if (!byApp)
-      Transfers.state.update { it.copy(message = "Paused until the phone is back on Wi-Fi") }
+      transfers.state.update { it.copy(message = "Paused until the phone is back on Wi-Fi") }
     return !byApp
   }
 
@@ -187,7 +201,6 @@ class TransferJobService : JobService() {
         downloadFolder(settings)
           ?: error("Allow file access so titles can be copied into ${AppFolder.LABEL}")
       val folder = transferFolder(contentResolver, tree)
-      val client = DesktopClient()
       var count = 0
       // Following a series or choosing a title during a round changes what to fetch, so it goes
       // round again.
@@ -200,7 +213,7 @@ class TransferJobService : JobService() {
         download(client, desktop, plan, folder, tree)
         count += plan.titles().size
       } while ((settings.followed != followed || !chosen.containsAll(settings.chosen)) && !stopped)
-      Transfers.state.update {
+      transfers.state.update {
         it.copy(
           running = false,
           title = null,
@@ -216,7 +229,7 @@ class TransferJobService : JobService() {
       // A lost connection is retried when the network returns; a refusal, a full phone or a missing
       // pairing or folder (IllegalStateException) is not.
       reschedule = failure is IOException && failure !is DesktopException && !stopped
-      Transfers.state.update {
+      transfers.state.update {
         it.copy(
           running = reschedule,
           message =
@@ -252,7 +265,7 @@ class TransferJobService : JobService() {
             val now = SystemClock.elapsedRealtime()
             if (now - shown < 500 && done < total) return
             shown = now
-            Transfers.state.update {
+            transfers.state.update {
               it.copy(
                 running = true,
                 title = title.title(),
@@ -267,7 +280,7 @@ class TransferJobService : JobService() {
           }
 
           override fun finished(title: DesktopTitle) =
-            Transfers.state.update { it.copy(finished = it.finished + 1) }
+            transfers.state.update { it.copy(finished = it.finished + 1) }
 
           override fun cancelled(): Boolean = stopped
         },
