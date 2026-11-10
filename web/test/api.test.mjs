@@ -1,6 +1,6 @@
 import { test, vi } from "vitest";
 import assert from "node:assert/strict";
-import { playerDocument, request } from "../src/shared/api.js";
+import { playerDocument, request } from "../src/shared/api.ts";
 import { alignmentState } from "../src/player/alignment.js";
 
 test("nested video responses retain zero timing, annotations and optional translation absence", () => {

@@ -10,7 +10,7 @@ import {
   Textarea,
   Title,
 } from "@mantine/core";
-import { request } from "../shared/api.js";
+import { request } from "../shared/api.ts";
 import { LearnerNote } from "../player/components/LearnerNote.jsx";
 import { ComicPhrasePairs } from "./ComicPhrasePairs.jsx";
 import { useStudyLanguages } from "../player/StudyLanguages.jsx";

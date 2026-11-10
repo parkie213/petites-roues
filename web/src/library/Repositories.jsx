@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { chooseOnComputer, request } from "../shared/api.js";
+import { chooseOnComputer, request } from "../shared/api.ts";
 import "./repositories.css";
 
 export function Repositories() {

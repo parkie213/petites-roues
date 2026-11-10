@@ -10,7 +10,7 @@ import {
 import { Search } from "lucide-react";
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { request } from "../shared/api.js";
+import { request } from "../shared/api.ts";
 import { notePath } from "./notes.js";
 import { quizKey } from "./quizzes.js";
 import { QuizActions } from "./QuizActions.jsx";

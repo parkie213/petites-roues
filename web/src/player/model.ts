@@ -1,21 +1,33 @@
-export function formatTime(value) {
+/** A span of media time, in seconds. */
+export interface Timed {
+  start: number;
+  end: number;
+}
+
+export function formatTime(value: number) {
   const ms = Math.max(0, Math.round(value * 1000));
   const h = Math.floor(ms / 3600000),
     m = Math.floor((ms % 3600000) / 60000),
     s = Math.floor((ms % 60000) / 1000);
   return `${h}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}.${String(ms % 1000).padStart(3, "0")}`;
 }
-export function currentCue(cues, time) {
+export function currentCue(cues: readonly Timed[], time: number) {
   for (let i = cues.length - 1; i >= 0; i--)
     // Media seek results can land a microsecond before the requested decimal time.
     // Keep that rounding from briefly mounting the previous subtitle's exercise.
     if (time >= cues[i].start - 0.00001) return i;
   return -1;
 }
-export function activeCues(cues, time) {
+export function activeCues<T extends Timed>(cues: readonly T[], time: number) {
   return cues.filter((cue) => time >= cue.start - 0.00001 && time < cue.end);
 }
-export function titleInfo(doc) {
+export function titleInfo(doc: {
+  series?: string | null;
+  season?: number | null;
+  episode?: number | null;
+  title?: string | null;
+  sourceUrl?: string | null;
+}) {
   return [
     doc.series,
     doc.season != null
@@ -27,7 +39,13 @@ export function titleInfo(doc) {
     .filter(Boolean)
     .join(" · ");
 }
-export function moveTiming(cues, index, mode, value, offset = 0) {
+export function moveTiming<T extends Timed>(
+  cues: readonly T[],
+  index: number,
+  mode: "start" | "end" | "move",
+  value: number,
+  offset = 0,
+) {
   const cue = cues[index];
   const minLength = Math.min(0.2, cue.end - cue.start);
   const updated = { ...cue };
@@ -41,7 +59,11 @@ export function moveTiming(cues, index, mode, value, offset = 0) {
   return cues.map((c, i) => (i === index ? updated : c));
 }
 
-export function insertGap(answers, index, count) {
+export function insertGap(
+  answers: readonly string[],
+  index: number,
+  count: number,
+) {
   const padded = Array.from({ length: count }, (_, i) => answers[i] || "");
   if (padded.at(-1)?.trim())
     throw Error("Clear the last box before shifting so no word is lost.");

@@ -6,7 +6,7 @@ import {
   resumePosition,
   readProgressCheckpoint,
   writeProgressCheckpoint,
-} from "../src/player/progress.js";
+} from "../src/player/progress.ts";
 
 test("progress writes serialize and coalesce rapid seeks into the newest position", async () => {
   const writes = [];

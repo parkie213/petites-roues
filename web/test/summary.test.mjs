@@ -1,6 +1,6 @@
 import { test } from "vitest";
 import assert from "node:assert/strict";
-import { librarySummary } from "../src/library/summary.js";
+import { librarySummary } from "../src/library/summary.ts";
 
 test("the summary counts what posters show, and documents that found no media", () => {
   assert.equal(librarySummary([{ entries: [], media: [] }]), null);

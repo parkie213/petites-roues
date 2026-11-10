@@ -1,11 +1,15 @@
-const plural = (n, word) => `${n} ${word}${n === 1 ? "" : "s"}`;
+import type { RepositoryContents } from "../shared/types.ts";
+
+const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? "" : "s"}`;
 
 /**
  * What the library's posters hold, counting media with and without a study document: "2 videos ·
  * 1 comic", how many cards show a (!) as "3 warnings", and how many study documents found no media
  * (listed only in the Documents view). Null for an empty library.
  */
-export function librarySummary(repos) {
+export function librarySummary(
+  repos: readonly Pick<RepositoryContents, "entries" | "media">[],
+) {
   const all = repos.flatMap((repo) => repo.entries);
   const titles = all.filter((entry) => entry.mediaAvailable);
   const unlinked = all.length - titles.length;

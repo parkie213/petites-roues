@@ -1,6 +1,8 @@
 import js from "@eslint/js";
+import { defineConfig } from "eslint/config";
 import reactHooks from "eslint-plugin-react-hooks";
 import globals from "globals";
+import tseslint from "typescript-eslint";
 
 /**
  * ESLint's recommended rules and the two classic React hooks rules: hooks are called in the same
@@ -10,8 +12,10 @@ import globals from "globals";
  * The plugin's React Compiler rules (refs, immutability, set-state-in-effect, purity) are left
  * off: they flag code the compiler could not optimise rather than bugs, and adopting them is its
  * own piece of work.
+ *
+ * TypeScript files add typescript-eslint's recommended rules; `npm run typecheck` checks their types.
  */
-export default [
+export default defineConfig([
   {
     ignores: [
       "dist/",
@@ -32,10 +36,21 @@ export default [
     },
   },
   {
-    files: ["src/**/*.{js,jsx}"],
+    files: ["src/**/*.{js,jsx,ts,tsx}"],
     languageOptions: {
       globals: globals.browser,
       parserOptions: { ecmaFeatures: { jsx: true } },
+    },
+  },
+  {
+    files: ["**/*.{ts,tsx}"],
+    extends: [tseslint.configs.recommended],
+    rules: {
+      "no-unused-vars": "off",
+      "@typescript-eslint/no-unused-vars": [
+        "error",
+        { ignoreRestSiblings: true },
+      ],
     },
   },
   {
@@ -50,4 +65,4 @@ export default [
       parserOptions: { ecmaFeatures: { jsx: true } },
     },
   },
-];
+]);

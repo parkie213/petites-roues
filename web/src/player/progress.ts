@@ -1,9 +1,12 @@
 /** Serialize writes and replace waiting positions with the latest one. Failed writes retry on the next save. */
-export function createProgressWriter(send, onError) {
-  let saved = null;
-  let pending = null;
-  let inFlight = null;
-  function flush() {
+export function createProgressWriter(
+  send: (position: number) => Promise<unknown>,
+  onError: (error: unknown) => void,
+) {
+  let saved: number | null = null;
+  let pending: number | null = null;
+  let inFlight: Promise<void> | null = null;
+  function flush(): Promise<void> {
     if (inFlight) return inFlight;
     inFlight = Promise.resolve()
       .then(async () => {
@@ -26,10 +29,10 @@ export function createProgressWriter(send, onError) {
     return inFlight;
   }
   return {
-    remember(position) {
+    remember(position: number) {
       saved = position;
     },
-    save(position) {
+    save(position: number) {
       if (!Number.isFinite(position) || position < 0) return Promise.resolve();
       pending = Math.round(position * 1000) / 1000;
       return flush();
@@ -37,8 +40,21 @@ export function createProgressWriter(send, onError) {
   };
 }
 
+/** Where a title was left, as the server last saved it. */
+export interface SavedProgress {
+  positionSeconds: number;
+  updatedAt?: string | null;
+}
+
+/** The tab's own copy of its latest position, `pending` until the server has it. */
+export interface ProgressCheckpoint {
+  positionSeconds: number;
+  updatedAt: string;
+  pending: boolean;
+}
+
 /** Timestamp links override resume state; absent, blank and invalid parameters use the saved position. */
-export function initialPlaybackPosition(search, savedPosition) {
+export function initialPlaybackPosition(search: string, savedPosition: number) {
   const value = new URLSearchParams(search).get("t");
   const timestamp = value?.trim() ? Number(value) : NaN;
   return Number.isFinite(timestamp) && timestamp >= 0
@@ -47,7 +63,10 @@ export function initialPlaybackPosition(search, savedPosition) {
 }
 
 /** A reload can finish before its final keepalive request; prefer a newer unsaved tab checkpoint. */
-export function resumePosition(saved, checkpoint) {
+export function resumePosition(
+  saved: SavedProgress,
+  checkpoint: ProgressCheckpoint | null | undefined,
+) {
   if (
     checkpoint?.pending &&
     Number.isFinite(checkpoint.positionSeconds) &&
@@ -61,15 +80,22 @@ export function resumePosition(saved, checkpoint) {
 }
 
 /** Session storage may be disabled; progress on the server must still work in that case. */
-export function readProgressCheckpoint(storage, key) {
+export function readProgressCheckpoint(
+  storage: Storage,
+  key: string,
+): ProgressCheckpoint | null {
   try {
-    return JSON.parse(storage.getItem(key));
+    return JSON.parse(storage.getItem(key) ?? "null");
   } catch {
     return null;
   }
 }
 
-export function writeProgressCheckpoint(storage, key, value) {
+export function writeProgressCheckpoint(
+  storage: Storage,
+  key: string,
+  value: ProgressCheckpoint,
+) {
   try {
     storage.setItem(key, JSON.stringify(value));
   } catch {

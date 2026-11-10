@@ -21,7 +21,7 @@ import {
   quizFileName,
   quizType,
 } from "../quiz.js";
-import { useStoredState } from "../../shared/storage.js";
+import { useStoredState } from "../../shared/storage.ts";
 
 const chats = [
   { name: "ChatGPT", url: "https://chatgpt.com/" },

@@ -16,7 +16,7 @@ import {
   ScanText,
   SquareDashed,
 } from "lucide-react";
-import { request, titlePath } from "../shared/api.js";
+import { request, titlePath } from "../shared/api.ts";
 import { ComicPageView } from "./ComicPageView.jsx";
 import { ComicStudyPanel } from "./ComicStudyPanel.jsx";
 import { StudyLanguagesProvider } from "../player/StudyLanguages.jsx";
@@ -25,7 +25,7 @@ import { boxLines, boxOf, pageBoxes } from "./annotations.js";
 import { chapterQuizBrief, chapterQuizFileName } from "./quiz.js";
 import { QuizShare } from "../player/components/QuizShare.jsx";
 import { chapterAt, chapterName, resumePage } from "./navigation.js";
-import { useStoredState } from "../shared/storage.js";
+import { useStoredState } from "../shared/storage.ts";
 import { ReadAloudKey, ReadAloudProvider } from "./ReadAloud.jsx";
 import {
   ComicStage,
@@ -34,7 +34,7 @@ import {
   ViewTools,
   useComicView,
 } from "./ComicFrame.jsx";
-import { libraryReturnPath } from "../shared/library-return.js";
+import { libraryReturnPath } from "../shared/library-return.ts";
 
 /**
  * Reads an ordered comic manifest one page or spread at a time; only successfully displayed

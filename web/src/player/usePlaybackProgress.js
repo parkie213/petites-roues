@@ -1,12 +1,12 @@
 import { useEffect, useRef } from "react";
-import { request } from "../shared/api.js";
+import { request } from "../shared/api.ts";
 import {
   createProgressWriter,
   initialPlaybackPosition,
   resumePosition,
   readProgressCheckpoint,
   writeProgressCheckpoint,
-} from "./progress.js";
+} from "./progress.ts";
 
 /**
  * Saves changed progress every five seconds while playing and at user stopping points. Calls

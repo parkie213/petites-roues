@@ -9,7 +9,7 @@ import {
   Title,
 } from "@mantine/core";
 import QRCode from "qrcode";
-import { request, responseError } from "../shared/api.js";
+import { request, responseError } from "../shared/api.ts";
 import "./ConnectPhone.css";
 
 const when = (iso) =>

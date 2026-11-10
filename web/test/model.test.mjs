@@ -6,7 +6,7 @@ import {
   formatTime,
   insertGap,
   moveTiming,
-} from "../src/player/model.js";
+} from "../src/player/model.ts";
 
 test("cue identity survives timing edits that overlap neighbours", () => {
   const cues = [

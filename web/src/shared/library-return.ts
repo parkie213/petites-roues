@@ -5,7 +5,7 @@
  */
 const KEY = "library-return";
 
-export function rememberLibraryPage(path) {
+export function rememberLibraryPage(path: string) {
   try {
     sessionStorage.setItem(KEY, path);
   } catch {

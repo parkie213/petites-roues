@@ -106,6 +106,8 @@ jobs:
         run: npm run format:check
       - name: Lint
         run: npm run lint
+      - name: Type-check
+        run: npm run typecheck
       - name: Build
         run: npm run build
       - name: Unit tests
