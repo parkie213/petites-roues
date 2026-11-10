@@ -85,17 +85,17 @@ class TitleViewModelTest {
     )
 
   private suspend fun TitleViewModel.awaitReady() =
-    state.first { it is TitleState.Ready || it is TitleState.Failed } as TitleState.Ready
+    state.first { it is TitleUiState.Ready || it is TitleUiState.Failed } as TitleUiState.Ready
 
   @Test
   fun `an episode opens with its document and where it was left`() = runTest {
     progressDatabase.progress().save(Progress(episode.progressKey, positionSeconds = 30.0))
     val model = viewModel()
     model.state.test {
-      assertEquals(TitleState.Closed, awaitItem())
+      assertEquals(TitleUiState.Closed, awaitItem())
       model.open(episode)
-      assertEquals(TitleState.Opening(episode), awaitItem())
-      val ready = awaitItem() as TitleState.Ready
+      assertEquals(TitleUiState.Opening(episode), awaitItem())
+      val ready = awaitItem() as TitleUiState.Ready
       assertEquals("peppa-pig-example-s01e01", ready.document.id())
       assertEquals(30.0, ready.saved?.positionSeconds)
     }
@@ -137,7 +137,7 @@ class TitleViewModelTest {
         awaitItem()
         model.flipDirection()
         // Straight from one ready document to the other: no Opening in between.
-        val flipped = awaitItem() as TitleState.Ready
+        val flipped = awaitItem() as TitleUiState.Ready
         assertTrue(flipped.rtl)
         assertEquals(ReadingDirection.RTL, flipped.document.comic().readingDirection())
       }
@@ -158,7 +158,8 @@ class TitleViewModelTest {
     val model = viewModel()
     model.open(missing)
     val failed =
-      model.state.first { it is TitleState.Failed || it is TitleState.Ready } as TitleState.Failed
+      model.state.first { it is TitleUiState.Failed || it is TitleUiState.Ready }
+        as TitleUiState.Failed
     assertEquals(missing, failed.title)
   }
 
@@ -172,7 +173,7 @@ class TitleViewModelTest {
       model.open(episode)
       expectNoEvents()
       model.close()
-      assertEquals(TitleState.Closed, awaitItem())
+      assertEquals(TitleUiState.Closed, awaitItem())
     }
     assertEquals("peppa-pig-example-s01e01", ready.document.id())
   }

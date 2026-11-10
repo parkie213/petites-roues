@@ -56,11 +56,11 @@ constructor(
 ) : ViewModel() {
   private val _state =
     MutableStateFlow(
-      LibraryState(settings.libraryFolders, emptyList(), emptyMap(), false, emptyList(), null)
+      LibraryUiState(settings.libraryFolders, emptyList(), emptyMap(), false, emptyList(), null)
     )
 
   /** The titles, their progress and the state of any refresh. */
-  val state: StateFlow<LibraryState> = _state.asStateFlow()
+  val state: StateFlow<LibraryUiState> = _state.asStateFlow()
 
   /** The open tab: the library, Notes or Quiz me. Kept across process death. */
   val section: StateFlow<Section> = saved.getStateFlow(SECTION, Section.LIBRARY)
@@ -88,7 +88,7 @@ constructor(
    * has changed, and the open tab's pages. An empty index with folders to read (a first launch, or
    * an update that changed the index's schema, which drops it) is rebuilt straight away.
    */
-  fun show() {
+  fun onShown() {
     viewModelScope.launch {
       reload()
       val now = _state.value
@@ -99,7 +99,7 @@ constructor(
 
   /**
    * Rescans every content folder into the index, then reloads. Progress is reported while it runs;
-   * a failure is reported in [LibraryState.message] and leaves the previous titles.
+   * a failure is reported in [LibraryUiState.message] and leaves the previous titles.
    */
   fun refresh() {
     val trees = settings.libraryFolders

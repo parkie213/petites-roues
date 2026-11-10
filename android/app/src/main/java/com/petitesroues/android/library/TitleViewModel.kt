@@ -21,16 +21,19 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
-/** Where opening a title has got to. */
-sealed interface TitleState {
+/**
+ * What the title screen shows: nothing, "Opening title…", why the title couldn't be opened, or the
+ * player or reader for it. This is the screen's state; a [Title] itself is an unchanging record.
+ */
+sealed interface TitleUiState {
   /** No title is open. */
-  data object Closed : TitleState
+  data object Closed : TitleUiState
 
   /** [title]'s document and progress are being read. */
-  data class Opening(val title: Title) : TitleState
+  data class Opening(val title: Title) : TitleUiState
 
   /** [title] could not be opened, for the reason in [message]. */
-  data class Failed(val title: Title, val message: String?) : TitleState
+  data class Failed(val title: Title, val message: String?) : TitleUiState
 
   /**
    * [title] is ready to watch or read: its [document], where it was left ([saved], or null), and
@@ -41,7 +44,7 @@ sealed interface TitleState {
     val document: StudyDocument,
     val saved: Progress?,
     val rtl: Boolean,
-  ) : TitleState
+  ) : TitleUiState
 }
 
 /**
@@ -60,24 +63,24 @@ constructor(
   private val resolver: ContentResolver,
   @IoDispatcher private val io: CoroutineDispatcher,
 ) : ViewModel() {
-  private val _state = MutableStateFlow<TitleState>(TitleState.Closed)
+  private val _state = MutableStateFlow<TitleUiState>(TitleUiState.Closed)
 
   /** The open title, or where opening it has got to. */
-  val state: StateFlow<TitleState> = _state.asStateFlow()
+  val state: StateFlow<TitleUiState> = _state.asStateFlow()
 
   private var loading: Job? = null
 
   /** Opens [title], unless it is already open. */
   fun open(title: Title) {
     if (_state.value.path == title.path) return
-    _state.value = TitleState.Opening(title)
+    _state.value = TitleUiState.Opening(title)
     load(title, rtl = title.pagesOnly && settings.comicRtl(title.path), saved = null)
   }
 
   /** Closes the open title. */
   fun close() {
     loading?.cancel()
-    _state.value = TitleState.Closed
+    _state.value = TitleUiState.Closed
   }
 
   /**
@@ -85,7 +88,7 @@ constructor(
    * current document stays until the new one is ready, so the reader keeps its page.
    */
   fun flipDirection() {
-    val ready = _state.value as? TitleState.Ready ?: return
+    val ready = _state.value as? TitleUiState.Ready ?: return
     if (!ready.title.pagesOnly) return
     val rtl = !ready.rtl
     settings.setComicRtl(ready.title.path, rtl)
@@ -99,11 +102,11 @@ constructor(
       _state.value =
         try {
           val left = saved ?: progress.find(title.progressKey)
-          TitleState.Ready(title, withContext(io) { document(title, rtl) }, left, rtl)
+          TitleUiState.Ready(title, withContext(io) { document(title, rtl) }, left, rtl)
         } catch (failure: CancellationException) {
           throw failure
         } catch (failure: Exception) {
-          TitleState.Failed(title, failure.message)
+          TitleUiState.Failed(title, failure.message)
         }
     }
   }
@@ -115,12 +118,12 @@ constructor(
       }
     else library.read(checkNotNull(title.documentUri) { "it has no study document" })
 
-  private val TitleState.path: String?
+  private val TitleUiState.path: String?
     get() =
       when (this) {
-        TitleState.Closed -> null
-        is TitleState.Opening -> title.path
-        is TitleState.Failed -> title.path
-        is TitleState.Ready -> title.path
+        TitleUiState.Closed -> null
+        is TitleUiState.Opening -> title.path
+        is TitleUiState.Failed -> title.path
+        is TitleUiState.Ready -> title.path
       }
 }

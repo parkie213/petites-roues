@@ -47,7 +47,7 @@ import com.petitesroues.android.library.LibraryService
 import com.petitesroues.android.library.LibraryViewModel
 import com.petitesroues.android.library.Title
 import com.petitesroues.android.library.TitleKind
-import com.petitesroues.android.library.TitleState
+import com.petitesroues.android.library.TitleUiState
 import com.petitesroues.android.library.TitleViewModel
 import com.petitesroues.android.pages.Section
 import com.petitesroues.android.pages.StudyPages
@@ -132,7 +132,7 @@ class MainActivity : ComponentActivity() {
 
     val open = openPath?.let { path -> state.titles.firstOrNull { it.path == path } }
     if (open == null) {
-      LaunchedEffect(Unit) { libraryModel.show() }
+      LaunchedEffect(Unit) { libraryModel.onShown() }
       LibraryScreen(
         state,
         images,
@@ -194,7 +194,7 @@ class MainActivity : ComponentActivity() {
       onBack()
     }
     when (val state = opened) {
-      is TitleState.Ready if state.title.path == title.path ->
+      is TitleUiState.Ready if state.title.path == title.path ->
         when {
           title.kind == TitleKind.VIDEO ->
             WatchScreen(state.title, state.document, state.saved, progress, settings, back)
@@ -210,7 +210,7 @@ class MainActivity : ComponentActivity() {
             )
           else -> ReadScreen(state.title, state.document, state.saved, progress, settings, back)
         }
-      is TitleState.Failed if state.title.path == title.path -> {
+      is TitleUiState.Failed if state.title.path == title.path -> {
         BackHandler(onBack = back)
         Box(
           Modifier.fillMaxSize().background(Color.Black).padding(24.dp),
