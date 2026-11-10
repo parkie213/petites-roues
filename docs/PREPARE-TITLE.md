@@ -142,6 +142,12 @@ establish the lyrics. For a music video, follow this order:
    against the performance. Keep instrumental passages empty and remove hallucinated lyrics.
    Every chorus occurrence needs its own cue IDs and timings; check later repetitions for
    changed words and ad-libs rather than assuming they are identical.
+   Use light subtitle punctuation in both languages: omit line-ending commas and full stops,
+   colons after recurring introductions such as “she tells me”, and quotation marks around
+   sung lines. Keep question marks and internal commas that help the reader follow the meaning
+   or repeated words. A cue boundary alone does not require punctuation. Settle this before
+   phrase breakdowns; if punctuation changes later, update the corresponding alignment chunks
+   to reproduce the displayed text exactly and remove any notes about discarded punctuation.
 4. **Review a representative sample.** Include a verse, a chorus and any unusual slang or
    poetic construction, then follow the translation, breakdown and notes stages and their
    reviews below. For a short song, checking the whole lyric transcript before annotation is
