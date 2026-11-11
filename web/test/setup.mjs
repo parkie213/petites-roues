@@ -17,6 +17,12 @@ if (typeof globalThis.window !== "undefined") {
     removeListener() {},
     dispatchEvent: () => false,
   });
+  // Mantine's auto-sizing textarea measures again once web fonts load.
+  globalThis.document.fonts ??= {
+    ready: Promise.resolve(),
+    addEventListener() {},
+    removeEventListener() {},
+  };
   globalThis.window.ResizeObserver ??= class {
     observe() {}
     unobserve() {}
