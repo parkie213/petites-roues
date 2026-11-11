@@ -30,6 +30,7 @@ export function usePlaybackProgress({
     let ready = false;
     let disposed = false;
     let interacted = false;
+    const initialTime = video.currentTime;
     let restoring = false;
     const abort = new AbortController();
     const checkpointKey = "sacrebleu:resume:" + api;
@@ -97,6 +98,9 @@ export function usePlaybackProgress({
       restoring = true;
       const saved = await progress;
       if (disposed) return;
+      // Setting currentTime is synchronous, but its seeking event is queued. A user can
+      // seek while progress loads before that event marks the interaction.
+      if (video.currentTime !== initialTime) interacted = true;
       if (!interacted) {
         const start = initialPlaybackPosition(
           location.search,

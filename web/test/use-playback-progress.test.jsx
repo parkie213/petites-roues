@@ -99,3 +99,27 @@ test("pausing saves the position once, and an unchanged position isn't saved aga
   media.pauseAt(31);
   await waitFor(() => expect(saves).toEqual([20.25, 31]));
 });
+
+test("a seek before its seeking event is delivered wins over a late progress load", async () => {
+  sessionStorage.clear();
+  const saves = progressApi({ positionSeconds: 0 });
+  const respond = fetch.getMockImplementation();
+  let finishLoad;
+  fetch.mockImplementation((url, options = {}) => {
+    if (options.method === "PUT") return respond(url, options);
+    return new Promise((resolve) => {
+      finishLoad = () => resolve(Response.json({ positionSeconds: 0 }));
+    });
+  });
+  const media = fakeVideo();
+  const { onReady } = renderProgress(media);
+  media.loaded();
+
+  // Browsers update the clock immediately and dispatch seeking in a later task.
+  media.video.currentTime = 2.5;
+  finishLoad();
+
+  await waitFor(() => expect(saves).toEqual([2.5]));
+  expect(media.video.currentTime).toBe(2.5);
+  expect(onReady).not.toHaveBeenCalled();
+});
