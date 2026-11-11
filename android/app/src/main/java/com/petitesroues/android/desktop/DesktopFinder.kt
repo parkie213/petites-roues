@@ -12,7 +12,7 @@ import java.io.IOException
 import java.net.Inet4Address
 import java.net.Inet6Address
 import java.net.InetAddress
-import java.util.concurrent.Executors
+import java.util.concurrent.Executor
 import java.util.concurrent.LinkedBlockingQueue
 import java.util.concurrent.TimeUnit
 
@@ -50,13 +50,21 @@ fun <T> reachDesktop(context: Context, settings: Settings, call: (Desktop) -> T)
 object DesktopFinder {
   private const val TIMEOUT_SECONDS = 6L
 
+  /**
+   * Callbacks run on the thread [NsdManager] delivers them on: they only queue a URL. Android can
+   * still deliver one after [find] returns (an unregistration, a late answer), so this must never
+   * reject a task, as a shut-down executor would by crashing the app on that thread.
+   */
+  private val direct = Executor { it.run() }
+
   /** The listener's base URL announced with [pin], or null if none answers in a few seconds. */
   fun find(context: Context, pin: String): String? {
     val nsd = context.getSystemService(NsdManager::class.java) ?: return null
-    val executor = Executors.newSingleThreadExecutor()
     // Each found desktop's URL, or "" when discovery cannot start.
     val found = LinkedBlockingQueue<String>()
     val resolving = mutableListOf<NsdManager.ServiceInfoCallback>()
+    // Set once the search is over; a desktop found after that is not resolved.
+    var finished = false
     val discovery =
       object : NsdManager.DiscoveryListener {
         override fun onServiceFound(service: NsdServiceInfo) {
@@ -72,8 +80,11 @@ object DesktopFinder {
 
               override fun onServiceInfoCallbackUnregistered() {}
             }
-          synchronized(resolving) { resolving += callback }
-          nsd.registerServiceInfoCallback(service, executor, callback)
+          synchronized(resolving) {
+            if (finished) return
+            resolving += callback
+            nsd.registerServiceInfoCallback(service, direct, callback)
+          }
         }
 
         override fun onStartDiscoveryFailed(serviceType: String, errorCode: Int) {
@@ -94,10 +105,10 @@ object DesktopFinder {
       found.poll(TIMEOUT_SECONDS, TimeUnit.SECONDS)?.takeIf { it.isNotEmpty() }
     } finally {
       synchronized(resolving) {
+        finished = true
         resolving.forEach { runCatching { nsd.unregisterServiceInfoCallback(it) } }
       }
       runCatching { nsd.stopServiceDiscovery(discovery) }
-      executor.shutdown()
     }
   }
 
