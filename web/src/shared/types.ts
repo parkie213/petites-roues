@@ -25,6 +25,8 @@ export interface Line {
   translation?: string | null;
   notes?: string[] | null;
   alignment?: PhraseAlignment | null;
+  /** Whether the line carries on the sentence of the line before it. */
+  continuesPrevious?: boolean;
   textCheck?: string | null;
 }
 

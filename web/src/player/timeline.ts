@@ -1,5 +1,5 @@
 import { moveTiming, type Timed } from "./model.ts";
-import { neighbourTimings, neighbours } from "./subtitle-edit.js";
+import { neighbourTimings, neighbours } from "./subtitle-edit.ts";
 
 /** One end of a line. */
 export type Boundary = "start" | "end";
