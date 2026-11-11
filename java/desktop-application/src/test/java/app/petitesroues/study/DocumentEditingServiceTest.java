@@ -60,7 +60,8 @@ class DocumentEditingServiceTest {
     served =
         new ReviewQueueService(
             titles,
-            new DocumentStore(new StudyDocumentReader()),
+            new DocumentStore(
+                new StudyDocumentReader(new StudyDocumentCodec()), new StudyDocumentCodec()),
             log,
             new TransactionTemplate(new DataSourceTransactionManager(source)));
     editing = new DocumentEditingService(titles, served, log);

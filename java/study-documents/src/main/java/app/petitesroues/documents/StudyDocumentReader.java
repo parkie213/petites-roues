@@ -13,12 +13,19 @@ import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.json.JsonMapper;
 
 /**
- * Reads the application's current document format, sorting video cues chronologically. No catalogue
- * or older-pack conversion is performed.
+ * Recognises and loads the current document format for study. Unlike the codec, loading sorts video
+ * cues chronologically for playback; comic order is preserved. Recognition is permissive so broken
+ * documents are reported during discovery rather than silently skipped. No catalogue or older-pack
+ * conversion is performed.
  */
 public final class StudyDocumentReader {
   private static final JsonMapper SHAPE = JsonMapper.builder().build();
-  private final StudyDocumentCodec codec = new StudyDocumentCodec();
+  private final StudyDocumentCodec codec;
+
+  /** Uses the supplied format codec for validation and decoding; owns no codec configuration. */
+  public StudyDocumentReader(StudyDocumentCodec codec) {
+    this.codec = codec;
+  }
 
   /**
    * Whether a JSON file claims to be a study document: a top-level object with {@code

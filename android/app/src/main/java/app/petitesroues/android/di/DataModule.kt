@@ -7,6 +7,7 @@ import app.petitesroues.android.data.IndexDao
 import app.petitesroues.android.data.IndexDatabase
 import app.petitesroues.android.data.ProgressDao
 import app.petitesroues.android.data.ProgressDatabase
+import app.petitesroues.documents.StudyDocumentCodec
 import app.petitesroues.documents.StudyDocumentReader
 import app.petitesroues.sync.DesktopClient
 import dagger.Module
@@ -59,7 +60,12 @@ object DataModule {
   fun contentResolver(@ApplicationContext context: Context): ContentResolver =
     context.contentResolver
 
-  @Provides @Singleton fun studyDocumentReader(): StudyDocumentReader = StudyDocumentReader()
+  @Provides @Singleton fun studyDocumentCodec(): StudyDocumentCodec = StudyDocumentCodec()
+
+  @Provides
+  @Singleton
+  fun studyDocumentReader(codec: StudyDocumentCodec): StudyDocumentReader =
+    StudyDocumentReader(codec)
 
   /** The phone's side of the desktop protocol; tests replace it with a fake desktop. */
   @Provides @Singleton fun desktopClient(): DesktopClient = DesktopClient()

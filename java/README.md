@@ -225,3 +225,21 @@ moving resources between modules.
 The application's test-only fixtures JAR provides shared test helpers and media
 resources to server tests. It excludes test classes; the server does not reach
 into the application's source directories or execute its tests again.
+
+## Document format components
+
+`StudyDocumentCodec` strictly decodes and validates JSON, or validates and writes
+canonical JSON. It preserves array order. `inspect` returns either a valid decoded
+document or its parse/structural problems, so callers can add contextual checks
+without parsing again. `StudyDocumentValidator` is a pure set of structural rules;
+it has no runtime configuration and does not participate in dependency injection.
+
+`StudyDocumentReader` recognises candidate documents and loads them for study.
+Its decoding validates through the supplied codec, then sorts video cues by start
+time for playback while preserving comic order. Recognition is intentionally
+permissive so a broken document is surfaced by Refresh instead of disappearing.
+
+Spring and Hilt each provide a codec and construct the reader with that codec.
+Desktop services receive their format dependencies through constructors. The
+shared module has no DI-framework dependency and does not construct hidden codec
+instances. Platform file access remains outside the byte-oriented codec.
