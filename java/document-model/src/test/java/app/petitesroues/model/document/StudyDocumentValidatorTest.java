@@ -1,6 +1,5 @@
 package app.petitesroues.model.document;
 
-import static app.petitesroues.support.SpecFixtures.*;
 import static org.junit.jupiter.api.Assertions.*;
 
 import java.util.List;
@@ -65,12 +64,12 @@ class StudyDocumentValidatorTest {
             Line.of("cue-a", "Range-le")
                 .withTranslation("Put it away")
                 .withAlignment(
-                    newAlignment(
+                    new PhraseAlignment(
                         List.of("Range-le"),
                         List.of("Put", "it", "away"),
                         List.of(
-                            newLink(List.of(0), List.of(0, 2), "Put away"),
-                            newLink(List.of(0), List.of(1, 2), "it")))));
+                            new PhraseLink(List.of(0), List.of(0, 2), "Put away"),
+                            new PhraseLink(List.of(0), List.of(1, 2), "it")))));
     var late = new VideoCue(Line.of("cue-b", "Oui"), 3.0, 2.0, null);
     var document = document(shared, late);
 

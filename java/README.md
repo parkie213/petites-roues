@@ -10,11 +10,13 @@ React calls the desktop over HTTP; Android runs its own offline application.
 | `content-library` | Discovery, shelving, media linking, fingerprints and progress calculations | None |
 | `sync` | Desktop–phone protocol, client and downloads | `content-library` |
 | `desktop-application` | Desktop workflows, transactions, SQLite stores/migrations and local integrations | Model, JSON, library and sync |
+| `document-test-fixtures` | Reusable sample documents and model constructors for downstream tests | `document-model` |
+| `desktop-test-fixtures` | Test database setup and synthetic media | Flyway (external) |
 | `desktop-server` | HTTP controllers/filters, Spring Boot startup, phone listener and advertising | `desktop-application`, `document-json` |
 
 Module artifact IDs match directory names under `app.petitesroues`. The parent is
 `app.petitesroues:petites-roues-parent`. The parent manages internal dependency
-versions, including test-fixtures JARs, in `dependencyManagement`; child modules
+versions, including ordinary fixture JARs, in `dependencyManagement`; child modules
 declare only the dependencies they need. Each child still declares its parent
 version because Maven must resolve the parent before inheriting that management.
 The four shared modules compile production
@@ -50,8 +52,10 @@ mappers or pretty printers. HTTP JSON and persisted review commands register the
 adapter's Jackson module so nested domain objects use the same wire representation.
 The HTTP mapper retains its own request-handling policies.
 
-Pure model tests and reusable model fixtures live in `document-model`. JSON shape,
-recognition, canonical output and round-trip tests belong to `document-json`.
+Pure model tests stay in `document-model` and construct their own inputs. Reusable
+model fixtures live in `document-test-fixtures` for downstream consumers. The model
+cannot depend back on its fixture module, even for tests, without a reactor cycle.
+JSON shape, recognition, canonical output and round-trip tests belong to `document-json`.
 
 ## Desktop application and server
 
@@ -67,9 +71,16 @@ module; services do not initialise the database themselves. The server owns Boot
 Flyway startup integration and discovers migrations from the application JAR.
 Migration SQL and checksums must remain unchanged when moving resources.
 
-HTTP integration tests stay in `desktop-server`. Test-only fixture JARs provide
-model fixtures and desktop helpers/media without sibling source-directory links.
-These fixtures are excluded from production artifacts.
+HTTP integration tests stay in `desktop-server`. `document-test-fixtures` and
+`desktop-test-fixtures` are ordinary JAR modules, consumed with test scope. There
+are no attached test JARs, classifiers or sibling source-directory links. Neither
+fixture JAR is packaged into the production server.
+
+`desktop-test-fixtures` deliberately has no desktop-application dependency: its
+Flyway helper uses the consuming test's migration classpath, and media samples
+are generic. This lets application and server tests both use it without a cycle.
+Application-specific helpers remain local to application tests. Actual test
+classes remain in the modules whose behaviour they verify.
 
 ## React, Android and ports/adapters
 

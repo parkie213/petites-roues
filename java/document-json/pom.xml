@@ -28,8 +28,7 @@
 
     <dependency>
       <groupId>app.petitesroues</groupId>
-      <artifactId>document-model</artifactId>
-      <type>test-jar</type>
+      <artifactId>document-test-fixtures</artifactId>
       <scope>test</scope>
     </dependency>
 

@@ -21,6 +21,8 @@ java/
   document-json/     JSON mapping, codec and loading
   content-library/    Shared discovery, shelving, linking and fingerprints
   sync/               Desktop–phone protocol, client and transfer logic
+  document-test-fixtures/ Shared model samples for downstream tests
+  desktop-test-fixtures/  Generic database helpers and synthetic media
   desktop-application/ Services, local models, persistence and migrations
   desktop-server/     HTTP, configuration and executable startup
 web/                  Independent React, Vite and Node application
@@ -49,13 +51,17 @@ and supplies HTTP controllers, framework wiring, Flyway startup integration and 
 The dependency direction is `desktop-server → desktop-application → document-model, document-json, content-library, sync`.
 
 Unit tests live beside their owning module. Documents tests load examples from
-`java/document-json/src/test/resources/documents/`. Pure model tests and the
-shared model-fixtures JAR belong to document-model.
+`java/document-json/src/test/resources/documents/`. Pure model tests stay in
+`document-model`; reusable sample documents and helpers live in the ordinary
+`document-test-fixtures` JAR. Model tests construct their own inputs to avoid a
+dependency cycle.
 Non-HTTP database tests and canonical Flyway
 migrations belong to desktop-application, while HTTP integration tests stay in
 desktop-server and verify Spring Boot migration startup. Application tests require
-no server dependency. A desktop-application test-only fixtures JAR shares test
-helpers and synthetic media with server tests, without sibling source paths.
+no server dependency. The ordinary desktop-test-fixtures JAR shares database
+setup and synthetic media between application and server tests, without depending
+on the application. All fixture dependencies have test scope and are excluded
+from production artifacts; no test-jar attachments or sibling source paths are used.
 The Maven build does not invoke npm or package the frontend. There are no copied
 schemas or sibling-checkout dependencies. Content repositories remain separate.
 

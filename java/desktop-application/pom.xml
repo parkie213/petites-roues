@@ -72,8 +72,7 @@
 
     <dependency>
       <groupId>app.petitesroues</groupId>
-      <artifactId>document-model</artifactId>
-      <type>test-jar</type>
+      <artifactId>document-test-fixtures</artifactId>
       <scope>test</scope>
     </dependency>
 
@@ -82,28 +81,11 @@
       <artifactId>flyway-core</artifactId>
       <scope>test</scope>
     </dependency>
+    <dependency>
+      <groupId>app.petitesroues</groupId>
+      <artifactId>desktop-test-fixtures</artifactId>
+      <scope>test</scope>
+    </dependency>
   </dependencies>
 
-  <build>
-    <plugins>
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-jar-plugin</artifactId>
-        <executions>
-          <execution>
-            <goals>
-              <goal>test-jar</goal>
-            </goals>
-            <phase>process-test-classes</phase>
-            <configuration>
-              <includes>
-                <include>app/petitesroues/support/**</include>
-                <include>media/**</include>
-              </includes>
-            </configuration>
-          </execution>
-        </executions>
-      </plugin>
-    </plugins>
-  </build>
 </project>

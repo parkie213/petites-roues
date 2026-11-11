@@ -1,6 +1,5 @@
 package app.petitesroues.model;
 
-import static app.petitesroues.support.SpecFixtures.*;
 import static org.junit.jupiter.api.Assertions.*;
 
 import app.petitesroues.model.document.PhraseAlignment;
@@ -14,11 +13,11 @@ import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
 class PhraseAlignmentValidatorTest {
-  private static final PhraseLink GREETING = newLink(List.of(0), List.of(0), "Greeting");
+  private static final PhraseLink GREETING = new PhraseLink(List.of(0), List.of(0), "Greeting");
 
   private static PhraseAlignment greeting(
       List<String> source, List<String> translation, List<PhraseLink> links) {
-    return newAlignment(source, translation, links);
+    return new PhraseAlignment(source, translation, links);
   }
 
   private static void validate(PhraseAlignment alignment) {
@@ -54,9 +53,10 @@ class PhraseAlignmentValidatorTest {
 
   @Test
   void languagesWrittenWithoutSpacesJoinTheirChunksDirectly() {
-    var link = newLink(List.of(0, 1, 2), List.of(0, 1, 2), null);
+    var link = new PhraseLink(List.of(0, 1, 2), List.of(0, 1, 2), null);
     var alignment =
-        newAlignment(List.of("我们", "去", "公园。"), List.of("We", "go", "to the park."), List.of(link));
+        new PhraseAlignment(
+            List.of("我们", "去", "公园。"), List.of("We", "go", "to the park."), List.of(link));
     assertDoesNotThrow(
         () ->
             PhraseAlignmentValidator.validateFor(
@@ -114,7 +114,7 @@ class PhraseAlignmentValidatorTest {
         Arguments.of(null, "Alignment must contain meaning links"),
         Arguments.of(List.of(), "Alignment must contain meaning links"),
         Arguments.of(
-            List.of(newLink(List.of(), List.of(), "No references")),
+            List.of(new PhraseLink(List.of(), List.of(), "No references")),
             "An alignment link must reference a phrase"));
   }
 
@@ -136,15 +136,15 @@ class PhraseAlignmentValidatorTest {
                   greeting(
                       List.of("Salut"),
                       List.of("Hi"),
-                      List.of(newLink(List.of(0), List.of(0), note)))));
+                      List.of(new PhraseLink(List.of(0), List.of(0), note)))));
   }
 
   static Stream<Arguments> invalidIndices() {
     var cases = Stream.<Arguments>builder();
     List<List<Integer>> invalid = Arrays.asList(List.of(-1), List.of(1), List.of(0, 0));
     for (var indices : invalid) {
-      cases.add(Arguments.of(newLink(indices, List.of(0), "Greeting"), "Source"));
-      cases.add(Arguments.of(newLink(List.of(0), indices, "Greeting"), "Translation"));
+      cases.add(Arguments.of(new PhraseLink(indices, List.of(0), "Greeting"), "Source"));
+      cases.add(Arguments.of(new PhraseLink(List.of(0), indices, "Greeting"), "Translation"));
     }
     return cases.build();
   }
@@ -162,9 +162,10 @@ class PhraseAlignmentValidatorTest {
   void everyPhraseOnBothSidesMustBeCovered() {
     for (var link :
         List.of(
-            newLink(List.of(0), List.of(0, 1), "Missing French phrase"),
-            newLink(List.of(0, 1), List.of(0), "Missing English phrase"))) {
-      var alignment = newAlignment(List.of("Tu", "dors"), List.of("You", "sleep"), List.of(link));
+            new PhraseLink(List.of(0), List.of(0, 1), "Missing French phrase"),
+            new PhraseLink(List.of(0, 1), List.of(0), "Missing English phrase"))) {
+      var alignment =
+          new PhraseAlignment(List.of("Tu", "dors"), List.of("You", "sleep"), List.of(link));
       assertEquals(
           "Alignment must account for every phrase",
           assertThrows(IllegalArgumentException.class, () -> validateGraph(alignment))
@@ -175,23 +176,23 @@ class PhraseAlignmentValidatorTest {
   @Test
   void crossingLinksKeepTheTwoLanguagesInTheirOwnSentenceOrder() {
     var alignment =
-        newAlignment(
+        new PhraseAlignment(
             List.of("Tu", "me", "manques."),
             List.of("I", "miss", "you."),
             List.of(
-                newLink(List.of(0), List.of(2), "Person missed"),
-                newLink(List.of(1), List.of(0), "Person feeling the absence"),
-                newLink(List.of(2), List.of(1), "English reverses the roles")));
+                new PhraseLink(List.of(0), List.of(2), "Person missed"),
+                new PhraseLink(List.of(1), List.of(0), "Person feeling the absence"),
+                new PhraseLink(List.of(2), List.of(1), "English reverses the roles")));
     assertDoesNotThrow(() -> validateGraph(alignment));
   }
 
   @Test
   void manyToManyLinksAreAllowedButAPhraseBelongsToOneLink() {
     var grouped =
-        newAlignment(
+        new PhraseAlignment(
             List.of("Tout", "va bien."),
             List.of("All", "is well."),
-            List.of(newLink(List.of(0, 1), List.of(0, 1), "Whole expression")));
+            List.of(new PhraseLink(List.of(0, 1), List.of(0, 1), "Whole expression")));
     assertDoesNotThrow(() -> validateGraph(grouped));
     var shared = greeting(List.of("Salut"), List.of("Hi"), List.of(GREETING, GREETING));
     assertThrows(IllegalArgumentException.class, () -> validateGraph(shared));
@@ -200,19 +201,19 @@ class PhraseAlignmentValidatorTest {
   @Test
   void eitherLanguageMayHaveAPhraseWithNoSeparateCounterpart() {
     var omittedFrench =
-        newAlignment(
+        new PhraseAlignment(
             List.of("Il", "dort."),
             List.of("Sleeping."),
             List.of(
-                newLink(List.of(0), List.of(), "Omitted English subject"),
-                newLink(List.of(1), List.of(0), "Action")));
+                new PhraseLink(List.of(0), List.of(), "Omitted English subject"),
+                new PhraseLink(List.of(1), List.of(0), "Action")));
     var addedEnglish =
-        newAlignment(
+        new PhraseAlignment(
             List.of("Dors."),
             List.of("You", "sleep."),
             List.of(
-                newLink(List.of(), List.of(0), "Explicit English subject"),
-                newLink(List.of(0), List.of(1), "Action")));
+                new PhraseLink(List.of(), List.of(0), "Explicit English subject"),
+                new PhraseLink(List.of(0), List.of(1), "Action")));
     assertDoesNotThrow(() -> validateGraph(omittedFrench));
     assertDoesNotThrow(() -> validateGraph(addedEnglish));
   }

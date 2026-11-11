@@ -1,6 +1,5 @@
 package app.petitesroues.model;
 
-import static app.petitesroues.support.SpecFixtures.*;
 import static org.junit.jupiter.api.Assertions.*;
 
 import app.petitesroues.model.document.PhraseAlignment;
@@ -16,7 +15,8 @@ class PhraseAlignmentTest {
   void reusingAPhraseListCannotChangeAnExistingAlignment() {
     var phrases = new ArrayList<>(List.of("Salut"));
     var alignment =
-        newAlignment(phrases, List.of("Hi"), List.of(newLink(List.of(0), List.of(0), "Greeting")));
+        new PhraseAlignment(
+            phrases, List.of("Hi"), List.of(new PhraseLink(List.of(0), List.of(0), "Greeting")));
 
     // A caller reuses its input list while preparing a different sentence.
     phrases.set(0, "Bonsoir");
@@ -36,9 +36,9 @@ class PhraseAlignmentTest {
     var translation = new ArrayList<>(List.of("Hi"));
     var sourceIndices = new ArrayList<>(List.of(0));
     var targetIndices = new ArrayList<>(List.of(0));
-    var link = newLink(sourceIndices, targetIndices, "Greeting");
+    var link = new PhraseLink(sourceIndices, targetIndices, "Greeting");
     var links = new ArrayList<>(List.of(link));
-    var alignment = newAlignment(source, translation, links);
+    var alignment = new PhraseAlignment(source, translation, links);
     source.clear();
     translation.clear();
     sourceIndices.clear();

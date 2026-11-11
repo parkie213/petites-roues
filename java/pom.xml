@@ -19,9 +19,11 @@
 
   <modules>
     <module>document-model</module>
+    <module>document-test-fixtures</module>
     <module>document-json</module>
     <module>content-library</module>
     <module>sync</module>
+    <module>desktop-test-fixtures</module>
     <module>desktop-application</module>
     <module>desktop-server</module>
   </modules>
@@ -70,16 +72,14 @@
 
       <dependency>
         <groupId>app.petitesroues</groupId>
-        <artifactId>document-model</artifactId>
+        <artifactId>document-test-fixtures</artifactId>
         <version>${project.version}</version>
-        <type>test-jar</type>
       </dependency>
 
       <dependency>
         <groupId>app.petitesroues</groupId>
-        <artifactId>desktop-application</artifactId>
+        <artifactId>desktop-test-fixtures</artifactId>
         <version>${project.version}</version>
-        <type>test-jar</type>
       </dependency>
     </dependencies>
   </dependencyManagement>

@@ -1,6 +1,5 @@
 package app.petitesroues.comic;
 
-import static app.petitesroues.support.SpecFixtures.*;
 import static org.junit.jupiter.api.Assertions.*;
 
 import app.petitesroues.model.document.ComicBox;
@@ -8,6 +7,7 @@ import app.petitesroues.model.document.ComicChapter;
 import app.petitesroues.model.document.ComicDocument;
 import app.petitesroues.model.document.ComicPage;
 import app.petitesroues.model.document.ComicReference;
+import app.petitesroues.model.document.ComicRegion;
 import app.petitesroues.model.document.Line;
 import app.petitesroues.model.document.ReadingDirection;
 import app.petitesroues.model.document.StudyDocument;
@@ -18,7 +18,7 @@ import org.junit.jupiter.api.Test;
 class ComicBoxValidationTest {
   /** A comic whose one page holds {@code boxes}. */
   private static StudyDocument comic(ComicBox... boxes) {
-    return comic(List.of(newPage("page", "001.jpg", null, boxes)));
+    return comic(List.of(new ComicPage("page", "001.jpg", null, List.of(boxes))));
   }
 
   private static StudyDocument comic(List<ComicPage> pages) {
@@ -43,19 +43,23 @@ class ComicBoxValidationTest {
 
   @Test
   void validatesNormalizedGeometry() {
-    var box = newBubble(Line.of("bubble", "Salut !"), List.of(newRegion(.1, .2, .3, .4)));
+    var box =
+        new ComicBox(
+            "box-bubble",
+            List.of(new ComicRegion(.1, .2, .3, .4)),
+            List.of(Line.of("bubble", "Salut !")));
     valid(comic(box));
     invalid(comic(box.withRegions(List.of())));
     for (var region :
         List.of(
-            newRegion(-.1, 0, .1, .1),
-            newRegion(.9, 0, .2, .1),
-            newRegion(0, 0, 0, .1),
-            newRegion(0, 0, Double.NaN, .1),
-            newRegion(0, 0, .1, Double.POSITIVE_INFINITY)))
+            new ComicRegion(-.1, 0, .1, .1),
+            new ComicRegion(.9, 0, .2, .1),
+            new ComicRegion(0, 0, 0, .1),
+            new ComicRegion(0, 0, Double.NaN, .1),
+            new ComicRegion(0, 0, .1, Double.POSITIVE_INFINITY)))
       invalid(comic(box.withRegions(List.of(region))));
     // Two boxes may overlap; their order is their position on the page.
-    var other = newBubble(Line.of("other", "Oui"), box.regions());
+    var other = new ComicBox("box-other", box.regions(), List.of(Line.of("other", "Oui")));
     valid(comic(box, other));
     valid(comic(box, other.withLine("other", s -> s.withSource(""))));
     invalid(comic(box, other.withLine("other", s -> s.withId("bubble"))));
@@ -63,17 +67,17 @@ class ComicBoxValidationTest {
 
   @Test
   void aBoxHasItsOwnUniqueIdAndOneOrMoreUniquelyIdentifiedLines() {
-    var region = List.of(newRegion(.1, .6, .8, .3));
+    var region = List.of(new ComicRegion(.1, .6, .8, .3));
     var first = Line.of("s1", "Une phrase.");
     var second = Line.of("s2", "Une autre.");
     var block = new ComicBox("intro", region, List.of(first, second));
-    var label = newBubble(Line.of("label", "Introduction"), region);
+    var label = new ComicBox("box-label", region, List.of(Line.of("label", "Introduction")));
     valid(comic(block, label));
 
     invalid(comic(block.withLines(List.of())));
     invalid(comic(block.withLines(List.of(first, first))));
     invalid(comic(block.withLines(List.of(first, second.withId(" ")))));
-    invalid(comic(block, newBubble(Line.of("s2", "Encore"), region)));
+    invalid(comic(block, new ComicBox("box-s2", region, List.of(Line.of("s2", "Encore")))));
     invalid(comic(new ComicBox(" ", region, List.of(first))));
     invalid(comic(block, new ComicBox("intro", region, List.of(Line.of("x", "X")))));
     // Box and line IDs are separate namespaces.
@@ -83,13 +87,17 @@ class ComicBoxValidationTest {
     invalid(
         comic(
             List.of(
-                newPage("page", "001.jpg", null, block),
-                newPage("next", "002.jpg", null, elsewhere))));
+                new ComicPage("page", "001.jpg", null, List.of(block)),
+                new ComicPage("next", "002.jpg", null, List.of(elsewhere)))));
     invalid(
         comic(
             List.of(
-                newPage("page", "001.jpg", null, block),
-                newPage("next", "002.jpg", null, newBubble(first, region)))));
+                new ComicPage("page", "001.jpg", null, List.of(block)),
+                new ComicPage(
+                    "next",
+                    "002.jpg",
+                    null,
+                    List.of(new ComicBox("box-" + first.id(), region, List.of(first)))))));
   }
 
   @Test
@@ -97,7 +105,7 @@ class ComicBoxValidationTest {
     var block =
         new ComicBox(
             "intro",
-            List.of(newRegion(.1, .6, .8, .3)),
+            List.of(new ComicRegion(.1, .6, .8, .3)),
             List.of(Line.of("s1", "Une phrase."), Line.of("s2", "Une autre.")));
     var changed = block.withLine("s2", s -> s.withTranslation("Another."));
     assertEquals("Another.", changed.lines().get(1).translation());
@@ -155,9 +163,9 @@ class ComicBoxValidationTest {
         base.readingDirection(),
         base.reference(),
         List.of(
-            newPage("a", "001.jpg", null),
-            newPage("b", "002.jpg", null),
-            newPage("c", "003.jpg", null)),
+            new ComicPage("a", "001.jpg", null),
+            new ComicPage("b", "002.jpg", null),
+            new ComicPage("c", "003.jpg", null)),
         List.of(chapters));
   }
 }

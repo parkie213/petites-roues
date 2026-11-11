@@ -55,7 +55,7 @@ jobs:
       - name: Install media test dependencies
         run: sudo apt-get update && sudo apt-get install -y ffmpeg
       - name: Verify the server against the built library
-        run: ./java/mvnw -B -f java/pom.xml -pl desktop-application,desktop-server verify
+        run: ./java/mvnw -B -f java/pom.xml -pl desktop-test-fixtures,desktop-application,desktop-server verify
       - name: Install frontend dependencies
         run: npm ci
         working-directory: web
