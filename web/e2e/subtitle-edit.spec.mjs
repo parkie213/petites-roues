@@ -1,5 +1,7 @@
 import { test, expect, looksLike } from "./api.mjs";
 
+test.use({ logMedia: true });
+
 test("moving a line's end moves the next line's start with it, and the editor steps through lines", async ({
   page,
 }) => {

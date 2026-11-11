@@ -329,11 +329,103 @@ export async function looksLike(page, name) {
   await hidden.evaluate((style) => style.remove());
 }
 
+/** Opt-in diagnostics: media events and stacks for script-driven seeks/reloads, retained on failure. */
+async function logMediaEvents(page, run, info) {
+  const events = [];
+  const collect = (message) => {
+    if (message.text().startsWith("[media] ")) events.push(message.text());
+  };
+  page.on("console", collect);
+  await page.addInitScript(() => {
+    const prototype = globalThis.HTMLMediaElement.prototype;
+    const time = Object.getOwnPropertyDescriptor(prototype, "currentTime");
+    const logWrite = (video, operation, value) => {
+      console.debug(
+        "[media] " +
+          JSON.stringify({
+            operation,
+            value,
+            timestamp: performance.now(),
+            currentTime: video.currentTime,
+            currentSrc: video.currentSrc,
+            stack: new Error().stack,
+          }),
+      );
+    };
+    Object.defineProperty(prototype, "currentTime", {
+      ...time,
+      set(value) {
+        logWrite(this, "set currentTime", value);
+        time.set.call(this, value);
+      },
+    });
+    const load = prototype.load;
+    prototype.load = function (...args) {
+      logWrite(this, "load");
+      return load.apply(this, args);
+    };
+    for (const type of [
+      "loadstart",
+      "emptied",
+      "loadedmetadata",
+      "loadeddata",
+      "canplay",
+      "seeking",
+      "seeked",
+      "play",
+      "playing",
+      "pause",
+      "ended",
+      "abort",
+      "error",
+      "stalled",
+      "waiting",
+    ]) {
+      globalThis.document.addEventListener(
+        type,
+        (event) => {
+          const video = event.target;
+          if (!(video instanceof globalThis.HTMLVideoElement)) return;
+          console.debug(
+            "[media] " +
+              JSON.stringify({
+                event: type,
+                timestamp: performance.now(),
+                currentTime: video.currentTime,
+                readyState: video.readyState,
+                networkState: video.networkState,
+                paused: video.paused,
+                seeking: video.seeking,
+                currentSrc: video.currentSrc,
+                error: video.error && {
+                  code: video.error.code,
+                  message: video.error.message,
+                },
+              }),
+          );
+        },
+        true,
+      );
+    }
+  });
+  try {
+    await run(page);
+  } finally {
+    page.off("console", collect);
+    await info.attach("media-events", {
+      body: events.join("\n"),
+      contentType: "text/plain",
+    });
+  }
+}
+
 /** Playwright's `test`, with every page's `/api` requests recorded or replayed. */
 export const test = base.extend({
-  page: async ({ page }, use, info) => {
+  logMedia: [false, { option: true }],
+  page: async ({ page, logMedia }, use, info) => {
     const file = recordingFile(info);
-    await (RECORD ? record(page, file, use) : replay(page, file, use));
+    const run = logMedia ? (page) => logMediaEvents(page, use, info) : use;
+    await (RECORD ? record(page, file, run) : replay(page, file, run));
   },
 });
 
