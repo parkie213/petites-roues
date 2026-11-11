@@ -5,7 +5,7 @@ import android.graphics.BitmapFactory
 import android.net.Uri
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
-import app.petitesroues.library.shelves.Shelves
+import app.petitesroues.library.ordering.NaturalOrder
 import java.io.Closeable
 import java.io.FileInputStream
 import org.apache.commons.compress.archivers.zip.ZipFile
@@ -56,7 +56,7 @@ class CbzReader(resolver: ContentResolver, archive: Uri) : Closeable {
         .toList()
         .map { it.name }
         .filter { name -> IMAGES.any { name.lowercase().endsWith(it) } }
-        .sortedWith(Shelves.NATURAL)
+        .sortedWith(NaturalOrder.COMPARATOR)
     }
 
   /** The first page image in [pages] order, or null if none. */

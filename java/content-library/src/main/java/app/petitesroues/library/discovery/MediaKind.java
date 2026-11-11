@@ -29,6 +29,7 @@ public enum MediaKind {
   }
 
   static String extension(String fileName) {
-    return fileName.substring(fileName.lastIndexOf('.') + 1).toLowerCase(Locale.ROOT);
+    int dot = fileName.lastIndexOf('.');
+    return dot < 0 ? "" : fileName.substring(dot + 1).toLowerCase(Locale.ROOT);
   }
 }

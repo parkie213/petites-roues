@@ -33,6 +33,22 @@ class ContentScannerTest {
   }
 
   @Test
+  void extensionlessFilesNamedLikeExtensionsDoNotBreakDiscovery() throws Exception {
+    for (String name : List.of("mp4", "mkv", "cbz", "json", "MP4")) write(name);
+    write("episode.MP4");
+    write("document.JSON");
+    var discovered = scan();
+    assertEquals(
+        List.of("episode.MP4"),
+        discovered.media().stream().map(ContentScanner.Media::relativePath).toList());
+    assertEquals(
+        List.of("document.JSON"),
+        discovered.documents().stream().map(ContentScanner.Found::relativePath).toList());
+    assertNull(MediaKind.of("mp4"));
+    assertFalse(MediaKind.documentCandidate("json"));
+  }
+
+  @Test
   void findsDocumentsAndMediaInOneWalkSkippingHiddenArchiveAndSymbolicLinks() throws Exception {
     for (String file :
         List.of(

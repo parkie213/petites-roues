@@ -7,6 +7,7 @@ import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import app.petitesroues.library.discovery.MediaKind;
+import app.petitesroues.library.ordering.NaturalOrder;
 import app.petitesroues.library.shelves.Shelves.Group;
 import app.petitesroues.library.shelves.Shelves.Shelf;
 import app.petitesroues.library.shelves.Shelves.Slot;
@@ -417,8 +418,8 @@ class ShelvesTest {
 
   @Test
   void numbersCompareByValue() {
-    assertTrue(Shelves.NATURAL.compare("Tome 2", "Tome 10") < 0);
-    assertTrue(Shelves.NATURAL.compare("Naruto T09", "Naruto T10") < 0);
-    assertTrue(Shelves.NATURAL.compare("des frigos", "Paris") < 0);
+    assertTrue(NaturalOrder.COMPARATOR.compare("Tome 2", "Tome 10") < 0);
+    assertTrue(NaturalOrder.COMPARATOR.compare("Naruto T09", "Naruto T10") < 0);
+    assertTrue(NaturalOrder.COMPARATOR.compare("des frigos", "Paris") < 0);
   }
 }
