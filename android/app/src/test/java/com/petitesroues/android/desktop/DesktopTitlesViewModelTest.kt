@@ -7,6 +7,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.petitesroues.android.Settings
 import com.petitesroues.android.screens.SDK
 import com.petitesroues.android.testing.FakeDesktop
+import com.petitesroues.android.testing.FakeNsd
 import com.petitesroues.android.testing.MainDispatcherRule
 import com.petitesroues.sync.SyncStatus
 import kotlinx.coroutines.flow.first
@@ -45,7 +46,8 @@ class DesktopTitlesViewModelTest {
         this.desktop = FakeDesktop.DESKTOP
         downloadFolder = Uri.fromFile(downloads.root)
       }
-    transfers = Transfers(context, settings, desktop)
+    transfers =
+      Transfers(context, settings, desktop, PairedDesktop(settings, DesktopFinder(FakeNsd())))
   }
 
   private fun viewModel() =

@@ -6,6 +6,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.petitesroues.android.Settings
 import com.petitesroues.android.screens.SDK
 import com.petitesroues.android.testing.FakeDesktop
+import com.petitesroues.android.testing.FakeNsd
 import com.petitesroues.android.testing.MainDispatcherRule
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
@@ -32,7 +33,14 @@ class DesktopPairingViewModelTest {
     settings = Settings(context)
   }
 
-  private fun viewModel() = DesktopPairingViewModel(context, settings, desktop, main.dispatcher)
+  private fun viewModel() =
+    DesktopPairingViewModel(
+      context,
+      settings,
+      desktop,
+      PairedDesktop(settings, DesktopFinder(FakeNsd())),
+      main.dispatcher,
+    )
 
   private suspend fun DesktopPairingViewModel.done() = state.first { !it.busy }
 

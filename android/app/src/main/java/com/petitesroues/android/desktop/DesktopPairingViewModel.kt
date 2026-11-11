@@ -47,6 +47,7 @@ constructor(
   @ApplicationContext private val context: Context,
   private val settings: Settings,
   private val client: DesktopClient,
+  private val paired: PairedDesktop,
   @IoDispatcher private val io: CoroutineDispatcher,
 ) : ViewModel() {
   private val _state = MutableStateFlow(DesktopPairingUiState(settings.desktop))
@@ -83,8 +84,7 @@ constructor(
     val desktop = settings.desktop ?: return
     _state.update { it.copy(status = "Connecting to ${desktop.url()}…", busy = true) }
     viewModelScope.launch {
-      val result =
-        withContext(io) { runCatching { reachDesktop(context, settings, client::hello) } }
+      val result = withContext(io) { runCatching { paired.reach(client::hello) } }
       _state.update {
         it.copy(
           // Finding the desktop at a new address saves it.
