@@ -11,8 +11,8 @@ module naming and the architectural choices behind them.
 | `study-documents` | Study-document records, intrinsic validation, JSON encoding/decoding and file reading | None |
 | `content-library` | Portable content discovery, shelving, media linking, progress calculations and fingerprints | None |
 | `sync` | Desktop–phone protocol records, pairing-code reading, desktop client and download/transfer logic | `content-library` |
-| `desktop-application` | Desktop use cases, transaction boundaries, SQLite stores, document-edit replay, filesystem and media integrations | `study-documents`, `content-library`, `sync` |
-| `desktop-server` | HTTP controllers and filters, Spring Boot startup/configuration, database migrations and phone listener/advertising | `desktop-application` |
+| `desktop-application` | Desktop use cases, transaction boundaries, SQLite stores and migrations, document-edit replay, filesystem and media integrations | `study-documents`, `content-library`, `sync` |
+| `desktop-server` | HTTP controllers and filters, Spring Boot startup/configuration and phone listener/advertising | `desktop-application` |
 
 Each module uses its directory name as its Maven artifact ID, under the
 `app.petitesroues` group (for example, `app.petitesroues:study-documents`).
@@ -208,3 +208,20 @@ To build the server and its required modules:
 Media integration tests require FFmpeg. CI installs and tests the shared modules
 first, then verifies `desktop-application` and `desktop-server` against those artifacts. See
 [the CI workflow](../.github/workflows/ci.yml) for the exact commands.
+
+## Desktop database ownership
+
+`desktop-application` owns the SQLite stores and their canonical Flyway migrations
+under `src/main/resources/db/migration`. Non-HTTP database tests run in this module
+against those migrations, without starting the server. Flyway is a test dependency
+here; application services do not initialise the database themselves.
+
+`desktop-server` owns Spring Boot's Flyway startup integration. It discovers the
+migrations on the application dependency's classpath and applies them before
+serving requests. HTTP integration tests remain in the server module and exercise
+that startup path. Migration versions and checksums must remain unchanged when
+moving resources between modules.
+
+The application's test-only fixtures JAR provides shared test helpers and media
+resources to server tests. It excludes test classes; the server does not reach
+into the application's source directories or execute its tests again.

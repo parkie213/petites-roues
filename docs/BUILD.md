@@ -20,8 +20,8 @@ java/
   study-documents/    Document records, JSON codec and validation
   content-library/    Shared discovery, shelving, linking and fingerprints
   sync/               Desktop–phone protocol, client and transfer logic
-  desktop-application/ Services, local models and persistence
-  desktop-server/     HTTP, configuration, migrations and executable startup
+  desktop-application/ Services, local models, persistence and migrations
+  desktop-server/     HTTP, configuration and executable startup
 web/                  Independent React, Vite and Node application
 android/              Offline phone player and comic reader (Gradle)
 ```
@@ -44,15 +44,17 @@ Android. The server answers with the
 same records and its integration test pairs through the same client, so the two sides cannot drift.
 It depends on content-library and Jackson and targets Java 17.
 `java/desktop-application` depends on study-documents, content-library and sync, and owns services, stores, media
-readers and local application models. `java/desktop-server` depends on desktop-application
-and supplies HTTP controllers, framework wiring, database migrations and startup.
+readers, local application models and canonical database migrations. `java/desktop-server` depends on desktop-application
+and supplies HTTP controllers, framework wiring, Flyway startup integration and executable startup.
 The dependency direction is `desktop-server → desktop-application → study-documents, content-library, sync`.
 
 Unit tests live beside their owning module. Documents tests load examples from
-`java/study-documents/src/test/resources/documents/` and publish a test-only fixtures JAR for application/server tests. HTTP
-and real-database integration tests stay in server, alongside the canonical Flyway
-migrations; application unit tests require no server dependency. Synthetic media
-fixtures live in application test resources; server tests also load that directory.
+`java/study-documents/src/test/resources/documents/` and publish a test-only fixtures JAR for application/server tests.
+Non-HTTP database tests and canonical Flyway
+migrations belong to desktop-application, while HTTP integration tests stay in
+desktop-server and verify Spring Boot migration startup. Application tests require
+no server dependency. A desktop-application test-only fixtures JAR shares test
+helpers and synthetic media with server tests, without sibling source paths.
 The Maven build does not invoke npm or package the frontend. There are no copied
 schemas or sibling-checkout dependencies. Content repositories remain separate.
 
