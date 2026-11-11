@@ -29,7 +29,6 @@
     <dependency>
       <groupId>app.petitesroues</groupId>
       <artifactId>document-test-fixtures</artifactId>
-      <scope>test</scope>
     </dependency>
 
     <dependency>

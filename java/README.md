@@ -17,7 +17,8 @@ React calls the desktop over HTTP; Android runs its own offline application.
 Module artifact IDs match directory names under `app.petitesroues`. The parent is
 `app.petitesroues:petites-roues-parent`. The parent manages internal dependency
 versions, including ordinary fixture JARs, in `dependencyManagement`; child modules
-declare only the dependencies they need. Each child still declares its parent
+declare only the dependencies they need. Fixture dependencies also inherit test
+scope from the parent. Each child still declares its parent
 version because Maven must resolve the parent before inheriting that management.
 The four shared modules compile production
 code for Java 17 for Android; the desktop modules and all tests use Java 25.

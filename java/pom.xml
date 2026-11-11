@@ -74,12 +74,14 @@
         <groupId>app.petitesroues</groupId>
         <artifactId>document-test-fixtures</artifactId>
         <version>${project.version}</version>
+        <scope>test</scope>
       </dependency>
 
       <dependency>
         <groupId>app.petitesroues</groupId>
         <artifactId>desktop-test-fixtures</artifactId>
         <version>${project.version}</version>
+        <scope>test</scope>
       </dependency>
     </dependencies>
   </dependencyManagement>

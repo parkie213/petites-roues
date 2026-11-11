@@ -73,7 +73,6 @@
     <dependency>
       <groupId>app.petitesroues</groupId>
       <artifactId>document-test-fixtures</artifactId>
-      <scope>test</scope>
     </dependency>
 
     <dependency>
@@ -84,7 +83,6 @@
     <dependency>
       <groupId>app.petitesroues</groupId>
       <artifactId>desktop-test-fixtures</artifactId>
-      <scope>test</scope>
     </dependency>
   </dependencies>
 
