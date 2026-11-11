@@ -5,16 +5,16 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 import app.petitesroues.documents.StudyDocumentCodec;
+import app.petitesroues.documents.StudyDocumentJson;
 import app.petitesroues.documents.StudyDocumentReader;
 import app.petitesroues.model.library.CatalogueEntry;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import org.junit.jupiter.api.Test;
-import tools.jackson.databind.json.JsonMapper;
 
 class DocumentStoreTest {
   private final StudyDocumentCodec codec = new StudyDocumentCodec();
-  private final DocumentStore store = new DocumentStore(new StudyDocumentReader(codec), codec);
+  private final DocumentStore store = new DocumentStore(new StudyDocumentReader(codec));
 
   @Test
   void candidateMustBeValidAndKeepTheRegisteredDocumentIdentity() {
@@ -28,7 +28,8 @@ class DocumentStoreTest {
         store.problems(
             entry, codec.encode(candidate.withId("different")).getBytes(StandardCharsets.UTF_8)));
     var invalid =
-        JsonMapper.builder().build().writeValueAsBytes(candidate.withId("different").withTitle(""));
+        StudyDocumentJson.newMapper()
+            .writeValueAsBytes(candidate.withId("different").withTitle(""));
     assertEquals(List.of("A title is required"), store.problems(entry, invalid));
     assertFalse(store.problems(entry, "{broken".getBytes(StandardCharsets.UTF_8)).isEmpty());
   }

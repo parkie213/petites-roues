@@ -7,6 +7,7 @@ import static org.mockito.Mockito.*;
 
 import app.petitesroues.comic.ReadingProgressStore;
 import app.petitesroues.documents.StudyDocumentCodec;
+import app.petitesroues.documents.StudyDocumentJson;
 import app.petitesroues.documents.StudyDocumentReader;
 import app.petitesroues.library.discovery.ContentRepositoryScanner;
 import app.petitesroues.library.persistence.CatalogueStore;
@@ -55,7 +56,7 @@ class ContentRepositoryRefreshIntegrationTest {
   ContentRepositoryScanner scanner;
   StudyDocumentReader reader;
   ContentRepositoryService service;
-  JsonMapper mapper = JsonMapper.builder().build();
+  JsonMapper mapper = StudyDocumentJson.newMapper();
 
   @BeforeEach
   void setup() {
@@ -144,7 +145,7 @@ class ContentRepositoryRefreshIntegrationTest {
     assertNotEquals(first.id(), second.id());
     assertEquals("shared", second.documentId());
     var queue = new ReviewQueue(jdbc, mapper);
-    var store = new DocumentStore(reader, new StudyDocumentCodec());
+    var store = new DocumentStore(reader);
     var served =
         new ReviewQueueService(
             catalogue,

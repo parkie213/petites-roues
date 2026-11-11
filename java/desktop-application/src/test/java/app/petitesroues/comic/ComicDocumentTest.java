@@ -3,11 +3,11 @@ package app.petitesroues.comic;
 import static app.petitesroues.support.SpecFixtures.*;
 import static org.junit.jupiter.api.Assertions.*;
 
-import app.petitesroues.documents.StudyDocumentValidator;
 import app.petitesroues.model.document.ComicDocument;
 import app.petitesroues.model.document.ComicPage;
 import app.petitesroues.model.document.ReadingDirection;
 import app.petitesroues.model.document.StudyDocument;
+import app.petitesroues.model.document.StudyDocumentValidator;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;

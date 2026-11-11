@@ -23,7 +23,7 @@ Two rules hold the boundary:
 ## Study documents
 
 The JSON format is specified in [DOCUMENT-FORMAT.md](DOCUMENT-FORMAT.md). It's defined by the
-records in `app.petitesroues.model.document` and checked by `StudyDocumentValidator`.
+records in `app.petitesroues.model.document` and checked by `StudyDocumentValidator` in document-model.
 
 ![Study document model](diagrams/document-model.svg)
 

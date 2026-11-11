@@ -17,25 +17,27 @@ images/               Screenshots and branding assets
 java/
   pom.xml             Java-only Maven parent and reactor
   mvnw                Maven wrapper (mvnw.cmd on Windows)
-  study-documents/    Document records, JSON codec and validation
+  document-model/    Java-only document records and validation
+  document-json/     JSON mapping, codec and loading
   content-library/    Shared discovery, shelving, linking and fingerprints
   sync/               Desktop–phone protocol, client and transfer logic
+  document-test-fixtures/ Shared model samples for downstream tests
+  desktop-test-fixtures/  Generic database helpers and synthetic media
   desktop-application/ Services, local models, persistence and migrations
   desktop-server/     HTTP, configuration and executable startup
 web/                  Independent React, Vite and Node application
 android/              Offline phone player and comic reader (Gradle)
 ```
 
-`java/study-documents` owns the document format: immutable records in
-`app.petitesroues.model.document`, the codec that reads and writes their canonical JSON,
-and the validation and phrase alignment rules. It depends only on Jackson, with no Spring,
-JDBC or HTTP dependencies, so the Android app uses the same jar. Its main code
-is pinned to Java 17 (`maven.compiler.release`) because Android's library and D8 need it;
-its tests stay on Java 25.
+`java/document-model` owns immutable records in `app.petitesroues.model.document`
+and intrinsic validation, with no production dependencies. `java/document-json`
+owns JSON mapping, the codec and file loading, depending on the model and Jackson.
+Jackson annotations and configuration live entirely in the adapter. Both compile
+production code for Java 17 for Android; tests use Java 25.
 `java/content-library` holds the library's rules shared with the Android app: one walk of a
 registered folder through a small `ContentTree` interface (java.nio on the desktop, the
 Storage Access Framework on Android), what counts as a document, video or comic, where
-posters are, and the v1 media fingerprint. Like documents it has no Spring and targets
+posters are, and the v1 media fingerprint. Like the document modules it has no Spring and targets
 Java 17, and the Android app uses its jar.
 `java/sync` is how the phone and the desktop talk: the wire records (`app.petitesroues.model.sync`),
 the phone listener's routes, the QR pairing code reader, certificate pinning (`CertificatePins`)
@@ -43,18 +45,23 @@ and the phone's `DesktopClient`, on `HttpURLConnection` because `java.net.http` 
 Android. The server answers with the
 same records and its integration test pairs through the same client, so the two sides cannot drift.
 It depends on content-library and Jackson and targets Java 17.
-`java/desktop-application` depends on study-documents, content-library and sync, and owns services, stores, media
+`java/desktop-application` depends on document-model, document-json, content-library and sync, and owns services, stores, media
 readers, local application models and canonical database migrations. `java/desktop-server` depends on desktop-application
 and supplies HTTP controllers, framework wiring, Flyway startup integration and executable startup.
-The dependency direction is `desktop-server → desktop-application → study-documents, content-library, sync`.
+The dependency direction is `desktop-server → desktop-application → document-model, document-json, content-library, sync`.
 
 Unit tests live beside their owning module. Documents tests load examples from
-`java/study-documents/src/test/resources/documents/` and publish a test-only fixtures JAR for application/server tests.
+`java/document-json/src/test/resources/documents/`. Pure model tests stay in
+`document-model`; reusable sample documents and helpers live in the ordinary
+`document-test-fixtures` JAR. Model tests construct their own inputs to avoid a
+dependency cycle.
 Non-HTTP database tests and canonical Flyway
 migrations belong to desktop-application, while HTTP integration tests stay in
 desktop-server and verify Spring Boot migration startup. Application tests require
-no server dependency. A desktop-application test-only fixtures JAR shares test
-helpers and synthetic media with server tests, without sibling source paths.
+no server dependency. The ordinary desktop-test-fixtures JAR shares database
+setup and synthetic media between application and server tests, without depending
+on the application. All fixture dependencies have test scope and are excluded
+from production artifacts; no test-jar attachments or sibling source paths are used.
 The Maven build does not invoke npm or package the frontend. There are no copied
 schemas or sibling-checkout dependencies. Content repositories remain separate.
 
@@ -191,7 +198,7 @@ folder, and posters beside the media. Sync the media folder and the documents fo
 phone and choose both. Media is fingerprinted once (8 MiB read per file) and again only when it
 changes.
 
-The app uses the shared Java jars (`java/study-documents`, `java/content-library`, `java/sync`) from `~/.m2`,
+The app uses the shared Java jars (`java/document-model`, `java/document-json`, `java/content-library`, `java/sync`) from `~/.m2`,
 the same jars the server builds against. Gradle installs it with Maven whenever it configures the
 build, including an Android Studio sync, so the app never compiles against a stale jar; Maven
 skips work that is up to date. Jackson comes with the jar, at the version Spring Boot manages.

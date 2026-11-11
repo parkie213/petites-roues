@@ -1,11 +1,11 @@
 package app.petitesroues.study;
 
 import static app.petitesroues.support.DocumentFixtures.document;
-import static app.petitesroues.support.TestDocuments.edit;
 import static org.junit.jupiter.api.Assertions.*;
 
 import app.petitesroues.documents.StudyDocumentCodec;
 import app.petitesroues.model.document.StudyDocument;
+import app.petitesroues.model.editing.VideoCueEdit;
 import app.petitesroues.support.HttpIntegrationTest;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -26,7 +26,18 @@ class ReviewApiIntegrationTest extends HttpIntegrationTest {
     String api = "/api/titles/review-api";
 
     var cue = title.video().cues().get(0).withLine(s -> s.withSource("Bonsoir !"));
-    http.put().uri(api + "/cues/stable-cue").body(edit(cue)).retrieve().toBodilessEntity();
+    var line = cue.line();
+    var edit =
+        new VideoCueEdit(
+            cue.start(),
+            cue.end(),
+            line.source(),
+            line.translation(),
+            line.notes(),
+            line.continuesPrevious(),
+            cue.listeningCheck(),
+            line.textCheck());
+    http.put().uri(api + "/cues/stable-cue").body(edit).retrieve().toBodilessEntity();
     assertArrayEquals(original, Files.readAllBytes(file));
     var served = http.get().uri(api).retrieve().body(StudyDocument.class);
     assertEquals("Bonsoir !", served.video().cues().get(0).line().source());

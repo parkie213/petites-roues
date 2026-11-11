@@ -5,6 +5,7 @@ import static app.petitesroues.support.TestDocuments.catalogueEntry;
 import static org.junit.jupiter.api.Assertions.*;
 
 import app.petitesroues.documents.StudyDocumentCodec;
+import app.petitesroues.documents.StudyDocumentJson;
 import app.petitesroues.documents.StudyDocumentReader;
 import app.petitesroues.library.persistence.CatalogueStore;
 import app.petitesroues.model.document.StudyDocument;
@@ -27,7 +28,6 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.datasource.DataSourceTransactionManager;
 import org.springframework.jdbc.datasource.SingleConnectionDataSource;
 import org.springframework.transaction.support.TransactionTemplate;
-import tools.jackson.databind.json.JsonMapper;
 
 class ReviewQueueTest {
   @TempDir Path root;
@@ -41,7 +41,7 @@ class ReviewQueueTest {
 
   @BeforeEach
   void setup() throws Exception {
-    var mapper = JsonMapper.builder().build();
+    var mapper = StudyDocumentJson.newMapper();
     codec = new StudyDocumentCodec();
     source = new SingleConnectionDataSource("jdbc:sqlite::memory:", true);
     jdbc = new JdbcTemplate(source);
@@ -51,8 +51,7 @@ class ReviewQueueTest {
     service =
         new ReviewQueueService(
             new CatalogueStore(jdbc),
-            new DocumentStore(
-                new StudyDocumentReader(new StudyDocumentCodec()), new StudyDocumentCodec()),
+            new DocumentStore(new StudyDocumentReader(codec)),
             queue,
             new TransactionTemplate(new DataSourceTransactionManager(source)));
     queue.append(title, delete);

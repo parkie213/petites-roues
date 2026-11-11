@@ -18,7 +18,6 @@ import java.util.Map;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.MediaType;
 import tools.jackson.databind.JsonNode;
-import tools.jackson.databind.ObjectMapper;
 
 /**
  * One user journey: register a media folder (its video warns that no study document matches), add a
@@ -176,7 +175,7 @@ class ApplicationSmokeTest extends HttpIntegrationTest {
     assertEquals(List.of(), problems(api, file));
     var broken = current.withVideo(v -> v.withCue(0, c -> c.withTiming(c.start(), -1.0)));
     var renamed = current.withId("other");
-    String brokenJson = new ObjectMapper().writeValueAsString(broken);
+    String brokenJson = mapper.writeValueAsString(broken);
     assertEquals(
         List.of("stable-cue: Invalid timing for cue stable-cue"), problems(api, brokenJson));
     assertEquals(
