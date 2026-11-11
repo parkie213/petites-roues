@@ -18,13 +18,11 @@
     <dependency>
       <groupId>app.petitesroues</groupId>
       <artifactId>document-json</artifactId>
-      <version>${project.version}</version>
     </dependency>
 
     <dependency>
       <groupId>app.petitesroues</groupId>
       <artifactId>desktop-application</artifactId>
-      <version>${project.version}</version>
     </dependency>
 
     <dependency>
@@ -46,7 +44,6 @@
     <dependency>
       <groupId>app.petitesroues</groupId>
       <artifactId>document-model</artifactId>
-      <version>${project.version}</version>
       <type>test-jar</type>
       <scope>test</scope>
     </dependency>
@@ -65,7 +62,6 @@
     <dependency>
       <groupId>app.petitesroues</groupId>
       <artifactId>desktop-application</artifactId>
-      <version>${project.version}</version>
       <type>test-jar</type>
       <scope>test</scope>
     </dependency>

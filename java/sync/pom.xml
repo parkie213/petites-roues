@@ -24,7 +24,6 @@
     <dependency>
       <groupId>app.petitesroues</groupId>
       <artifactId>content-library</artifactId>
-      <version>${project.version}</version>
     </dependency>
 
     <dependency>

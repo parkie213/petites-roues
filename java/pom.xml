@@ -30,6 +30,60 @@
     <java.version>25</java.version>
   </properties>
 
+  <dependencyManagement>
+    <dependencies>
+      <dependency>
+        <groupId>app.petitesroues</groupId>
+        <artifactId>document-model</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+
+      <dependency>
+        <groupId>app.petitesroues</groupId>
+        <artifactId>document-json</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+
+      <dependency>
+        <groupId>app.petitesroues</groupId>
+        <artifactId>content-library</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+
+      <dependency>
+        <groupId>app.petitesroues</groupId>
+        <artifactId>sync</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+
+      <dependency>
+        <groupId>app.petitesroues</groupId>
+        <artifactId>desktop-application</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+
+      <dependency>
+        <groupId>app.petitesroues</groupId>
+        <artifactId>desktop-server</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+
+      <dependency>
+        <groupId>app.petitesroues</groupId>
+        <artifactId>document-model</artifactId>
+        <version>${project.version}</version>
+        <type>test-jar</type>
+      </dependency>
+
+      <dependency>
+        <groupId>app.petitesroues</groupId>
+        <artifactId>desktop-application</artifactId>
+        <version>${project.version}</version>
+        <type>test-jar</type>
+      </dependency>
+    </dependencies>
+  </dependencyManagement>
+
   <build>
     <plugins>
       <plugin>

@@ -13,7 +13,11 @@ React calls the desktop over HTTP; Android runs its own offline application.
 | `desktop-server` | HTTP controllers/filters, Spring Boot startup, phone listener and advertising | `desktop-application`, `document-json` |
 
 Module artifact IDs match directory names under `app.petitesroues`. The parent is
-`app.petitesroues:petites-roues-parent`. The four shared modules compile production
+`app.petitesroues:petites-roues-parent`. The parent manages internal dependency
+versions, including test-fixtures JARs, in `dependencyManagement`; child modules
+declare only the dependencies they need. Each child still declares its parent
+version because Maven must resolve the parent before inheriting that management.
+The four shared modules compile production
 code for Java 17 for Android; the desktop modules and all tests use Java 25.
 
 ## Documents and JSON
