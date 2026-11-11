@@ -9,7 +9,6 @@
     <groupId>app.petitesroues</groupId>
     <artifactId>petites-roues-parent</artifactId>
     <version>0.1.0-SNAPSHOT</version>
-    <relativePath>../pom.xml</relativePath>
   </parent>
 
   <artifactId>desktop-server</artifactId>
