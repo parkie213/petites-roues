@@ -11,7 +11,7 @@ import userEvent from "@testing-library/user-event";
 import { useRef, useState } from "react";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import { StudyLanguagesProvider } from "../src/player/StudyLanguages.jsx";
-import { SubtitleEditPanel } from "../src/player/components/SubtitleEditPanel.jsx";
+import { SubtitleEditPanel } from "../src/player/components/SubtitleEditPanel.tsx";
 
 /**
  * The subtitle editor docked beside the video, against an API kept in memory and a <video> whose
@@ -398,5 +398,16 @@ test("the timing keys nudge the chosen end and set it to the playhead", async ()
   await userEvent.keyboard("[[");
   expect(screen.getByRole("button", { name: "start time" }).textContent).toBe(
     "0:05.250",
+  );
+});
+
+test("splitting with the cursor at an end says where to put it", async () => {
+  open();
+  video.currentTime = 4.5;
+  await userEvent.click(
+    screen.getByRole("button", { name: /Split at cursor/ }),
+  );
+  expect(screen.getByRole("alert").textContent).toBe(
+    "Place the French text cursor between the two parts.",
   );
 });

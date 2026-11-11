@@ -15,7 +15,7 @@ import { useStudyDocument } from "./useStudyDocument.ts";
 import { useWatchShortcuts } from "./watchKeys.ts";
 import type { VideoHelp, WatchAction } from "./watchKeys.ts";
 import { PlaybackToolbar } from "./components/PlaybackToolbar.tsx";
-import { SubtitleEditPanel } from "./components/SubtitleEditPanel.jsx";
+import { SubtitleEditPanel } from "./components/SubtitleEditPanel.tsx";
 import { VideoQuizPanel } from "./components/VideoQuizPanel.jsx";
 import { VideoStudyHelp } from "./components/VideoStudyHelp.jsx";
 import { VideoSubtitles } from "./components/VideoSubtitles.jsx";
@@ -251,7 +251,7 @@ export function Watch({
           status={status}
           onError={setStatus}
         />
-        {quickEdit && (
+        {quickEdit && api && (
           <SubtitleEditPanel
             closeRef={closeEditor}
             api={api}

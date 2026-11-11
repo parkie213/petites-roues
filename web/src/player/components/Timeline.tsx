@@ -7,7 +7,7 @@ import {
   type RefObject,
 } from "react";
 import { animateTimeline } from "../timeline-animation.js";
-import { editClock } from "../subtitle-edit.js";
+import { editClock } from "../subtitle-edit.ts";
 import {
   timelineHit,
   type Boundary,
