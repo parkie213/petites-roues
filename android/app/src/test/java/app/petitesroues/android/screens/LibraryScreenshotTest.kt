@@ -19,7 +19,7 @@ import app.petitesroues.android.library.LibraryUiState
 import app.petitesroues.android.pages.Section
 import app.petitesroues.android.pages.StudyPages
 import app.petitesroues.library.shelves.Shelves
-import app.petitesroues.model.pages.MarkdownPage
+import app.petitesroues.model.library.MarkdownPageEntry
 import com.github.takahirom.roborazzi.captureRoboImage
 import kotlinx.coroutines.runBlocking
 import org.junit.Rule
@@ -39,7 +39,7 @@ class LibraryScreenshotTest {
     state: LibraryUiState,
     browse: Browse = Browse(),
     section: Section = Section.LIBRARY,
-    pages: List<MarkdownPage> = emptyList(),
+    pages: List<MarkdownPageEntry> = emptyList(),
   ) {
     val images = CardImages(ApplicationProvider.getApplicationContext())
     // Cards decode their images on a background thread; load them first so they're drawn.
@@ -126,8 +126,8 @@ class LibraryScreenshotTest {
    * Opens [page] from the list. Its Markdown is parsed on a background thread, so this waits until
    * [bodyText], a line from its body, is drawn.
    */
-  private fun open(page: MarkdownPage, bodyText: String) {
-    compose.onNodeWithText(page.title()).performClick()
+  private fun open(page: MarkdownPageEntry, bodyText: String) {
+    compose.onNodeWithText(page.content().title()).performClick()
     compose.waitUntil(timeoutMillis = 10_000) {
       compose.onAllNodesWithText(bodyText).fetchSemanticsNodes().isNotEmpty()
     }

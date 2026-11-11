@@ -1,7 +1,7 @@
 package app.petitesroues.android.pages
 
-import app.petitesroues.model.pages.MarkdownPage
+import app.petitesroues.model.library.MarkdownPageEntry
 
 /** Stable UI selection key across content roots and page collections. */
-val MarkdownPage.key: String
-  get() = "${repository()}/${id()}"
+val MarkdownPageEntry.key: String
+  get() = "${repository().id()}/${path().removeSuffix(".md")}"

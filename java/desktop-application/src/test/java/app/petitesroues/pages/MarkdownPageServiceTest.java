@@ -5,6 +5,8 @@ import static org.mockito.Mockito.*;
 
 import app.petitesroues.library.persistence.ContentRepositoryStore;
 import app.petitesroues.model.library.ContentRepository;
+import app.petitesroues.model.library.MarkdownPageEntry;
+import app.petitesroues.model.library.Repository;
 import app.petitesroues.model.pages.MarkdownPage;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -38,22 +40,21 @@ class MarkdownPageServiceTest {
 
     assertEquals(
         List.of(
-            new MarkdownPage(
-                "french",
-                "french",
-                "common-irregular-verbs",
+            entry(
+                "quizzes/common-irregular-verbs.md",
                 "common-irregular-verbs",
                 "No heading here.\n"),
-            new MarkdownPage(
-                "french",
-                "french",
-                "verb-objects",
-                "Verb objects",
-                "Intro\n\n# Verb objects\n\nDrill…\n")),
+            entry(
+                "quizzes/verb-objects.md", "Verb objects", "Intro\n\n# Verb objects\n\nDrill…\n")),
         service.pages(MarkdownPageService.QUIZZES));
     assertEquals(
-        List.of(new MarkdownPage("french", "french", "imperative", "Imperative", "# Imperative\n")),
+        List.of(entry("notes/imperative.md", "Imperative", "# Imperative\n")),
         service.pages(MarkdownPageService.NOTES));
+  }
+
+  private static MarkdownPageEntry entry(String path, String title, String text) {
+    return new MarkdownPageEntry(
+        new Repository("french", "french"), path, new MarkdownPage(title, text));
   }
 
   private static ContentRepository repository(String name, Path path) {

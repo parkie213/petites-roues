@@ -10,6 +10,8 @@ import app.petitesroues.android.library.TitleKind
 import app.petitesroues.documents.StudyDocumentCodec
 import app.petitesroues.documents.StudyDocumentReader
 import app.petitesroues.model.document.StudyDocument
+import app.petitesroues.model.library.MarkdownPageEntry
+import app.petitesroues.model.library.Repository
 import app.petitesroues.model.pages.MarkdownPage
 import java.io.File
 import kotlinx.coroutines.CoroutineScope
@@ -29,9 +31,13 @@ object Examples {
   fun media(path: String): Uri = Uri.fromFile(File(root, "media-fr/$path"))
 
   /** An example note or quiz ([folder] is `notes` or `quizzes`), as the page scanner reads it. */
-  fun page(folder: String, name: String): MarkdownPage {
+  fun page(folder: String, name: String): MarkdownPageEntry {
     val text = File(root, "documents-fr/$folder/$name.md").readText()
-    return MarkdownPage("example", "example", "$folder/$name", MarkdownPage.title(text, name), text)
+    return MarkdownPageEntry(
+      Repository("example", "example"),
+      "$folder/$name.md",
+      MarkdownPage(MarkdownPage.title(text, name), text),
+    )
   }
 
   fun document(path: String): StudyDocument =

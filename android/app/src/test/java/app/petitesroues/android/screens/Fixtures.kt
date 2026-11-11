@@ -4,6 +4,8 @@ import android.net.Uri
 import app.petitesroues.android.data.Progress
 import app.petitesroues.android.library.Title
 import app.petitesroues.android.library.TitleKind
+import app.petitesroues.model.library.MarkdownPageEntry
+import app.petitesroues.model.library.Repository
 import app.petitesroues.model.pages.MarkdownPage
 
 /**
@@ -92,12 +94,10 @@ object Fixtures {
     )
 
   private fun page(folder: String, name: String, markdown: String) =
-    MarkdownPage(
-      "fixtures",
-      "fixtures",
-      "$folder/$name",
-      MarkdownPage.title(markdown, name),
-      markdown,
+    MarkdownPageEntry(
+      Repository("fixtures", "fixtures"),
+      "$folder/$name.md",
+      MarkdownPage(MarkdownPage.title(markdown, name), markdown),
     )
 
   /** The example note and two short made-up ones. */

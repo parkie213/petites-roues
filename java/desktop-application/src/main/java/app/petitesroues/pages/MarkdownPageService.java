@@ -1,7 +1,8 @@
 package app.petitesroues.pages;
 
 import app.petitesroues.library.persistence.ContentRepositoryStore;
-import app.petitesroues.model.pages.MarkdownPage;
+import app.petitesroues.model.library.MarkdownPageEntry;
+import app.petitesroues.model.library.Repository;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -17,10 +18,10 @@ import org.springframework.stereotype.Service;
 @Service
 public class MarkdownPageService {
   /** The folder holding general quizzes: prompts for a chat app. */
-  public static final String QUIZZES = MarkdownPage.QUIZZES;
+  public static final String QUIZZES = MarkdownPageEntry.QUIZZES;
 
   /** The folder holding study notes: pages the learner reads in the library. */
-  public static final String NOTES = MarkdownPage.NOTES;
+  public static final String NOTES = MarkdownPageEntry.NOTES;
 
   private final ContentRepositoryStore repositories;
   private final MarkdownPageScanner scanner;
@@ -34,12 +35,15 @@ public class MarkdownPageService {
   }
 
   /** Every page in the repositories' [folder], in repository order and then by file name. */
-  public List<MarkdownPage> pages(String folder) throws IOException {
-    List<MarkdownPage> pages = new ArrayList<>();
+  public List<MarkdownPageEntry> pages(String folder) throws IOException {
+    List<MarkdownPageEntry> pages = new ArrayList<>();
     for (var repository : repositories.list()) {
       Path root = Path.of(repository.localPath());
       if (!Files.isDirectory(root)) continue;
-      for (Path file : scanner.scan(root, folder)) pages.add(reader.read(file, repository));
+      var owner = new Repository(repository.id(), repository.name());
+      for (Path file : scanner.scan(root, folder))
+        pages.add(
+            new MarkdownPageEntry(owner, folder + "/" + file.getFileName(), reader.read(file)));
     }
     return pages;
   }

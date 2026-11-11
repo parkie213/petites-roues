@@ -35,7 +35,8 @@ validation and page-title extraction, with no production dependencies. `java/doc
 owns JSON mapping, the codec and file loading, depending on the model and Jackson.
 Jackson annotations and configuration live entirely in the adapter. Both compile
 production code for Java 17 for Android; tests use Java 25.
-`java/content-library` holds the library's rules shared with the Android app: one walk of a
+`java/content-library` depends on `content-model` and owns shared repository
+identities and located Markdown entries, plus the library rules shared with Android: one walk of a
 registered folder through a small `ContentTree` interface (java.nio on the desktop, the
 Storage Access Framework on Android), what counts as a document, video or comic, where
 posters are, and the v1 media fingerprint. Like the document modules it has no Spring and targets

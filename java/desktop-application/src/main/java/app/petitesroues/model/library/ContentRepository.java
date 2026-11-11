@@ -5,10 +5,11 @@ package app.petitesroues.model.library;
  * CBZ comics), or any mix. Media links to documents by fingerprint, in this folder or another. A
  * repository may be a Git checkout, but Git is not required by this model.
  *
- * <p>The registration describes a local content root and its last successful discovery result.
- * Missing documents remain registered so their local learning state survives temporary absence.
- * Files may change after discovery; counts describe registered entries rather than current file
- * availability.
+ * <p>This is the desktop registration and index summary; the shared identity and display name are
+ * represented by {@link Repository}. The registration describes a local content root and its last
+ * successful discovery result. Missing documents remain registered so their local learning state
+ * survives temporary absence. Files may change after discovery; counts describe registered entries
+ * rather than current file availability.
  *
  * @param id stable local registration identity, independent of the content folder's name
  * @param name display name chosen when registering the content directory

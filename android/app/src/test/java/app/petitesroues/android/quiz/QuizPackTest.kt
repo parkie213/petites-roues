@@ -165,9 +165,6 @@ class QuizPackTest {
   fun aGeneralBriefCarriesTheQuizThenTheRulesWithHeadingsNested() {
     val quiz =
       MarkdownPage(
-        "primary:q",
-        "french-quizzes",
-        "quizzes/common-irregular-verbs",
         "Common irregular verbs",
         "# Common irregular verbs\n\nDrill être.\n\n## Traps\n",
       )

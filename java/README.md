@@ -7,7 +7,7 @@ React calls the desktop over HTTP; Android runs its own offline application.
 | --- | --- | --- |
 | `content-model` | Study documents, Markdown quizzes/notes, defaults and intrinsic rules | None |
 | `document-json` | JSON recognition, strict decoding, canonical encoding and file loading | `content-model` |
-| `content-library` | Discovery, shelving, media linking, fingerprints and progress calculations | None |
+| `content-library` | Repository identities, library entries, discovery, shelving, media linking and fingerprints | `content-model` |
 | `sync` | Desktop–phone protocol, client and downloads | `content-library` |
 | `desktop-application` | Desktop workflows, transactions, SQLite stores/migrations and local integrations | Model, JSON, library and sync |
 | `document-test-fixtures` | Reusable sample documents and model constructors for downstream tests | `content-model` |
@@ -26,8 +26,11 @@ code for Java 17 for Android; the desktop modules and all tests use Java 25.
 ## Content models and document JSON
 
 `content-model` is Java-only. It owns annotated video/comic documents and Markdown
-quiz/note pages. `MarkdownPage` shares page data and the first-heading title rule;
-platform readers supply repository identity and read files. Rendering and quiz
+quiz/note pages. `MarkdownPage` shares page data and the first-heading title rule.
+It contains title and text, without repository or storage fields.
+`content-library` owns `Repository` (identity and name) and `MarkdownPageEntry`
+(repository, relative path and content). Platform readers load content; library
+services and scanners associate it with a repository. Rendering and quiz
 sharing remain in the user interfaces. Local learner progress remains separate
 from portable content and currently lives in each application.
 

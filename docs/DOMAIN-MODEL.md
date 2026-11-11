@@ -50,9 +50,12 @@ content, separate from annotated media documents. Both platforms use
 `app.petitesroues.model.pages.MarkdownPage` in `content-model`, including the rule
 that the first nonempty level-one heading names the page. The text is preserved;
 quizzes are prompts handed to a chat app, not structured question/answer objects.
-Repository identity and page identifiers locate a page within its collection;
-platform readers supply these values. Markdown rendering and sharing belong to
-the user interfaces.
+`MarkdownPage` contains only title and text. Shared library types `Repository` and
+`MarkdownPageEntry` associate that content with a repository-relative path, including
+the collection folder. Local registrations retain filesystem paths or storage
+grants, refresh state and counts. The desktop HTTP layer flattens entries into its
+existing response fields; Android derives its selection key from repository and
+path. Markdown rendering and sharing belong to the user interfaces.
 
 Playback and reading progress describe local learner activity, rather than content.
 Desktop progress records remain in `desktop-application`; Android retains its Room

@@ -198,11 +198,14 @@ class MainActivity : ComponentActivity() {
           remembered = settings.generalQuiz.takeIf { section == Section.QUIZZES },
           onBack = { model.selectSection(Section.LIBRARY) },
           onOpened = { if (section == Section.QUIZZES) settings.generalQuiz = it.key },
-          onChat = { quiz, app -> QuizShare.share(this@MainActivity, quiz, app) },
+          onChat = { quiz, app -> QuizShare.share(this@MainActivity, quiz.content(), app) },
           onCopy = { quiz ->
             getSystemService(ClipboardManager::class.java)
               .setPrimaryClip(
-                ClipData.newPlainText(quiz.title(), QuizShare.prompt(this@MainActivity, quiz))
+                ClipData.newPlainText(
+                  quiz.content().title(),
+                  QuizShare.prompt(this@MainActivity, quiz.content()),
+                )
               )
           },
         )

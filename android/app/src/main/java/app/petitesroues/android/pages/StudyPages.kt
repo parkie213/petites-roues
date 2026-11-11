@@ -54,7 +54,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow.Companion.Clip
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import app.petitesroues.model.pages.MarkdownPage
+import app.petitesroues.model.library.MarkdownPageEntry
 import com.mikepenz.markdown.compose.components.markdownComponents
 import com.mikepenz.markdown.compose.elements.MarkdownTable
 import com.mikepenz.markdown.compose.elements.MarkdownTableHeader
@@ -78,8 +78,8 @@ private val Chat = Color(0xFF3568A8)
 /** The library's three tabs, as on the desktop. [folder] is where a study section's pages live. */
 enum class Section(val label: String, val folder: String?, val noun: String) {
   LIBRARY("Library", null, "title"),
-  NOTES("Notes", MarkdownPage.NOTES, "note"),
-  QUIZZES("Quiz me", MarkdownPage.QUIZZES, "quiz"),
+  NOTES("Notes", MarkdownPageEntry.NOTES, "note"),
+  QUIZZES("Quiz me", MarkdownPageEntry.QUIZZES, "quiz"),
 }
 
 /** The Library / Notes / Quiz me tabs: the current one in coral with an underline. */
@@ -125,12 +125,12 @@ fun StudyTabs(section: Section, onSection: (Section) -> Unit) {
 @Composable
 fun StudyPages(
   section: Section,
-  pages: List<MarkdownPage>?,
+  pages: List<MarkdownPageEntry>?,
   remembered: String?,
   onBack: () -> Unit,
-  onOpened: (MarkdownPage) -> Unit,
-  onChat: (MarkdownPage, app: String?) -> Unit,
-  onCopy: (MarkdownPage) -> Unit,
+  onOpened: (MarkdownPageEntry) -> Unit,
+  onChat: (MarkdownPageEntry, app: String?) -> Unit,
+  onCopy: (MarkdownPageEntry) -> Unit,
 ) {
   var openKey by rememberSaveable(section) { mutableStateOf<String?>(null) }
   var marked by rememberSaveable(section) { mutableStateOf(remembered) }
@@ -145,9 +145,9 @@ fun StudyPages(
       }
     open != null -> Reading(section, open, quiz, onClose = { openKey = null }, onChat, onCopy)
     else -> {
-      val several = pages.map { it.repository() }.distinct().size > 1
+      val several = pages.map { it.repository().id() }.distinct().size > 1
       val shown = pages.filter {
-        query.isBlank() || it.title().contains(query.trim(), ignoreCase = true)
+        query.isBlank() || it.content().title().contains(query.trim(), ignoreCase = true)
       }
       LazyColumn(
         Modifier.fillMaxSize(),
@@ -205,7 +205,12 @@ fun StudyPages(
 }
 
 @Composable
-private fun Topic(page: MarkdownPage, selected: Boolean, several: Boolean, onClick: () -> Unit) {
+private fun Topic(
+  page: MarkdownPageEntry,
+  selected: Boolean,
+  several: Boolean,
+  onClick: () -> Unit,
+) {
   Column(
     Modifier.fillMaxWidth()
       .background(
@@ -216,10 +221,10 @@ private fun Topic(page: MarkdownPage, selected: Boolean, several: Boolean, onCli
       .clickable(onClick = onClick)
       .padding(horizontal = 16.dp, vertical = 14.dp)
   ) {
-    Text(page.title(), style = MaterialTheme.typography.bodyLarge)
+    Text(page.content().title(), style = MaterialTheme.typography.bodyLarge)
     if (several)
       Text(
-        page.repositoryName(),
+        page.repository().name(),
         style = MaterialTheme.typography.bodySmall,
         color = MaterialTheme.colorScheme.onSurfaceVariant,
       )
@@ -229,11 +234,11 @@ private fun Topic(page: MarkdownPage, selected: Boolean, several: Boolean, onCli
 @Composable
 private fun Reading(
   section: Section,
-  page: MarkdownPage,
+  page: MarkdownPageEntry,
   quiz: Boolean,
   onClose: () -> Unit,
-  onChat: (MarkdownPage, app: String?) -> Unit,
-  onCopy: (MarkdownPage) -> Unit,
+  onChat: (MarkdownPageEntry, app: String?) -> Unit,
+  onCopy: (MarkdownPageEntry) -> Unit,
 ) {
   val dim = MaterialTheme.colorScheme.onSurfaceVariant
   Column(
@@ -252,13 +257,13 @@ private fun Reading(
         tint = dim,
       )
       Text(
-        "  ${section.label} / ${page.repositoryName()}",
+        "  ${section.label} / ${page.repository().name()}",
         style = MaterialTheme.typography.bodySmall,
         color = dim,
       )
     }
     Text(
-      page.title(),
+      page.content().title(),
       style =
         MaterialTheme.typography.headlineSmall.copy(
           fontSize = 26.sp,
@@ -275,7 +280,7 @@ private fun Reading(
       )
       ChatCard(onChat = { onChat(page, it) }, onCopy = { onCopy(page) })
     }
-    StudyMarkdown(page.text())
+    StudyMarkdown(page.content().text())
   }
 }
 
