@@ -245,7 +245,10 @@ class LibraryViewModelTest {
     val model = viewModel()
     model.selectSection(Section.NOTES)
     assertEquals(Section.NOTES, model.section.value)
-    assertEquals(listOf("Verbs followed by an infinitive"), model.pages.value?.map { it.title })
+    assertEquals(
+      listOf("Verbs followed by an infinitive"),
+      model.pages.value?.map { it.content().title() },
+    )
     model.selectSection(Section.LIBRARY)
     assertNull(model.pages.value)
   }

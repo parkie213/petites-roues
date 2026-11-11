@@ -54,6 +54,7 @@ import app.petitesroues.android.library.TitleUiState
 import app.petitesroues.android.library.TitleViewModel
 import app.petitesroues.android.pages.Section
 import app.petitesroues.android.pages.StudyPages
+import app.petitesroues.android.pages.key
 import app.petitesroues.android.player.PlayerViewModel
 import app.petitesroues.android.player.WatchScreen
 import app.petitesroues.android.quiz.QuizShare
@@ -197,11 +198,14 @@ class MainActivity : ComponentActivity() {
           remembered = settings.generalQuiz.takeIf { section == Section.QUIZZES },
           onBack = { model.selectSection(Section.LIBRARY) },
           onOpened = { if (section == Section.QUIZZES) settings.generalQuiz = it.key },
-          onChat = { quiz, app -> QuizShare.share(this@MainActivity, quiz, app) },
+          onChat = { quiz, app -> QuizShare.share(this@MainActivity, quiz.content(), app) },
           onCopy = { quiz ->
             getSystemService(ClipboardManager::class.java)
               .setPrimaryClip(
-                ClipData.newPlainText(quiz.title, QuizShare.prompt(this@MainActivity, quiz))
+                ClipData.newPlainText(
+                  quiz.content().title(),
+                  QuizShare.prompt(this@MainActivity, quiz.content()),
+                )
               )
           },
         )

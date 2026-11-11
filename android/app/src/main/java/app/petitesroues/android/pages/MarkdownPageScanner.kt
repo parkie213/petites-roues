@@ -5,21 +5,24 @@ import android.net.Uri
 import android.provider.DocumentsContract
 import android.provider.DocumentsContract.Document
 import app.petitesroues.android.library.AppFolder
+import app.petitesroues.model.library.pages.MarkdownPageEntry
+import app.petitesroues.model.library.repository.Repository
+import app.petitesroues.model.pages.MarkdownPage
 import java.io.File
 import javax.inject.Inject
 
 /**
  * Finds the Markdown pages in content folders granted through the Storage Access Framework: the
- * `*.md` files directly inside a named folder ([MarkdownPage.QUIZZES], [MarkdownPage.NOTES]) at
- * each content folder's root. The folder name says what they are, so other Markdown is never
- * listed. The files are small, so their text is read here.
+ * `*.md` files directly inside a named folder ([MarkdownPageEntry.QUIZZES],
+ * [MarkdownPageEntry.NOTES]) at each content folder's root. The folder name says what they are, so
+ * other Markdown is never listed. The files are small, so their text is read here.
  */
 class MarkdownPageScanner @Inject constructor(private val resolver: ContentResolver) {
   /**
    * Every page in [trees]' [folder], in content-folder order and then by file name; unreadable
    * folders are skipped.
    */
-  fun scan(trees: List<Uri>, folder: String): List<MarkdownPage> = trees.flatMap { tree ->
+  fun scan(trees: List<Uri>, folder: String): List<MarkdownPageEntry> = trees.flatMap { tree ->
     runCatching { if (AppFolder.isFile(tree)) scanFiles(tree, folder) else scan(tree, folder) }
       .getOrDefault(emptyList())
   }
@@ -28,7 +31,7 @@ class MarkdownPageScanner @Inject constructor(private val resolver: ContentResol
    * The app's own folder holds titles copied from the desktop, and one subfolder per desktop
    * repository with its own `notes/` and `quizzes/`.
    */
-  private fun scanFiles(tree: Uri, folder: String): List<MarkdownPage> =
+  private fun scanFiles(tree: Uri, folder: String): List<MarkdownPageEntry> =
     File(checkNotNull(tree.path))
       .listFiles()
       .orEmpty()
@@ -43,16 +46,15 @@ class MarkdownPageScanner @Inject constructor(private val resolver: ContentResol
           .map { file ->
             val id = file.name.removeSuffix(".md")
             val text = file.readText()
-            MarkdownPage(
-              "${tree.path}/${repository.name}/$folder/$id",
-              repository.name,
-              MarkdownPage.title(text, id),
-              text,
+            MarkdownPageEntry(
+              Repository("${tree.path}/${repository.name}", repository.name),
+              "$folder/${file.name}",
+              MarkdownPage(MarkdownPage.title(text, id), text),
             )
           }
       }
 
-  private fun scan(tree: Uri, folder: String): List<MarkdownPage> {
+  private fun scan(tree: Uri, folder: String): List<MarkdownPageEntry> {
     val root = DocumentsContract.getTreeDocumentId(tree)
     val pages =
       children(tree, root).firstOrNull { it.folder && it.name == folder } ?: return emptyList()
@@ -67,7 +69,11 @@ class MarkdownPageScanner @Inject constructor(private val resolver: ContentResol
             .openInputStream(DocumentsContract.buildDocumentUriUsingTree(tree, file.id))!!
             .bufferedReader()
             .use { it.readText() }
-        MarkdownPage("$root/$folder/$id", name, MarkdownPage.title(text, id), text)
+        MarkdownPageEntry(
+          Repository(root, name),
+          "$folder/${file.name}",
+          MarkdownPage(MarkdownPage.title(text, id), text),
+        )
       }
   }
 

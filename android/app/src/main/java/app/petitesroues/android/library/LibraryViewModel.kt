@@ -14,9 +14,9 @@ import app.petitesroues.android.data.ProgressStore
 import app.petitesroues.android.desktop.Transfers
 import app.petitesroues.android.desktop.mayReachLocalNetwork
 import app.petitesroues.android.di.IoDispatcher
-import app.petitesroues.android.pages.MarkdownPage
 import app.petitesroues.android.pages.MarkdownPageScanner
 import app.petitesroues.android.pages.Section
+import app.petitesroues.model.library.pages.MarkdownPageEntry
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
@@ -68,10 +68,10 @@ constructor(
   /** The open tab: the library, Notes or Quiz me. Kept across process death. */
   val section: StateFlow<Section> = saved.getStateFlow(SECTION, Section.LIBRARY)
 
-  private val _pages = MutableStateFlow<List<MarkdownPage>?>(null)
+  private val _pages = MutableStateFlow<List<MarkdownPageEntry>?>(null)
 
   /** The open Notes or Quiz me tab's pages; null while they are read, or on the library tab. */
-  val pages: StateFlow<List<MarkdownPage>?> = _pages.asStateFlow()
+  val pages: StateFlow<List<MarkdownPageEntry>?> = _pages.asStateFlow()
 
   private var reading: Job? = null
 

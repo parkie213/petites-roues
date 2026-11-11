@@ -1,6 +1,8 @@
 package app.petitesroues.model.library;
 
+import app.petitesroues.library.discovery.MediaKind;
 import app.petitesroues.media.AudioLanguages;
+import app.petitesroues.model.library.media.MediaEntry;
 import java.nio.file.Path;
 import java.util.List;
 
@@ -44,6 +46,15 @@ public record IndexedMedia(
     String posterPath,
     String seriesPosterPath,
     String posterProblem) {
+
+  /** Shared file identity and matching metadata, without local paths or probe-cache state. */
+  public MediaEntry repositoryEntry() {
+    return new MediaEntry(
+        repositoryId,
+        relativePath,
+        "comic".equals(kind) ? MediaKind.COMIC : MediaKind.VIDEO,
+        fingerprint);
+  }
 
   /** Media without posters, as tests and callers that do not track them build it. */
   public IndexedMedia(

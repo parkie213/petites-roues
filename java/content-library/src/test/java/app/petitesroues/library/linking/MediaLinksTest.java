@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 import app.petitesroues.library.discovery.MediaKind;
 import app.petitesroues.library.linking.MediaLinks.Candidate;
+import app.petitesroues.model.library.media.MediaEntry;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -11,7 +12,13 @@ import org.junit.jupiter.api.Test;
 
 class MediaLinksTest {
   private static Candidate<String> file(String path, MediaKind kind, String fingerprint) {
-    return new Candidate<>(path, kind, fingerprint, path.substring(0, path.indexOf('/')));
+    return new Candidate<>(
+        path,
+        new MediaEntry(
+            path.substring(0, path.indexOf('/')),
+            path.substring(path.indexOf('/') + 1),
+            kind,
+            fingerprint));
   }
 
   @Test
@@ -64,7 +71,14 @@ class MediaLinksTest {
 
   private static Candidate<String> linked(
       String path, MediaKind kind, String fingerprint, String to) {
-    return new Candidate<>(path, kind, fingerprint, path.substring(0, path.indexOf('/')), to);
+    return new Candidate<>(
+        path,
+        new MediaEntry(
+            path.substring(0, path.indexOf('/')),
+            path.substring(path.indexOf('/') + 1),
+            kind,
+            fingerprint),
+        to);
   }
 
   @Test

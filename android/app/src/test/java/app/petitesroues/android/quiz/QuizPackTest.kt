@@ -1,7 +1,6 @@
 package app.petitesroues.android.quiz
 
 import app.petitesroues.android.cue
-import app.petitesroues.android.pages.MarkdownPage
 import app.petitesroues.android.weather
 import app.petitesroues.model.document.ComicBox
 import app.petitesroues.model.document.ComicChapter
@@ -13,6 +12,7 @@ import app.petitesroues.model.document.ReadingDirection
 import app.petitesroues.model.document.StudyDocument
 import app.petitesroues.model.document.VideoCue
 import app.petitesroues.model.document.VideoDocument
+import app.petitesroues.model.pages.MarkdownPage
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -165,8 +165,6 @@ class QuizPackTest {
   fun aGeneralBriefCarriesTheQuizThenTheRulesWithHeadingsNested() {
     val quiz =
       MarkdownPage(
-        "primary:q/quizzes/common-irregular-verbs",
-        "french-quizzes",
         "Common irregular verbs",
         "# Common irregular verbs\n\nDrill être.\n\n## Traps\n",
       )
@@ -179,11 +177,5 @@ class QuizPackTest {
     assertTrue(brief.indexOf("## The quiz") < brief.indexOf("## Quiz rules"))
     assertTrue(brief.endsWith("### Subtitle quiz agent\n\nOne item at a time.\n"))
     assertEquals("quiz-common-irregular-verbs.md", QuizPack.fileName(quiz))
-  }
-
-  @Test
-  fun aPageIsNamedByItsFirstLevelOneHeading() {
-    assertEquals("Passé composé", MarkdownPage.title("## Sub\n#  Passé composé \n# Later\n", "x"))
-    assertEquals("x", MarkdownPage.title("#\n## Sub\n", "x"))
   }
 }

@@ -5,12 +5,12 @@ React calls the desktop over HTTP; Android runs its own offline application.
 
 | Module | Owns | Internal production dependencies |
 | --- | --- | --- |
-| `document-model` | Immutable document types, defaults, intrinsic validation and playback ordering | None |
-| `document-json` | JSON recognition, strict decoding, canonical encoding and file loading | `document-model` |
-| `content-library` | Discovery, shelving, media linking, fingerprints and progress calculations | None |
+| `content-model` | Study documents, Markdown quizzes/notes, defaults and intrinsic rules | None |
+| `document-json` | JSON recognition, strict decoding, canonical encoding and file loading | `content-model` |
+| `content-library` | Repository identities, library entries, discovery, shelving, media linking and fingerprints | `content-model` |
 | `sync` | Desktop–phone protocol, client and downloads | `content-library` |
 | `desktop-application` | Desktop workflows, transactions, SQLite stores/migrations and local integrations | Model, JSON, library and sync |
-| `document-test-fixtures` | Reusable sample documents and model constructors for downstream tests | `document-model` |
+| `document-test-fixtures` | Reusable sample documents and model constructors for downstream tests | `content-model` |
 | `desktop-test-fixtures` | Test database setup and synthetic media | Flyway (external) |
 | `desktop-server` | HTTP controllers/filters, Spring Boot startup, phone listener and advertising | `desktop-application`, `document-json` |
 
@@ -23,9 +23,23 @@ version because Maven must resolve the parent before inheriting that management.
 The four shared modules compile production
 code for Java 17 for Android; the desktop modules and all tests use Java 25.
 
-## Documents and JSON
+## Content models and document JSON
 
-`document-model` is Java-only. Its records and `StudyDocumentValidator` have no
+`content-model` is Java-only. It owns annotated video/comic documents and Markdown
+quiz/note pages. `MarkdownPage` shares page data and the first-heading title rule.
+It contains title and text, without repository or storage fields.
+`content-library` owns shared library models under `app.petitesroues.model.library`:
+`repository.Repository` (identity and name), `pages.MarkdownPageEntry` (repository,
+relative path and content), `documents.DocumentEntry` (repository, relative path
+and indexed metadata), and `media.MediaEntry` (repository ID, relative path, kind
+and fingerprint). `DocumentMetadata` extracts the same video/comic summary on both
+platforms, without retaining cues or regions. Media linking consumes these shared
+entries; videos and comics use the same entry types, distinguished by media kind.
+Platform readers load content; library services and scanners associate it with a repository. Rendering and quiz
+sharing remain in the user interfaces. Local learner progress remains separate
+from portable content and currently lives in each application.
+
+Its records and `StudyDocumentValidator` have no
 Jackson annotations, mappers, serialization methods or DI-framework dependencies.
 Models own defaults, immutable collections and intrinsic rules, including exactly
 one video or comic body. `VideoDocument.inPlaybackOrder()` is an explicit domain
@@ -53,7 +67,7 @@ mappers or pretty printers. HTTP JSON and persisted review commands register the
 adapter's Jackson module so nested domain objects use the same wire representation.
 The HTTP mapper retains its own request-handling policies.
 
-Pure model tests stay in `document-model` and construct their own inputs. Reusable
+Pure model tests stay in `content-model` and construct their own inputs. Reusable
 model fixtures live in `document-test-fixtures` for downstream consumers. The model
 cannot depend back on its fixture module, even for tests, without a reactor cycle.
 JSON shape, recognition, canonical output and round-trip tests belong to `document-json`.
@@ -130,7 +144,7 @@ From the repository root:
 
 ```sh
 ./java/mvnw -B -f java/pom.xml verify
-./java/mvnw -B -f java/pom.xml -pl document-model -am verify
+./java/mvnw -B -f java/pom.xml -pl content-model -am verify
 ./java/mvnw -B -f java/pom.xml -pl desktop-server -am verify
 ```
 
