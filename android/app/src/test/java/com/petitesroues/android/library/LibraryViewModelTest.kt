@@ -20,6 +20,7 @@ import com.petitesroues.android.pages.MarkdownPageScanner
 import com.petitesroues.android.pages.Section
 import com.petitesroues.android.screens.Examples
 import com.petitesroues.android.screens.SDK
+import com.petitesroues.android.testing.FakeAppFolder
 import com.petitesroues.android.testing.FakeDesktop
 import com.petitesroues.android.testing.FakeNsd
 import com.petitesroues.android.testing.MainDispatcherRule
@@ -39,7 +40,6 @@ import org.junit.Test
 import org.junit.rules.TemporaryFolder
 import org.junit.runner.RunWith
 import org.robolectric.annotation.Config
-import org.robolectric.shadows.ShadowEnvironment
 
 /**
  * The library's behaviour, without drawing it: a real index and progress database in memory, and a
@@ -58,14 +58,14 @@ class LibraryViewModelTest {
   private lateinit var indexDatabase: IndexDatabase
   private lateinit var progressDatabase: ProgressDatabase
   private lateinit var settings: Settings
+  private lateinit var folders: Folders
   private lateinit var library: LibraryService
   private val desktop = FakeDesktop()
+  /** No All files access until a test grants it. */
+  private val appFolder = FakeAppFolder()
 
   @Before
   fun setUp() {
-    // Robolectric has no shared storage until it is given a directory; the app's own folder there
-    // stays out of the library, as on a phone without All files access.
-    ShadowEnvironment.addExternalDir("storage")
     indexDatabase =
       Room.inMemoryDatabaseBuilder(context, IndexDatabase::class.java)
         .allowMainThreadQueries()
@@ -75,6 +75,7 @@ class LibraryViewModelTest {
         .allowMainThreadQueries()
         .build()
     settings = Settings(context).apply { contentTrees = listOf(documents, media) }
+    folders = Folders(settings, appFolder)
     library = LibraryService(context.contentResolver, indexDatabase.index(), StudyDocumentReader())
   }
 
@@ -88,13 +89,20 @@ class LibraryViewModelTest {
     LibraryViewModel(
       context,
       settings,
+      folders,
       indexDatabase.index(),
       ProgressStore(progressDatabase.progress(), CoroutineScope(Dispatchers.Unconfined)),
       library,
       CardImages(context),
       MarkdownPageScanner(context.contentResolver),
       context.contentResolver,
-      Transfers(context, settings, desktop, PairedDesktop(settings, DesktopFinder(FakeNsd()))),
+      Transfers(
+        context,
+        settings,
+        folders,
+        desktop,
+        PairedDesktop(settings, DesktopFinder(FakeNsd())),
+      ),
       main.dispatcher,
       SavedStateHandle(),
     )
@@ -133,13 +141,28 @@ class LibraryViewModelTest {
       model.refresh()
       val running = awaitItem()
       assertTrue(running.refreshing)
-      assertEquals(settings.libraryFolders, running.folders)
+      assertEquals(folders.library, running.folders)
       val done = awaitUntil { !it.refreshing }
       assertEquals(examples, done.documentIds)
       assertNull(done.refreshProgress)
       assertNull(done.message)
     }
     assertTrue(settings.libraryBytes!! > 0)
+  }
+
+  @Test
+  fun `titles kept in the app's own folder are listed once it is allowed`() = runTest {
+    // The app's own folder holds the example videos; the only chosen folder, the documents.
+    settings.contentTrees = listOf(documents)
+    val model = viewModel()
+    model.refresh()
+    assertFalse(model.awaitState { !it.refreshing }.titles.any { it.mediaUri != null })
+
+    appFolder.folder = media
+    model.refresh()
+    val state = model.awaitState { !it.refreshing && it.folders.size == 2 }
+    assertEquals(listOf(media, documents), state.folders)
+    assertEquals(examples, state.documentIds)
   }
 
   @Test
@@ -192,7 +215,7 @@ class LibraryViewModelTest {
     model.removeFolder(media)
     assertEquals(listOf(documents), settings.contentTrees)
     val state = model.awaitState { !it.refreshing }
-    assertEquals(settings.libraryFolders, state.folders)
+    assertEquals(folders.library, state.folders)
     assertFalse(media in state.folders)
     assertFalse(state.titles.any { it.mediaUri != null })
   }

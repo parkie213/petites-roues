@@ -5,7 +5,6 @@ import android.net.Uri
 import android.os.ParcelFileDescriptor
 import android.provider.DocumentsContract
 import android.provider.DocumentsContract.Document
-import com.petitesroues.android.Settings
 import com.petitesroues.android.library.AppFolder
 import com.petitesroues.sync.PathTransferFolder
 import com.petitesroues.sync.TransferFolder
@@ -13,12 +12,6 @@ import java.io.File
 import java.io.IOException
 import java.io.OutputStream
 import java.nio.channels.SeekableByteChannel
-
-/**
- * Where titles from the desktop are copied: the chosen folder, else the app's own; null when
- * neither is usable.
- */
-fun downloadFolder(settings: Settings): Uri? = settings.downloadFolder ?: AppFolder.ready()
 
 /** The shared download code's view of [tree]: plain files for the app's own folder, else SAF. */
 fun transferFolder(resolver: ContentResolver, tree: Uri): TransferFolder =
