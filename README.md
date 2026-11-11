@@ -17,7 +17,7 @@ project for language learning beginners!
 A self-hosted app for anyone who wants help watching or reading in another language,
 in the browser or on Android.
 
-[Features](#features) · [Quick start](#quick-start) · [Why petites roues?](#why-petites-roues) ·
+[Website](https://petitesroues.app/) · [Features](#features) · [Quick start](#quick-start) · [Why petites roues?](#why-petites-roues) ·
 [How it works](#how-it-works) · [Design principles](#design-principles)
 
 </div>
@@ -63,7 +63,7 @@ apply it to other text media soon.
 
 ```bash
 ./java/mvnw -f java/pom.xml verify && mkdir -p content
-java -jar java/server/target/petites-roues-server-0.1.0-SNAPSHOT.jar
+java -jar java/desktop-server/target/desktop-server-0.1.0-SNAPSHOT.jar
 ```
 
 In a second terminal, from the repository root:

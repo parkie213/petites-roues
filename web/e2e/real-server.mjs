@@ -8,7 +8,7 @@ import path from "node:path";
  * Global setup for recording: starts the built Java server on the test port with a throwaway
  * library in a temporary folder, and adds the repository's example folders, as Getting started
  * does by hand. Nothing touches the developer's own `content/` library. Build the server first
- * (`./java/mvnw -f java/pom.xml -pl server -am package`). Returns the teardown that stops it.
+ * (`./java/mvnw -f java/pom.xml -pl desktop-server -am package`). Returns the teardown that stops it.
  */
 export const API_PORT = 18877;
 const api = `http://127.0.0.1:${API_PORT}/api`;
@@ -19,9 +19,9 @@ const folders = ["media-fr", "documents-fr"].map((name) =>
 );
 
 async function jar() {
-  const target = path.join(repository, "java/server/target");
+  const target = path.join(repository, "java/desktop-server/target");
   const found = (await readdir(target).catch(() => [])).find((name) =>
-    /^petites-roues-server-.*\.jar$/.test(name),
+    /^desktop-server-.*\.jar$/.test(name),
   );
   if (!found)
     throw Error(`No server jar in ${target}: build the Java server first`);

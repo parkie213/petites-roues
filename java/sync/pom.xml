@@ -1,28 +1,37 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project
+    xmlns="http://maven.apache.org/POM/4.0.0"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
+
   <parent>
-    <groupId>com.petitesroues</groupId>
-    <artifactId>petites-roues</artifactId>
+    <groupId>app.petitesroues</groupId>
+    <artifactId>petites-roues-parent</artifactId>
     <version>0.1.0-SNAPSHOT</version>
     <relativePath>../pom.xml</relativePath>
   </parent>
-  <artifactId>petites-roues-sync</artifactId>
+
+  <artifactId>sync</artifactId>
+
   <properties>
     <!-- How the phone and the desktop talk: the wire records and the phone's client, shared with the Android app; D8 and Android's library need Java 17. -->
     <maven.compiler.release>17</maven.compiler.release>
     <maven.compiler.testRelease>${java.version}</maven.compiler.testRelease>
   </properties>
+
   <dependencies>
     <dependency>
-      <groupId>com.petitesroues</groupId>
-      <artifactId>petites-roues-library</artifactId>
+      <groupId>app.petitesroues</groupId>
+      <artifactId>content-library</artifactId>
       <version>${project.version}</version>
     </dependency>
+
     <dependency>
       <groupId>tools.jackson.core</groupId>
       <artifactId>jackson-databind</artifactId>
     </dependency>
+
     <dependency>
       <groupId>org.junit.jupiter</groupId>
       <artifactId>junit-jupiter</artifactId>

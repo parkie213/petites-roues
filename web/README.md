@@ -66,7 +66,7 @@ leaves the expected, actual and diff images in `test-results/`. A video's frame 
 screenshots, since a pause can land a frame apart between runs.
 
 `npm run e2e:record` records them again from the real Java server: build it first
-(`./java/mvnw -f java/pom.xml -pl server -am package -DskipTests`). It starts the jar with a
+(`./java/mvnw -f java/pom.xml -pl desktop-server -am package -DskipTests`). It starts the jar with a
 throwaway library holding `example/media-fr` and `example/documents-fr`, so your own library and
 saved progress are untouched. Re-record after changing what a journey does or what the API
 returns, and commit the fixtures with the change. Recording is repeatable (times, random ids,
