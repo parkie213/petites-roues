@@ -59,7 +59,7 @@ path. Markdown rendering and sharing belong to the user interfaces.
 
 Playback and reading progress describe local learner activity, rather than content.
 Shared `PlaybackPosition` and `ReadingPosition` values and their intrinsic rules
-live in `learning-model`, separate from portable content. Desktop snapshots retain
+live in `learner-state-model`, separate from portable content. Desktop snapshots retain
 local title IDs and ISO timestamps; Android retains its Room entity, existing keys
 and epoch timestamps. Storage adapters translate positions without a schema change.
 Both platforms use the same fraction calculations and page-identity lookup against

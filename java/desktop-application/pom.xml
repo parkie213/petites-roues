@@ -16,7 +16,7 @@
   <dependencies>
     <dependency>
       <groupId>app.petitesroues</groupId>
-      <artifactId>learning-model</artifactId>
+      <artifactId>learner-state-model</artifactId>
     </dependency>
     <dependency>
       <groupId>app.petitesroues</groupId>

@@ -11,7 +11,7 @@
     <version>0.1.0-SNAPSHOT</version>
   </parent>
 
-  <artifactId>learning-model</artifactId>
+  <artifactId>learner-state-model</artifactId>
 
   <properties>
     <!-- The Android app uses this jar too; D8 and Android's library need Java 17. -->

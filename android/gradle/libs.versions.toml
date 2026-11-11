@@ -25,7 +25,7 @@ room = "2.8.5"
 androidxTest = "1.7.0"
 
 [libraries]
-learning-model = { module = "app.petitesroues:learning-model", version.ref = "petitesRoues" }
+learner-state-model = { module = "app.petitesroues:learner-state-model", version.ref = "petitesRoues" }
 content-model = { module = "app.petitesroues:content-model", version.ref = "petitesRoues" }
 document-json = { module = "app.petitesroues:document-json", version.ref = "petitesRoues" }
 content-library = { module = "app.petitesroues:content-library", version.ref = "petitesRoues" }

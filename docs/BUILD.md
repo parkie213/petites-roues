@@ -17,7 +17,7 @@ images/               Screenshots and branding assets
 java/
   pom.xml             Java-only Maven parent and reactor
   mvnw                Maven wrapper (mvnw.cmd on Windows)
-  learning-model/   Java-only learner resume positions and progress rules
+  learner-state-model/   Java-only learner resume positions and progress rules
   content-model/    Java-only study documents, Markdown pages and validation
   document-json/     JSON mapping, codec and loading
   content-library/    Shared discovery, shelving, linking and fingerprints
@@ -48,10 +48,10 @@ and the phone's `DesktopClient`, on `HttpURLConnection` because `java.net.http` 
 Android. The server answers with the
 same records and its integration test pairs through the same client, so the two sides cannot drift.
 It depends on content-library and Jackson and targets Java 17.
-`java/desktop-application` depends on content-model, learning-model, document-json, content-library and sync, and owns services, stores, media
+`java/desktop-application` depends on content-model, learner-state-model, document-json, content-library and sync, and owns services, stores, media
 readers, local application models and canonical database migrations. `java/desktop-server` depends on desktop-application
 and supplies HTTP controllers, framework wiring, Flyway startup integration and executable startup.
-The dependency direction is `desktop-server → desktop-application → content-model, learning-model, document-json, content-library, sync`.
+The dependency direction is `desktop-server → desktop-application → content-model, learner-state-model, document-json, content-library, sync`.
 
 Unit tests live beside their owning module. Documents tests load examples from
 `java/document-json/src/test/resources/documents/`. Pure model tests stay in
@@ -201,7 +201,7 @@ folder, and posters beside the media. Sync the media folder and the documents fo
 phone and choose both. Media is fingerprinted once (8 MiB read per file) and again only when it
 changes.
 
-The app uses the shared Java jars (`java/content-model`, `java/learning-model`, `java/document-json`, `java/content-library`, `java/sync`) from `~/.m2`,
+The app uses the shared Java jars (`java/content-model`, `java/learner-state-model`, `java/document-json`, `java/content-library`, `java/sync`) from `~/.m2`,
 the same jars the server builds against. Gradle installs it with Maven whenever it configures the
 build, including an Android Studio sync, so the app never compiles against a stale jar; Maven
 skips work that is up to date. Jackson comes with the jar, at the version Spring Boot manages.

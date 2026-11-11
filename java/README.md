@@ -6,11 +6,11 @@ React calls the desktop over HTTP; Android runs its own offline application.
 | Module | Owns | Internal production dependencies |
 | --- | --- | --- |
 | `content-model` | Study documents, Markdown quizzes/notes, defaults and intrinsic rules | None |
-| `learning-model` | Video/page resume positions, validation and progress fractions | None |
+| `learner-state-model` | Video/page resume positions, validation and progress fractions | None |
 | `document-json` | JSON recognition, strict decoding, canonical encoding and file loading | `content-model` |
 | `content-library` | Repository identities, library entries, discovery, shelving, media linking and fingerprints | `content-model` |
 | `sync` | Desktop–phone protocol, client and downloads | `content-library` |
-| `desktop-application` | Desktop workflows, transactions, SQLite stores/migrations and local integrations | Content/learning models, JSON, library and sync |
+| `desktop-application` | Desktop workflows, transactions, SQLite stores/migrations and local integrations | Content and learner-state models, JSON, library and sync |
 | `document-test-fixtures` | Reusable sample documents and model constructors for downstream tests | `content-model` |
 | `desktop-test-fixtures` | Test database setup and synthetic media | Flyway (external) |
 | `desktop-server` | HTTP controllers/filters, Spring Boot startup, phone listener and advertising | `desktop-application`, `document-json` |
@@ -93,7 +93,7 @@ The discovery, media-link precedence and fingerprint protocol remain project rul
 
 ## Learner progress
 
-`learning-model` owns `PlaybackPosition` and `ReadingPosition` under
+`learner-state-model` owns `PlaybackPosition` and `ReadingPosition` under
 `app.petitesroues.model.progress`. It has no production dependencies and is shared
 by desktop and Android. Positions have no storage key, timestamp or database fields.
 Video positions must be finite and nonnegative; fractions are clamped to one, or
