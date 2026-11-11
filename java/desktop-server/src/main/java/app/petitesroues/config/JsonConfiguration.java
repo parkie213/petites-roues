@@ -1,11 +1,12 @@
 package app.petitesroues.config;
 
+import app.petitesroues.documents.StudyDocumentJson;
 import org.springframework.boot.jackson.autoconfigure.JsonMapperBuilderCustomizer;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import tools.jackson.core.StreamReadFeature;
 
-/** Apply the same JSON parsing rules to HTTP requests and imported documents. */
+/** Registers document wire mapping and strict duplicate-key rejection for HTTP JSON. */
 @Configuration
 public class JsonConfiguration {
   /**
@@ -18,6 +19,9 @@ public class JsonConfiguration {
    */
   @Bean
   public JsonMapperBuilderCustomizer strictJson() {
-    return builder -> builder.enable(StreamReadFeature.STRICT_DUPLICATE_DETECTION);
+    return builder ->
+        builder
+            .addModule(StudyDocumentJson.module())
+            .enable(StreamReadFeature.STRICT_DUPLICATE_DETECTION);
   }
 }

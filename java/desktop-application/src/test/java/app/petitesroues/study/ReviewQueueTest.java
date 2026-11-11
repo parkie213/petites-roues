@@ -28,7 +28,6 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.datasource.DataSourceTransactionManager;
 import org.springframework.jdbc.datasource.SingleConnectionDataSource;
 import org.springframework.transaction.support.TransactionTemplate;
-import tools.jackson.databind.json.JsonMapper;
 
 class ReviewQueueTest {
   @TempDir Path root;
@@ -42,8 +41,8 @@ class ReviewQueueTest {
 
   @BeforeEach
   void setup() throws Exception {
-    var mapper = JsonMapper.builder().build();
-    codec = new StudyDocumentCodec(StudyDocumentJson.newMapper());
+    var mapper = StudyDocumentJson.newMapper();
+    codec = new StudyDocumentCodec();
     source = new SingleConnectionDataSource("jdbc:sqlite::memory:", true);
     jdbc = new JdbcTemplate(source);
     DatabaseFixtures.migrate(source);

@@ -1,12 +1,12 @@
 package app.petitesroues.study;
 
-import app.petitesroues.documents.StudyDocumentValidator;
 import app.petitesroues.model.ChunkSeparator;
 import app.petitesroues.model.document.ComicBox;
 import app.petitesroues.model.document.ComicDocument;
 import app.petitesroues.model.document.ComicRegion;
 import app.petitesroues.model.document.Line;
 import app.petitesroues.model.document.StudyDocument;
+import app.petitesroues.model.document.StudyDocumentValidator;
 import app.petitesroues.model.document.VideoCue;
 import app.petitesroues.model.document.VideoDocument;
 import app.petitesroues.model.editing.ComicRegionInput;

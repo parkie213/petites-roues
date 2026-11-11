@@ -5,7 +5,6 @@ import static org.junit.jupiter.api.Assertions.*;
 
 import app.petitesroues.config.PhoneListener;
 import app.petitesroues.documents.StudyDocumentCodec;
-import app.petitesroues.documents.StudyDocumentJson;
 import app.petitesroues.media.MediaFingerprint;
 import app.petitesroues.model.document.ComicReference;
 import app.petitesroues.model.document.ReadingDirection;
@@ -85,10 +84,7 @@ class PhoneTransferIntegrationTest extends HttpIntegrationTest {
             id, id, ReadingDirection.LTR, List.of(newPage("p1", "page-001.png", "1")));
     comic = comic.withComic(body -> body.withReference(new ComicReference(fingerprint, null)));
     Files.createDirectories(file.getParent());
-    Files.writeString(
-        file,
-        new StudyDocumentCodec(StudyDocumentJson.newMapper()).encode(comic),
-        StandardCharsets.UTF_8);
+    Files.writeString(file, new StudyDocumentCodec().encode(comic), StandardCharsets.UTF_8);
   }
 
   private String add(Path folder) {
@@ -197,9 +193,7 @@ class PhoneTransferIntegrationTest extends HttpIntegrationTest {
     assertEquals(3, Files.size(phone.resolve(t01Id + ".jpg")));
     assertEquals(
         "t01",
-        new StudyDocumentCodec(StudyDocumentJson.newMapper())
-            .decode(Files.readAllBytes(phone.resolve(t01Id + ".json")))
-            .id());
+        new StudyDocumentCodec().decode(Files.readAllBytes(phone.resolve(t01Id + ".json"))).id());
     assertEquals(-1, folder.partSize(cbzPath));
 
     var again = TransferPlan.of(client.titles(desktop), folder);
@@ -207,7 +201,7 @@ class PhoneTransferIntegrationTest extends HttpIntegrationTest {
 
     // The desktop's document changes (a review lands): only it is offered and fetched again.
     Path document = docs.resolve("comics/demon/t01/document.json");
-    var codec = new StudyDocumentCodec(StudyDocumentJson.newMapper());
+    var codec = new StudyDocumentCodec();
     var edited = codec.decode(Files.readAllBytes(document));
     Files.writeString(
         document,

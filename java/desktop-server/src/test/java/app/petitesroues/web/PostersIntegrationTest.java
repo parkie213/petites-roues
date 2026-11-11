@@ -4,7 +4,6 @@ import static app.petitesroues.support.SpecFixtures.newPage;
 import static org.junit.jupiter.api.Assertions.*;
 
 import app.petitesroues.documents.StudyDocumentCodec;
-import app.petitesroues.documents.StudyDocumentJson;
 import app.petitesroues.media.MediaFingerprint;
 import app.petitesroues.model.document.ComicReference;
 import app.petitesroues.model.document.ReadingDirection;
@@ -55,10 +54,7 @@ class PostersIntegrationTest extends HttpIntegrationTest {
             comic.sourceUrl(),
             body);
     Files.createDirectories(file.getParent());
-    Files.writeString(
-        file,
-        new StudyDocumentCodec(StudyDocumentJson.newMapper()).encode(comic),
-        StandardCharsets.UTF_8);
+    Files.writeString(file, new StudyDocumentCodec().encode(comic), StandardCharsets.UTF_8);
   }
 
   private String add(Path folder) {

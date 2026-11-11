@@ -9,7 +9,6 @@ import app.petitesroues.android.library.Title
 import app.petitesroues.android.library.TitleKind
 import app.petitesroues.android.pages.MarkdownPage
 import app.petitesroues.documents.StudyDocumentCodec
-import app.petitesroues.documents.StudyDocumentJson
 import app.petitesroues.documents.StudyDocumentReader
 import app.petitesroues.model.document.StudyDocument
 import java.io.File
@@ -36,7 +35,7 @@ object Examples {
   }
 
   fun document(path: String): StudyDocument =
-    StudyDocumentReader(StudyDocumentCodec(StudyDocumentJson.newMapper()))
+    StudyDocumentReader(StudyDocumentCodec())
       .read(File(root, "documents-fr/$path/document.json").toPath())
 
   fun title(path: String, media: String, kind: TitleKind, document: StudyDocument) =

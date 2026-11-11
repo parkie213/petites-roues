@@ -4,7 +4,6 @@ import static app.petitesroues.support.SpecFixtures.*;
 import static org.junit.jupiter.api.Assertions.*;
 
 import app.petitesroues.documents.StudyDocumentCodec;
-import app.petitesroues.documents.StudyDocumentJson;
 import app.petitesroues.media.MediaFingerprint;
 import app.petitesroues.model.document.ComicDocument;
 import app.petitesroues.model.document.ComicReference;
@@ -56,7 +55,7 @@ class CardIntegrationTest extends HttpIntegrationTest {
                 1, comic.comic().readingDirection(), null, comic.comic().pages(), List.of()));
     Files.writeString(
         tome.resolve("document.json"),
-        new StudyDocumentCodec(StudyDocumentJson.newMapper()).encode(comic),
+        new StudyDocumentCodec().encode(comic),
         StandardCharsets.UTF_8);
     try (var zip = new ZipOutputStream(Files.newOutputStream(tome.resolve("book.cbz")))) {
       for (var entry : Map.of("a.png", image(40, 60), "z.png", image(1200, 1800)).entrySet()) {
@@ -68,7 +67,7 @@ class CardIntegrationTest extends HttpIntegrationTest {
     // The CBZ links to the document by fingerprint, not by sitting beside it.
     Files.writeString(
         tome.resolve("document.json"),
-        new StudyDocumentCodec(StudyDocumentJson.newMapper())
+        new StudyDocumentCodec()
             .encode(
                 comic.withBody(
                     comic

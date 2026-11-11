@@ -1,252 +1,104 @@
 # Java modules
 
-The Java build provides shared code for desktop and Android, plus the desktop
-application and its HTTP server. This describes their ownership boundaries,
-module naming and the architectural choices behind them.
+The build shares portable document and library rules between desktop and Android.
+React calls the desktop over HTTP; Android runs its own offline application.
 
-## Current modules
-
-| Module | Owns | Production dependencies within this build |
+| Module | Owns | Internal production dependencies |
 | --- | --- | --- |
-| `study-documents` | Study-document records, intrinsic validation, JSON encoding/decoding and file reading | None |
-| `content-library` | Portable content discovery, shelving, media linking, progress calculations and fingerprints | None |
-| `sync` | Desktop–phone protocol records, pairing-code reading, desktop client and download/transfer logic | `content-library` |
-| `desktop-application` | Desktop use cases, transaction boundaries, SQLite stores and migrations, document-edit replay, filesystem and media integrations | `study-documents`, `content-library`, `sync` |
-| `desktop-server` | HTTP controllers and filters, Spring Boot startup/configuration and phone listener/advertising | `desktop-application` |
+| `document-model` | Immutable document types, defaults, intrinsic validation and playback ordering | None |
+| `document-json` | JSON recognition, strict decoding, canonical encoding and file loading | `document-model` |
+| `content-library` | Discovery, shelving, media linking, fingerprints and progress calculations | None |
+| `sync` | Desktop–phone protocol, client and downloads | `content-library` |
+| `desktop-application` | Desktop workflows, transactions, SQLite stores/migrations and local integrations | Model, JSON, library and sync |
+| `desktop-server` | HTTP controllers/filters, Spring Boot startup, phone listener and advertising | `desktop-application`, `document-json` |
 
-Each module uses its directory name as its Maven artifact ID, under the
-`app.petitesroues` group (for example, `app.petitesroues:study-documents`).
-The parent artifact is `app.petitesroues:petites-roues-parent`.
+Module artifact IDs match directory names under `app.petitesroues`. The parent is
+`app.petitesroues:petites-roues-parent`. The four shared modules compile production
+code for Java 17 for Android; the desktop modules and all tests use Java 25.
 
-The table lists direct production dependencies between our modules. Jackson,
-Spring and other external dependencies are declared in each module's POM.
+## Documents and JSON
 
-`study-documents`, `content-library` and `sync` compile production code for Java 17 so Android
-can consume them. Their tests use the build's Java 25 toolchain. `desktop-application`
-and `desktop-server` target Java 25. The shared modules have no Spring dependency;
-`desktop-application` uses Spring context, JDBC and transactions, and `desktop-server` supplies
-the executable Spring Boot host.
+`document-model` is Java-only. Its records and `StudyDocumentValidator` have no
+Jackson annotations, mappers, serialization methods or DI-framework dependencies.
+Models own defaults, immutable collections and intrinsic rules, including exactly
+one video or comic body. `VideoDocument.inPlaybackOrder()` is an explicit domain
+operation; decoding alone does not reorder cues.
 
-Dependencies point from the server towards application operations and shared
-code. Shared code must not depend on the desktop application or HTTP server.
-The parent `pom.xml` aggregates the modules and manages build configuration;
-it has no application implementation.
+`document-json` is an adapter around that model. Jackson configuration, mix-ins,
+the root wire representation and enum spelling live here. The Java document has
+one `StudyBody`; JSON has exactly one `video` or `comic` property. Optional-field
+omission and canonical formatting are serialization policies, not domain rules.
+The adapter maps these differences without duplicating every model record.
 
-## Naming choices
+`StudyDocumentCodec` owns its JSON implementation details. It recognises candidate
+JSON, strictly decodes and validates it, and validates before canonical encoding.
+Recognition deliberately tolerates broken documents so Refresh reports them
+rather than skipping them. Inspection returns a valid document or its problems,
+without a second parse. The codec preserves array order.
 
-### `study-documents`
+`StudyDocumentReader` delegates all JSON work to the codec. It loads files or bytes
+for study and explicitly applies the model's chronological video ordering; comic
+order is preserved. `DocumentStore` uses only this reader to load snapshots and
+inspect candidates. Phone transfer uses the codec to encode documents.
 
-The module owns the portable study-document format: immutable domain types,
-validation, JSON encoding/decoding and file reading. `document-model` would
-suggest a narrower module containing only types and intrinsic rules. Keeping the
-format implementation together serves both desktop and Android consumers.
+Spring and Hilt construct a codec and reader. They do not configure document
+mappers or pretty printers. HTTP JSON and persisted review commands register the
+adapter's Jackson module so nested domain objects use the same wire representation.
+The HTTP mapper retains its own request-handling policies.
 
-### `content-library`
+Pure model tests and reusable model fixtures live in `document-model`. JSON shape,
+recognition, canonical output and round-trip tests belong to `document-json`.
 
-This means the user's content library, not a generic collection of reusable Java
-utilities. It contains rules shared by desktop and Android. Desktop library
-services and SQLite stores live in `desktop-application`, even though their Java
-packages also begin with `app.petitesroues.library`.
+## Desktop application and server
 
-### `sync`
+`desktop-application` owns use cases and their supporting implementations. It uses
+Spring services, JDBC and transactions, but has no HTTP or servlet dependency.
+Services coordinate workflows and transactions; stores contain SQL and row mapping;
+scanners discover content; readers decode file formats. Models are grouped by
+responsibility under `app.petitesroues.model`.
 
-This module includes both the shared protocol and the phone-side desktop client
-and transfer implementation. `sync` describes that combined scope. Calling it
-`sync-protocol` would understate its contents. Separate protocol and client
-modules only if their consumers or dependencies need independent boundaries.
+SQLite migrations live with the stores in `desktop-application`. Non-HTTP database
+tests run here without starting the server. Flyway is a test dependency of this
+module; services do not initialise the database themselves. The server owns Boot's
+Flyway startup integration and discovers migrations from the application JAR.
+Migration SQL and checksums must remain unchanged when moving resources.
 
-## Why separate `desktop-application` and `desktop-server`?
+HTTP integration tests stay in `desktop-server`. Test-only fixture JARs provide
+model fixtures and desktop helpers/media without sibling source-directory links.
+These fixtures are excluded from production artifacts.
 
-The application owns operations such as adding a repository, queuing an edit or
-saving playback progress. The server exposes those operations over HTTP:
-decoding requests, delegating to services, and producing responses and errors.
-It also assembles and starts the desktop runtime.
+## React, Android and ports/adapters
 
-This separation prevents application code from depending on Spring MVC or
-servlet APIs and allows workflows to be tested without an HTTP server. It also
-leaves room for another entry point, such as a command-line tool, to call the
-same services. Such an entry point is a possibility, not an existing requirement.
+React owns browser presentation and interactions. Its Node server serves assets
+and proxies `/api/` requests to the desktop HTTP server. It consumes JSON, not Java
+classes. Android owns Compose/ViewModel interactions, Room databases, permissions
+and local playback. It uses the shared Java modules directly and contacts the
+desktop for pairing and transfer. It does not depend on the desktop modules.
 
-`desktop-application` is not framework-independent: it includes concrete JDBC stores,
-Spring services and local integrations. Its name means desktop application
-operations and supporting implementation, not a pure domain core. `desktop-server`
-means the executable desktop HTTP host.
+Hexagonal architecture separates application rules from external technologies
+through contracts (ports) and their implementations (adapters). The hexagon does
+not prescribe six layers or Maven modules. `ContentTree` is an existing example:
+shared discovery uses its contract, while desktop paths and Android storage
+supply implementations. JSON is another adapter around the document model.
 
-Keeping both modules makes sense while the HTTP dependency boundary is useful.
-Merging them would simplify Maven configuration but lose that compile-time
-separation. Adding further modules should solve a concrete dependency or reuse
-problem rather than make the diagram more symmetrical.
+This project does not implement strict hexagonal architecture throughout: desktop
+services still use concrete JDBC stores. Introduce further ports where they make
+integration changes or testing easier. React and Android share some rules and
+contracts but have different workflows and state; they are not interchangeable
+skins around a single application core.
 
-## Hexagonal architecture
+See [the React code map](../web/README.md), [the Android code map](../android/README.md)
+and [workspace conventions](../AGENTS.md).
 
-Hexagonal architecture is also called ports and adapters. It places application
-rules and use cases at the centre, with external systems connected through
-explicit contracts (ports). Adapters translate between those contracts and
-technologies such as HTTP, SQLite, files or an external process. The hexagon is
-a drawing convention; it does not mean six layers or six modules.
+## Verification
 
-For example, a playback-progress use case could depend on a `PlaybackProgress`
-persistence interface owned by the core. A JDBC adapter would implement that
-interface. An HTTP controller would call the use case. The core would know the
-persistence contract but would not import JDBC or HTTP types. Both the HTTP
-adapter and the JDBC adapter would depend towards the core, with runtime wiring
-connecting the implementations.
-
-The current project has some of this separation: HTTP controllers are outside
-application operations, and portable document/library rules are outside Spring.
-It is not a strict hexagonal implementation. Services use concrete stores, and
-JDBC implementations share the `desktop-application` module with the use cases.
-
-Adopting stricter ports and adapters would mean defining interfaces at selected
-external boundaries and moving their implementations outward. It would not
-require an interface for every class or a Maven module for every adapter. Do it
-where substituting an integration or testing an operation becomes materially
-easier; the existing service/store/scanner/reader conventions remain useful.
-
-## Where React and Android fit
-
-There are two applications with different execution environments and workflows:
-
-| Part | Owns | How it reaches shared functionality |
-| --- | --- | --- |
-| React UI (`web/`) | Browser presentation, interactions, playback coordination and pending requests | Calls the desktop HTTP API; consumes JSON, not Java jars |
-| Desktop Java application | Desktop catalogue, editing/review workflows, persistence and local integrations | Uses the three shared Java modules directly |
-| Android app (`android/`) | Offline player/reader, local catalogue and progress, pairing and downloads | Uses the shared Java modules directly; calls the desktop for pairing and transfer |
-
-The React UI reaches `desktop-server` through the Node web server's `/api/` proxy.
-Controllers delegate to `desktop-application` services. The Node server serves the UI
-and proxies requests; it does not own the desktop's business workflows. React's
-JSON types and display projections are maintained in TypeScript. Sharing a wire
-format does not make the Java model executable in the browser.
-
-Android is an offline application, not just another presentation layer over the
-desktop service. It has its own Room databases, content-folder permissions and
-application services. Compose screens render ViewModel state; ViewModels invoke
-local operations or the desktop client. The desktop supplies files through sync,
-and playback and reading then work locally. Android is read-only with respect to
-study documents, while still saving local progress and preferences.
-
-Consequently, Android does not depend on the Java `desktop-application` or `desktop-server`
-modules. `desktop-application` refers specifically to desktop workflows.
-The shared modules are the place for rules the two platforms must agree on,
-such as document validation, media fingerprints and discovery. Desktop editing
-and Android lifecycle handling remain owned by their respective applications.
-
-### A concrete port and adapter already in use
-
-`content-library` defines `ContentTree<F>`: list a folder and open a file, using a
-platform-specific handle. `ContentScanner` depends on that contract. It does not
-need to know how an operating system grants access to the files.
-
-- `PathContentTree` adapts desktop paths to that contract.
-- Android's `SafContentTree` adapts Storage Access Framework URIs to the same
-  contract, through its `ContentFolder` interface.
-
-This is the central idea of hexagonal architecture in existing code: the shared
-rules define what they need; platform implementations supply it. At runtime the
-scanner calls the adapter, but the adapter's source code depends on the shared
-contract. The path adapter currently lives in the same jar as the contract;
-separate Maven modules are not required to express this relationship.
-
-### Applying the idea to the whole system
-
-For the desktop, the HTTP controllers are incoming adapters: they translate an
-external action into an application operation. A strict hexagonal design would
-also put persistence contracts between services and JDBC stores. The server
-would wire those implementations into the application.
-
-For Android, ViewModels connect UI actions to local application operations.
-Room, Android storage access, Media3 and the desktop HTTP client are external
-integrations around those operations. Some are already separated behind
-contracts; others are concrete dependencies. Hilt wires objects together, but
-dependency injection alone does not establish a hexagonal boundary.
-
-React can also separate presentation and browser integrations from the operations
-they support. Hooks coordinating an operation can call an API client while
-components render state. A Java HTTP API is a network contract, however, not the
-same thing as a Java interface port. From the desktop's perspective React is an
-external client; from the browser's perspective the desktop API is an external
-dependency. Each application has its own boundary.
-
-We therefore should not draw a single shared application core with React and
-Android as interchangeable skins. They share some rules and data contracts,
-but they perform different operations and own different state. A useful next
-step would be to identify a specific workflow whose tests or integration changes
-are difficult, then introduce a port at that boundary if it helps. A system-wide
-rewrite or a common UI abstraction is not required.
-
-See [the React code map](../web/README.md) and
-[the Android code map](../android/README.md) for platform-specific ownership.
-
-## Responsibility conventions
-
-- Services coordinate operations and own transaction boundaries; they contain no
-  SQL, JDBC calls or database row mapping.
-- Stores own database queries, persistence mapping and writes.
-- Scanners discover content without accessing the database.
-- Readers decode particular file formats.
-- Controllers handle HTTP requests and responses and delegate operations.
-- Shared model types live under `app.petitesroues.model`, grouped by purpose.
-
-Module names describe larger ownership boundaries; class names describe the
-responsibilities within them. See [the workspace instructions](../AGENTS.md).
-
-## Build and verification
-
-From the repository root, run the complete Java build with:
+From the repository root:
 
 ```sh
 ./java/mvnw -B -f java/pom.xml verify
-```
-
-To build the server and its required modules:
-
-```sh
+./java/mvnw -B -f java/pom.xml -pl document-model -am verify
 ./java/mvnw -B -f java/pom.xml -pl desktop-server -am verify
 ```
 
-Media integration tests require FFmpeg. CI installs and tests the shared modules
-first, then verifies `desktop-application` and `desktop-server` against those artifacts. See
-[the CI workflow](../.github/workflows/ci.yml) for the exact commands.
-
-## Desktop database ownership
-
-`desktop-application` owns the SQLite stores and their canonical Flyway migrations
-under `src/main/resources/db/migration`. Non-HTTP database tests run in this module
-against those migrations, without starting the server. Flyway is a test dependency
-here; application services do not initialise the database themselves.
-
-`desktop-server` owns Spring Boot's Flyway startup integration. It discovers the
-migrations on the application dependency's classpath and applies them before
-serving requests. HTTP integration tests remain in the server module and exercise
-that startup path. Migration versions and checksums must remain unchanged when
-moving resources between modules.
-
-The application's test-only fixtures JAR provides shared test helpers and media
-resources to server tests. It excludes test classes; the server does not reach
-into the application's source directories or execute its tests again.
-
-## Document format components
-
-`StudyDocumentCodec` owns document recognition and strictly decodes and validates
-JSON, or validates and writes canonical JSON. It preserves array order. `inspect` returns either a valid decoded
-document or its parse/structural problems, so callers can add contextual checks
-without parsing again. `StudyDocumentValidator` is a pure set of structural rules;
-it has no runtime configuration and does not participate in dependency injection.
-
-`StudyDocumentReader` delegates recognition and inspection to its codec and loads
-documents for study. It has no Jackson dependency in its implementation.
-Its decoding validates through the supplied codec, then sorts video cues by start
-time for playback while preserving comic order. Recognition is intentionally
-permissive so a broken document is surfaced by Refresh instead of disappearing.
-
-`StudyDocumentJson.newMapper()` supplies the dedicated document JSON configuration
-for desktop and Android. Spring and Hilt pass this mapper into the codec, which
-derives its canonical writer and permissive recognition reader from it. They do
-not register it as the general HTTP mapper. Recognition can tolerate duplicate
-keys while strict decoding still rejects them; the mapper itself is not relaxed.
-
-Spring and Hilt construct the reader with that codec. `DocumentStore` depends only
-on the reader for loading and inspecting candidates. Services that encode files,
-such as phone transfer, receive the codec directly. The shared module has no DI-framework dependency and does not construct hidden codec
-instances. Platform file access remains outside the byte-oriented codec.
+Media integration tests require FFmpeg. CI builds shared artifacts before desktop
+and Android consumers; see [the workflow](../.github/workflows/ci.yml).

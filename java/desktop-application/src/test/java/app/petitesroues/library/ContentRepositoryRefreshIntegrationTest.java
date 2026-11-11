@@ -56,7 +56,7 @@ class ContentRepositoryRefreshIntegrationTest {
   ContentRepositoryScanner scanner;
   StudyDocumentReader reader;
   ContentRepositoryService service;
-  JsonMapper mapper = JsonMapper.builder().build();
+  JsonMapper mapper = StudyDocumentJson.newMapper();
 
   @BeforeEach
   void setup() {
@@ -67,7 +67,7 @@ class ContentRepositoryRefreshIntegrationTest {
     catalogue = new CatalogueStore(jdbc);
     repositories = new ContentRepositoryStore(jdbc);
     scanner = new ContentRepositoryScanner();
-    reader = new StudyDocumentReader(new StudyDocumentCodec(StudyDocumentJson.newMapper()));
+    reader = new StudyDocumentReader(new StudyDocumentCodec());
     service = service(new RepositoryContentService(repositories, catalogue, reader));
   }
 
@@ -91,7 +91,7 @@ class ContentRepositoryRefreshIntegrationTest {
   private Path write(String folder, StudyDocument document) throws IOException {
     Path file = root.resolve(folder).resolve("document.json");
     Files.createDirectories(file.getParent());
-    Files.writeString(file, new StudyDocumentCodec(StudyDocumentJson.newMapper()).encode(document));
+    Files.writeString(file, new StudyDocumentCodec().encode(document));
     return file;
   }
 

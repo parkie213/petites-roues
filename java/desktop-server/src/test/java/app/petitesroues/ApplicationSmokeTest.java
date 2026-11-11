@@ -5,7 +5,6 @@ import static app.petitesroues.support.HttpClients.client;
 import static org.junit.jupiter.api.Assertions.*;
 
 import app.petitesroues.documents.StudyDocumentCodec;
-import app.petitesroues.documents.StudyDocumentJson;
 import app.petitesroues.media.MediaFingerprint;
 import app.petitesroues.model.document.StudyDocument;
 import app.petitesroues.model.document.VideoReference;
@@ -19,7 +18,6 @@ import java.util.Map;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.MediaType;
 import tools.jackson.databind.JsonNode;
-import tools.jackson.databind.ObjectMapper;
 
 /**
  * One user journey: register a media folder (its video warns that no study document matches), add a
@@ -48,9 +46,7 @@ class ApplicationSmokeTest extends HttpIntegrationTest {
     var title = document("episode-01").withVideo(body -> body.withReference(reference));
     Files.write(
         titleFolder.resolve("episode-01.json"),
-        new StudyDocumentCodec(StudyDocumentJson.newMapper())
-            .encode(title)
-            .getBytes(StandardCharsets.UTF_8));
+        new StudyDocumentCodec().encode(title).getBytes(StandardCharsets.UTF_8));
 
     var registered =
         http.post()
@@ -172,14 +168,14 @@ class ApplicationSmokeTest extends HttpIntegrationTest {
   void validateReportsEveryProblemInACandidateWithoutWritingIt() throws Exception {
     registerTitle(document("validate-me"));
     String api = "/api/titles/validate-me";
-    var codec = new StudyDocumentCodec(StudyDocumentJson.newMapper());
+    var codec = new StudyDocumentCodec();
     var current = http.get().uri(api).retrieve().body(StudyDocument.class);
     var file = codec.encode(current);
 
     assertEquals(List.of(), problems(api, file));
     var broken = current.withVideo(v -> v.withCue(0, c -> c.withTiming(c.start(), -1.0)));
     var renamed = current.withId("other");
-    String brokenJson = new ObjectMapper().writeValueAsString(broken);
+    String brokenJson = mapper.writeValueAsString(broken);
     assertEquals(
         List.of("stable-cue: Invalid timing for cue stable-cue"), problems(api, brokenJson));
     assertEquals(

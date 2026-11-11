@@ -1,7 +1,6 @@
 package app.petitesroues.config;
 
 import app.petitesroues.documents.StudyDocumentCodec;
-import app.petitesroues.documents.StudyDocumentJson;
 import app.petitesroues.documents.StudyDocumentReader;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -11,7 +10,7 @@ import org.springframework.context.annotation.Configuration;
 public class DocumentConfiguration {
   @Bean
   public StudyDocumentCodec studyDocumentCodec() {
-    return new StudyDocumentCodec(StudyDocumentJson.newMapper());
+    return new StudyDocumentCodec();
   }
 
   @Bean

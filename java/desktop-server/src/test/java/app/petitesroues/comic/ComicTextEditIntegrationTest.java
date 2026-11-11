@@ -4,7 +4,6 @@ import static app.petitesroues.support.SpecFixtures.*;
 import static org.junit.jupiter.api.Assertions.*;
 
 import app.petitesroues.documents.StudyDocumentCodec;
-import app.petitesroues.documents.StudyDocumentJson;
 import app.petitesroues.model.document.Line;
 import app.petitesroues.model.document.ReadingDirection;
 import app.petitesroues.model.document.StudyDocument;
@@ -48,9 +47,7 @@ class ComicTextEditIntegrationTest extends HttpIntegrationTest {
     Files.createDirectories(folder);
     Files.write(
         folder.resolve("document.json"),
-        new StudyDocumentCodec(StudyDocumentJson.newMapper())
-            .encode(doc)
-            .getBytes(StandardCharsets.UTF_8));
+        new StudyDocumentCodec().encode(doc).getBytes(StandardCharsets.UTF_8));
     http.post()
         .uri("/api/repositories")
         .body(Map.of("localPath", folder.toString()))
@@ -71,8 +68,7 @@ class ComicTextEditIntegrationTest extends HttpIntegrationTest {
     assertTrue(edited.lines().getFirst().notes().isEmpty());
     assertFalse(edited.lines().getFirst().alignment() != null);
     assertEquals(other, result.comic().boxes().getLast());
-    var json =
-        mapper.readTree(new StudyDocumentCodec(StudyDocumentJson.newMapper()).encode(result));
+    var json = mapper.readTree(new StudyDocumentCodec().encode(result));
     assertFalse(json.path("comic").has("boxes"), "boxes live in their pages");
     var written = json.path("comic").path("pages").get(0).path("boxes").get(0);
     assertFalse(written.has("pageId") || written.has("order") || written.has("start"));

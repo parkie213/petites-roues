@@ -35,7 +35,6 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.datasource.DataSourceTransactionManager;
 import org.springframework.jdbc.datasource.SingleConnectionDataSource;
 import org.springframework.transaction.support.TransactionTemplate;
-import tools.jackson.databind.json.JsonMapper;
 
 /** Player edits are queued and replayed over the file; agents write them through batches. */
 class DocumentEditingServiceTest {
@@ -48,8 +47,8 @@ class DocumentEditingServiceTest {
 
   @BeforeEach
   void setup() throws Exception {
-    var mapper = JsonMapper.builder().build();
-    codec = new StudyDocumentCodec(StudyDocumentJson.newMapper());
+    var mapper = StudyDocumentJson.newMapper();
+    codec = new StudyDocumentCodec();
     var source = new SingleConnectionDataSource("jdbc:sqlite:" + root.resolve("db.sqlite"), true);
     DatabaseFixtures.migrate(source);
     var jdbc = new JdbcTemplate(source);

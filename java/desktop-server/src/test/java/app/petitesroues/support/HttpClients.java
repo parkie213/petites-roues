@@ -1,17 +1,19 @@
 package app.petitesroues.support;
 
+import app.petitesroues.documents.StudyDocumentJson;
 import app.petitesroues.sync.CertificatePins;
 import java.io.IOException;
 import java.net.HttpURLConnection;
 import org.springframework.http.client.SimpleClientHttpRequestFactory;
+import org.springframework.http.converter.json.JacksonJsonHttpMessageConverter;
 import org.springframework.web.client.RestClient;
 
-/** HTTP clients for integration tests; documents travel as plain JSON records. */
+/** Integration-test HTTP clients using the explicit document JSON adapter. */
 public final class HttpClients {
   private HttpClients() {}
 
   public static RestClient client(String url) {
-    return RestClient.builder().baseUrl(url).build();
+    return builder(url).build();
   }
 
   /**
@@ -28,6 +30,19 @@ public final class HttpClients {
             super.prepareConnection(connection, method);
           }
         };
-    return RestClient.builder().baseUrl(url).requestFactory(pinned).build();
+    return builder(url).requestFactory(pinned).build();
+  }
+
+  /** Decodes domain objects through the explicit wire adapter, just like a real JSON client. */
+  private static RestClient.Builder builder(String url) {
+    return RestClient.builder()
+        .baseUrl(url)
+        .messageConverters(
+            converters ->
+                converters.replaceAll(
+                    converter ->
+                        converter instanceof JacksonJsonHttpMessageConverter
+                            ? new JacksonJsonHttpMessageConverter(StudyDocumentJson.newMapper())
+                            : converter));
   }
 }

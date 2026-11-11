@@ -18,7 +18,8 @@
   <packaging>pom</packaging>
 
   <modules>
-    <module>study-documents</module>
+    <module>document-model</module>
+    <module>document-json</module>
     <module>content-library</module>
     <module>sync</module>
     <module>desktop-application</module>
