@@ -72,9 +72,7 @@ public class TitleMediaService {
                   item ->
                       new MediaLinks.Candidate<>(
                           item,
-                          kind(item.kind()),
-                          item.fingerprint(),
-                          item.repositoryId(),
+                          item.repositoryEntry(),
                           linked.get(path(item.repositoryId(), item.relativePath()))))
               .toList();
       this.byKey = MediaLinks.byKey(candidates);
@@ -96,16 +94,15 @@ public class TitleMediaService {
     /** The title's media, as {@link TitleMediaService#media} chooses it. */
     public Optional<IndexedMedia> match(CatalogueEntry entry) {
       if (entry.location() == null) return Optional.empty();
-      var kind = kind(entry.location().documentType());
-      String fingerprint = entry.location().referenceFingerprint();
+      var document = entry.repositoryEntry();
+      var kind = document.metadata().kind();
+      String fingerprint = document.metadata().referenceFingerprint();
       var relevant = new ArrayList<>(byLink.getOrDefault(entry.id(), List.of()));
       if (fingerprint != null)
         relevant.addAll(byKey.getOrDefault(MediaLinks.key(kind, fingerprint), List.of()));
       return MediaLinks.choose(
           entry.id(),
-          kind,
-          fingerprint,
-          entry.location().repositoryId(),
+          document,
           relevant.stream().filter(c -> Files.isRegularFile(c.media().file())).toList());
     }
 

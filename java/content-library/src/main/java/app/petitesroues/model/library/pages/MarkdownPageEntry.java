@@ -1,5 +1,6 @@
-package app.petitesroues.model.library;
+package app.petitesroues.model.library.pages;
 
+import app.petitesroues.model.library.repository.Repository;
 import app.petitesroues.model.pages.MarkdownPage;
 
 /**

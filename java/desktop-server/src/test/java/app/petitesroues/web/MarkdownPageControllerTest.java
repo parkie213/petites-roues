@@ -4,8 +4,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import app.petitesroues.model.library.MarkdownPageEntry;
-import app.petitesroues.model.library.Repository;
+import app.petitesroues.model.library.pages.MarkdownPageEntry;
+import app.petitesroues.model.library.repository.Repository;
 import app.petitesroues.model.pages.MarkdownPage;
 import app.petitesroues.pages.MarkdownPageService;
 import java.util.List;

@@ -10,8 +10,8 @@ import app.petitesroues.android.library.TitleKind
 import app.petitesroues.documents.StudyDocumentCodec
 import app.petitesroues.documents.StudyDocumentReader
 import app.petitesroues.model.document.StudyDocument
-import app.petitesroues.model.library.MarkdownPageEntry
-import app.petitesroues.model.library.Repository
+import app.petitesroues.model.library.pages.MarkdownPageEntry
+import app.petitesroues.model.library.repository.Repository
 import app.petitesroues.model.pages.MarkdownPage
 import java.io.File
 import kotlinx.coroutines.CoroutineScope

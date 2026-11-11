@@ -1,4 +1,4 @@
-package app.petitesroues.model.library;
+package app.petitesroues.model.library.repository;
 
 /**
  * A content collection's identity and display name, independent of its local storage and index. The

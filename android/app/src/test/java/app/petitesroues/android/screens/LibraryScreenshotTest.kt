@@ -19,7 +19,7 @@ import app.petitesroues.android.library.LibraryUiState
 import app.petitesroues.android.pages.Section
 import app.petitesroues.android.pages.StudyPages
 import app.petitesroues.library.shelves.Shelves
-import app.petitesroues.model.library.MarkdownPageEntry
+import app.petitesroues.model.library.pages.MarkdownPageEntry
 import com.github.takahirom.roborazzi.captureRoboImage
 import kotlinx.coroutines.runBlocking
 import org.junit.Rule

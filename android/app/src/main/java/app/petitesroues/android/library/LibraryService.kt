@@ -13,7 +13,10 @@ import app.petitesroues.library.shelves.MediaNames
 import app.petitesroues.media.MediaFingerprint
 import app.petitesroues.model.document.ComicDocument
 import app.petitesroues.model.document.StudyDocument
-import app.petitesroues.model.document.VideoDocument
+import app.petitesroues.model.library.documents.DocumentEntry
+import app.petitesroues.model.library.documents.DocumentMetadata
+import app.petitesroues.model.library.media.MediaEntry
+import app.petitesroues.model.library.repository.Repository
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -104,7 +107,7 @@ constructor(
       }
     }
     for (candidate in candidates) if (
-      MediaLinks.key(candidate.kind(), candidate.fingerprint()) !in referenced
+      MediaLinks.key(candidate.entry().kind(), candidate.entry().fingerprint()) !in referenced
     )
       titles += unreferenced(candidate)
     progress.report(LibraryProgress(null, "saving", 0, 0, null))
@@ -141,7 +144,11 @@ constructor(
               cached.fingerprint
             else SafContentTree.open(resolver, media.handle()).use(MediaFingerprint::of)
           seen[uri] = CachedFingerprint(uri, media.size(), media.modifiedMillis(), fingerprint)
-          result += MediaLinks.Candidate(media, media.kind(), fingerprint, folder.root)
+          result +=
+            MediaLinks.Candidate(
+              media,
+              MediaEntry(folder.root, media.relativePath(), media.kind(), fingerprint),
+            )
         } catch (failure: Exception) {
           problems += Problem(path, failure.message ?: failure.toString())
         }
@@ -168,32 +175,34 @@ constructor(
       val bytes = bytes(found.handle())
       if (!reader.isStudyDocument(bytes)) return null
       val document = reader.decode(bytes)
-      val video = document.body() as? VideoDocument
       val comic = document.body() as? ComicDocument
       val kind = if (comic != null) TitleKind.COMIC else TitleKind.VIDEO
-      val reference = video?.reference()?.fingerprint() ?: comic?.reference()?.fingerprint()
-      val mediaKind = if (comic != null) MediaKind.COMIC else MediaKind.VIDEO
+      val entry =
+        DocumentEntry(Repository(root, root), found.relativePath(), DocumentMetadata.from(document))
+      val metadata = entry.metadata()
+      val reference = metadata.referenceFingerprint()
+      val mediaKind = metadata.kind()
       val key = MediaLinks.key(mediaKind, reference)
       key?.let(referenced::add)
       val candidates = key?.let(media::get).orEmpty()
-      val linked = MediaLinks.choose(mediaKind, reference, root, candidates).orElse(null)
+      val linked = MediaLinks.choose(null, entry, candidates).orElse(null)
       Title(
         path = path,
-        name = document.title().ifBlank { path.substringAfterLast('/') },
-        series = document.series(),
+        name = metadata.title().ifBlank { path.substringAfterLast('/') },
+        series = metadata.series(),
         kind = kind,
         documentUri = found.handle(),
         mediaUri = linked?.handle(),
-        documentId = document.id(),
-        durationSeconds = video?.reference()?.durationSeconds(),
-        season = video?.season(),
-        episode = video?.episode(),
-        volume = comic?.volume(),
+        documentId = metadata.documentId(),
+        durationSeconds = metadata.durationSeconds(),
+        season = metadata.season(),
+        episode = metadata.episode(),
+        volume = metadata.volume(),
         poster = linked?.poster()?.handle(),
         seriesPoster = linked?.seriesPoster()?.handle(),
         firstPage = comic?.pages()?.firstOrNull()?.entry(),
-        shelf = document.shelf(),
-        sourceLanguage = document.sourceLanguage(),
+        shelf = metadata.shelf(),
+        sourceLanguage = metadata.sourceLanguage(),
         mediaPath = linked?.relativePath(),
       )
     } catch (failure: Exception) {
@@ -206,12 +215,12 @@ constructor(
   private fun unreferenced(candidate: MediaLinks.Candidate<ContentScanner.Media<Uri>>): Title {
     val media = candidate.media()
     val named = MediaNames.fromPath(media.relativePath())
-    val path = "${candidate.folder()}/${media.relativePath()}"
+    val path = "${candidate.entry().repositoryId()}/${media.relativePath()}"
     return Title(
       path = path,
       name = named.title(),
       series = named.series(),
-      kind = if (candidate.kind() == MediaKind.COMIC) TitleKind.COMIC else TitleKind.VIDEO,
+      kind = if (candidate.entry().kind() == MediaKind.COMIC) TitleKind.COMIC else TitleKind.VIDEO,
       documentUri = null,
       mediaUri = media.handle(),
       documentId = "media:$path",

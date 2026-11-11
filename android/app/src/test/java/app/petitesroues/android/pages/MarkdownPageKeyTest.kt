@@ -1,7 +1,7 @@
 package app.petitesroues.android.pages
 
-import app.petitesroues.model.library.MarkdownPageEntry
-import app.petitesroues.model.library.Repository
+import app.petitesroues.model.library.pages.MarkdownPageEntry
+import app.petitesroues.model.library.repository.Repository
 import app.petitesroues.model.pages.MarkdownPage
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotEquals

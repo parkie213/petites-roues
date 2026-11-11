@@ -5,8 +5,8 @@ import static org.mockito.Mockito.*;
 
 import app.petitesroues.library.persistence.ContentRepositoryStore;
 import app.petitesroues.model.library.ContentRepository;
-import app.petitesroues.model.library.MarkdownPageEntry;
-import app.petitesroues.model.library.Repository;
+import app.petitesroues.model.library.pages.MarkdownPageEntry;
+import app.petitesroues.model.library.repository.Repository;
 import app.petitesroues.model.pages.MarkdownPage;
 import java.nio.file.Files;
 import java.nio.file.Path;

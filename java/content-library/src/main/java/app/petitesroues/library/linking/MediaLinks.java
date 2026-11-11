@@ -1,6 +1,8 @@
 package app.petitesroues.library.linking;
 
 import app.petitesroues.library.discovery.MediaKind;
+import app.petitesroues.model.library.documents.DocumentEntry;
+import app.petitesroues.model.library.media.MediaEntry;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -30,25 +32,30 @@ import java.util.function.Function;
 public final class MediaLinks {
   private MediaLinks() {}
 
-  /**
-   * A media file as linking sees it.
-   *
-   * @param media the platform's own record of the file
-   * @param folder the registered folder holding it, as the platform identifies folders
-   * @param linkedTo the document it is manually linked to, as the platform identifies documents, or
-   *     null when it is not
-   */
-  public record Candidate<M>(
-      M media, MediaKind kind, String fingerprint, String folder, String linkedTo) {
+  /** A platform file handle paired with its shared media entry and optional local manual link. */
+  public record Candidate<M>(M media, MediaEntry entry, String linkedTo) {
     /** A file with no manual link. */
-    public Candidate(M media, MediaKind kind, String fingerprint, String folder) {
-      this(media, kind, fingerprint, folder, null);
+    public Candidate(M media, MediaEntry entry) {
+      this(media, entry, null);
     }
 
-    /** Whether a document of this kind with this reference links to this file by fingerprint. */
+    /** Whether this unclaimed media matches a document's kind and reference. */
     boolean freeFor(MediaKind documentKind, String reference) {
-      return linkedTo == null && kind == documentKind && reference.equals(fingerprint);
+      return linkedTo == null
+          && entry.kind() == documentKind
+          && reference.equals(entry.fingerprint());
     }
+  }
+
+  /** Matches a repository-owned document, keeping the platform's manual-link key separate. */
+  public static <M> Optional<M> choose(
+      String localId, DocumentEntry document, List<Candidate<M>> ordered) {
+    return choose(
+        localId,
+        document.metadata().kind(),
+        document.metadata().referenceFingerprint(),
+        document.repository().id(),
+        ordered);
   }
 
   /** The key a document and its media share, or null for a document without a fingerprint. */
@@ -62,7 +69,8 @@ public final class MediaLinks {
     for (var candidate : ordered)
       groups
           .computeIfAbsent(
-              key(candidate.kind(), candidate.fingerprint()), ignored -> new ArrayList<>())
+              key(candidate.entry().kind(), candidate.entry().fingerprint()),
+              ignored -> new ArrayList<>())
           .add(candidate);
     return groups;
   }
@@ -101,7 +109,7 @@ public final class MediaLinks {
           prefer(
               documentFolder,
               ordered.stream()
-                  .filter(c -> document.equals(c.linkedTo()) && c.kind() == kind)
+                  .filter(c -> document.equals(c.linkedTo()) && c.entry().kind() == kind)
                   .toList());
       if (linked.isPresent()) return linked;
     }
@@ -116,12 +124,13 @@ public final class MediaLinks {
    */
   public static String owner(Candidate<?> media, Function<String, String> byKey) {
     if (media.linkedTo() != null) return media.linkedTo();
-    return byKey.apply(key(media.kind(), media.fingerprint()));
+    return byKey.apply(key(media.entry().kind(), media.entry().fingerprint()));
   }
 
   private static <M> Optional<M> prefer(String documentFolder, List<Candidate<M>> qualifying) {
     for (var candidate : qualifying)
-      if (Objects.equals(candidate.folder(), documentFolder)) return Optional.of(candidate.media());
+      if (Objects.equals(candidate.entry().repositoryId(), documentFolder))
+        return Optional.of(candidate.media());
     return qualifying.stream().findFirst().map(Candidate::media);
   }
 }

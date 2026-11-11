@@ -1,6 +1,6 @@
 package app.petitesroues.web;
 
-import app.petitesroues.model.library.MarkdownPageEntry;
+import app.petitesroues.model.library.pages.MarkdownPageEntry;
 import app.petitesroues.pages.MarkdownPageService;
 import java.io.IOException;
 import java.util.List;

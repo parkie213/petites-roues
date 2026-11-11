@@ -61,6 +61,24 @@ Playback and reading progress describe local learner activity, rather than conte
 Desktop progress records remain in `desktop-application`; Android retains its Room
 entity. Their persistence and timestamp representations are not yet unified.
 
+## Repository-owned documents and media
+
+Shared library models live in `content-library`, grouped into `repository`, `pages`,
+`documents` and `media` packages under `app.petitesroues.model.library`.
+`DocumentEntry` associates a repository and relative JSON path with `DocumentMetadata`:
+a snapshot of title/series/language, video season/episode or comic volume, kind and
+reference fingerprint/duration. `MediaEntry` identifies an indexed MP4/MKV/CBZ by
+repository ID and relative path, with its kind and fingerprint. It references the
+repository catalogue by ID without requiring its display name to be loaded.
+
+The shared linking rules use these entries on both platforms. A document and its
+media may belong to different repositories. Manual links still use local registration
+IDs; portable document IDs and saved progress keys retain their existing meanings.
+Desktop `CatalogueEntry` and `IndexedMedia` adapt SQLite snapshots to shared entries;
+Android builds the entries while refreshing. Absolute paths, storage URIs, file
+availability, probe-cache state and rendered `Title`/catalogue views stay local.
+Standalone desktop registrations are not repository-owned entries.
+
 ## Editing
 
 Every player or reader change is stored as a command, not as a new copy of the document. Pending

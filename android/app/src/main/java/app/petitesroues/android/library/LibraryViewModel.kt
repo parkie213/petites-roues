@@ -16,7 +16,7 @@ import app.petitesroues.android.desktop.mayReachLocalNetwork
 import app.petitesroues.android.di.IoDispatcher
 import app.petitesroues.android.pages.MarkdownPageScanner
 import app.petitesroues.android.pages.Section
-import app.petitesroues.model.library.MarkdownPageEntry
+import app.petitesroues.model.library.pages.MarkdownPageEntry
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject

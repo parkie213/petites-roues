@@ -28,9 +28,14 @@ code for Java 17 for Android; the desktop modules and all tests use Java 25.
 `content-model` is Java-only. It owns annotated video/comic documents and Markdown
 quiz/note pages. `MarkdownPage` shares page data and the first-heading title rule.
 It contains title and text, without repository or storage fields.
-`content-library` owns `Repository` (identity and name) and `MarkdownPageEntry`
-(repository, relative path and content). Platform readers load content; library
-services and scanners associate it with a repository. Rendering and quiz
+`content-library` owns shared library models under `app.petitesroues.model.library`:
+`repository.Repository` (identity and name), `pages.MarkdownPageEntry` (repository,
+relative path and content), `documents.DocumentEntry` (repository, relative path
+and indexed metadata), and `media.MediaEntry` (repository ID, relative path, kind
+and fingerprint). `DocumentMetadata` extracts the same video/comic summary on both
+platforms, without retaining cues or regions. Media linking consumes these shared
+entries; videos and comics use the same entry types, distinguished by media kind.
+Platform readers load content; library services and scanners associate it with a repository. Rendering and quiz
 sharing remain in the user interfaces. Local learner progress remains separate
 from portable content and currently lives in each application.
 

@@ -5,8 +5,8 @@ import android.net.Uri
 import android.provider.DocumentsContract
 import android.provider.DocumentsContract.Document
 import app.petitesroues.android.library.AppFolder
-import app.petitesroues.model.library.MarkdownPageEntry
-import app.petitesroues.model.library.Repository
+import app.petitesroues.model.library.pages.MarkdownPageEntry
+import app.petitesroues.model.library.repository.Repository
 import app.petitesroues.model.pages.MarkdownPage
 import java.io.File
 import javax.inject.Inject

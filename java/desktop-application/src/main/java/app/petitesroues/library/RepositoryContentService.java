@@ -3,11 +3,10 @@ package app.petitesroues.library;
 import app.petitesroues.documents.StudyDocumentReader;
 import app.petitesroues.library.persistence.CatalogueStore;
 import app.petitesroues.library.persistence.ContentRepositoryStore;
-import app.petitesroues.model.document.ComicDocument;
 import app.petitesroues.model.document.StudyDocument;
-import app.petitesroues.model.document.VideoDocument;
 import app.petitesroues.model.library.CatalogueEntry;
 import app.petitesroues.model.library.CatalogueLocation;
+import app.petitesroues.model.library.documents.DocumentMetadata;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -86,31 +85,28 @@ public class RepositoryContentService {
     if (!file.startsWith(root))
       throw new IllegalArgumentException("Document is outside its owning repository");
     String storedPath = root.relativize(file).toString().replace('\\', '/');
-    var video = document.body() instanceof VideoDocument v ? v : null;
-    var comic = document.body() instanceof ComicDocument c ? c : null;
+    var metadata = DocumentMetadata.from(document);
     var location =
         new CatalogueLocation(
             repositoryId,
             owningRepository.name(),
             root.toString(),
             false,
-            video == null || video.reference() == null ? null : video.reference().durationSeconds(),
-            video == null ? "comic" : "video",
-            video != null
-                ? video.reference() == null ? null : video.reference().fingerprint()
-                : comic.reference() == null ? null : comic.reference().fingerprint());
+            metadata.durationSeconds(),
+            metadata.kind().id(),
+            metadata.referenceFingerprint());
     var entry =
         new CatalogueEntry(
             entryId,
-            document.id(),
-            document.title(),
-            document.series(),
-            video == null ? null : video.season(),
-            video == null ? null : video.episode(),
-            comic == null ? null : comic.volume(),
-            document.shelf(),
-            document.sourceLanguage(),
-            document.sourceUrl(),
+            metadata.documentId(),
+            metadata.title(),
+            metadata.series(),
+            metadata.season(),
+            metadata.episode(),
+            metadata.volume(),
+            metadata.shelf(),
+            metadata.sourceLanguage(),
+            metadata.sourceUrl(),
             storedPath,
             location);
     repository.saveTitle(entry);

@@ -1,5 +1,7 @@
 package app.petitesroues.model.library;
 
+import app.petitesroues.model.library.repository.Repository;
+
 /**
  * A registered folder of learning content: study documents, notes and quizzes, media (videos and
  * CBZ comics), or any mix. Media links to documents by fingerprint, in this folder or another. A

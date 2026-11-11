@@ -1,6 +1,10 @@
 package app.petitesroues.model.library;
 
+import app.petitesroues.library.discovery.MediaKind;
 import app.petitesroues.model.document.StudyDocument;
+import app.petitesroues.model.library.documents.DocumentEntry;
+import app.petitesroues.model.library.documents.DocumentMetadata;
+import app.petitesroues.model.library.repository.Repository;
 import java.nio.file.Path;
 
 /**
@@ -38,6 +42,27 @@ public record CatalogueEntry(
     String sourceUrl,
     String documentPath,
     CatalogueLocation location) {
+  /** Shared repository entry, or null for a standalone registration; performs no file access. */
+  public DocumentEntry repositoryEntry() {
+    if (location == null) return null;
+    return new DocumentEntry(
+        new Repository(location.repositoryId(), location.repositoryName()),
+        documentPath,
+        new DocumentMetadata(
+            documentId,
+            title,
+            series,
+            "comic".equals(location.documentType()) ? MediaKind.COMIC : MediaKind.VIDEO,
+            season,
+            episode,
+            volume,
+            shelf,
+            sourceLanguage,
+            sourceUrl,
+            location.referenceFingerprint(),
+            location.durationSeconds()));
+  }
+
   /** Creates an entry on the default shelf, without an indexed language. */
   public CatalogueEntry(
       String id,

@@ -4,8 +4,8 @@ import android.net.Uri
 import app.petitesroues.android.data.Progress
 import app.petitesroues.android.library.Title
 import app.petitesroues.android.library.TitleKind
-import app.petitesroues.model.library.MarkdownPageEntry
-import app.petitesroues.model.library.Repository
+import app.petitesroues.model.library.pages.MarkdownPageEntry
+import app.petitesroues.model.library.repository.Repository
 import app.petitesroues.model.pages.MarkdownPage
 
 /**
