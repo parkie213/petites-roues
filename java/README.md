@@ -6,6 +6,7 @@ React calls the desktop over HTTP; Android runs its own offline application.
 | Module | Owns | Internal production dependencies |
 | --- | --- | --- |
 | `content-model` | Study documents, Markdown quizzes/notes, defaults and intrinsic rules | None |
+| `quiz-application` | Shared chapter quiz brief construction | `content-model` |
 | `document-json` | JSON recognition, strict decoding, canonical encoding and file loading | `content-model` |
 | `content-library` | Repository identities, library entries, discovery, shelving, media linking and fingerprints | `content-model` |
 | `sync` | Desktop–phone protocol, client and downloads | `content-library` |
@@ -20,7 +21,7 @@ versions, including ordinary fixture JARs, in `dependencyManagement`; child modu
 declare only the dependencies they need. Fixture dependencies also inherit test
 scope from the parent. Each child still declares its parent
 version because Maven must resolve the parent before inheriting that management.
-The four shared modules compile production
+The five shared modules compile production
 code for Java 17 for Android; the desktop modules and all tests use Java 25.
 
 ## Content models and document JSON
@@ -89,6 +90,30 @@ runs beyond 254 digits; the standalone JAR is about 15 MB. We retain the small
 JDK-based comparator and its ordering contract. Commons IO is also unnecessary
 for the single extension lookup: filenames without a dot have no extension.
 The discovery, media-link precedence and fingerprint protocol remain project rules.
+
+## Chapter quizzes
+
+`ComicDocument.chapter(index)` owns chapter page selection: it excludes preface
+pages, stops at the next chapter and preserves manifest reading order. Invalid
+indices or boundary pages fail explicitly. This is document behavior, independent
+of quizzes.
+
+`quiz-application` owns `ChapterQuizBuilder`: deterministic Markdown construction
+from a selected chapter, teaching rules and optional type instructions. It includes
+source text and translations, omits learner notes and suggests a filename. It has
+no framework, filesystem, sharing or AI-client dependency. Android calls it offline;
+its video and general-quiz builders remain platform code.
+
+Desktop `ChapterQuizService` loads the current served document, including queued
+edits. `POST /api/titles/{id}/comic/quiz` accepts `chapterPageId`, `rules` and optional
+`type` (`label`, `instructions`), and returns `text` and `fileName` with no-store
+caching. Chapter identity is its first page ID, so a stale menu cannot silently
+select a different chapter after reordering. This operation writes no content or
+progress. Callers supply their bundled teaching guide and selected menu instructions.
+
+React prepares on dialog open/selection change, cancels stale requests and enables
+export only for the current result. Clipboard, chat opening, downloading and system
+sharing stay in the UI and run within the export click's user gesture.
 
 ## Desktop application and server
 

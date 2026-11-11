@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   Button,
   Group,
@@ -101,6 +101,8 @@ export function VideoQuizShare({ doc, cues, time }) {
 /**
  * "Quiz me": a dialog that builds a quiz brief (the quiz rules from the repository's agents/, the
  * chosen quiz type's instructions and the title's real lines) and hands it to a chat app.
+ * [prepare], when supplied, asynchronously prepares {text, fileName} before enabling export,
+ * cancelling stale selections and preserving clipboard/share user gestures. Otherwise
  * [brief] builds it from the rules, the chosen type and the chosen [scopes] option (such as a
  * comic chapter, or a general quiz); the dialog offers no scope choice when [scopes] is absent, and
  * reports the chosen option to [scopes.onChange] (to remember it). With [withTypes] false there is
@@ -117,6 +119,7 @@ export function QuizShare({
   withTypes = true,
   fileName,
   brief: build,
+  prepare,
   scopes,
   scopeNote = "",
   scopeContent,
@@ -130,9 +133,44 @@ export function QuizShare({
   const [typeId, setTypeId] = useStoredState("quiz.type", QUIZ_TYPES[0].id);
   const [scope, setScope] = useState(null);
   const chosen = scope ?? scopes?.initial ?? null;
-  const type = withTypes ? quizType(types, typeId, doc) : null;
-  const brief = () => build(rules, type, chosen);
-  const name = () => fileName(chosen);
+  const type = useMemo(
+    () => (withTypes ? quizType(types, typeId, doc) : null),
+    [withTypes, typeId, doc],
+  );
+  const [prepared, setPrepared] = useState(null);
+  const [attempt, setAttempt] = useState(0);
+  const [opening, setOpening] = useState(0);
+  useEffect(() => {
+    if (!opened || !prepare) return;
+    let cancelled = false;
+    const controller = new AbortController();
+    const selection = { prepare, type, chosen, attempt, opening };
+    Promise.resolve()
+      .then(() => prepare(rules, type, chosen, controller.signal))
+      .then(
+        (data) => {
+          if (!cancelled) setPrepared({ ...selection, data });
+        },
+        (error) => {
+          if (!cancelled) setPrepared({ ...selection, error });
+        },
+      );
+    return () => {
+      cancelled = true;
+      controller.abort();
+    };
+  }, [opened, prepare, type, chosen, attempt, opening]);
+  const current =
+    prepared?.prepare === prepare &&
+    prepared?.type === type &&
+    prepared?.chosen === chosen &&
+    prepared?.attempt === attempt &&
+    prepared?.opening === opening;
+  const ready = current && prepared?.data;
+  const prepareError = current && prepared?.error;
+  const blocked = exportDisabled || Boolean(prepare && !ready);
+  const brief = () => (prepare ? ready.text : build(rules, type, chosen));
+  const name = () => (prepare ? ready.fileName : fileName(chosen));
   const copy = (done) =>
     navigator.clipboard.writeText(brief()).then(
       () => setStatus(done),
@@ -175,6 +213,7 @@ export function QuizShare({
             if (disabled) return;
             setStatus("");
             setScope(null);
+            setOpening((value) => value + 1);
             setOpened(true);
             onOpen?.();
           }}
@@ -224,6 +263,26 @@ export function QuizShare({
               </Stack>
             </Radio.Group>
           )}
+          {prepare &&
+            !ready &&
+            (prepareError ? (
+              <Group>
+                <Text size="xs" c="red" role="alert">
+                  Could not prepare this quiz.
+                </Text>
+                <Button
+                  size="compact-xs"
+                  variant="subtle"
+                  onClick={() => setAttempt((value) => value + 1)}
+                >
+                  Retry
+                </Button>
+              </Group>
+            ) : (
+              <Text size="xs" c="dimmed" role="status">
+                Preparing quiz…
+              </Text>
+            ))}
           <Stack gap={6}>
             <Text size="xs" c="dimmed">
               The quiz is too long for a link, so these buttons copy it and open
@@ -232,7 +291,7 @@ export function QuizShare({
             <Group gap={6}>
               {chats.map((chat) => (
                 <Button
-                  disabled={exportDisabled}
+                  disabled={blocked}
                   key={chat.name}
                   size="compact-sm"
                   variant="light"
@@ -250,7 +309,7 @@ export function QuizShare({
               <Button
                 size="compact-sm"
                 variant="default"
-                disabled={exportDisabled}
+                disabled={blocked}
                 onClick={() => copy("Copied: paste it into a chat.")}
               >
                 Copy
@@ -258,7 +317,7 @@ export function QuizShare({
               <Button
                 size="compact-sm"
                 variant="default"
-                disabled={exportDisabled}
+                disabled={blocked}
                 onClick={download}
               >
                 Download
@@ -267,7 +326,7 @@ export function QuizShare({
                 <Button
                   size="compact-sm"
                   variant="default"
-                  disabled={exportDisabled}
+                  disabled={blocked}
                   onClick={share}
                 >
                   Share…

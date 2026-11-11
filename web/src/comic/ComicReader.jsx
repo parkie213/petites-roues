@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActionIcon,
   Alert,
@@ -22,7 +22,7 @@ import { ComicStudyPanel } from "./ComicStudyPanel.jsx";
 import { StudyLanguagesProvider } from "../player/StudyLanguages.jsx";
 import { QuickEdit } from "../player/components/QuickEdit.jsx";
 import { boxLines, boxOf, pageBoxes } from "./annotations.js";
-import { chapterQuizBrief, chapterQuizFileName } from "./quiz.js";
+import { prepareChapterQuiz } from "./quiz.js";
 import { QuizShare } from "../player/components/QuizShare.jsx";
 import { chapterAt, chapterName, resumePage } from "./navigation.js";
 import { useStoredState } from "../shared/storage.ts";
@@ -43,6 +43,17 @@ import { libraryReturnPath } from "../shared/library-return.ts";
 export function ComicReader({ id }) {
   const api = titlePath(id) + "/comic";
   const [document, setDocument] = useState(null);
+  const prepareQuiz = useCallback(
+    (rules, type, chapter, signal) =>
+      prepareChapterQuiz(
+        id,
+        document.chapters[Number(chapter)].pageId,
+        rules,
+        type,
+        signal,
+      ),
+    [id, document],
+  );
   const [index, setIndex] = useState(0);
   const [error, setError] = useState("");
   const [saveError, setSaveError] = useState("");
@@ -282,10 +293,7 @@ export function ComicReader({ id }) {
                   label: chapterName(c),
                 })),
               }}
-              fileName={(i) => chapterQuizFileName(document, Number(i))}
-              brief={(rules, type, i) =>
-                chapterQuizBrief(rules, document, Number(i), type)
-              }
+              prepare={prepareQuiz}
             />
             <Menu width={230} position="bottom-end" shadow="md">
               <Menu.Target>

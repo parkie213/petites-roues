@@ -19,6 +19,7 @@
 
   <modules>
     <module>content-model</module>
+    <module>quiz-application</module>
     <module>document-test-fixtures</module>
     <module>document-json</module>
     <module>content-library</module>
@@ -34,6 +35,12 @@
 
   <dependencyManagement>
     <dependencies>
+      <dependency>
+        <groupId>app.petitesroues</groupId>
+        <artifactId>quiz-application</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+
       <dependency>
         <groupId>app.petitesroues</groupId>
         <artifactId>content-model</artifactId>

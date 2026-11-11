@@ -25,6 +25,7 @@ room = "2.8.5"
 androidxTest = "1.7.0"
 
 [libraries]
+quiz-application = { module = "app.petitesroues:quiz-application", version.ref = "petitesRoues" }
 content-model = { module = "app.petitesroues:content-model", version.ref = "petitesRoues" }
 document-json = { module = "app.petitesroues:document-json", version.ref = "petitesRoues" }
 content-library = { module = "app.petitesroues:content-library", version.ref = "petitesRoues" }

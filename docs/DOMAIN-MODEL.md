@@ -57,6 +57,13 @@ grants, refresh state and counts. The desktop HTTP layer flattens entries into i
 existing response fields; Android derives its selection key from repository and
 path. Markdown rendering and sharing belong to the user interfaces.
 
+Chapter quizzes are constructed dynamically from annotated comic content rather
+than stored Markdown pages. `ComicDocument.chapter(index)` selects their pages;
+`quiz-application` builds a shared brief from source lines, translations, supplied
+teaching rules and a selected quiz type. Android calls the builder locally, while
+React prepares through the desktop using its current served document. Prompt
+construction does not generate questions, contact a chat model or save learner state.
+
 Playback and reading progress describe local learner activity, rather than content.
 Desktop progress records remain in `desktop-application`; Android retains its Room
 entity. Their persistence and timestamp representations are not yet unified.

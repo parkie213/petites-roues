@@ -28,6 +28,28 @@ public record ComicDocument(
     chapters = list(chapters);
   }
 
+  /**
+   * Selects a chapter through the page before the next chapter starts, or the volume's end.
+   * Introductory pages before the first chapter are excluded. Rejects unknown chapter indices,
+   * missing boundary pages and non-increasing boundaries instead of returning a partial selection.
+   */
+  public ComicChapterSelection chapter(int index) {
+    if (index < 0 || index >= chapters.size())
+      throw new IllegalArgumentException("Unknown chapter index: " + index);
+    ComicChapter chapter = chapters.get(index);
+    int first = pageIndex(chapter.pageId());
+    int end =
+        index + 1 < chapters.size() ? pageIndex(chapters.get(index + 1).pageId()) : pages.size();
+    if (first < 0 || end <= first)
+      throw new IllegalArgumentException("Invalid chapter page boundaries");
+    return new ComicChapterSelection(chapter, first, end, pages.subList(first, end));
+  }
+
+  private int pageIndex(String id) {
+    for (int i = 0; i < pages.size(); i++) if (pages.get(i).id().equals(id)) return i;
+    return -1;
+  }
+
   public ComicDocument withPages(List<ComicPage> pages) {
     return new ComicDocument(volume, readingDirection, reference, pages, chapters);
   }

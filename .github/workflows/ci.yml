@@ -24,7 +24,7 @@ jobs:
           cache: maven
           cache-dependency-path: "**/pom.xml"
       - name: Test and install the shared library
-        run: ./java/mvnw -B -f java/pom.xml -pl content-model,document-json,content-library,sync -am install
+        run: ./java/mvnw -B -f java/pom.xml -pl content-model,quiz-application,document-json,content-library,sync -am install
       - uses: actions/upload-artifact@v7
         with:
           name: library
