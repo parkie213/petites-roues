@@ -1,8 +1,7 @@
 package app.petitesroues.library.shelves;
 
 import app.petitesroues.library.discovery.MediaKind;
-import java.math.BigInteger;
-import java.text.Collator;
+import app.petitesroues.library.ordering.NaturalOrder;
 import java.text.Normalizer;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -14,8 +13,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.TreeSet;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 /**
@@ -51,29 +48,6 @@ public final class Shelves {
 
   /** The shelf for videos nothing describes yet. */
   public static final String UNSORTED = "Unsorted";
-
-  private static final Pattern PARTS = Pattern.compile("\\d+|\\D+");
-
-  /** Locale-aware order that compares digit runs as numbers, so "Tome 2" precedes "Tome 10". */
-  public static final Comparator<String> NATURAL =
-      new Comparator<>() {
-        private final Collator collator = collator();
-
-        @Override
-        public int compare(String a, String b) {
-          List<String> x = parts(a), y = parts(b);
-          for (int i = 0; i < Math.min(x.size(), y.size()); i++) {
-            String p = x.get(i), q = y.get(i);
-            int order =
-                Character.isDigit(p.charAt(0)) && Character.isDigit(q.charAt(0))
-                    ? new BigInteger(p).compareTo(new BigInteger(q))
-                    : collator.compare(p, q);
-            if (order != 0) return order;
-          }
-          int order = Integer.compare(x.size(), y.size());
-          return order != 0 ? order : collator.compare(a, b);
-        }
-      };
 
   /**
    * A card image: {@code copy}'s own art, or with {@code series} the poster in the folder above it.
@@ -194,10 +168,10 @@ public final class Shelves {
     List<Shelf<T>> result = new ArrayList<>();
     for (var key : groups.keySet()) {
       var cards = new ArrayList<>(groups.get(key));
-      cards.sort(Comparator.comparing(Group::name, Comparator.nullsLast(NATURAL)));
+      cards.sort(Comparator.comparing(Group::name, Comparator.nullsLast(NaturalOrder.COMPARATOR)));
       result.add(new Shelf<>(key, mostCommon(labels.get(key)), List.copyOf(cards)));
     }
-    result.sort(Comparator.comparing(Shelf::label, NATURAL));
+    result.sort(Comparator.comparing(Shelf::label, NaturalOrder.COMPARATOR));
     return List.copyOf(result);
   }
 
@@ -360,7 +334,8 @@ public final class Shelves {
               slot -> or(slot.entry().volume(), Integer.MAX_VALUE))
           .thenComparingInt(slot -> or(slot.entry().season(), 0))
           .thenComparingInt(slot -> or(slot.entry().episode(), Integer.MAX_VALUE))
-          .thenComparing(slot -> slot.entry().title(), Comparator.nullsLast(NATURAL));
+          .thenComparing(
+              slot -> slot.entry().title(), Comparator.nullsLast(NaturalOrder.COMPARATOR));
 
   private static String slotLabel(Shelvable entry) {
     if (entry.kind() == MediaKind.COMIC && entry.volume() != null) return "Tome " + entry.volume();
@@ -414,18 +389,5 @@ public final class Shelves {
 
   private static String plural(int n, String word) {
     return n + " " + word + (n == 1 ? "" : "s");
-  }
-
-  private static Collator collator() {
-    Collator collator = Collator.getInstance(Locale.ROOT);
-    collator.setStrength(Collator.SECONDARY);
-    return collator;
-  }
-
-  private static List<String> parts(String text) {
-    List<String> parts = new ArrayList<>();
-    Matcher matcher = PARTS.matcher(text);
-    while (matcher.find()) parts.add(matcher.group());
-    return parts;
   }
 }

@@ -1,6 +1,6 @@
 package app.petitesroues.comic;
 
-import app.petitesroues.library.shelves.Shelves;
+import app.petitesroues.library.ordering.NaturalOrder;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.HashSet;
@@ -37,12 +37,13 @@ public final class CbzReader {
 
   /**
    * The archive's image entries in reading order when no document gives one: natural filename
-   * order, so page-2 comes before page-10, as Android orders them ({@link Shelves#NATURAL}).
+   * order, so page-2 comes before page-10, as Android orders them ({@link
+   * NaturalOrder#COMPARATOR}).
    */
   public List<String> pages(Path file) throws IOException {
     return entries(file).stream()
         .filter(name -> IMAGE.matcher(name).matches())
-        .sorted(Shelves.NATURAL)
+        .sorted(NaturalOrder.COMPARATOR)
         .toList();
   }
 

@@ -58,6 +58,24 @@ model fixtures live in `document-test-fixtures` for downstream consumers. The mo
 cannot depend back on its fixture module, even for tests, without a reactor cycle.
 JSON shape, recognition, canonical output and round-trip tests belong to `document-json`.
 
+## Content library
+
+`content-library` owns portable discovery, linking, shelving, fingerprints and
+progress rules. `ContentTree` isolates filesystem access for desktop paths and
+Android storage. These rules have no database or framework dependency.
+
+`NaturalOrder` owns title and CBZ-page ordering independently of shelf grouping.
+It compares decimal digit runs numerically (including Unicode decimal digits),
+places numeric runs before text runs, ignores case, distinguishes accents and uses textual order to break numeric ties
+such as leading zeros. Desktop and Android CBZ readers use this same comparator.
+
+ICU4J 79.1 numeric collation was evaluated before adding a dependency. It changes
+punctuation ordering, treats leading-zero variants as equal and splits numeric
+runs beyond 254 digits; the standalone JAR is about 15 MB. We retain the small
+JDK-based comparator and its ordering contract. Commons IO is also unnecessary
+for the single extension lookup: filenames without a dot have no extension.
+The discovery, media-link precedence and fingerprint protocol remain project rules.
+
 ## Desktop application and server
 
 `desktop-application` owns use cases and their supporting implementations. It uses
