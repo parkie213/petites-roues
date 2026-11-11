@@ -1,9 +1,10 @@
 import { test } from "vitest";
 import assert from "node:assert/strict";
 import {
+  describeFolder,
   repositoryTree,
   repositoryColumns,
-} from "../src/library/repository-tree.js";
+} from "../src/library/repository-tree.ts";
 
 test("repository folders preserve nesting, numeric ordering and multiple editions", () => {
   const tree = repositoryTree([
@@ -81,4 +82,23 @@ test("documents and media sit at their own paths, linked or not", () => {
       ["Other.mkv", null],
     ],
   );
+});
+
+test("folder descriptions count nested files and documents separately, including linked media", () => {
+  const tree = repositoryTree(
+    [
+      {
+        id: "doc",
+        title: "Document",
+        relativePath: "nested/deeper/document.json",
+      },
+    ],
+    [
+      { relativePath: "film.mp4", kind: "video", titleId: "doc" },
+      { relativePath: "nested/book.cbz", kind: "comic" },
+    ],
+  );
+  assert.equal(describeFolder(tree), "1 video · 1 comic · 1 study document");
+  assert.equal(describeFolder(tree.folders[0]), "1 comic · 1 study document");
+  assert.equal(describeFolder(repositoryTree([], [])), "Empty");
 });
