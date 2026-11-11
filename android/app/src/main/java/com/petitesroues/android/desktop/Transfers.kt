@@ -17,6 +17,7 @@ import android.util.Log
 import com.petitesroues.android.MainActivity
 import com.petitesroues.android.Settings
 import com.petitesroues.android.library.AppFolder
+import com.petitesroues.android.library.Folders
 import com.petitesroues.android.library.LibraryUsage
 import com.petitesroues.model.sync.Desktop
 import com.petitesroues.model.sync.DesktopTitle
@@ -51,6 +52,7 @@ class Transfers
 constructor(
   @ApplicationContext private val context: Context,
   private val settings: Settings,
+  private val folders: Folders,
   private val client: DesktopClient,
   private val paired: PairedDesktop,
 ) {
@@ -92,8 +94,7 @@ constructor(
    */
   fun check(): SyncStatus {
     val tree =
-      downloadFolder(settings)
-        ?: error("Allow file access so titles can be copied into ${AppFolder.LABEL}")
+      folders.download ?: error("Allow file access so titles can be copied into ${AppFolder.LABEL}")
     val titles = paired.reach(client::titles)
     val sync =
       SyncStatus.of(
@@ -144,6 +145,7 @@ constructor(
 @AndroidEntryPoint
 class TransferJobService : JobService() {
   @Inject lateinit var settings: Settings
+  @Inject lateinit var folders: Folders
   @Inject lateinit var transfers: Transfers
   @Inject lateinit var client: DesktopClient
   @Inject lateinit var paired: PairedDesktop
@@ -200,7 +202,7 @@ class TransferJobService : JobService() {
     var reschedule = false
     try {
       val tree =
-        downloadFolder(settings)
+        folders.download
           ?: error("Allow file access so titles can be copied into ${AppFolder.LABEL}")
       val folder = transferFolder(contentResolver, tree)
       var count = 0

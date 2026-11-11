@@ -46,6 +46,7 @@ class LibraryViewModel
 constructor(
   @ApplicationContext private val context: Context,
   private val settings: Settings,
+  private val folders: Folders,
   private val index: IndexDao,
   private val progress: ProgressStore,
   private val library: LibraryService,
@@ -58,7 +59,7 @@ constructor(
 ) : ViewModel() {
   private val _state =
     MutableStateFlow(
-      LibraryUiState(settings.libraryFolders, emptyList(), emptyMap(), false, emptyList(), null)
+      LibraryUiState(folders.library, emptyList(), emptyMap(), false, emptyList(), null)
     )
 
   /** The titles, their progress and the state of any refresh. */
@@ -123,7 +124,7 @@ constructor(
    * a failure is reported in [LibraryUiState.message] and leaves the previous titles.
    */
   fun refresh() {
-    val trees = settings.libraryFolders
+    val trees = folders.library
     _state.update { it.copy(folders = trees, refreshing = true, message = null) }
     viewModelScope.launch {
       try {
@@ -197,7 +198,7 @@ constructor(
         runCatching {
           LibraryUsage.line(
             settings.libraryBytes,
-            LibraryUsage.free(context, settings.libraryFolders),
+            LibraryUsage.free(context, folders.library),
           )
         }
           .getOrNull()
@@ -211,7 +212,7 @@ constructor(
     _pages.value = null
     val folder = section.value.folder ?: return
     reading = viewModelScope.launch {
-      _pages.value = withContext(io) { pageScanner.scan(settings.libraryFolders, folder) }
+      _pages.value = withContext(io) { pageScanner.scan(folders.library, folder) }
     }
   }
 

@@ -5,7 +5,6 @@ import android.net.Uri
 import androidx.core.content.edit
 import androidx.core.net.toUri
 import com.petitesroues.android.comic.ListeningMode
-import com.petitesroues.android.library.AppFolder
 import com.petitesroues.model.sync.Desktop
 import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
@@ -28,13 +27,6 @@ class Settings @Inject constructor(@ApplicationContext context: Context) {
         ?.map { it.toUri() }
         .orEmpty()
     set(value) = prefs.edit { putString("contentTrees", value.joinToString("\n")) }
-
-  /**
-   * Every content folder the library reads: the app's own ([AppFolder]) when it is allowed, then
-   * the chosen ones.
-   */
-  val libraryFolders: List<Uri>
-    get() = listOfNotNull(AppFolder.ready()) + contentTrees
 
   /** The desktop this phone is paired with, or null. Its token is the phone's credential there. */
   var desktop: Desktop?

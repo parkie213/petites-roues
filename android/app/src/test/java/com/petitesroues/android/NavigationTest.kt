@@ -28,7 +28,6 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.RuntimeEnvironment
 import org.robolectric.annotation.Config
-import org.robolectric.shadows.ShadowEnvironment
 
 /**
  * The app as a whole, under Robolectric with Hilt: the library refreshes the repository's
@@ -45,7 +44,6 @@ class NavigationTest {
   val folders =
     object : ExternalResource() {
       override fun before() {
-        ShadowEnvironment.addExternalDir("storage")
         Settings(RuntimeEnvironment.getApplication()).contentTrees =
           listOf(Examples.folder("documents-fr"), Examples.folder("media-fr"))
       }

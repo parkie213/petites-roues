@@ -8,6 +8,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.petitesroues.android.Settings
 import com.petitesroues.android.di.IoDispatcher
+import com.petitesroues.android.library.Folders
 import com.petitesroues.sync.SyncStatus
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
@@ -50,6 +51,7 @@ class DesktopTitlesViewModel
 @Inject
 constructor(
   private val settings: Settings,
+  private val folders: Folders,
   private val transfers: Transfers,
   private val resolver: ContentResolver,
   @IoDispatcher private val io: CoroutineDispatcher,
@@ -58,7 +60,7 @@ constructor(
     MutableStateFlow(
       DesktopTitlesUiState(
         settings.desktop?.name(),
-        downloadFolder(settings),
+        folders.download,
         settings.downloadFolder != null,
       )
     )
@@ -124,7 +126,7 @@ constructor(
 
   private fun folderChanged() {
     _state.update {
-      it.copy(folder = downloadFolder(settings), customFolder = settings.downloadFolder != null)
+      it.copy(folder = folders.download, customFolder = settings.downloadFolder != null)
     }
     check()
   }

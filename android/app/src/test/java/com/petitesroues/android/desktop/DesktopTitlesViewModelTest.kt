@@ -5,7 +5,9 @@ import android.net.Uri
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.petitesroues.android.Settings
+import com.petitesroues.android.library.Folders
 import com.petitesroues.android.screens.SDK
+import com.petitesroues.android.testing.FakeAppFolder
 import com.petitesroues.android.testing.FakeDesktop
 import com.petitesroues.android.testing.FakeNsd
 import com.petitesroues.android.testing.MainDispatcherRule
@@ -36,7 +38,9 @@ class DesktopTitlesViewModelTest {
   private val context = ApplicationProvider.getApplicationContext<Application>()
   private val desktop =
     FakeDesktop(listOf(FakeDesktop.comic("Lulu", 1), FakeDesktop.comic("Lulu", 2)))
+  private val appFolder = FakeAppFolder()
   private lateinit var settings: Settings
+  private lateinit var folders: Folders
   private lateinit var transfers: Transfers
 
   @Before
@@ -46,12 +50,19 @@ class DesktopTitlesViewModelTest {
         this.desktop = FakeDesktop.DESKTOP
         downloadFolder = Uri.fromFile(downloads.root)
       }
+    folders = Folders(settings, appFolder)
     transfers =
-      Transfers(context, settings, desktop, PairedDesktop(settings, DesktopFinder(FakeNsd())))
+      Transfers(
+        context,
+        settings,
+        folders,
+        desktop,
+        PairedDesktop(settings, DesktopFinder(FakeNsd())),
+      )
   }
 
   private fun viewModel() =
-    DesktopTitlesViewModel(settings, transfers, context.contentResolver, main.dispatcher)
+    DesktopTitlesViewModel(settings, folders, transfers, context.contentResolver, main.dispatcher)
 
   private suspend fun DesktopTitlesViewModel.checked(): DesktopTitlesUiState = state.first {
     it.sync != null || it.problem != null
@@ -126,6 +137,25 @@ class DesktopTitlesViewModelTest {
     assertTrue(problem, problem.startsWith("Could not reach the desktop:"))
     assertTrue(problem, "Not paired" in problem)
   }
+
+  @Test
+  fun `without a chosen folder, titles go to the app's own once file access is allowed`() =
+    runTest {
+      settings.downloadFolder = null
+      val model = viewModel()
+      // Nowhere to copy yet, so the desktop is not checked.
+      assertNull(model.state.value.folder)
+      assertNull(model.state.value.sync)
+
+      val own = Uri.fromFile(downloads.root)
+      appFolder.folder = own
+      model.fileAccessChanged()
+
+      val state = model.checked()
+      assertEquals(own, state.folder)
+      assertFalse(state.customFolder)
+      assertEquals("Lulu", state.sync!!.groups().single().name())
+    }
 
   @Test
   fun `stopping a sync says how to resume`() = runTest {
