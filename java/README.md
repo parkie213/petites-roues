@@ -106,6 +106,82 @@ require an interface for every class or a Maven module for every adapter. Do it
 where substituting an integration or testing an operation becomes materially
 easier; the existing service/store/scanner/reader conventions remain useful.
 
+## Where React and Android fit
+
+There are two applications with different execution environments and workflows:
+
+| Part | Owns | How it reaches shared functionality |
+| --- | --- | --- |
+| React UI (`web/`) | Browser presentation, interactions, playback coordination and pending requests | Calls the desktop HTTP API; consumes JSON, not Java jars |
+| Desktop Java application | Desktop catalogue, editing/review workflows, persistence and local integrations | Uses the three shared Java modules directly |
+| Android app (`android/`) | Offline player/reader, local catalogue and progress, pairing and downloads | Uses the shared Java modules directly; calls the desktop for pairing and transfer |
+
+The React UI reaches `server` through the Node web server's `/api/` proxy.
+Controllers delegate to `application` services. The Node server serves the UI
+and proxies requests; it does not own the desktop's business workflows. React's
+JSON types and display projections are maintained in TypeScript. Sharing a wire
+format does not make the Java model executable in the browser.
+
+Android is an offline application, not just another presentation layer over the
+desktop service. It has its own Room databases, content-folder permissions and
+application services. Compose screens render ViewModel state; ViewModels invoke
+local operations or the desktop client. The desktop supplies files through sync,
+and playback and reading then work locally. Android is read-only with respect to
+study documents, while still saving local progress and preferences.
+
+Consequently, Android does not depend on the Java `application` or `server`
+modules. The name `application` currently refers specifically to the desktop.
+`desktop-application` would make that clearer when discussing both platforms.
+The shared modules are the place for rules the two platforms must agree on,
+such as document validation, media fingerprints and discovery. Desktop editing
+and Android lifecycle handling remain owned by their respective applications.
+
+### A concrete port and adapter already in use
+
+`library` defines `ContentTree<F>`: list a folder and open a file, using a
+platform-specific handle. `ContentScanner` depends on that contract. It does not
+need to know how an operating system grants access to the files.
+
+- `PathContentTree` adapts desktop paths to that contract.
+- Android's `SafContentTree` adapts Storage Access Framework URIs to the same
+  contract, through its `ContentFolder` interface.
+
+This is the central idea of hexagonal architecture in existing code: the shared
+rules define what they need; platform implementations supply it. At runtime the
+scanner calls the adapter, but the adapter's source code depends on the shared
+contract. The path adapter currently lives in the same jar as the contract;
+separate Maven modules are not required to express this relationship.
+
+### Applying the idea to the whole system
+
+For the desktop, the HTTP controllers are incoming adapters: they translate an
+external action into an application operation. A strict hexagonal design would
+also put persistence contracts between services and JDBC stores. The server
+would wire those implementations into the application.
+
+For Android, ViewModels connect UI actions to local application operations.
+Room, Android storage access, Media3 and the desktop HTTP client are external
+integrations around those operations. Some are already separated behind
+contracts; others are concrete dependencies. Hilt wires objects together, but
+dependency injection alone does not establish a hexagonal boundary.
+
+React can also separate presentation and browser integrations from the operations
+they support. Hooks coordinating an operation can call an API client while
+components render state. A Java HTTP API is a network contract, however, not the
+same thing as a Java interface port. From the desktop's perspective React is an
+external client; from the browser's perspective the desktop API is an external
+dependency. Each application has its own boundary.
+
+We therefore should not draw a single shared application core with React and
+Android as interchangeable skins. They share some rules and data contracts,
+but they perform different operations and own different state. A useful next
+step would be to identify a specific workflow whose tests or integration changes
+are difficult, then introduce a port at that boundary if it helps. A system-wide
+rewrite or a common UI abstraction is not required.
+
+See [the React code map](../web/README.md) and
+[the Android code map](../android/README.md) for platform-specific ownership.
+
 ## Responsibility conventions
 
 - Services coordinate operations and own transaction boundaries; they contain no
