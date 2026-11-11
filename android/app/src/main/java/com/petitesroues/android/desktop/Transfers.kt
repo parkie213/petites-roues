@@ -52,6 +52,7 @@ constructor(
   @ApplicationContext private val context: Context,
   private val settings: Settings,
   private val client: DesktopClient,
+  private val paired: PairedDesktop,
 ) {
   /**
    * The current or last download.
@@ -93,7 +94,7 @@ constructor(
     val tree =
       downloadFolder(settings)
         ?: error("Allow file access so titles can be copied into ${AppFolder.LABEL}")
-    val titles = reachDesktop(context, settings, client::titles)
+    val titles = paired.reach(client::titles)
     val sync =
       SyncStatus.of(
         titles,
@@ -145,6 +146,7 @@ class TransferJobService : JobService() {
   @Inject lateinit var settings: Settings
   @Inject lateinit var transfers: Transfers
   @Inject lateinit var client: DesktopClient
+  @Inject lateinit var paired: PairedDesktop
 
   @Volatile private var stopped = false
 
@@ -208,7 +210,7 @@ class TransferJobService : JobService() {
         val followed = settings.followed
         val chosen = settings.chosen
         // The desktop as reached, at a new address if it moved.
-        val (desktop, titles) = reachDesktop(this, settings) { it to client.titles(it) }
+        val (desktop, titles) = paired.reach { it to client.titles(it) }
         val plan = TransferPlan.of(SyncStatus.of(titles, followed, chosen, folder).toSync(), folder)
         download(client, desktop, plan, folder, tree)
         count += plan.titles().size
