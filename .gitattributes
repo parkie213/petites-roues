@@ -2,3 +2,5 @@ mvnw text eol=lf
 mvnw.cmd text eol=crlf
 *.java text eol=lf
 pom.xml text eol=lf
+# Recorded API answers for the web's journeys (npm run e2e:record): collapsed in diffs and reviews.
+web/e2e/fixtures/** linguist-generated=true

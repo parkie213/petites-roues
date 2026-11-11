@@ -7,7 +7,7 @@ import { ComicReader } from "../comic/ComicReader.jsx";
 import { Library } from "../library/Library.jsx";
 import { QuizPage } from "../library/QuizPage.jsx";
 import { Notes } from "../library/Notes.jsx";
-import { Watch } from "../player/Watch.jsx";
+import { Watch } from "../player/Watch.tsx";
 
 export function App() {
   const [path, setPath] = useState(location.pathname);

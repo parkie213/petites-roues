@@ -1,43 +1,54 @@
 import { useEffect, useRef, useState } from "react";
+import type { RefObject } from "react";
+import type { Timed } from "./model.ts";
 import { pauseAtCueBoundary } from "./playback.js";
 import { usePlaybackProgress } from "./usePlaybackProgress.js";
 
-export const playbackSpeeds = [0.5, 0.6, 0.8, 1, 1.25, 1.5];
+interface Options {
+  /** The title's API path, or null for a video without a study document. */
+  api: string | null;
+  /** The loaded document; nothing starts or is restored before it is. */
+  doc: unknown;
+  cues: readonly Timed[];
+  /** Whether playback pauses at the end of each line. */
+  autoPause: boolean;
+  setStatus: (message: string) => void;
+  /** Whether the position is restored on opening and saved as it changes. */
+  saveProgress?: boolean;
+  /** Whether playback starts by itself once the video is ready. */
+  autoPlay?: boolean;
+}
 
-/** Owns the media clock, cue-boundary pauses, replay and persisted playback position. */
+/**
+ * Owns the media clock, line-end pauses, replay and saved playback position for one `<video>`,
+ * which the caller renders with {@link video} as its ref and {@link videoEvents} as its handlers.
+ * While paused at a line end, the clock is held just inside that line ({@link heldTime}) rather
+ * than seeking back, so the next line's subtitle never flashes.
+ */
 export function usePlayerPlayback({
   api,
   doc,
   cues,
   autoPause,
-  speed,
-  setSelected,
   setStatus,
   saveProgress = true,
   autoPlay = false,
-}) {
-  const video = useRef(null);
+}: Options) {
+  const video = useRef<HTMLVideoElement>(null);
   const [time, setTime] = useState(0);
   const [playing, setPlaying] = useState(false);
   const lastTime = useRef(0);
+  // The line playback is paused at the end of, and the time held there; -1 when not held.
   const heldCue = useRef(-1);
   const heldTime = useRef(-1);
-  const replayEnd = useRef(null);
+  const replayEnd = useRef<number | null>(null);
   const replayToken = useRef(0);
-  const state = useRef({});
+  const state = useRef({ cues, autoPause });
   state.current = { cues, autoPause };
   useEffect(() => {
-    if (video.current) {
-      video.current.playbackRate = playbackSpeeds.includes(speed) ? speed : 1;
-      video.current.defaultPlaybackRate = playbackSpeeds.includes(speed)
-        ? speed
-        : 1;
-    }
-  }, [speed, doc]);
-  useEffect(() => {
-    let frame,
+    let frame: number,
       last = 0;
-    function tick(now) {
+    function tick(now: number) {
       const element = video.current;
       if (element && now - last > 40) {
         last = now;
@@ -75,11 +86,15 @@ export function usePlayerPlayback({
     frame = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(frame);
   }, []);
-  function seek(value) {
-    const element = video.current;
-    if (!element) return;
+  /** Forgets a line-end hold, so playback and the clock move on freely. */
+  function release() {
     heldCue.current = -1;
     heldTime.current = -1;
+  }
+  function seek(value: number) {
+    const element = video.current;
+    if (!element) return;
+    release();
     replayEnd.current = null;
     element.currentTime = Math.max(
       0,
@@ -94,7 +109,7 @@ export function usePlayerPlayback({
     api,
     enabled: saveProgress && Boolean(doc),
     videoRef: video,
-    position: (element) =>
+    position: (element: HTMLVideoElement) =>
       heldTime.current >= 0 ? heldTime.current : element.currentTime,
     restore: seek,
     onError: setStatus,
@@ -115,7 +130,7 @@ export function usePlayerPlayback({
   const [mutedForAutoplay, setMutedForAutoplay] = useState(false);
   function play() {
     const element = video.current;
-    element?.play().catch((e) => {
+    element?.play().catch((e: DOMException) => {
       if (e.name === "NotAllowedError" && !element.muted) {
         element.muted = true;
         element.play().then(
@@ -136,13 +151,18 @@ export function usePlayerPlayback({
   function pause() {
     video.current?.pause();
   }
-  async function replay(index) {
-    if (!cues[index] || !video.current) return;
-    const token = ++replayToken.current,
-      element = video.current;
-    pause();
-    setSelected(index);
+  /** Plays a paused video and pauses a playing one. */
+  function toggle() {
+    if (video.current?.paused) play();
+    else pause();
+  }
+  /** Plays line [index] from its start and pauses at its end. */
+  async function replay(index: number) {
+    const element = video.current;
     const line = cues[index];
+    if (!line || !element) return;
+    const token = ++replayToken.current;
+    pause();
     if (
       element.seeking ||
       Math.abs(element.currentTime - line.start) > 0.0001
@@ -153,27 +173,42 @@ export function usePlayerPlayback({
       });
     }
     if (token !== replayToken.current) return;
-    heldCue.current = -1;
-    heldTime.current = -1;
+    release();
     lastTime.current = line.start;
     replayEnd.current = line.end;
     play();
   }
+  /** The `<video>`'s handlers that keep the clock and the playing state in step with it. */
+  const videoEvents = {
+    onPlay() {
+      heldTime.current = -1;
+      setPlaying(true);
+    },
+    onPause() {
+      setPlaying(false);
+    },
+    onSeeking() {
+      const value = video.current?.currentTime ?? 0;
+      // A seek elsewhere (not the hold's own position) ends the hold.
+      if (Math.abs(value - heldTime.current) > 0.0001) release();
+      lastTime.current = value;
+      setTime(value);
+    },
+  };
 
   return {
     video,
+    videoEvents,
     time,
-    setTime,
     playing,
-    setPlaying,
-    heldCue,
-    heldTime,
-    replayEnd,
-    lastTime,
+    /** Where a line-end pause holds the clock, or -1; read by the timeline's playhead. */
+    heldTime: heldTime as Readonly<RefObject<number>>,
     seek,
     play,
     pause,
+    toggle,
     replay,
+    release,
     mutedForAutoplay,
     unmute,
   };

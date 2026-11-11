@@ -65,16 +65,23 @@ jobs:
       # The web journeys replay responses recorded from this server. Recording them again from the
       # server just verified, and finding nothing changed, shows the API hasn't drifted from them.
       # A journey that fails on its recordings too is the web's to fix, and the web job reports it;
-      # one that passes on them but fails here was broken by the server.
+      # one that passes on them but fails here was broken by the server. Recording starts from no
+      # recordings, so one left behind by a renamed or removed journey shows up as deleted.
       - name: Check the API still answers the web's recorded journeys
         run: |
+          rm -rf e2e/fixtures
           if ! npm run e2e:record; then
+            git checkout -- e2e/fixtures
             if npm run e2e; then
               echo "::error::A journey passes on its recordings but fails against this server"
               exit 1
             fi
             echo "::warning::Journeys fail on their recordings too; the web job reports them"
           fi
+          # A recording no journey made any more stays deleted; say so before the diff shows it.
+          for file in $(git ls-files --deleted e2e/fixtures); do
+            echo "::error file=web/$file::No journey records web/$file any more: remove it with git rm"
+          done
           git diff --exit-code e2e/fixtures
           test -z "$(git status --porcelain e2e/fixtures)"
         working-directory: web
