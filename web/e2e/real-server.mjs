@@ -21,7 +21,7 @@ const folders = ["media-fr", "documents-fr"].map((name) =>
 async function jar() {
   const target = path.join(repository, "java/desktop-server/target");
   const found = (await readdir(target).catch(() => [])).find((name) =>
-    /^petites-roues-desktop-server-.*\.jar$/.test(name),
+    /^desktop-server-.*\.jar$/.test(name),
   );
   if (!found)
     throw Error(`No server jar in ${target}: build the Java server first`);

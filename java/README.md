@@ -14,6 +14,10 @@ module naming and the architectural choices behind them.
 | `desktop-application` | Desktop use cases, transaction boundaries, SQLite stores, document-edit replay, filesystem and media integrations | `study-documents`, `content-library`, `sync` |
 | `desktop-server` | HTTP controllers and filters, Spring Boot startup/configuration, database migrations and phone listener/advertising | `desktop-application` |
 
+Each module uses its directory name as its Maven artifact ID, under the
+`com.petitesroues` group (for example, `com.petitesroues:study-documents`).
+The parent artifact remains `com.petitesroues:petites-roues`.
+
 The table lists direct production dependencies between our modules. Jackson,
 Spring and other external dependencies are declared in each module's POM.
 

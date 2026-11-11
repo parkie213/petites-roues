@@ -7,11 +7,11 @@
     <version>0.1.0-SNAPSHOT</version>
     <relativePath>../pom.xml</relativePath>
   </parent>
-  <artifactId>petites-roues-desktop-server</artifactId>
+  <artifactId>desktop-server</artifactId>
   <dependencies>
     <dependency>
       <groupId>com.petitesroues</groupId>
-      <artifactId>petites-roues-desktop-application</artifactId>
+      <artifactId>desktop-application</artifactId>
       <version>${project.version}</version>
     </dependency>
     <dependency>
@@ -29,7 +29,7 @@
     </dependency>
     <dependency>
       <groupId>com.petitesroues</groupId>
-      <artifactId>petites-roues-study-documents</artifactId>
+      <artifactId>study-documents</artifactId>
       <version>${project.version}</version>
       <type>test-jar</type>
       <scope>test</scope>

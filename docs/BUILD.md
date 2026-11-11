@@ -75,7 +75,7 @@ path resolves consistently:
 
 ```bash
 mkdir -p content
-java -jar java/desktop-server/target/petites-roues-desktop-server-0.1.0-SNAPSHOT.jar
+java -jar java/desktop-server/target/desktop-server-0.1.0-SNAPSHOT.jar
 ```
 
 To let a phone pair with this desktop (experimental), click the phone icon in the library and

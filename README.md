@@ -63,7 +63,7 @@ apply it to other text media soon.
 
 ```bash
 ./java/mvnw -f java/pom.xml verify && mkdir -p content
-java -jar java/desktop-server/target/petites-roues-desktop-server-0.1.0-SNAPSHOT.jar
+java -jar java/desktop-server/target/desktop-server-0.1.0-SNAPSHOT.jar
 ```
 
 In a second terminal, from the repository root:

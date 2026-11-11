@@ -7,7 +7,7 @@
     <version>0.1.0-SNAPSHOT</version>
     <relativePath>../pom.xml</relativePath>
   </parent>
-  <artifactId>petites-roues-content-library</artifactId>
+  <artifactId>content-library</artifactId>
   <properties>
     <!-- The library's rules (discovery, posters, fingerprints), shared with the Android app; D8 and Android's library need Java 17. -->
     <maven.compiler.release>17</maven.compiler.release>
