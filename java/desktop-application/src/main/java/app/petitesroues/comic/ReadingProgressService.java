@@ -1,5 +1,6 @@
 package app.petitesroues.comic;
 
+import app.petitesroues.model.progress.ReadingPosition;
 import app.petitesroues.model.progress.ReadingProgress;
 import java.io.IOException;
 import java.time.Instant;
@@ -22,7 +23,9 @@ public class ReadingProgressService {
   public ReadingProgress load(String id) throws IOException {
     var document = comics.document(id);
     var saved = store.find(id);
-    return document.comic().pages().stream().anyMatch(page -> page.id().equals(saved.pageId()))
+    var position = saved.pageId() == null ? null : new ReadingPosition(saved.pageId());
+    var pageIds = document.comic().pages().stream().map(page -> page.id()).toList();
+    return position != null && position.indexIn(pageIds) >= 0
         ? saved
         : new ReadingProgress(null, null);
   }
@@ -30,15 +33,12 @@ public class ReadingProgressService {
   /** Stores only positions that exist in the current comic manifest. */
   @Transactional
   public ReadingProgress save(String id, String pageId) throws IOException {
-    if (pageId == null || pageId.isBlank())
-      throw new IllegalArgumentException("Page ID is required");
+    var position = new ReadingPosition(pageId);
     var document = comics.document(id);
     comics.page(document, pageId);
-    var pages = document.comic().pages();
-    int index = 0;
-    while (!pages.get(index).id().equals(pageId)) index++;
+    var pageIds = document.comic().pages().stream().map(page -> page.id()).toList();
     var saved = new ReadingProgress(pageId, Instant.now().toString());
-    store.save(id, saved, (index + 1) / (double) pages.size());
+    store.save(id, saved, position.fractionIn(pageIds));
     return saved;
   }
 

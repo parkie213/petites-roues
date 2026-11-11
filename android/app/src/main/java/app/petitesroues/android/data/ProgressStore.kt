@@ -1,6 +1,8 @@
 package app.petitesroues.android.data
 
 import app.petitesroues.android.di.ApplicationScope
+import app.petitesroues.model.progress.PlaybackPosition
+import app.petitesroues.model.progress.ReadingPosition
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlinx.coroutines.CoroutineScope
@@ -29,12 +31,18 @@ constructor(private val dao: ProgressDao, @ApplicationScope private val scope: C
   suspend fun find(documentId: String): Progress? = withContext(writes) { dao.find(documentId) }
 
   /** Saves a video position and, when the duration is known, how far through the video it is. */
-  fun savePosition(documentId: String, seconds: Double, fraction: Double?) =
-    save(Progress(documentId, positionSeconds = seconds, fraction = fraction))
+  fun savePosition(documentId: String, position: PlaybackPosition, durationSeconds: Double?) =
+    save(
+      Progress(
+        documentId,
+        positionSeconds = position.seconds(),
+        fraction = position.fraction(durationSeconds),
+      )
+    )
 
   /** Saves a comic page and how far through the comic it is, (page index + 1) / page count. */
-  fun savePage(documentId: String, pageId: String, fraction: Double) =
-    save(Progress(documentId, pageId = pageId, fraction = fraction))
+  fun savePage(documentId: String, position: ReadingPosition, pageIds: List<String>) =
+    save(Progress(documentId, pageId = position.pageId(), fraction = position.fractionIn(pageIds)))
 
   /** Forgets where a title was left: it opens at the start and its card shows no progress. */
   suspend fun clear(documentId: String) = withContext(writes) { dao.clear(documentId) }

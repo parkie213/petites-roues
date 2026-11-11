@@ -86,6 +86,7 @@ import app.petitesroues.model.document.ComicDocument
 import app.petitesroues.model.document.ComicPage
 import app.petitesroues.model.document.ReadingDirection
 import app.petitesroues.model.document.StudyDocument
+import app.petitesroues.model.progress.ReadingPosition
 import kotlin.math.roundToInt
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.launch
@@ -128,7 +129,8 @@ fun ReadScreen(
   val outlines = choices.outlines
   ImmersiveReading(landscape)
 
-  val page = pages.indexOfFirst { it.id() == choices.pageId }.coerceAtLeast(0)
+  val pageIds = remember(pages) { pages.map { it.id() } }
+  val page = (choices.pageId?.let { ReadingPosition(it).indexIn(pageIds) } ?: -1).coerceAtLeast(0)
   val currentPage by rememberUpdatedState(page)
   var selected by remember { mutableStateOf<ComicBox?>(null) }
   // The sentence shown when the selected box is a text block.
@@ -190,7 +192,7 @@ fun ReadScreen(
             // A spread that still holds the page keeps it; otherwise its first page is read.
             val shown = currentPage.takeIf { it in views[view] } ?: views[view].first()
             close()
-            model.showing(pages[shown].id(), (shown + 1).toDouble() / pages.size)
+            model.showing(pages[shown].id(), pageIds)
           }
       }
       HorizontalPager(

@@ -14,6 +14,7 @@ import app.petitesroues.model.library.Library;
 import app.petitesroues.model.library.MediaItem;
 import app.petitesroues.model.library.PosterEntry;
 import app.petitesroues.model.library.Posters;
+import app.petitesroues.model.progress.PlaybackPosition;
 import app.petitesroues.playback.PlaybackProgressStore;
 import app.petitesroues.study.DocumentStore;
 import app.petitesroues.study.ReviewQueueService;
@@ -295,7 +296,7 @@ public class LibraryService {
               ? fractions.get(entry.id())
               : position == null || position <= 0 || duration == null || duration <= 0
                   ? null
-                  : Math.min(1, position / duration);
+                  : new PlaybackPosition(position).fraction(duration);
       result.add(
           new CatalogueItem(
               entry.id(),
