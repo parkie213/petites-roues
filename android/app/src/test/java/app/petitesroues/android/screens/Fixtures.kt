@@ -4,7 +4,7 @@ import android.net.Uri
 import app.petitesroues.android.data.Progress
 import app.petitesroues.android.library.Title
 import app.petitesroues.android.library.TitleKind
-import app.petitesroues.android.pages.MarkdownPage
+import app.petitesroues.model.pages.MarkdownPage
 
 /**
  * A small made-up library for screenshot tests, independent of anyone's real content: a manga
@@ -92,7 +92,13 @@ object Fixtures {
     )
 
   private fun page(folder: String, name: String, markdown: String) =
-    MarkdownPage("fixtures/$folder/$name", "fixtures", MarkdownPage.title(markdown, name), markdown)
+    MarkdownPage(
+      "fixtures",
+      "fixtures",
+      "$folder/$name",
+      MarkdownPage.title(markdown, name),
+      markdown,
+    )
 
   /** The example note and two short made-up ones. */
   val notes =

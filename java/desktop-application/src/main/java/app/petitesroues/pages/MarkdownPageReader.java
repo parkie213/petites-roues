@@ -18,17 +18,7 @@ public class MarkdownPageReader {
     String name = file.getFileName().toString();
     String id = name.substring(0, name.length() - ".md".length());
     String text = Files.readString(file);
-    return new MarkdownPage(repository.id(), repository.name(), id, title(text, id), text);
-  }
-
-  /** The first level-one heading's text, or [fallback] when the Markdown has none. */
-  static String title(String markdown, String fallback) {
-    return markdown
-        .lines()
-        .filter(line -> line.startsWith("# "))
-        .map(line -> line.substring(2).strip())
-        .filter(heading -> !heading.isEmpty())
-        .findFirst()
-        .orElse(fallback);
+    return new MarkdownPage(
+        repository.id(), repository.name(), id, MarkdownPage.title(text, id), text);
   }
 }

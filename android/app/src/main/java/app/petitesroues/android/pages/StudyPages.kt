@@ -54,6 +54,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow.Companion.Clip
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import app.petitesroues.model.pages.MarkdownPage
 import com.mikepenz.markdown.compose.components.markdownComponents
 import com.mikepenz.markdown.compose.elements.MarkdownTable
 import com.mikepenz.markdown.compose.elements.MarkdownTableHeader
@@ -144,9 +145,9 @@ fun StudyPages(
       }
     open != null -> Reading(section, open, quiz, onClose = { openKey = null }, onChat, onCopy)
     else -> {
-      val several = pages.map { it.repository }.distinct().size > 1
+      val several = pages.map { it.repository() }.distinct().size > 1
       val shown = pages.filter {
-        query.isBlank() || it.title.contains(query.trim(), ignoreCase = true)
+        query.isBlank() || it.title().contains(query.trim(), ignoreCase = true)
       }
       LazyColumn(
         Modifier.fillMaxSize(),
@@ -215,10 +216,10 @@ private fun Topic(page: MarkdownPage, selected: Boolean, several: Boolean, onCli
       .clickable(onClick = onClick)
       .padding(horizontal = 16.dp, vertical = 14.dp)
   ) {
-    Text(page.title, style = MaterialTheme.typography.bodyLarge)
+    Text(page.title(), style = MaterialTheme.typography.bodyLarge)
     if (several)
       Text(
-        page.repository,
+        page.repositoryName(),
         style = MaterialTheme.typography.bodySmall,
         color = MaterialTheme.colorScheme.onSurfaceVariant,
       )
@@ -251,13 +252,13 @@ private fun Reading(
         tint = dim,
       )
       Text(
-        "  ${section.label} / ${page.repository}",
+        "  ${section.label} / ${page.repositoryName()}",
         style = MaterialTheme.typography.bodySmall,
         color = dim,
       )
     }
     Text(
-      page.title,
+      page.title(),
       style =
         MaterialTheme.typography.headlineSmall.copy(
           fontSize = 26.sp,
@@ -274,7 +275,7 @@ private fun Reading(
       )
       ChatCard(onChat = { onChat(page, it) }, onCopy = { onCopy(page) })
     }
-    StudyMarkdown(page.text)
+    StudyMarkdown(page.text())
   }
 }
 

@@ -1,11 +1,11 @@
 package app.petitesroues.android.quiz
 
 import app.petitesroues.android.comic.Chapters
-import app.petitesroues.android.pages.MarkdownPage
 import app.petitesroues.model.document.ComicDocument
 import app.petitesroues.model.document.Line
 import app.petitesroues.model.document.StudyDocument
 import app.petitesroues.model.document.VideoCue
+import app.petitesroues.model.pages.MarkdownPage
 import java.util.Locale
 
 /**
@@ -220,7 +220,7 @@ object QuizPack {
   }
 
   /** "quiz-common-irregular-verbs.md" */
-  fun fileName(quiz: MarkdownPage): String = fileName(quiz.title)
+  fun fileName(quiz: MarkdownPage): String = fileName(quiz.title())
 
   /**
    * The brief for a general [quiz], as the browser's: what to do, the quiz file itself, then the
@@ -228,7 +228,7 @@ object QuizPack {
    */
   fun general(rules: String, quiz: MarkdownPage): String =
     listOf(
-        "# Quiz: ${quiz.title}",
+        "# Quiz: ${quiz.title()}",
         "",
         "Run the quiz below for a learner. It is not tied to a film or book: make up natural, " +
           "varied sentences of your own, as a native speaker would say them, and do not present " +
@@ -241,7 +241,7 @@ object QuizPack {
         "",
         "## The quiz",
         "",
-        demote(quiz.text),
+        demote(quiz.text()),
         "",
         "## Quiz rules",
         "",

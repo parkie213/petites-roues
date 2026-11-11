@@ -17,10 +17,10 @@ import org.springframework.stereotype.Service;
 @Service
 public class MarkdownPageService {
   /** The folder holding general quizzes: prompts for a chat app. */
-  public static final String QUIZZES = "quizzes";
+  public static final String QUIZZES = MarkdownPage.QUIZZES;
 
   /** The folder holding study notes: pages the learner reads in the library. */
-  public static final String NOTES = "notes";
+  public static final String NOTES = MarkdownPage.NOTES;
 
   private final ContentRepositoryStore repositories;
   private final MarkdownPageScanner scanner;

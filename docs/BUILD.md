@@ -17,7 +17,7 @@ images/               Screenshots and branding assets
 java/
   pom.xml             Java-only Maven parent and reactor
   mvnw                Maven wrapper (mvnw.cmd on Windows)
-  document-model/    Java-only document records and validation
+  content-model/    Java-only study documents, Markdown pages and validation
   document-json/     JSON mapping, codec and loading
   content-library/    Shared discovery, shelving, linking and fingerprints
   sync/               Desktop–phone protocol, client and transfer logic
@@ -29,8 +29,9 @@ web/                  Independent React, Vite and Node application
 android/              Offline phone player and comic reader (Gradle)
 ```
 
-`java/document-model` owns immutable records in `app.petitesroues.model.document`
-and intrinsic validation, with no production dependencies. `java/document-json`
+`java/content-model` owns immutable records in `app.petitesroues.model.document`
+and Markdown quiz/note pages in `app.petitesroues.model.pages`, plus intrinsic
+validation and page-title extraction, with no production dependencies. `java/document-json`
 owns JSON mapping, the codec and file loading, depending on the model and Jackson.
 Jackson annotations and configuration live entirely in the adapter. Both compile
 production code for Java 17 for Android; tests use Java 25.
@@ -45,14 +46,14 @@ and the phone's `DesktopClient`, on `HttpURLConnection` because `java.net.http` 
 Android. The server answers with the
 same records and its integration test pairs through the same client, so the two sides cannot drift.
 It depends on content-library and Jackson and targets Java 17.
-`java/desktop-application` depends on document-model, document-json, content-library and sync, and owns services, stores, media
+`java/desktop-application` depends on content-model, document-json, content-library and sync, and owns services, stores, media
 readers, local application models and canonical database migrations. `java/desktop-server` depends on desktop-application
 and supplies HTTP controllers, framework wiring, Flyway startup integration and executable startup.
-The dependency direction is `desktop-server → desktop-application → document-model, document-json, content-library, sync`.
+The dependency direction is `desktop-server → desktop-application → content-model, document-json, content-library, sync`.
 
 Unit tests live beside their owning module. Documents tests load examples from
 `java/document-json/src/test/resources/documents/`. Pure model tests stay in
-`document-model`; reusable sample documents and helpers live in the ordinary
+`content-model`; reusable sample documents and helpers live in the ordinary
 `document-test-fixtures` JAR. Model tests construct their own inputs to avoid a
 dependency cycle.
 Non-HTTP database tests and canonical Flyway
@@ -198,7 +199,7 @@ folder, and posters beside the media. Sync the media folder and the documents fo
 phone and choose both. Media is fingerprinted once (8 MiB read per file) and again only when it
 changes.
 
-The app uses the shared Java jars (`java/document-model`, `java/document-json`, `java/content-library`, `java/sync`) from `~/.m2`,
+The app uses the shared Java jars (`java/content-model`, `java/document-json`, `java/content-library`, `java/sync`) from `~/.m2`,
 the same jars the server builds against. Gradle installs it with Maven whenever it configures the
 build, including an Android Studio sync, so the app never compiles against a stale jar; Maven
 skips work that is up to date. Jackson comes with the jar, at the version Spring Boot manages.

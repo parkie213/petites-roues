@@ -54,6 +54,7 @@ import app.petitesroues.android.library.TitleUiState
 import app.petitesroues.android.library.TitleViewModel
 import app.petitesroues.android.pages.Section
 import app.petitesroues.android.pages.StudyPages
+import app.petitesroues.android.pages.key
 import app.petitesroues.android.player.PlayerViewModel
 import app.petitesroues.android.player.WatchScreen
 import app.petitesroues.android.quiz.QuizShare
@@ -201,7 +202,7 @@ class MainActivity : ComponentActivity() {
           onCopy = { quiz ->
             getSystemService(ClipboardManager::class.java)
               .setPrimaryClip(
-                ClipData.newPlainText(quiz.title, QuizShare.prompt(this@MainActivity, quiz))
+                ClipData.newPlainText(quiz.title(), QuizShare.prompt(this@MainActivity, quiz))
               )
           },
         )

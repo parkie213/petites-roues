@@ -5,6 +5,7 @@ import android.net.Uri
 import android.provider.DocumentsContract
 import android.provider.DocumentsContract.Document
 import app.petitesroues.android.library.AppFolder
+import app.petitesroues.model.pages.MarkdownPage
 import java.io.File
 import javax.inject.Inject
 
@@ -44,8 +45,9 @@ class MarkdownPageScanner @Inject constructor(private val resolver: ContentResol
             val id = file.name.removeSuffix(".md")
             val text = file.readText()
             MarkdownPage(
-              "${tree.path}/${repository.name}/$folder/$id",
+              "${tree.path}/${repository.name}",
               repository.name,
+              "$folder/$id",
               MarkdownPage.title(text, id),
               text,
             )
@@ -67,7 +69,7 @@ class MarkdownPageScanner @Inject constructor(private val resolver: ContentResol
             .openInputStream(DocumentsContract.buildDocumentUriUsingTree(tree, file.id))!!
             .bufferedReader()
             .use { it.readText() }
-        MarkdownPage("$root/$folder/$id", name, MarkdownPage.title(text, id), text)
+        MarkdownPage(root, name, "$folder/$id", MarkdownPage.title(text, id), text)
       }
   }
 

@@ -5,9 +5,9 @@ import android.content.ClipData
 import android.content.Context
 import android.content.Intent
 import androidx.core.content.FileProvider
-import app.petitesroues.android.pages.MarkdownPage
 import app.petitesroues.model.document.StudyDocument
 import app.petitesroues.model.document.VideoCue
+import app.petitesroues.model.pages.MarkdownPage
 import java.io.File
 
 /**
@@ -55,7 +55,7 @@ object QuizShare {
    * package) when it is installed, otherwise through the share sheet.
    */
   fun share(context: Context, quiz: MarkdownPage, app: String? = null) =
-    send(context, QuizPack.fileName(quiz), quiz.title, prompt(context, quiz), app)
+    send(context, QuizPack.fileName(quiz), quiz.title(), prompt(context, quiz), app)
 
   /** A general quiz's whole prompt, as shared. */
   fun prompt(context: Context, quiz: MarkdownPage): String = QuizPack.general(rules(context), quiz)

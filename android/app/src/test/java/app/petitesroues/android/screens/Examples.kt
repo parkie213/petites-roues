@@ -7,10 +7,10 @@ import app.petitesroues.android.data.ProgressDatabase
 import app.petitesroues.android.data.ProgressStore
 import app.petitesroues.android.library.Title
 import app.petitesroues.android.library.TitleKind
-import app.petitesroues.android.pages.MarkdownPage
 import app.petitesroues.documents.StudyDocumentCodec
 import app.petitesroues.documents.StudyDocumentReader
 import app.petitesroues.model.document.StudyDocument
+import app.petitesroues.model.pages.MarkdownPage
 import java.io.File
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -31,7 +31,7 @@ object Examples {
   /** An example note or quiz ([folder] is `notes` or `quizzes`), as the page scanner reads it. */
   fun page(folder: String, name: String): MarkdownPage {
     val text = File(root, "documents-fr/$folder/$name.md").readText()
-    return MarkdownPage("example/$folder/$name", "example", MarkdownPage.title(text, name), text)
+    return MarkdownPage("example", "example", "$folder/$name", MarkdownPage.title(text, name), text)
   }
 
   fun document(path: String): StudyDocument =

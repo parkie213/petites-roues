@@ -16,7 +16,7 @@
   <dependencies>
     <dependency>
       <groupId>app.petitesroues</groupId>
-      <artifactId>document-model</artifactId>
+      <artifactId>content-model</artifactId>
     </dependency>
   </dependencies>
 </project>

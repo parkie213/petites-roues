@@ -25,7 +25,7 @@ room = "2.8.5"
 androidxTest = "1.7.0"
 
 [libraries]
-document-model = { module = "app.petitesroues:document-model", version.ref = "petitesRoues" }
+content-model = { module = "app.petitesroues:content-model", version.ref = "petitesRoues" }
 document-json = { module = "app.petitesroues:document-json", version.ref = "petitesRoues" }
 content-library = { module = "app.petitesroues:content-library", version.ref = "petitesRoues" }
 sync = { module = "app.petitesroues:sync", version.ref = "petitesRoues" }

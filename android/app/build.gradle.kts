@@ -101,7 +101,7 @@ androidComponents {
 }
 
 dependencies {
-  implementation(libs.document.model)
+  implementation(libs.content.model)
   implementation(libs.document.json)
   implementation(libs.content.library)
   implementation(libs.sync)

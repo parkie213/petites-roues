@@ -56,13 +56,6 @@ class MarkdownPageServiceTest {
         service.pages(MarkdownPageService.NOTES));
   }
 
-  @Test
-  void titleIsTheFirstLevelOneHeading() {
-    assertEquals(
-        "Passé composé", MarkdownPageReader.title("## Sub\n#  Passé composé \n# Later\n", "x"));
-    assertEquals("x", MarkdownPageReader.title("#\n## Sub\n", "x"));
-  }
-
   private static ContentRepository repository(String name, Path path) {
     return new ContentRepository(name, name, path.toString(), null, 0, 0);
   }

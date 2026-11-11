@@ -10,8 +10,8 @@ on:
 permissions:
   contents: read
 
-# The shared Java library (the document model) is built and tested once; the server and the
-# Android app are then built against that same jar. The web app needs neither, so runs alongside.
+# The shared Java modules are built and tested once; the server and the
+# Android app are then built against those same jars. The web app needs neither, so runs alongside.
 jobs:
   library:
     runs-on: ubuntu-26.04
@@ -24,7 +24,7 @@ jobs:
           cache: maven
           cache-dependency-path: "**/pom.xml"
       - name: Test and install the shared library
-        run: ./java/mvnw -B -f java/pom.xml -pl document-model,document-json,content-library,sync -am install
+        run: ./java/mvnw -B -f java/pom.xml -pl content-model,document-json,content-library,sync -am install
       - uses: actions/upload-artifact@v7
         with:
           name: library

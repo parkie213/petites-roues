@@ -16,10 +16,10 @@ import app.petitesroues.android.library.CardImages
 import app.petitesroues.android.library.CardSource
 import app.petitesroues.android.library.LibraryScreen
 import app.petitesroues.android.library.LibraryUiState
-import app.petitesroues.android.pages.MarkdownPage
 import app.petitesroues.android.pages.Section
 import app.petitesroues.android.pages.StudyPages
 import app.petitesroues.library.shelves.Shelves
+import app.petitesroues.model.pages.MarkdownPage
 import com.github.takahirom.roborazzi.captureRoboImage
 import kotlinx.coroutines.runBlocking
 import org.junit.Rule
@@ -127,7 +127,7 @@ class LibraryScreenshotTest {
    * [bodyText], a line from its body, is drawn.
    */
   private fun open(page: MarkdownPage, bodyText: String) {
-    compose.onNodeWithText(page.title).performClick()
+    compose.onNodeWithText(page.title()).performClick()
     compose.waitUntil(timeoutMillis = 10_000) {
       compose.onAllNodesWithText(bodyText).fetchSemanticsNodes().isNotEmpty()
     }

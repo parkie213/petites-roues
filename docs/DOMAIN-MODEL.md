@@ -1,6 +1,6 @@
 # Domain model
 
-petites roues has three domains: **study documents**, **editing** and the **library**. They're
+petites roues has three domains: **content**, **editing** and the **library**. They're
 one model, split by a single boundary: what is **portable** (the same on every machine, shared
 through a content repository) and what is **local** (this machine's paths, state and history).
 
@@ -8,7 +8,7 @@ through a content repository) and what is **local** (this machine's paths, state
 
 | Domain | Portable or local | Where it's stored | Who writes it |
 | --- | --- | --- | --- |
-| Study documents | Portable | `document.json` in a content repository | Agents only |
+| Content | Portable | `document.json`, `quizzes/*.md` and `notes/*.md` in a content repository | Agents only |
 | Editing | Local queue of commands that refer only to portable IDs | SQLite `review_queue`, `review_batches` | The app, from player and reader edits |
 | Library | Local | SQLite `repositories`, `titles`, `media`, progress tables; posters found beside media | The app, on Add/Refresh |
 
@@ -23,7 +23,7 @@ Two rules hold the boundary:
 ## Study documents
 
 The JSON format is specified in [DOCUMENT-FORMAT.md](DOCUMENT-FORMAT.md). It's defined by the
-records in `app.petitesroues.model.document` and checked by `StudyDocumentValidator` in document-model.
+records in `app.petitesroues.model.document` and checked by `StudyDocumentValidator` in content-model.
 
 ![Study document model](diagrams/document-model.svg)
 
@@ -42,6 +42,21 @@ records in `app.petitesroues.model.document` and checked by `StudyDocumentValida
   text operations, comments and review requests address a line.
 - A `PhraseAlignment` is bound to its line's wording only through its chunks, which must spell
   out the line's source and translation exactly. A line with no alignment needs a breakdown.
+
+## Quizzes and study notes
+
+General quizzes in `quizzes/` and study notes in `notes/` are portable Markdown
+content, separate from annotated media documents. Both platforms use
+`app.petitesroues.model.pages.MarkdownPage` in `content-model`, including the rule
+that the first nonempty level-one heading names the page. The text is preserved;
+quizzes are prompts handed to a chat app, not structured question/answer objects.
+Repository identity and page identifiers locate a page within its collection;
+platform readers supply these values. Markdown rendering and sharing belong to
+the user interfaces.
+
+Playback and reading progress describe local learner activity, rather than content.
+Desktop progress records remain in `desktop-application`; Android retains its Room
+entity. Their persistence and timestamp representations are not yet unified.
 
 ## Editing
 
