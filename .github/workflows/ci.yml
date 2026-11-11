@@ -78,6 +78,10 @@ jobs:
             fi
             echo "::warning::Journeys fail on their recordings too; the web job reports them"
           fi
+          # A recording no journey made any more stays deleted; say so before the diff shows it.
+          for file in $(git ls-files --deleted e2e/fixtures); do
+            echo "::error file=web/$file::No journey records web/$file any more: remove it with git rm"
+          done
           git diff --exit-code e2e/fixtures
           test -z "$(git status --porcelain e2e/fixtures)"
         working-directory: web
