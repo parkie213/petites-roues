@@ -2,7 +2,7 @@ import { Group, Loader, Stack, Text } from "@mantine/core";
 import { useEffect, useState } from "react";
 import { ConnectPhone } from "./ConnectPhone.jsx";
 import { Documents } from "./Documents.jsx";
-import { LibraryBrowser } from "./LibraryBrowser.jsx";
+import { LibraryBrowser } from "./LibraryBrowser.tsx";
 import { Posters } from "./Posters.jsx";
 import { EmptyLibrary } from "./components/EmptyLibrary.tsx";
 import { LanguageChips } from "./components/LanguageChips.tsx";
