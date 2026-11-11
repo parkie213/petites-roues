@@ -1,26 +1,26 @@
 # Java modules
 
 The Java build provides shared code for desktop and Android, plus the desktop
-application and its HTTP server. This describes the current boundaries and the
-naming questions still open; it does not prescribe a module reorganisation.
+application and its HTTP server. This describes their ownership boundaries,
+module naming and the architectural choices behind them.
 
 ## Current modules
 
 | Module | Owns | Production dependencies within this build |
 | --- | --- | --- |
-| `documents` | Study-document records, intrinsic validation, JSON encoding/decoding and file reading | None |
-| `library` | Portable content discovery, shelving, media linking, progress calculations and fingerprints | None |
-| `sync` | Desktop–phone protocol records, pairing-code reading, desktop client and download/transfer logic | `library` |
-| `application` | Desktop use cases, transaction boundaries, SQLite stores, document-edit replay, filesystem and media integrations | `documents`, `library`, `sync` |
-| `server` | HTTP controllers and filters, Spring Boot startup/configuration, database migrations and phone listener/advertising | `application` |
+| `study-documents` | Study-document records, intrinsic validation, JSON encoding/decoding and file reading | None |
+| `content-library` | Portable content discovery, shelving, media linking, progress calculations and fingerprints | None |
+| `sync` | Desktop–phone protocol records, pairing-code reading, desktop client and download/transfer logic | `content-library` |
+| `desktop-application` | Desktop use cases, transaction boundaries, SQLite stores, document-edit replay, filesystem and media integrations | `study-documents`, `content-library`, `sync` |
+| `desktop-server` | HTTP controllers and filters, Spring Boot startup/configuration, database migrations and phone listener/advertising | `desktop-application` |
 
 The table lists direct production dependencies between our modules. Jackson,
 Spring and other external dependencies are declared in each module's POM.
 
-`documents`, `library` and `sync` compile production code for Java 17 so Android
-can consume them. Their tests use the build's Java 25 toolchain. `application`
-and `server` target Java 25. The shared modules have no Spring dependency;
-`application` uses Spring context, JDBC and transactions, and `server` supplies
+`study-documents`, `content-library` and `sync` compile production code for Java 17 so Android
+can consume them. Their tests use the build's Java 25 toolchain. `desktop-application`
+and `desktop-server` target Java 25. The shared modules have no Spring dependency;
+`desktop-application` uses Spring context, JDBC and transactions, and `desktop-server` supplies
 the executable Spring Boot host.
 
 Dependencies point from the server towards application operations and shared
@@ -30,26 +30,19 @@ it has no application implementation.
 
 ## Naming choices
 
-### `documents` or `document-model`?
+### `study-documents`
 
-`document-model` would clearly identify the shared study-document types, but the
-current module also contains `StudyDocumentCodec`, `StudyDocumentReader` and
-`StudyDocumentValidator`, and depends on Jackson. It owns the portable document
-format as well as its in-memory model.
+The module owns the portable study-document format: immutable domain types,
+validation, JSON encoding/decoding and file reading. `document-model` would
+suggest a narrower module containing only types and intrinsic rules. Keeping the
+format implementation together serves both desktop and Android consumers.
 
-For the current contents, `documents` is a reasonable name. `study-documents`
-would be more specific. Reserve `document-model` for a deliberate boundary in
-which the module owns domain types and intrinsic rules, while JSON and file I/O
-live elsewhere. Splitting these just to obtain that name would add another
-module without an established consumer need.
+### `content-library`
 
-### `library`
-
-This means the user's content library, not a generic collection of reusable
-Java utilities. It contains rules shared by desktop and Android. Desktop library
-services and SQLite stores live in `application`, even though their Java
-packages also begin with `com.petitesroues.library`. `content-library` is a
-possible clearer module name if this ambiguity becomes troublesome.
+This means the user's content library, not a generic collection of reusable Java
+utilities. It contains rules shared by desktop and Android. Desktop library
+services and SQLite stores live in `desktop-application`, even though their Java
+packages also begin with `com.petitesroues.library`.
 
 ### `sync`
 
@@ -58,7 +51,7 @@ and transfer implementation. `sync` describes that combined scope. Calling it
 `sync-protocol` would understate its contents. Separate protocol and client
 modules only if their consumers or dependencies need independent boundaries.
 
-## Why separate `application` and `server`?
+## Why separate `desktop-application` and `desktop-server`?
 
 The application owns operations such as adding a repository, queuing an edit or
 saving playback progress. The server exposes those operations over HTTP:
@@ -70,10 +63,10 @@ servlet APIs and allows workflows to be tested without an HTTP server. It also
 leaves room for another entry point, such as a command-line tool, to call the
 same services. Such an entry point is a possibility, not an existing requirement.
 
-`application` is not framework-independent: it includes concrete JDBC stores,
+`desktop-application` is not framework-independent: it includes concrete JDBC stores,
 Spring services and local integrations. Its name means desktop application
-operations and supporting implementation, not a pure domain core. `server`
-means the executable HTTP host; `desktop-server` could make that more explicit.
+operations and supporting implementation, not a pure domain core. `desktop-server`
+means the executable desktop HTTP host.
 
 Keeping both modules makes sense while the HTTP dependency boundary is useful.
 Merging them would simplify Maven configuration but lose that compile-time
@@ -98,7 +91,7 @@ connecting the implementations.
 The current project has some of this separation: HTTP controllers are outside
 application operations, and portable document/library rules are outside Spring.
 It is not a strict hexagonal implementation. Services use concrete stores, and
-JDBC implementations share the `application` module with the use cases.
+JDBC implementations share the `desktop-application` module with the use cases.
 
 Adopting stricter ports and adapters would mean defining interfaces at selected
 external boundaries and moving their implementations outward. It would not
@@ -116,8 +109,8 @@ There are two applications with different execution environments and workflows:
 | Desktop Java application | Desktop catalogue, editing/review workflows, persistence and local integrations | Uses the three shared Java modules directly |
 | Android app (`android/`) | Offline player/reader, local catalogue and progress, pairing and downloads | Uses the shared Java modules directly; calls the desktop for pairing and transfer |
 
-The React UI reaches `server` through the Node web server's `/api/` proxy.
-Controllers delegate to `application` services. The Node server serves the UI
+The React UI reaches `desktop-server` through the Node web server's `/api/` proxy.
+Controllers delegate to `desktop-application` services. The Node server serves the UI
 and proxies requests; it does not own the desktop's business workflows. React's
 JSON types and display projections are maintained in TypeScript. Sharing a wire
 format does not make the Java model executable in the browser.
@@ -129,16 +122,15 @@ local operations or the desktop client. The desktop supplies files through sync,
 and playback and reading then work locally. Android is read-only with respect to
 study documents, while still saving local progress and preferences.
 
-Consequently, Android does not depend on the Java `application` or `server`
-modules. The name `application` currently refers specifically to the desktop.
-`desktop-application` would make that clearer when discussing both platforms.
+Consequently, Android does not depend on the Java `desktop-application` or `desktop-server`
+modules. `desktop-application` refers specifically to desktop workflows.
 The shared modules are the place for rules the two platforms must agree on,
 such as document validation, media fingerprints and discovery. Desktop editing
 and Android lifecycle handling remain owned by their respective applications.
 
 ### A concrete port and adapter already in use
 
-`library` defines `ContentTree<F>`: list a folder and open a file, using a
+`content-library` defines `ContentTree<F>`: list a folder and open a file, using a
 platform-specific handle. `ContentScanner` depends on that contract. It does not
 need to know how an operating system grants access to the files.
 
@@ -206,9 +198,9 @@ From the repository root, run the complete Java build with:
 To build the server and its required modules:
 
 ```sh
-./java/mvnw -B -f java/pom.xml -pl server -am verify
+./java/mvnw -B -f java/pom.xml -pl desktop-server -am verify
 ```
 
 Media integration tests require FFmpeg. CI installs and tests the shared modules
-first, then verifies `application` and `server` against those artifacts. See
+first, then verifies `desktop-application` and `desktop-server` against those artifacts. See
 [the CI workflow](../.github/workflows/ci.yml) for the exact commands.

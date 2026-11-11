@@ -25,8 +25,8 @@ room = "2.8.5"
 androidxTest = "1.7.0"
 
 [libraries]
-petites-roues-documents = { module = "com.petitesroues:petites-roues-documents", version.ref = "petitesRoues" }
-petites-roues-library = { module = "com.petitesroues:petites-roues-library", version.ref = "petitesRoues" }
+petites-roues-study-documents = { module = "com.petitesroues:petites-roues-study-documents", version.ref = "petitesRoues" }
+petites-roues-content-library = { module = "com.petitesroues:petites-roues-content-library", version.ref = "petitesRoues" }
 petites-roues-sync = { module = "com.petitesroues:petites-roues-sync", version.ref = "petitesRoues" }
 compose-bom = { module = "androidx.compose:compose-bom", version.ref = "composeBom" }
 compose-material3 = { module = "androidx.compose.material3:material3" }

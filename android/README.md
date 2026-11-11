@@ -14,8 +14,8 @@ Open this `android/` folder as its own project in Android Studio (or IntelliJ wi
 plugin), not the repository root. The Gradle JDK (**Settings → Build Tools → Gradle**) must be
 Java 25; Android Studio's bundled JDK is.
 
-Every Gradle sync and build first installs the shared Java library (`../java`: documents,
-library and sync) into `~/.m2` with Maven, using the JDK Gradle runs on, so the app never
+Every Gradle sync and build first installs the shared Java library (`../java`: study-documents,
+content-library and sync) into `~/.m2` with Maven, using the JDK Gradle runs on, so the app never
 compiles against a stale jar. If that step fails, the sync shows Maven's error. It runs the
 Java formatting check, so unformatted Java fails the sync until you run
 `./java/mvnw -f java/pom.xml spotless:apply`.

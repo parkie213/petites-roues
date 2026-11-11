@@ -7,11 +7,11 @@
     <version>0.1.0-SNAPSHOT</version>
     <relativePath>../pom.xml</relativePath>
   </parent>
-  <artifactId>petites-roues-application</artifactId>
+  <artifactId>petites-roues-desktop-application</artifactId>
   <dependencies>
     <dependency>
       <groupId>com.petitesroues</groupId>
-      <artifactId>petites-roues-library</artifactId>
+      <artifactId>petites-roues-content-library</artifactId>
       <version>${project.version}</version>
     </dependency>
     <dependency>
@@ -21,7 +21,7 @@
     </dependency>
     <dependency>
       <groupId>com.petitesroues</groupId>
-      <artifactId>petites-roues-documents</artifactId>
+      <artifactId>petites-roues-study-documents</artifactId>
       <version>${project.version}</version>
     </dependency>
     <dependency>
@@ -55,7 +55,7 @@
     </dependency>
     <dependency>
       <groupId>com.petitesroues</groupId>
-      <artifactId>petites-roues-documents</artifactId>
+      <artifactId>petites-roues-study-documents</artifactId>
       <version>${project.version}</version>
       <type>test-jar</type>
       <scope>test</scope>

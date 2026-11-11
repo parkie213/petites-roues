@@ -17,20 +17,22 @@ images/               Screenshots and branding assets
 java/
   pom.xml             Java-only Maven parent and reactor
   mvnw                Maven wrapper (mvnw.cmd on Windows)
-  documents/          Document records, JSON codec and validation
-  application/        Services, local models and persistence
-  server/             HTTP, configuration, migrations and executable startup
+  study-documents/    Document records, JSON codec and validation
+  content-library/    Shared discovery, shelving, linking and fingerprints
+  sync/               Desktop–phone protocol, client and transfer logic
+  desktop-application/ Services, local models and persistence
+  desktop-server/     HTTP, configuration, migrations and executable startup
 web/                  Independent React, Vite and Node application
 android/              Offline phone player and comic reader (Gradle)
 ```
 
-`java/documents` owns the document format: immutable records in
+`java/study-documents` owns the document format: immutable records in
 `com.petitesroues.model.document`, the codec that reads and writes their canonical JSON,
 and the validation and phrase alignment rules. It depends only on Jackson, with no Spring,
 JDBC or HTTP dependencies, so the Android app uses the same jar. Its main code
 is pinned to Java 17 (`maven.compiler.release`) because Android's library and D8 need it;
 its tests stay on Java 25.
-`java/library` holds the library's rules shared with the Android app: one walk of a
+`java/content-library` holds the library's rules shared with the Android app: one walk of a
 registered folder through a small `ContentTree` interface (java.nio on the desktop, the
 Storage Access Framework on Android), what counts as a document, video or comic, where
 posters are, and the v1 media fingerprint. Like documents it has no Spring and targets
@@ -40,14 +42,14 @@ the phone listener's routes, the QR pairing code reader, certificate pinning (`C
 and the phone's `DesktopClient`, on `HttpURLConnection` because `java.net.http` is missing on
 Android. The server answers with the
 same records and its integration test pairs through the same client, so the two sides cannot drift.
-It depends only on Jackson and targets Java 17.
-`java/application` depends on documents, library and sync, and owns services, stores, media
-readers and local application models. `java/server` depends on application
+It depends on content-library and Jackson and targets Java 17.
+`java/desktop-application` depends on study-documents, content-library and sync, and owns services, stores, media
+readers and local application models. `java/desktop-server` depends on desktop-application
 and supplies HTTP controllers, framework wiring, database migrations and startup.
-The dependency direction is `server → application → documents, library, sync`.
+The dependency direction is `desktop-server → desktop-application → study-documents, content-library, sync`.
 
 Unit tests live beside their owning module. Documents tests load examples from
-`java/documents/src/test/resources/documents/` and publish a test-only fixtures JAR for application/server tests. HTTP
+`java/study-documents/src/test/resources/documents/` and publish a test-only fixtures JAR for application/server tests. HTTP
 and real-database integration tests stay in server, alongside the canonical Flyway
 migrations; application unit tests require no server dependency. Synthetic media
 fixtures live in application test resources; server tests also load that directory.
@@ -73,7 +75,7 @@ path resolves consistently:
 
 ```bash
 mkdir -p content
-java -jar java/server/target/petites-roues-server-0.1.0-SNAPSHOT.jar
+java -jar java/desktop-server/target/petites-roues-desktop-server-0.1.0-SNAPSHOT.jar
 ```
 
 To let a phone pair with this desktop (experimental), click the phone icon in the library and
@@ -168,7 +170,7 @@ For Java-only iteration, install sibling modules first:
 
 ```bash
 ./java/mvnw -f java/pom.xml install -DskipTests
-./java/mvnw -f java/server/pom.xml spring-boot:run -Dspring-boot.run.workingDirectory="$PWD"
+./java/mvnw -f java/desktop-server/pom.xml spring-boot:run -Dspring-boot.run.workingDirectory="$PWD"
 ```
 
 ## Android app
@@ -181,13 +183,13 @@ local SQLite databases (Room): the index is a cache rebuilt by Refresh, and prog
 updates. Kotlin, Jetpack Compose, Media3, Hilt and Room; Android 14 or newer. [android/README.md](../android/README.md)
 maps the code and explains the databases.
 
-It finds and links content with the desktop's rules from `java/library`: every study document
+It finds and links content with the desktop's rules from `java/content-library`: every study document
 and every video or CBZ in the chosen folders, documents linked to media by fingerprint from any
 folder, and posters beside the media. Sync the media folder and the documents folder to the
 phone and choose both. Media is fingerprinted once (8 MiB read per file) and again only when it
 changes.
 
-The app uses the shared Java jars (`java/documents`, `java/library`, `java/sync`) from `~/.m2`,
+The app uses the shared Java jars (`java/study-documents`, `java/content-library`, `java/sync`) from `~/.m2`,
 the same jars the server builds against. Gradle installs it with Maven whenever it configures the
 build, including an Android Studio sync, so the app never compiles against a stale jar; Maven
 skips work that is up to date. Jackson comes with the jar, at the version Spring Boot manages.
@@ -228,7 +230,7 @@ controllers or configuration. Library and editing workflows currently stay toget
 in application so their existing package dependencies do not create Maven cycles.
 The parent owns shared versions and formatting; only `server` applies Spring Boot
 executable packaging. Ordinary modules produce dependency JARs. Maven orders the
-build using their dependencies. Use `-pl server -am verify` from `java/` to build
+build using their dependencies. Use `-pl desktop-server -am verify` from `java/` to build
 the server and the modules it requires.
 
 CI builds and tests the shared library once, then builds the server and the Android app against

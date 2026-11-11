@@ -12,7 +12,7 @@ clip in French with English translations, plus a quiz and a study note.
 ```bash
 ./java/mvnw -f java/pom.xml verify
 mkdir -p content
-java -jar java/server/target/petites-roues-server-0.1.0-SNAPSHOT.jar
+java -jar java/desktop-server/target/petites-roues-desktop-server-0.1.0-SNAPSHOT.jar
 ```
 
 **2.** From the repository root in a second terminal, start the Node development server:

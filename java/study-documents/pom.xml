@@ -7,7 +7,7 @@
     <version>0.1.0-SNAPSHOT</version>
     <relativePath>../pom.xml</relativePath>
   </parent>
-  <artifactId>petites-roues-documents</artifactId>
+  <artifactId>petites-roues-study-documents</artifactId>
   <properties>
     <!-- The Android app uses this jar too; D8 and Android's library need Java 17. -->
     <maven.compiler.release>17</maven.compiler.release>

@@ -101,8 +101,8 @@ androidComponents {
 }
 
 dependencies {
-  implementation(libs.petites.roues.documents)
-  implementation(libs.petites.roues.library)
+  implementation(libs.petites.roues.study.documents)
+  implementation(libs.petites.roues.content.library)
   implementation(libs.petites.roues.sync)
   implementation(platform(libs.compose.bom))
   implementation(libs.compose.material3)

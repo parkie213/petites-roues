@@ -16,7 +16,7 @@
   <dependencies>
     <dependency>
       <groupId>com.petitesroues</groupId>
-      <artifactId>petites-roues-library</artifactId>
+      <artifactId>petites-roues-content-library</artifactId>
       <version>${project.version}</version>
     </dependency>
     <dependency>

@@ -33,7 +33,7 @@ if (!providers.gradleProperty("prebuiltLibrary").isPresent) {
       "-q",
       "-B",
       "-pl",
-      "documents,library,sync",
+      "study-documents,content-library,sync",
       "-am",
       "install",
       "-DskipTests",

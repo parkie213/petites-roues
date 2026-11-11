@@ -5,17 +5,17 @@ translations, learner notes and optional phrase links. It contains no
 machine-specific media paths, playback progress or review queue.
 
 The format is plain JSON, defined by the immutable Java records in
-[com.petitesroues.model.document](../java/documents/src/main/java/com/petitesroues/model/document/),
+[com.petitesroues.model.document](../java/study-documents/src/main/java/com/petitesroues/model/document/),
 with exactly one `video` or `comic` body. The unit of study is a `line`: a source text with its
 translation, notes and phrase breakdown. A video cue holds one `line`; a comic box holds `lines`.
 There are no `format`, `version` or `type` fields.
 
-[StudyDocumentCodec](../java/documents/src/main/java/com/petitesroues/documents/StudyDocumentCodec.java)
+[StudyDocumentCodec](../java/study-documents/src/main/java/com/petitesroues/documents/StudyDocumentCodec.java)
 reads and writes one canonical layout: two-space indentation, one array element per line,
 fields in the order shown below, absent optional fields omitted and required strings,
 booleans and lists always written. A file the app has written therefore round-trips unchanged,
 so agents can write a review batch's `document` straight to disk. Domain validation lives in
-[StudyDocumentValidator](../java/documents/src/main/java/com/petitesroues/documents/StudyDocumentValidator.java).
+[StudyDocumentValidator](../java/study-documents/src/main/java/com/petitesroues/documents/StudyDocumentValidator.java).
 Document HTTP responses and `/export` use the same JSON as files. Repositories,
 progress, review queue entries and edit requests remain application-owned records. React creates
 a flat display view for its player components; that view is never a persisted model.
