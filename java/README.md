@@ -16,7 +16,7 @@ module naming and the architectural choices behind them.
 
 Each module uses its directory name as its Maven artifact ID, under the
 `com.petitesroues` group (for example, `com.petitesroues:study-documents`).
-The parent artifact remains `com.petitesroues:petites-roues`.
+The parent artifact is `com.petitesroues:petites-roues-parent`.
 
 The table lists direct production dependencies between our modules. Jackson,
 Spring and other external dependencies are declared in each module's POM.
