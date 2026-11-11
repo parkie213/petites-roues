@@ -57,9 +57,50 @@ object DesktopFinder {
    */
   private val direct = Executor { it.run() }
 
+  /**
+   * The parts of [NsdManager] that [find] uses. Android calls the listeners and callbacks on its
+   * own thread, possibly after [find] has returned; a test stands in a fake to do the same.
+   */
+  interface Nsd {
+    fun discoverServices(type: String, listener: NsdManager.DiscoveryListener)
+
+    fun stopServiceDiscovery(listener: NsdManager.DiscoveryListener)
+
+    fun registerServiceInfoCallback(
+      service: NsdServiceInfo,
+      executor: Executor,
+      callback: NsdManager.ServiceInfoCallback,
+    )
+
+    fun unregisterServiceInfoCallback(callback: NsdManager.ServiceInfoCallback)
+  }
+
   /** The listener's base URL announced with [pin], or null if none answers in a few seconds. */
   fun find(context: Context, pin: String): String? {
-    val nsd = context.getSystemService(NsdManager::class.java) ?: return null
+    val manager = context.getSystemService(NsdManager::class.java) ?: return null
+    return find(
+      object : Nsd {
+        override fun discoverServices(type: String, listener: NsdManager.DiscoveryListener) =
+          manager.discoverServices(type, NsdManager.PROTOCOL_DNS_SD, listener)
+
+        override fun stopServiceDiscovery(listener: NsdManager.DiscoveryListener) =
+          manager.stopServiceDiscovery(listener)
+
+        override fun registerServiceInfoCallback(
+          service: NsdServiceInfo,
+          executor: Executor,
+          callback: NsdManager.ServiceInfoCallback,
+        ) = manager.registerServiceInfoCallback(service, executor, callback)
+
+        override fun unregisterServiceInfoCallback(callback: NsdManager.ServiceInfoCallback) =
+          manager.unregisterServiceInfoCallback(callback)
+      },
+      pin,
+    )
+  }
+
+  /** [find] through [nsd]: the URL announced with [pin], or null after [TIMEOUT_SECONDS]. */
+  fun find(nsd: Nsd, pin: String): String? {
     // Each found desktop's URL, or "" when discovery cannot start.
     val found = LinkedBlockingQueue<String>()
     val resolving = mutableListOf<NsdManager.ServiceInfoCallback>()
@@ -100,7 +141,7 @@ object DesktopFinder {
 
         override fun onStopDiscoveryFailed(serviceType: String, errorCode: Int) {}
       }
-    nsd.discoverServices(PhoneRoutes.SERVICE_TYPE, NsdManager.PROTOCOL_DNS_SD, discovery)
+    nsd.discoverServices(PhoneRoutes.SERVICE_TYPE, discovery)
     return try {
       found.poll(TIMEOUT_SECONDS, TimeUnit.SECONDS)?.takeIf { it.isNotEmpty() }
     } finally {
