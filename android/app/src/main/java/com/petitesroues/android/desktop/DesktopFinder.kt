@@ -12,7 +12,7 @@ import java.io.IOException
 import java.net.Inet4Address
 import java.net.Inet6Address
 import java.net.InetAddress
-import java.util.concurrent.Executors
+import java.util.concurrent.Executor
 import java.util.concurrent.LinkedBlockingQueue
 import java.util.concurrent.TimeUnit
 
@@ -50,13 +50,62 @@ fun <T> reachDesktop(context: Context, settings: Settings, call: (Desktop) -> T)
 object DesktopFinder {
   private const val TIMEOUT_SECONDS = 6L
 
+  /**
+   * Callbacks run on the thread [NsdManager] delivers them on: they only queue a URL. Android can
+   * still deliver one after [find] returns (an unregistration, a late answer), so this must never
+   * reject a task, as a shut-down executor would by crashing the app on that thread.
+   */
+  private val direct = Executor { it.run() }
+
+  /**
+   * The parts of [NsdManager] that [find] uses. Android calls the listeners and callbacks on its
+   * own thread, possibly after [find] has returned; a test stands in a fake to do the same.
+   */
+  interface Nsd {
+    fun discoverServices(type: String, listener: NsdManager.DiscoveryListener)
+
+    fun stopServiceDiscovery(listener: NsdManager.DiscoveryListener)
+
+    fun registerServiceInfoCallback(
+      service: NsdServiceInfo,
+      executor: Executor,
+      callback: NsdManager.ServiceInfoCallback,
+    )
+
+    fun unregisterServiceInfoCallback(callback: NsdManager.ServiceInfoCallback)
+  }
+
   /** The listener's base URL announced with [pin], or null if none answers in a few seconds. */
   fun find(context: Context, pin: String): String? {
-    val nsd = context.getSystemService(NsdManager::class.java) ?: return null
-    val executor = Executors.newSingleThreadExecutor()
+    val manager = context.getSystemService(NsdManager::class.java) ?: return null
+    return find(
+      object : Nsd {
+        override fun discoverServices(type: String, listener: NsdManager.DiscoveryListener) =
+          manager.discoverServices(type, NsdManager.PROTOCOL_DNS_SD, listener)
+
+        override fun stopServiceDiscovery(listener: NsdManager.DiscoveryListener) =
+          manager.stopServiceDiscovery(listener)
+
+        override fun registerServiceInfoCallback(
+          service: NsdServiceInfo,
+          executor: Executor,
+          callback: NsdManager.ServiceInfoCallback,
+        ) = manager.registerServiceInfoCallback(service, executor, callback)
+
+        override fun unregisterServiceInfoCallback(callback: NsdManager.ServiceInfoCallback) =
+          manager.unregisterServiceInfoCallback(callback)
+      },
+      pin,
+    )
+  }
+
+  /** [find] through [nsd]: the URL announced with [pin], or null after [TIMEOUT_SECONDS]. */
+  fun find(nsd: Nsd, pin: String): String? {
     // Each found desktop's URL, or "" when discovery cannot start.
     val found = LinkedBlockingQueue<String>()
     val resolving = mutableListOf<NsdManager.ServiceInfoCallback>()
+    // Set once the search is over; a desktop found after that is not resolved.
+    var finished = false
     val discovery =
       object : NsdManager.DiscoveryListener {
         override fun onServiceFound(service: NsdServiceInfo) {
@@ -72,8 +121,11 @@ object DesktopFinder {
 
               override fun onServiceInfoCallbackUnregistered() {}
             }
-          synchronized(resolving) { resolving += callback }
-          nsd.registerServiceInfoCallback(service, executor, callback)
+          synchronized(resolving) {
+            if (finished) return
+            resolving += callback
+            nsd.registerServiceInfoCallback(service, direct, callback)
+          }
         }
 
         override fun onStartDiscoveryFailed(serviceType: String, errorCode: Int) {
@@ -89,15 +141,15 @@ object DesktopFinder {
 
         override fun onStopDiscoveryFailed(serviceType: String, errorCode: Int) {}
       }
-    nsd.discoverServices(PhoneRoutes.SERVICE_TYPE, NsdManager.PROTOCOL_DNS_SD, discovery)
+    nsd.discoverServices(PhoneRoutes.SERVICE_TYPE, discovery)
     return try {
       found.poll(TIMEOUT_SECONDS, TimeUnit.SECONDS)?.takeIf { it.isNotEmpty() }
     } finally {
       synchronized(resolving) {
+        finished = true
         resolving.forEach { runCatching { nsd.unregisterServiceInfoCallback(it) } }
       }
       runCatching { nsd.stopServiceDiscovery(discovery) }
-      executor.shutdown()
     }
   }
 
