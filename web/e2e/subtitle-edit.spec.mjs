@@ -1,4 +1,73 @@
-import { test, expect, looksLike } from "./api.mjs";
+import { test as base, expect, looksLike } from "./api.mjs";
+
+// Keep the media lifecycle in the trace and an attachment so a reset to zero can be
+// distinguished from a seek or a media reload, including events before metadata loads.
+const test = base.extend({
+  mediaEvents: [
+    async ({ page }, run, info) => {
+      const events = [];
+      const collect = (message) => {
+        if (message.text().startsWith("[media] ")) events.push(message.text());
+      };
+      page.on("console", collect);
+      await page.addInitScript(() => {
+        for (const type of [
+          "loadstart",
+          "emptied",
+          "loadedmetadata",
+          "loadeddata",
+          "canplay",
+          "seeking",
+          "seeked",
+          "play",
+          "playing",
+          "pause",
+          "ended",
+          "abort",
+          "error",
+          "stalled",
+          "waiting",
+        ]) {
+          globalThis.document.addEventListener(
+            type,
+            (event) => {
+              const video = event.target;
+              if (!(video instanceof globalThis.HTMLVideoElement)) return;
+              console.debug(
+                "[media] " +
+                  JSON.stringify({
+                    event: type,
+                    timestamp: performance.now(),
+                    currentTime: video.currentTime,
+                    readyState: video.readyState,
+                    networkState: video.networkState,
+                    paused: video.paused,
+                    seeking: video.seeking,
+                    currentSrc: video.currentSrc,
+                    error: video.error && {
+                      code: video.error.code,
+                      message: video.error.message,
+                    },
+                  }),
+              );
+            },
+            true,
+          );
+        }
+      });
+      try {
+        await run();
+      } finally {
+        page.off("console", collect);
+        await info.attach("media-events", {
+          body: events.join("\n"),
+          contentType: "text/plain",
+        });
+      }
+    },
+    { auto: true },
+  ],
+});
 
 test("moving a line's end moves the next line's start with it, and the editor steps through lines", async ({
   page,
