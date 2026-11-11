@@ -23,6 +23,8 @@ public final class NaturalOrder {
    */
   public static final Comparator<String> COMPARATOR = NaturalOrder::compare;
 
+  // The shared comparator may run concurrently. Collator is mutable and not guaranteed
+  // thread-safe; reuse one per thread to avoid locking comparisons or recreating it each time.
   private static final ThreadLocal<Collator> COLLATOR =
       ThreadLocal.withInitial(
           () -> {
