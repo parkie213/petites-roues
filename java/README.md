@@ -6,10 +6,11 @@ React calls the desktop over HTTP; Android runs its own offline application.
 | Module | Owns | Internal production dependencies |
 | --- | --- | --- |
 | `content-model` | Study documents, Markdown quizzes/notes, defaults and intrinsic rules | None |
+| `learning-model` | Video/page resume positions, validation and progress fractions | None |
 | `document-json` | JSON recognition, strict decoding, canonical encoding and file loading | `content-model` |
 | `content-library` | Repository identities, library entries, discovery, shelving, media linking and fingerprints | `content-model` |
 | `sync` | Desktop–phone protocol, client and downloads | `content-library` |
-| `desktop-application` | Desktop workflows, transactions, SQLite stores/migrations and local integrations | Model, JSON, library and sync |
+| `desktop-application` | Desktop workflows, transactions, SQLite stores/migrations and local integrations | Content/learning models, JSON, library and sync |
 | `document-test-fixtures` | Reusable sample documents and model constructors for downstream tests | `content-model` |
 | `desktop-test-fixtures` | Test database setup and synthetic media | Flyway (external) |
 | `desktop-server` | HTTP controllers/filters, Spring Boot startup, phone listener and advertising | `desktop-application`, `document-json` |
@@ -20,7 +21,7 @@ versions, including ordinary fixture JARs, in `dependencyManagement`; child modu
 declare only the dependencies they need. Fixture dependencies also inherit test
 scope from the parent. Each child still declares its parent
 version because Maven must resolve the parent before inheriting that management.
-The four shared modules compile production
+The five shared modules compile production
 code for Java 17 for Android; the desktop modules and all tests use Java 25.
 
 ## Content models and document JSON
@@ -89,6 +90,23 @@ runs beyond 254 digits; the standalone JAR is about 15 MB. We retain the small
 JDK-based comparator and its ordering contract. Commons IO is also unnecessary
 for the single extension lookup: filenames without a dot have no extension.
 The discovery, media-link precedence and fingerprint protocol remain project rules.
+
+## Learner progress
+
+`learning-model` owns `PlaybackPosition` and `ReadingPosition` under
+`app.petitesroues.model.progress`. It has no production dependencies and is shared
+by desktop and Android. Positions have no storage key, timestamp or database fields.
+Video positions must be finite and nonnegative; fractions are clamped to one, or
+unknown for nonfinite/nonpositive/absent durations. Comic fractions count the selected
+page in the current ordered manifest. Missing saved page IDs restore to the first
+page; new saves must name a page in the current manifest.
+
+Desktop progress snapshots and HTTP fields retain ISO timestamp strings and local
+title IDs. Android's Room entity retains epoch-millisecond timestamps and its existing
+progress keys. Both map position values at application boundaries. Storage schemas,
+write ordering and clear operations stay local. `LibraryProgress` in `content-library`
+continues to report Add/Refresh work; it is not learner progress. The desktop continues to hide a
+zero-position progress bar; the shared numeric fraction for zero is zero.
 
 ## Desktop application and server
 

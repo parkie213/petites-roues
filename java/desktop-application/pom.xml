@@ -16,6 +16,10 @@
   <dependencies>
     <dependency>
       <groupId>app.petitesroues</groupId>
+      <artifactId>learning-model</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>app.petitesroues</groupId>
       <artifactId>content-model</artifactId>
     </dependency>
 

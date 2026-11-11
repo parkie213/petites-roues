@@ -58,8 +58,13 @@ existing response fields; Android derives its selection key from repository and
 path. Markdown rendering and sharing belong to the user interfaces.
 
 Playback and reading progress describe local learner activity, rather than content.
-Desktop progress records remain in `desktop-application`; Android retains its Room
-entity. Their persistence and timestamp representations are not yet unified.
+Shared `PlaybackPosition` and `ReadingPosition` values and their intrinsic rules
+live in `learning-model`, separate from portable content. Desktop snapshots retain
+local title IDs and ISO timestamps; Android retains its Room entity, existing keys
+and epoch timestamps. Storage adapters translate positions without a schema change.
+Both platforms use the same fraction calculations and page-identity lookup against
+the current manifest. Unknown duration means unknown video fraction; a missing saved
+page restores to the first page, while saving a page absent from the manifest fails.
 
 ## Repository-owned documents and media
 

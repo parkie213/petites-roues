@@ -1,6 +1,7 @@
 package app.petitesroues.playback;
 
 import app.petitesroues.library.persistence.CatalogueStore;
+import app.petitesroues.model.progress.PlaybackPosition;
 import app.petitesroues.model.progress.PlaybackProgress;
 import java.time.Instant;
 import java.util.NoSuchElementException;
@@ -49,10 +50,11 @@ public class PlaybackProgressService {
    */
   @Transactional
   public PlaybackProgress save(String titleId, Double positionSeconds) {
-    if (positionSeconds == null || !Double.isFinite(positionSeconds) || positionSeconds < 0)
+    if (positionSeconds == null)
       throw new IllegalArgumentException("Playback position must be finite and nonnegative");
+    var position = new PlaybackPosition(positionSeconds);
     requireVideo(titleId);
-    var saved = new PlaybackProgress(positionSeconds, Instant.now().toString());
+    var saved = new PlaybackProgress(position.seconds(), Instant.now().toString());
     progress.save(titleId, saved);
     return saved;
   }

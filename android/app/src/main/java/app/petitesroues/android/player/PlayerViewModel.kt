@@ -7,8 +7,10 @@ import androidx.media3.common.Player
 import app.petitesroues.android.Settings
 import app.petitesroues.android.data.Progress
 import app.petitesroues.android.data.ProgressStore
+import app.petitesroues.android.data.playbackPosition
 import app.petitesroues.android.library.Title
 import app.petitesroues.model.document.StudyDocument
+import app.petitesroues.model.progress.PlaybackPosition
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedFactory
 import dagger.assisted.AssistedInject
@@ -97,7 +99,7 @@ constructor(
     }
 
   init {
-    saved?.positionSeconds?.let(playback::seek)
+    saved?.playbackPosition()?.seconds()?.let(playback::seek)
     playback.autoPause = _state.value.autoPause
     playback.setSpeed(_state.value.speed)
     playback.player.addListener(saver)
@@ -133,7 +135,11 @@ constructor(
   }
 
   private fun save() =
-    progress.savePosition(title.progressKey, playback.position, playback.fraction)
+    progress.savePosition(
+      title.progressKey,
+      PlaybackPosition(playback.position),
+      playback.durationSeconds,
+    )
 
   override fun onCleared() {
     playback.player.removeListener(saver)
