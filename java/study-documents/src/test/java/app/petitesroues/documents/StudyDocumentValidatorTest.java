@@ -28,7 +28,7 @@ class StudyDocumentValidatorTest {
 
   @Test
   void aDocumentHasExactlyOneBodyUnderItsKind() {
-    var codec = new StudyDocumentCodec();
+    var codec = new StudyDocumentCodec(StudyDocumentJson.newMapper());
     String metadata =
         "\"id\": \"x\", \"title\": \"X\", \"sourceLanguage\": \"fr\","
             + " \"translationLanguage\": \"en\", \"notesLanguage\": \"en\"";

@@ -1,6 +1,5 @@
 package app.petitesroues.study;
 
-import app.petitesroues.documents.StudyDocumentCodec;
 import app.petitesroues.documents.StudyDocumentReader;
 import app.petitesroues.model.document.StudyDocument;
 import app.petitesroues.model.library.CatalogueEntry;
@@ -21,11 +20,9 @@ import org.springframework.stereotype.Component;
 @Component
 public class DocumentStore {
   private final StudyDocumentReader reader;
-  private final StudyDocumentCodec codec;
 
-  public DocumentStore(StudyDocumentReader reader, StudyDocumentCodec codec) {
+  public DocumentStore(StudyDocumentReader reader) {
     this.reader = reader;
-    this.codec = codec;
   }
 
   /**
@@ -34,7 +31,7 @@ public class DocumentStore {
    * valid; teaching quality is not judged.
    */
   public List<String> problems(CatalogueEntry entry, byte[] candidate) {
-    var inspection = codec.inspect(candidate);
+    var inspection = reader.inspect(candidate);
     var problems = new ArrayList<>(inspection.problems());
     if (inspection.document().isPresent()) {
       var id = inspection.document().orElseThrow().id();

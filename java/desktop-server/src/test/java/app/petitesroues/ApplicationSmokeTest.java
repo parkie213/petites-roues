@@ -5,6 +5,7 @@ import static app.petitesroues.support.HttpClients.client;
 import static org.junit.jupiter.api.Assertions.*;
 
 import app.petitesroues.documents.StudyDocumentCodec;
+import app.petitesroues.documents.StudyDocumentJson;
 import app.petitesroues.media.MediaFingerprint;
 import app.petitesroues.model.document.StudyDocument;
 import app.petitesroues.model.document.VideoReference;
@@ -47,7 +48,9 @@ class ApplicationSmokeTest extends HttpIntegrationTest {
     var title = document("episode-01").withVideo(body -> body.withReference(reference));
     Files.write(
         titleFolder.resolve("episode-01.json"),
-        new StudyDocumentCodec().encode(title).getBytes(StandardCharsets.UTF_8));
+        new StudyDocumentCodec(StudyDocumentJson.newMapper())
+            .encode(title)
+            .getBytes(StandardCharsets.UTF_8));
 
     var registered =
         http.post()
@@ -169,7 +172,7 @@ class ApplicationSmokeTest extends HttpIntegrationTest {
   void validateReportsEveryProblemInACandidateWithoutWritingIt() throws Exception {
     registerTitle(document("validate-me"));
     String api = "/api/titles/validate-me";
-    var codec = new StudyDocumentCodec();
+    var codec = new StudyDocumentCodec(StudyDocumentJson.newMapper());
     var current = http.get().uri(api).retrieve().body(StudyDocument.class);
     var file = codec.encode(current);
 

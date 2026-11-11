@@ -7,6 +7,7 @@ import static org.mockito.Mockito.*;
 
 import app.petitesroues.comic.ReadingProgressStore;
 import app.petitesroues.documents.StudyDocumentCodec;
+import app.petitesroues.documents.StudyDocumentJson;
 import app.petitesroues.documents.StudyDocumentReader;
 import app.petitesroues.library.discovery.ContentRepositoryScanner;
 import app.petitesroues.library.persistence.CatalogueStore;
@@ -66,7 +67,7 @@ class ContentRepositoryRefreshIntegrationTest {
     catalogue = new CatalogueStore(jdbc);
     repositories = new ContentRepositoryStore(jdbc);
     scanner = new ContentRepositoryScanner();
-    reader = new StudyDocumentReader(new StudyDocumentCodec());
+    reader = new StudyDocumentReader(new StudyDocumentCodec(StudyDocumentJson.newMapper()));
     service = service(new RepositoryContentService(repositories, catalogue, reader));
   }
 
@@ -90,7 +91,7 @@ class ContentRepositoryRefreshIntegrationTest {
   private Path write(String folder, StudyDocument document) throws IOException {
     Path file = root.resolve(folder).resolve("document.json");
     Files.createDirectories(file.getParent());
-    Files.writeString(file, new StudyDocumentCodec().encode(document));
+    Files.writeString(file, new StudyDocumentCodec(StudyDocumentJson.newMapper()).encode(document));
     return file;
   }
 
@@ -144,7 +145,7 @@ class ContentRepositoryRefreshIntegrationTest {
     assertNotEquals(first.id(), second.id());
     assertEquals("shared", second.documentId());
     var queue = new ReviewQueue(jdbc, mapper);
-    var store = new DocumentStore(reader, new StudyDocumentCodec());
+    var store = new DocumentStore(reader);
     var served =
         new ReviewQueueService(
             catalogue,

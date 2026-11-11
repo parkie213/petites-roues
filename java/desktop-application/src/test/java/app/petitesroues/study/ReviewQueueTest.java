@@ -5,6 +5,7 @@ import static app.petitesroues.support.TestDocuments.catalogueEntry;
 import static org.junit.jupiter.api.Assertions.*;
 
 import app.petitesroues.documents.StudyDocumentCodec;
+import app.petitesroues.documents.StudyDocumentJson;
 import app.petitesroues.documents.StudyDocumentReader;
 import app.petitesroues.library.persistence.CatalogueStore;
 import app.petitesroues.model.document.StudyDocument;
@@ -42,7 +43,7 @@ class ReviewQueueTest {
   @BeforeEach
   void setup() throws Exception {
     var mapper = JsonMapper.builder().build();
-    codec = new StudyDocumentCodec();
+    codec = new StudyDocumentCodec(StudyDocumentJson.newMapper());
     source = new SingleConnectionDataSource("jdbc:sqlite::memory:", true);
     jdbc = new JdbcTemplate(source);
     DatabaseFixtures.migrate(source);
@@ -51,8 +52,7 @@ class ReviewQueueTest {
     service =
         new ReviewQueueService(
             new CatalogueStore(jdbc),
-            new DocumentStore(
-                new StudyDocumentReader(new StudyDocumentCodec()), new StudyDocumentCodec()),
+            new DocumentStore(new StudyDocumentReader(codec)),
             queue,
             new TransactionTemplate(new DataSourceTransactionManager(source)));
     queue.append(title, delete);

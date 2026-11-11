@@ -25,6 +25,7 @@ import app.petitesroues.android.testing.FakeDesktop
 import app.petitesroues.android.testing.FakeNsd
 import app.petitesroues.android.testing.MainDispatcherRule
 import app.petitesroues.documents.StudyDocumentCodec
+import app.petitesroues.documents.StudyDocumentJson
 import app.petitesroues.documents.StudyDocumentReader
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -81,7 +82,7 @@ class LibraryViewModelTest {
       LibraryService(
         context.contentResolver,
         indexDatabase.index(),
-        StudyDocumentReader(StudyDocumentCodec()),
+        StudyDocumentReader(StudyDocumentCodec(StudyDocumentJson.newMapper())),
       )
   }
 

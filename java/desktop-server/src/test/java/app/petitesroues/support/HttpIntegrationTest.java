@@ -3,6 +3,7 @@ package app.petitesroues.support;
 import static app.petitesroues.support.HttpClients.client;
 
 import app.petitesroues.documents.StudyDocumentCodec;
+import app.petitesroues.documents.StudyDocumentJson;
 import app.petitesroues.media.MediaFingerprint;
 import app.petitesroues.model.document.StudyDocument;
 import app.petitesroues.model.document.VideoDocument;
@@ -90,7 +91,9 @@ public abstract class HttpIntegrationTest {
     Files.createDirectories(folder);
     Files.write(
         folder.resolve("document.json"),
-        new StudyDocumentCodec().encode(title).getBytes(StandardCharsets.UTF_8));
+        new StudyDocumentCodec(StudyDocumentJson.newMapper())
+            .encode(title)
+            .getBytes(StandardCharsets.UTF_8));
     Files.copy(
         root.resolve("video.mp4"),
         folder.resolve("video.mp4"),

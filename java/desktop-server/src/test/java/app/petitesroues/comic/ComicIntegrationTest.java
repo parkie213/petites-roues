@@ -4,6 +4,7 @@ import static app.petitesroues.support.SpecFixtures.*;
 import static org.junit.jupiter.api.Assertions.*;
 
 import app.petitesroues.documents.StudyDocumentCodec;
+import app.petitesroues.documents.StudyDocumentJson;
 import app.petitesroues.documents.StudyDocumentReader;
 import app.petitesroues.media.MediaFingerprint;
 import app.petitesroues.model.document.ComicReference;
@@ -37,7 +38,9 @@ class ComicIntegrationTest extends HttpIntegrationTest {
     Files.createDirectories(folder);
     Files.write(
         folder.resolve("document.json"),
-        new StudyDocumentCodec().encode(comic).getBytes(StandardCharsets.UTF_8));
+        new StudyDocumentCodec(StudyDocumentJson.newMapper())
+            .encode(comic)
+            .getBytes(StandardCharsets.UTF_8));
     byte[] first = {1, 2, 3};
     byte[] second = {4, 5, 6};
     try (var zip = new ZipOutputStream(Files.newOutputStream(folder.resolve("book.cbz")))) {
@@ -51,7 +54,7 @@ class ComicIntegrationTest extends HttpIntegrationTest {
     // The CBZ links to the document by fingerprint, not by sitting beside it.
     Files.write(
         folder.resolve("document.json"),
-        new StudyDocumentCodec()
+        new StudyDocumentCodec(StudyDocumentJson.newMapper())
             .encode(
                 comic.withBody(
                     comic
@@ -82,7 +85,7 @@ class ComicIntegrationTest extends HttpIntegrationTest {
     assertFalse(exported.has("durationSeconds"));
     assertInstanceOf(
         StudyDocument.class,
-        new StudyDocumentReader(new StudyDocumentCodec())
+        new StudyDocumentReader(new StudyDocumentCodec(StudyDocumentJson.newMapper()))
             .decode(mapper.writeValueAsBytes(exported)));
     assertInstanceOf(StudyDocument.class, http.get().uri(api).retrieve().body(StudyDocument.class));
     var response = http.get().uri(api + "/comic/pages/cover").retrieve().toEntity(byte[].class);

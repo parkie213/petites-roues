@@ -11,6 +11,7 @@ import app.petitesroues.android.di.ApplicationScope
 import app.petitesroues.android.di.DataModule
 import app.petitesroues.android.di.IoDispatcher
 import app.petitesroues.documents.StudyDocumentCodec
+import app.petitesroues.documents.StudyDocumentJson
 import app.petitesroues.documents.StudyDocumentReader
 import app.petitesroues.sync.DesktopClient
 import dagger.Module
@@ -48,7 +49,9 @@ object TestDataModule {
   fun contentResolver(@ApplicationContext context: Context): ContentResolver =
     context.contentResolver
 
-  @Provides @Singleton fun studyDocumentCodec(): StudyDocumentCodec = StudyDocumentCodec()
+  @Provides
+  @Singleton
+  fun studyDocumentCodec(): StudyDocumentCodec = StudyDocumentCodec(StudyDocumentJson.newMapper())
 
   @Provides
   @Singleton

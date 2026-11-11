@@ -1,6 +1,7 @@
 package app.petitesroues.documents;
 
 import app.petitesroues.model.document.StudyDocument;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Optional;
 import tools.jackson.core.JacksonException;
@@ -8,7 +9,8 @@ import tools.jackson.core.StreamReadFeature;
 import tools.jackson.core.util.DefaultIndenter;
 import tools.jackson.core.util.DefaultPrettyPrinter;
 import tools.jackson.core.util.Separators;
-import tools.jackson.databind.DeserializationFeature;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectReader;
 import tools.jackson.databind.ObjectWriter;
 import tools.jackson.databind.json.JsonMapper;
 
@@ -20,25 +22,48 @@ import tools.jackson.databind.json.JsonMapper;
  * file that decodes and re-encodes changes only in layout and explicit defaults.
  */
 public final class StudyDocumentCodec {
-  private static final JsonMapper MAPPER =
-      JsonMapper.builder()
-          .enable(
-              DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES,
-              DeserializationFeature.FAIL_ON_TRAILING_TOKENS)
-          .disable(DeserializationFeature.FAIL_ON_NULL_FOR_PRIMITIVES)
-          .enable(StreamReadFeature.STRICT_DUPLICATE_DETECTION)
-          .build();
-  private static final ObjectWriter WRITER =
-      MAPPER
-          .writer()
-          .with(
-              new DefaultPrettyPrinter(
-                      Separators.createDefaultInstance()
-                          .withObjectNameValueSpacing(Separators.Spacing.AFTER)
-                          .withObjectEmptySeparator("")
-                          .withArrayEmptySeparator(""))
-                  .withArrayIndenter(new DefaultIndenter("  ", "\n"))
-                  .withObjectIndenter(new DefaultIndenter("  ", "\n")));
+  private final JsonMapper mapper;
+  private final ObjectReader recognition;
+  private final ObjectWriter writer;
+
+  /**
+   * Uses a dedicated mapper configured by {@link StudyDocumentJson#newMapper}. Derives recognition
+   * and canonical writing from that same mapper; callers cannot supply an unrelated writer.
+   */
+  public StudyDocumentCodec(JsonMapper mapper) {
+    this.mapper = mapper;
+    // Recognition checks shape, not validity: duplicate keys must not hide a claimed document.
+    this.recognition = mapper.reader().without(StreamReadFeature.STRICT_DUPLICATE_DETECTION);
+    this.writer =
+        mapper
+            .writer()
+            .with(
+                new DefaultPrettyPrinter(
+                        Separators.createDefaultInstance()
+                            .withObjectNameValueSpacing(Separators.Spacing.AFTER)
+                            .withObjectEmptySeparator("")
+                            .withArrayEmptySeparator(""))
+                    .withArrayIndenter(new DefaultIndenter("  ", "\n"))
+                    .withObjectIndenter(new DefaultIndenter("  ", "\n")));
+  }
+
+  /**
+   * Whether JSON claims a source language and a video or comic body, regardless of validity.
+   * Malformed JSON mentioning sourceLanguage is also recognised, so discovery reports broken
+   * documents rather than silently skipping them. This does not validate or load the document.
+   */
+  public boolean isStudyDocument(byte[] bytes) {
+    JsonNode root;
+    try {
+      root = recognition.readTree(bytes);
+    } catch (JacksonException notJson) {
+      return new String(bytes, StandardCharsets.UTF_8).contains("\"sourceLanguage\"");
+    }
+    return root != null
+        && root.isObject()
+        && root.has("sourceLanguage")
+        && (root.has("video") || root.has("comic"));
+  }
 
   /** Parses and validates a document; any problem is an {@link IllegalArgumentException}. */
   public StudyDocument decode(byte[] bytes) {
@@ -82,12 +107,12 @@ public final class StudyDocumentCodec {
   /** Validates, then writes the canonical form with a trailing newline. */
   public String encode(StudyDocument document) {
     StudyDocumentValidator.validate(document);
-    return WRITER.writeValueAsString(document) + "\n";
+    return writer.writeValueAsString(document) + "\n";
   }
 
   private StudyDocument parse(byte[] bytes) {
     try {
-      return MAPPER.readValue(bytes, StudyDocument.class);
+      return mapper.readValue(bytes, StudyDocument.class);
     } catch (JacksonException failure) {
       // A record that rejects its values (such as a missing body) says why in its own words.
       String reason =

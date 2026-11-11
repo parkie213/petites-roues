@@ -8,6 +8,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 import app.petitesroues.documents.StudyDocumentCodec;
+import app.petitesroues.documents.StudyDocumentJson;
 import app.petitesroues.documents.StudyDocumentReader;
 import app.petitesroues.library.persistence.CatalogueStore;
 import app.petitesroues.model.document.Line;
@@ -48,7 +49,7 @@ class DocumentEditingServiceTest {
   @BeforeEach
   void setup() throws Exception {
     var mapper = JsonMapper.builder().build();
-    codec = new StudyDocumentCodec();
+    codec = new StudyDocumentCodec(StudyDocumentJson.newMapper());
     var source = new SingleConnectionDataSource("jdbc:sqlite:" + root.resolve("db.sqlite"), true);
     DatabaseFixtures.migrate(source);
     var jdbc = new JdbcTemplate(source);
@@ -60,8 +61,7 @@ class DocumentEditingServiceTest {
     served =
         new ReviewQueueService(
             titles,
-            new DocumentStore(
-                new StudyDocumentReader(new StudyDocumentCodec()), new StudyDocumentCodec()),
+            new DocumentStore(new StudyDocumentReader(codec)),
             log,
             new TransactionTemplate(new DataSourceTransactionManager(source)));
     editing = new DocumentEditingService(titles, served, log);

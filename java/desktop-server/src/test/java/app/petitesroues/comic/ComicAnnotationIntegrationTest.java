@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.springframework.http.HttpStatus.*;
 
 import app.petitesroues.documents.StudyDocumentCodec;
+import app.petitesroues.documents.StudyDocumentJson;
 import app.petitesroues.model.document.ComicBox;
 import app.petitesroues.model.document.Line;
 import app.petitesroues.model.document.ReadingDirection;
@@ -41,7 +42,9 @@ class ComicAnnotationIntegrationTest extends HttpIntegrationTest {
     Files.createDirectories(folder);
     Files.write(
         folder.resolve("document.json"),
-        new StudyDocumentCodec().encode(doc).getBytes(StandardCharsets.UTF_8));
+        new StudyDocumentCodec(StudyDocumentJson.newMapper())
+            .encode(doc)
+            .getBytes(StandardCharsets.UTF_8));
     http.post()
         .uri("/api/repositories")
         .body(Map.of("localPath", folder.toString()))

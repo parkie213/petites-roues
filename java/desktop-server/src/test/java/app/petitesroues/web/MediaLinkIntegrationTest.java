@@ -4,6 +4,7 @@ import static app.petitesroues.support.SpecFixtures.newPage;
 import static org.junit.jupiter.api.Assertions.*;
 
 import app.petitesroues.documents.StudyDocumentCodec;
+import app.petitesroues.documents.StudyDocumentJson;
 import app.petitesroues.media.MediaFingerprint;
 import app.petitesroues.model.document.ComicReference;
 import app.petitesroues.model.document.ReadingDirection;
@@ -45,7 +46,10 @@ class MediaLinkIntegrationTest extends HttpIntegrationTest {
 
   private static void write(Path file, StudyDocument document) throws Exception {
     Files.createDirectories(file.getParent());
-    Files.writeString(file, new StudyDocumentCodec().encode(document), StandardCharsets.UTF_8);
+    Files.writeString(
+        file,
+        new StudyDocumentCodec(StudyDocumentJson.newMapper()).encode(document),
+        StandardCharsets.UTF_8);
   }
 
   private String add(Path folder) {

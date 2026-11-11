@@ -4,13 +4,9 @@ import app.petitesroues.model.document.StudyDocument;
 import app.petitesroues.model.document.VideoCue;
 import app.petitesroues.model.document.VideoDocument;
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Comparator;
-import tools.jackson.core.JacksonException;
-import tools.jackson.databind.JsonNode;
-import tools.jackson.databind.json.JsonMapper;
 
 /**
  * Recognises and loads the current document format for study. Unlike the codec, loading sorts video
@@ -19,7 +15,6 @@ import tools.jackson.databind.json.JsonMapper;
  * conversion is performed.
  */
 public final class StudyDocumentReader {
-  private static final JsonMapper SHAPE = JsonMapper.builder().build();
   private final StudyDocumentCodec codec;
 
   /** Uses the supplied format codec for validation and decoding; owns no codec configuration. */
@@ -42,16 +37,14 @@ public final class StudyDocumentReader {
 
   /** {@link #isStudyDocument(Path)} for a file already read, as Android reads content URIs. */
   public boolean isStudyDocument(byte[] bytes) {
-    JsonNode root;
-    try {
-      root = SHAPE.readTree(bytes);
-    } catch (JacksonException notJson) {
-      return new String(bytes, StandardCharsets.UTF_8).contains("\"sourceLanguage\"");
-    }
-    return root != null
-        && root.isObject()
-        && root.has("sourceLanguage")
-        && (root.has("video") || root.has("comic"));
+    return codec.isStudyDocument(bytes);
+  }
+
+  /** Inspects a candidate once; valid documents have the same study ordering as {@link #decode}. */
+  public StudyDocumentCodec.Inspection inspect(byte[] bytes) {
+    var result = codec.inspect(bytes);
+    return new StudyDocumentCodec.Inspection(
+        result.document().map(StudyDocumentReader::forStudy), result.problems());
   }
 
   /** Reads and validates one document file. */
@@ -61,7 +54,11 @@ public final class StudyDocumentReader {
 
   /** Decodes and validates one document, preserving comic order and sorting video cues by start. */
   public StudyDocument decode(byte[] bytes) {
-    StudyDocument document = codec.decode(bytes);
+    return forStudy(codec.decode(bytes));
+  }
+
+  /** Keeps comic order and prepares video cues for chronological playback. */
+  private static StudyDocument forStudy(StudyDocument document) {
     // Files may contain cues appended after transcription; playback needs chronological order.
     if (document.body() instanceof VideoDocument)
       document =

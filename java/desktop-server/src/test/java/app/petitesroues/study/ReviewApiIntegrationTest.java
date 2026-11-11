@@ -5,6 +5,7 @@ import static app.petitesroues.support.TestDocuments.edit;
 import static org.junit.jupiter.api.Assertions.*;
 
 import app.petitesroues.documents.StudyDocumentCodec;
+import app.petitesroues.documents.StudyDocumentJson;
 import app.petitesroues.model.document.StudyDocument;
 import app.petitesroues.support.HttpIntegrationTest;
 import java.nio.charset.StandardCharsets;
@@ -46,7 +47,7 @@ class ReviewApiIntegrationTest extends HttpIntegrationTest {
 
     var batch = http.post().uri(api + "/review/batches").retrieve().body(JsonNode.class);
     var document =
-        new StudyDocumentCodec()
+        new StudyDocumentCodec(StudyDocumentJson.newMapper())
             .decode(batch.get("document").toString().getBytes(StandardCharsets.UTF_8));
     assertEquals(served, document);
     String complete = api + "/review/batches/" + batch.get("batch").asLong() + "/complete";
@@ -57,7 +58,11 @@ class ReviewApiIntegrationTest extends HttpIntegrationTest {
     var agent =
         document.withVideo(
             v -> v.withCue(0, c -> c.withLine(s -> s.withTranslation("Good evening!"))));
-    Files.write(file, new StudyDocumentCodec().encode(agent).getBytes(StandardCharsets.UTF_8));
+    Files.write(
+        file,
+        new StudyDocumentCodec(StudyDocumentJson.newMapper())
+            .encode(agent)
+            .getBytes(StandardCharsets.UTF_8));
     http.post().uri(complete).body(Map.of("outcome", "applied")).retrieve().toBodilessEntity();
 
     assertEquals(agent, http.get().uri(api).retrieve().body(StudyDocument.class));

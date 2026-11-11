@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 import app.petitesroues.documents.StudyDocumentCodec;
+import app.petitesroues.documents.StudyDocumentJson;
 import app.petitesroues.documents.StudyDocumentReader;
 import app.petitesroues.model.library.CatalogueEntry;
 import java.nio.charset.StandardCharsets;
@@ -13,8 +14,8 @@ import org.junit.jupiter.api.Test;
 import tools.jackson.databind.json.JsonMapper;
 
 class DocumentStoreTest {
-  private final StudyDocumentCodec codec = new StudyDocumentCodec();
-  private final DocumentStore store = new DocumentStore(new StudyDocumentReader(codec), codec);
+  private final StudyDocumentCodec codec = new StudyDocumentCodec(StudyDocumentJson.newMapper());
+  private final DocumentStore store = new DocumentStore(new StudyDocumentReader(codec));
 
   @Test
   void candidateMustBeValidAndKeepTheRegisteredDocumentIdentity() {

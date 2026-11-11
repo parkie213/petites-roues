@@ -7,6 +7,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
 
 import app.petitesroues.documents.StudyDocumentCodec;
+import app.petitesroues.documents.StudyDocumentJson;
 import app.petitesroues.library.persistence.CatalogueStore;
 import app.petitesroues.model.document.StudyDocument;
 import app.petitesroues.model.editing.UpdateCueTiming;
@@ -185,7 +186,11 @@ class ApplicationConcurrencyTest {
 
   private void registerTitle(StudyDocument title) throws Exception {
     Path file = Files.createTempDirectory(ROOT, "registered-").resolve("document.json");
-    Files.write(file, new StudyDocumentCodec().encode(title).getBytes(StandardCharsets.UTF_8));
+    Files.write(
+        file,
+        new StudyDocumentCodec(StudyDocumentJson.newMapper())
+            .encode(title)
+            .getBytes(StandardCharsets.UTF_8));
     http()
         .post()
         .uri("/api/repositories")
