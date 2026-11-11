@@ -29,7 +29,7 @@ import {
   Trash2,
 } from "lucide-react";
 import { repositoryColumns, repositoryTree } from "./repository-tree.js";
-import { folderHref } from "./navigation.js";
+import { folderHref } from "./navigation.ts";
 import { LinkDialog } from "./LinkDialog.jsx";
 import { unlinkMedia } from "./media-links.js";
 
