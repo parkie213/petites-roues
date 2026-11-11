@@ -2,6 +2,7 @@ package app.petitesroues.documents;
 
 import app.petitesroues.model.document.StudyDocument;
 import java.util.List;
+import java.util.Optional;
 import tools.jackson.core.JacksonException;
 import tools.jackson.core.StreamReadFeature;
 import tools.jackson.core.util.DefaultIndenter;
@@ -15,7 +16,8 @@ import tools.jackson.databind.json.JsonMapper;
  * Reads and writes study documents in their one canonical JSON form: two-space indentation, one
  * array element per line, fields in record order and absent optional fields omitted. Reading
  * rejects unknown fields and duplicate keys; absent or {@code null} values take the format's
- * defaults, so a file that decodes and re-encodes changes only in layout and explicit defaults.
+ * defaults. Array order is preserved; playback ordering belongs to {@link StudyDocumentReader}. A
+ * file that decodes and re-encodes changes only in layout and explicit defaults.
  */
 public final class StudyDocumentCodec {
   private static final JsonMapper MAPPER =
@@ -50,11 +52,31 @@ public final class StudyDocumentCodec {
    * structural problem found by {@link StudyDocumentValidator#problems}. Empty means valid.
    */
   public List<String> problems(byte[] bytes) {
-    try {
-      return StudyDocumentValidator.problems(parse(bytes));
-    } catch (IllegalArgumentException failure) {
-      return List.of(failure.getMessage());
+    return inspect(bytes).problems();
+  }
+
+  /**
+   * A single parse and validation result. Exactly one of a valid document or a nonempty list of
+   * problems is present. The document retains input order, and the problem list is immutable.
+   */
+  public record Inspection(Optional<StudyDocument> document, List<String> problems) {
+    public Inspection {
+      problems = List.copyOf(problems);
+      if (document.isPresent() != problems.isEmpty())
+        throw new IllegalArgumentException("Inspection requires a valid document or problems");
     }
+  }
+
+  /** Parses once and reports all structural problems, retaining the document only when valid. */
+  public Inspection inspect(byte[] bytes) {
+    StudyDocument document;
+    try {
+      document = parse(bytes);
+    } catch (IllegalArgumentException failure) {
+      return new Inspection(Optional.empty(), List.of(failure.getMessage()));
+    }
+    var problems = StudyDocumentValidator.problems(document);
+    return new Inspection(problems.isEmpty() ? Optional.of(document) : Optional.empty(), problems);
   }
 
   /** Validates, then writes the canonical form with a trailing newline. */

@@ -18,7 +18,7 @@ import tools.jackson.databind.node.ObjectNode;
 class StudyDocumentReaderTest {
   private final JsonMapper mapper = JsonMapper.builder().build();
   private final StudyDocumentCodec codec = new StudyDocumentCodec();
-  private final StudyDocumentReader reader = new StudyDocumentReader();
+  private final StudyDocumentReader reader = new StudyDocumentReader(codec);
 
   private StudyDocument roundTrip(StudyDocument document) {
     return reader.decode(codec.encode(document).getBytes(StandardCharsets.UTF_8));
@@ -152,7 +152,10 @@ class StudyDocumentReaderTest {
     var doc =
         document("example")
             .withVideo(v -> v.withCues(List.of(original.withTiming(4.0, 5.0), early)));
-    var loaded = roundTrip(doc);
+    var bytes = codec.encode(doc).getBytes(StandardCharsets.UTF_8);
+    assertEquals(doc, codec.decode(bytes), "the codec preserves document order");
+    assertEquals(doc, codec.inspect(bytes).document().orElseThrow());
+    var loaded = reader.decode(bytes);
     assertEquals("early", loaded.video().cues().getFirst().line().id());
     assertEquals(original.line().notes(), loaded.video().cues().getFirst().line().notes());
   }
@@ -160,7 +163,7 @@ class StudyDocumentReaderTest {
   @Test
   void anyJsonClaimingADocumentBodyIsAStudyDocumentWhateverItsName(@TempDir Path folder)
       throws Exception {
-    var reader = new StudyDocumentReader();
+    var reader = new StudyDocumentReader(new StudyDocumentCodec());
     Path lunch =
         Files.writeString(
             folder.resolve("lunch.json"), "{\"sourceLanguage\": \"zh\", \"video\": {}}");

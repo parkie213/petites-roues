@@ -1,14 +1,20 @@
 package app.petitesroues.config;
 
+import app.petitesroues.documents.StudyDocumentCodec;
 import app.petitesroues.documents.StudyDocumentReader;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
-/** Provides the framework-independent document reader to application services. */
+/** Assembles the shared, framework-independent document format components for desktop services. */
 @Configuration(proxyBeanMethods = false)
 public class DocumentConfiguration {
   @Bean
-  public StudyDocumentReader studyDocumentReader() {
-    return new StudyDocumentReader();
+  public StudyDocumentCodec studyDocumentCodec() {
+    return new StudyDocumentCodec();
+  }
+
+  @Bean
+  public StudyDocumentReader studyDocumentReader(StudyDocumentCodec codec) {
+    return new StudyDocumentReader(codec);
   }
 }

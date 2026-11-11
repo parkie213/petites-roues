@@ -14,6 +14,7 @@ import app.petitesroues.android.data.ProgressStore
 import app.petitesroues.android.screens.Examples
 import app.petitesroues.android.screens.SDK
 import app.petitesroues.android.testing.MainDispatcherRule
+import app.petitesroues.documents.StudyDocumentCodec
 import app.petitesroues.documents.StudyDocumentReader
 import app.petitesroues.model.document.ReadingDirection
 import kotlinx.coroutines.CoroutineScope
@@ -85,7 +86,11 @@ class TitleViewModelTest {
       indexDatabase.index(),
       settings,
       ProgressStore(progressDatabase.progress(), CoroutineScope(Dispatchers.Unconfined)),
-      LibraryService(context.contentResolver, indexDatabase.index(), StudyDocumentReader()),
+      LibraryService(
+        context.contentResolver,
+        indexDatabase.index(),
+        StudyDocumentReader(StudyDocumentCodec()),
+      ),
       context.contentResolver,
       main.dispatcher,
     )

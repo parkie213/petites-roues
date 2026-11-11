@@ -24,6 +24,7 @@ import app.petitesroues.android.testing.FakeAppFolder
 import app.petitesroues.android.testing.FakeDesktop
 import app.petitesroues.android.testing.FakeNsd
 import app.petitesroues.android.testing.MainDispatcherRule
+import app.petitesroues.documents.StudyDocumentCodec
 import app.petitesroues.documents.StudyDocumentReader
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -76,7 +77,12 @@ class LibraryViewModelTest {
         .build()
     settings = Settings(context).apply { contentTrees = listOf(documents, media) }
     folders = Folders(settings, appFolder)
-    library = LibraryService(context.contentResolver, indexDatabase.index(), StudyDocumentReader())
+    library =
+      LibraryService(
+        context.contentResolver,
+        indexDatabase.index(),
+        StudyDocumentReader(StudyDocumentCodec()),
+      )
   }
 
   @After

@@ -66,7 +66,7 @@ class ContentRepositoryRefreshIntegrationTest {
     catalogue = new CatalogueStore(jdbc);
     repositories = new ContentRepositoryStore(jdbc);
     scanner = new ContentRepositoryScanner();
-    reader = new StudyDocumentReader();
+    reader = new StudyDocumentReader(new StudyDocumentCodec());
     service = service(new RepositoryContentService(repositories, catalogue, reader));
   }
 
@@ -144,7 +144,7 @@ class ContentRepositoryRefreshIntegrationTest {
     assertNotEquals(first.id(), second.id());
     assertEquals("shared", second.documentId());
     var queue = new ReviewQueue(jdbc, mapper);
-    var store = new DocumentStore(reader);
+    var store = new DocumentStore(reader, new StudyDocumentCodec());
     var served =
         new ReviewQueueService(
             catalogue,

@@ -51,7 +51,8 @@ class ReviewQueueTest {
     service =
         new ReviewQueueService(
             new CatalogueStore(jdbc),
-            new DocumentStore(new StudyDocumentReader()),
+            new DocumentStore(
+                new StudyDocumentReader(new StudyDocumentCodec()), new StudyDocumentCodec()),
             queue,
             new TransactionTemplate(new DataSourceTransactionManager(source)));
     queue.append(title, delete);

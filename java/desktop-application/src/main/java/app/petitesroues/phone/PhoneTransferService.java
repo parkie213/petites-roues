@@ -51,19 +51,21 @@ public class PhoneTransferService {
   private final ContentRepositoryStore repositories;
   private final ReviewQueueService served;
   private final MarkdownPageScanner pages;
-  private final StudyDocumentCodec codec = new StudyDocumentCodec();
+  private final StudyDocumentCodec codec;
 
   public PhoneTransferService(
       CatalogueStore catalogue,
       TitleMediaService media,
       ContentRepositoryStore repositories,
       ReviewQueueService served,
-      MarkdownPageScanner pages) {
+      MarkdownPageScanner pages,
+      StudyDocumentCodec codec) {
     this.catalogue = catalogue;
     this.media = media;
     this.repositories = repositories;
     this.served = served;
     this.pages = pages;
+    this.codec = codec;
   }
 
   /** A title as offered, and the desktop file behind each role. */

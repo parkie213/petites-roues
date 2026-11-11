@@ -15,17 +15,17 @@ import org.springframework.stereotype.Component;
 
 /**
  * Reads portable subtitle/notes JSON documents. The application never changes them: player edits
- * are queued and replayed, and agents or preparation scripts own the files. The one write is
- * creating a new title's document, which never replaces an existing file.
+ * are queued and replayed, and agents or preparation scripts own the files. Snapshots bind the
+ * decoded document to the hash of the exact bytes read; this class never writes files.
  */
 @Component
 public class DocumentStore {
   private final StudyDocumentReader reader;
   private final StudyDocumentCodec codec;
 
-  public DocumentStore(StudyDocumentReader reader) {
+  public DocumentStore(StudyDocumentReader reader, StudyDocumentCodec codec) {
     this.reader = reader;
-    this.codec = new StudyDocumentCodec();
+    this.codec = codec;
   }
 
   /**
@@ -33,10 +33,11 @@ public class DocumentStore {
    * writing the file. Covers parsing, structural rules and the indexed document ID. Empty means
    * valid; teaching quality is not judged.
    */
-  public List<String> problems(CatalogueEntry entry, byte[] candidate) throws IOException {
-    var problems = new ArrayList<>(codec.problems(candidate));
-    if (problems.isEmpty()) {
-      var id = reader.decode(candidate).id();
+  public List<String> problems(CatalogueEntry entry, byte[] candidate) {
+    var inspection = codec.inspect(candidate);
+    var problems = new ArrayList<>(inspection.problems());
+    if (inspection.document().isPresent()) {
+      var id = inspection.document().orElseThrow().id();
       if (!entry.documentId().equals(id))
         problems.add("Document ID must stay " + entry.documentId() + ", not " + id);
     }

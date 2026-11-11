@@ -81,7 +81,9 @@ class ComicIntegrationTest extends HttpIntegrationTest {
     assertTrue(exported.path("comic").path("pages").get(0).path("boxes").isEmpty());
     assertFalse(exported.has("durationSeconds"));
     assertInstanceOf(
-        StudyDocument.class, new StudyDocumentReader().decode(mapper.writeValueAsBytes(exported)));
+        StudyDocument.class,
+        new StudyDocumentReader(new StudyDocumentCodec())
+            .decode(mapper.writeValueAsBytes(exported)));
     assertInstanceOf(StudyDocument.class, http.get().uri(api).retrieve().body(StudyDocument.class));
     var response = http.get().uri(api + "/comic/pages/cover").retrieve().toEntity(byte[].class);
     assertEquals("image/png", response.getHeaders().getContentType().toString());
