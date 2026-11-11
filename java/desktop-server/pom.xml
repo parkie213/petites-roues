@@ -55,20 +55,17 @@
       <artifactId>jmdns</artifactId>
       <version>3.6.4</version>
     </dependency>
+
+    <dependency>
+      <groupId>app.petitesroues</groupId>
+      <artifactId>desktop-application</artifactId>
+      <version>${project.version}</version>
+      <type>test-jar</type>
+      <scope>test</scope>
+    </dependency>
   </dependencies>
 
   <build>
-    <testResources>
-      <testResource>
-        <directory>src/test/resources</directory>
-      </testResource>
-      <testResource>
-        <directory>../desktop-application/src/test/resources</directory>
-        <includes>
-          <include>media/**</include>
-        </includes>
-      </testResource>
-    </testResources>
     <plugins>
       <plugin>
         <groupId>org.springframework.boot</groupId>
