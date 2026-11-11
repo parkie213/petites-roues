@@ -27,7 +27,7 @@ android/              Offline phone player and comic reader (Gradle)
 ```
 
 `java/study-documents` owns the document format: immutable records in
-`com.petitesroues.model.document`, the codec that reads and writes their canonical JSON,
+`app.petitesroues.model.document`, the codec that reads and writes their canonical JSON,
 and the validation and phrase alignment rules. It depends only on Jackson, with no Spring,
 JDBC or HTTP dependencies, so the Android app uses the same jar. Its main code
 is pinned to Java 17 (`maven.compiler.release`) because Android's library and D8 need it;
@@ -37,7 +37,7 @@ registered folder through a small `ContentTree` interface (java.nio on the deskt
 Storage Access Framework on Android), what counts as a document, video or comic, where
 posters are, and the v1 media fingerprint. Like documents it has no Spring and targets
 Java 17, and the Android app uses its jar.
-`java/sync` is how the phone and the desktop talk: the wire records (`com.petitesroues.model.sync`),
+`java/sync` is how the phone and the desktop talk: the wire records (`app.petitesroues.model.sync`),
 the phone listener's routes, the QR pairing code reader, certificate pinning (`CertificatePins`)
 and the phone's `DesktopClient`, on `HttpURLConnection` because `java.net.http` is missing on
 Android. The server answers with the

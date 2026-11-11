@@ -10,7 +10,7 @@
 - `...Scanner` traverses directories and discovers content; it does not access the database.
 - `...Reader` reads and decodes a particular file format.
 - `...Controller` handles HTTP requests and responses and delegates application operations.
-- Shared model types live under `com.petitesroues.model`, grouped by responsibility. Model names
+- Shared model types live under `app.petitesroues.model`, grouped by responsibility. Model names
   describe the data or intrinsic domain rules they represent.
 
 Class and method Javadoc should explain purpose, ownership and material guarantees so callers

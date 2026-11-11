@@ -9,11 +9,11 @@ plugins {
 }
 
 android {
-  namespace = "com.petitesroues.android"
+  namespace = "app.petitesroues.android"
   compileSdk = 37
 
   defaultConfig {
-    applicationId = "com.petitesroues.android"
+    applicationId = "app.petitesroues.android"
     // Android 14: records stay native, which Jackson needs to read documents.
     minSdk = 34
     targetSdk = 37

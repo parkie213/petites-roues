@@ -15,8 +15,8 @@ module naming and the architectural choices behind them.
 | `desktop-server` | HTTP controllers and filters, Spring Boot startup/configuration, database migrations and phone listener/advertising | `desktop-application` |
 
 Each module uses its directory name as its Maven artifact ID, under the
-`com.petitesroues` group (for example, `com.petitesroues:study-documents`).
-The parent artifact is `com.petitesroues:petites-roues-parent`.
+`app.petitesroues` group (for example, `app.petitesroues:study-documents`).
+The parent artifact is `app.petitesroues:petites-roues-parent`.
 
 The table lists direct production dependencies between our modules. Jackson,
 Spring and other external dependencies are declared in each module's POM.
@@ -46,7 +46,7 @@ format implementation together serves both desktop and Android consumers.
 This means the user's content library, not a generic collection of reusable Java
 utilities. It contains rules shared by desktop and Android. Desktop library
 services and SQLite stores live in `desktop-application`, even though their Java
-packages also begin with `com.petitesroues.library`.
+packages also begin with `app.petitesroues.library`.
 
 ### `sync`
 
@@ -186,7 +186,7 @@ See [the React code map](../web/README.md) and
 - Scanners discover content without accessing the database.
 - Readers decode particular file formats.
 - Controllers handle HTTP requests and responses and delegate operations.
-- Shared model types live under `com.petitesroues.model`, grouped by purpose.
+- Shared model types live under `app.petitesroues.model`, grouped by purpose.
 
 Module names describe larger ownership boundaries; class names describe the
 responsibilities within them. See [the workspace instructions](../AGENTS.md).

@@ -6,7 +6,7 @@
   <modelVersion>4.0.0</modelVersion>
 
   <parent>
-    <groupId>com.petitesroues</groupId>
+    <groupId>app.petitesroues</groupId>
     <artifactId>petites-roues-parent</artifactId>
     <version>0.1.0-SNAPSHOT</version>
     <relativePath>../pom.xml</relativePath>
@@ -16,7 +16,7 @@
 
   <dependencies>
     <dependency>
-      <groupId>com.petitesroues</groupId>
+      <groupId>app.petitesroues</groupId>
       <artifactId>desktop-application</artifactId>
       <version>${project.version}</version>
     </dependency>
@@ -38,7 +38,7 @@
     </dependency>
 
     <dependency>
-      <groupId>com.petitesroues</groupId>
+      <groupId>app.petitesroues</groupId>
       <artifactId>study-documents</artifactId>
       <version>${project.version}</version>
       <type>test-jar</type>

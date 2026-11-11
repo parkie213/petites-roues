@@ -13,7 +13,7 @@ dependencyResolutionManagement {
     mavenCentral()
     // The shared Java library (the document model), installed from ../java by Maven. Only this
     // project's group is read from ~/.m2, so nothing else there can leak into the build.
-    mavenLocal { content { includeGroup("com.petitesroues") } }
+    mavenLocal { content { includeGroup("app.petitesroues") } }
   }
 }
 

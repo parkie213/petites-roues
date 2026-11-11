@@ -4,4 +4,9 @@ A minimal parking page: the wheel logo, the name in Manrope, and a link to the p
 
 Open `index.html` directly to preview. No build step or JavaScript is needed. Manrope loads from Google Fonts, with Arial as a fallback.
 
-Publish `index.html` and `favicon.svg` together using a static host. For GitHub Pages, configure a workflow to upload this `site/` folder. Deployment and custom-domain setup are not configured yet.
+The public domain is [petitesroues.app](https://petitesroues.app/). The
+[Pages workflow](../.github/workflows/pages.yml) deploys this folder from `main`.
+Configure the custom domain in the repository's GitHub Pages settings and point
+its DNS to GitHub Pages; these settings are managed outside this repository.
+The canonical URL and sharing metadata in `index.html` use the public domain.
+The desktop application and its API continue to run on local addresses.

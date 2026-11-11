@@ -17,7 +17,7 @@ project for language learning beginners!
 A self-hosted app for anyone who wants help watching or reading in another language,
 in the browser or on Android.
 
-[Features](#features) · [Quick start](#quick-start) · [Why petites roues?](#why-petites-roues) ·
+[Website](https://petitesroues.app/) · [Features](#features) · [Quick start](#quick-start) · [Why petites roues?](#why-petites-roues) ·
 [How it works](#how-it-works) · [Design principles](#design-principles)
 
 </div>

@@ -28,7 +28,7 @@ jobs:
       - uses: actions/upload-artifact@v7
         with:
           name: library
-          path: ~/.m2/repository/com/petitesroues
+          path: ~/.m2/repository/app/petitesroues
           retention-days: 1
 
   server:
@@ -51,7 +51,7 @@ jobs:
         with:
           name: library
           # Straight over the restored Maven cache, whose own copy of the library may be stale.
-          path: ~/.m2/repository/com/petitesroues
+          path: ~/.m2/repository/app/petitesroues
       - name: Install media test dependencies
         run: sudo apt-get update && sudo apt-get install -y ffmpeg
       - name: Verify the server against the built library
@@ -149,7 +149,7 @@ jobs:
       - uses: actions/download-artifact@v8
         with:
           name: library
-          path: ~/.m2/repository/com/petitesroues
+          path: ~/.m2/repository/app/petitesroues
       - name: Check formatting, lint, test (screenshots included) and build the Android app against the built library
         run: ./gradlew --no-daemon -PprebuiltLibrary spotlessCheck :app:lintDebug :app:verifyRoborazziDebug :app:assembleDebug
         working-directory: android

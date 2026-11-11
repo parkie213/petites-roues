@@ -1,6 +1,6 @@
 /**
  * The shapes the server's JSON API answers with, written by hand from the Java records that
- * produce them (`com.petitesroues.model.document` and `com.petitesroues.model.library`). They
+ * produce them (`app.petitesroues.model.document` and `app.petitesroues.model.library`). They
  * describe only what the web reads; a field the server adds is simply not typed until it is used.
  * Fields the server may leave out or send as null are optional.
  */
