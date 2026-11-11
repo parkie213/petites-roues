@@ -18,8 +18,8 @@ import { request, responseError, titlePath } from "../shared/api.ts";
 import { openHref, warnings } from "./cards.js";
 import { LinkDialog } from "./LinkDialog.jsx";
 import { unlinkMedia } from "./media-links.js";
-import { postersHref } from "./navigation.js";
-import { nativeName } from "./language.js";
+import { postersHref } from "./navigation.ts";
+import { nativeName } from "./language.ts";
 import "./Posters.css";
 import { filterShelves } from "./poster-filter.js";
 

@@ -23,6 +23,8 @@ if (typeof globalThis.window !== "undefined") {
     addEventListener() {},
     removeEventListener() {},
   };
+  // The repositories view scrolls its columns to the newest one.
+  globalThis.Element.prototype.scrollTo ??= function () {};
   globalThis.window.ResizeObserver ??= class {
     observe() {}
     unobserve() {}

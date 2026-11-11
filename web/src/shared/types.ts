@@ -205,3 +205,9 @@ export interface RepositoryContents {
 export interface Library {
   repositories: RepositoryContents[];
 }
+
+/** `GET /api/library/usage`: the library's size, and the free space on each disk it uses. */
+export interface LibraryUsage {
+  libraryBytes: number;
+  disks: { freeBytes: number; repositories: string[] }[];
+}
