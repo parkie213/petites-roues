@@ -102,6 +102,14 @@ public class LibraryJobService {
   }
 
   /**
+   * Stops admission and allows the current job five seconds to finish before requesting
+   * interruption.
+   */
+  public void stop() {
+    stop(Duration.ofSeconds(5));
+  }
+
+  /**
    * Stops admission and waits up to {@code grace} for the current job, then requests interruption.
    * Unfinished work receives a terminal failure state. Interruption is cooperative; the caller
    * remains responsible for terminating the borrowed executors and notification delivery.

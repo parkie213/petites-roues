@@ -2,58 +2,36 @@ package app.petitesroues.config;
 
 import app.petitesroues.library.LibraryJobService;
 import app.petitesroues.library.LibraryUpdateService;
-import java.time.Duration;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
-import org.springframework.beans.factory.DisposableBean;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
-/**
- * Creates job execution resources and stops jobs before closing work and notification executors.
- */
+/** Declares job execution resources; Spring wires them and destroys dependants before executors. */
 @Configuration(proxyBeanMethods = false)
-public class LibraryJobConfiguration implements DisposableBean {
-  private static final System.Logger LOG =
-      System.getLogger(LibraryJobConfiguration.class.getName());
-  private final ExecutorService worker = Executors.newVirtualThreadPerTaskExecutor();
-  private final ExecutorService notifications = Executors.newVirtualThreadPerTaskExecutor();
-  private final LibraryJobService jobs;
-
-  public LibraryJobConfiguration(LibraryUpdateService updates) {
-    jobs = new LibraryJobService(updates, worker, notifications);
+public class LibraryJobConfiguration {
+  /** Job admission is serialized by the service, independently of this executor's thread model. */
+  @Bean(destroyMethod = "shutdownNow")
+  public ExecutorService libraryJobExecutor() {
+    return Executors.newVirtualThreadPerTaskExecutor();
   }
 
-  /** The application service borrows this configuration's execution resources. */
-  @Bean
-  public LibraryJobService libraryJobService() {
-    return jobs;
+  /** Dedicated delivery tasks keep blocked followers from holding up indexing. */
+  @Bean(destroyMethod = "shutdownNow")
+  public ExecutorService libraryNotificationExecutor() {
+    return Executors.newVirtualThreadPerTaskExecutor();
   }
 
   /**
-   * Stops admission and work first, then allows terminal notifications to drain before
-   * interruption.
+   * Spring stops job admission and gives work a bounded grace period before interrupting either
+   * executor. Notification delivery may be interrupted during application shutdown.
    */
-  @Override
-  public void destroy() {
-    jobs.stop(Duration.ofSeconds(5));
-    shutdown(worker);
-    shutdown(notifications);
-  }
-
-  private static void shutdown(ExecutorService executor) {
-    executor.shutdown();
-    try {
-      if (!executor.awaitTermination(5, TimeUnit.SECONDS)) {
-        executor.shutdownNow();
-        if (!executor.awaitTermination(5, TimeUnit.SECONDS))
-          LOG.log(
-              System.Logger.Level.WARNING, "Library job executor did not stop after interruption");
-      }
-    } catch (InterruptedException interrupted) {
-      executor.shutdownNow();
-      Thread.currentThread().interrupt();
-    }
+  @Bean(destroyMethod = "stop")
+  public LibraryJobService libraryJobService(
+      LibraryUpdateService updates,
+      @Qualifier("libraryJobExecutor") ExecutorService worker,
+      @Qualifier("libraryNotificationExecutor") ExecutorService notifications) {
+    return new LibraryJobService(updates, worker, notifications);
   }
 }
