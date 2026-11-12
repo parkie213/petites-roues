@@ -94,7 +94,7 @@ The discovery, media-link precedence and fingerprint protocol remain project rul
 
 ## Study prompts
 
-`ComicDocument.chapter(index)` owns chapter page selection: it excludes preface
+`ComicDocument.pagesForChapter(index)` owns chapter page selection: it excludes preface
 pages, stops at the next chapter and preserves manifest reading order. Invalid
 indices or boundary pages fail explicitly. This is document behavior, independent
 of quizzes.

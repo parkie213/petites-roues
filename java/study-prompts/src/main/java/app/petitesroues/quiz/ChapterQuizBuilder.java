@@ -26,8 +26,10 @@ public final class ChapterQuizBuilder {
   /** Builds exactly the selected chapter; optional type instructions precede the supplied rules. */
   public static Brief build(String rules, StudyDocument document, int index, Type type) {
     if (rules == null) throw new IllegalArgumentException("Quiz rules are required");
-    var selection = document.comic().chapter(index);
-    var chapter = selection.chapter();
+    var comic = document.comic();
+    var pages = comic.pagesForChapter(index);
+    var chapter = comic.chapters().get(index);
+    int firstPage = comic.pages().indexOf(pages.get(0));
     String name =
         chapter.number() == null ? chapter.title() : chapter.number() + " · " + chapter.title();
     var text = new StringBuilder();
@@ -68,12 +70,12 @@ public final class ChapterQuizBuilder {
         .append("\n\n## Bubbles in chapter ")
         .append(name)
         .append(" (pages ")
-        .append(selection.firstPage() + 1)
+        .append(firstPage + 1)
         .append("–")
-        .append(selection.endPage())
+        .append(firstPage + pages.size())
         .append(")\n\n");
     boolean hasLines =
-        selection.pages().stream()
+        pages.stream()
             .flatMap(page -> page.boxes().stream())
             .flatMap(box -> box.lines().stream())
             .anyMatch(line -> !line.source().isBlank());
@@ -82,8 +84,8 @@ public final class ChapterQuizBuilder {
       text.append(
               "Pick items from all over these lines, in a mixed order: do not start at the beginning, ")
           .append("and do not take two items in a row from the same page or moment.\n\n");
-      for (int offset = 0; offset < selection.pages().size(); offset++) {
-        var page = selection.pages().get(offset);
+      for (int offset = 0; offset < pages.size(); offset++) {
+        var page = pages.get(offset);
         var lines =
             page.boxes().stream()
                 .flatMap(box -> box.lines().stream())
@@ -92,7 +94,7 @@ public final class ChapterQuizBuilder {
         if (lines.isEmpty()) continue;
         String label =
             page.label() == null || page.label().isBlank()
-                ? Integer.toString(selection.firstPage() + offset + 1)
+                ? Integer.toString(firstPage + offset + 1)
                 : page.label();
         text.append("\n### Page ").append(label).append("\n\n");
         for (var line : lines) {
@@ -108,7 +110,7 @@ public final class ChapterQuizBuilder {
 
   /** Suggested Markdown filename for a numbered chapter or an unnumbered section. */
   public static String fileName(StudyDocument document, int index) {
-    var chapter = document.comic().chapter(index).chapter();
+    var chapter = document.comic().chapters().get(index);
     String part = chapter.number() == null ? chapter.title() : "chapter " + chapter.number();
     String slug =
         (document.title() + " " + part)

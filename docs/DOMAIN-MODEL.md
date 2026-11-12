@@ -58,7 +58,7 @@ existing response fields; Android derives its selection key from repository and
 path. Markdown rendering and sharing belong to the user interfaces.
 
 Chapter quiz prompts are assembled from annotated comic content rather than
-stored Markdown pages. `ComicDocument.chapter(index)` selects their pages;
+stored Markdown pages. `ComicDocument.pagesForChapter(index)` selects their pages;
 `study-prompts` builds a shared brief from source lines, translations, supplied
 teaching rules and a selected quiz type. Android calls the builder locally, while
 React prepares through the desktop using its current served document. Prompt
