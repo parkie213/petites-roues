@@ -1,59 +1,58 @@
 import { useRef, useState } from "react";
 import { Alert, Button, Loader } from "@mantine/core";
-import type { ComicBoxView, ComicRegion } from "../shared/types.ts";
-import type { ComicPageItem, ComicPageViewProps } from "./comic-page.ts";
-import type { ComicBubbles } from "./useComicBubbles.ts";
+import type { ComicBoxView } from "../shared/types.ts";
+import type { ComicAnnotationTools, ComicStudyTools } from "./comic-tools.ts";
 import { useComicRegionDrag } from "./useComicRegionDrag.ts";
 import { pageLayout } from "./annotations.js";
 import { ComicRegionOverlay } from "./ComicRegionOverlay.tsx";
 
-/** One page image with its bubble regions laid over the exact rendered image rectangle. */
+/** The image's geometry, source, load notification and optional overlays belong to this page. */
+interface ComicPageProps {
+  pageId: string;
+  imageUrl: string;
+  imageLabel: string;
+  viewport: { width: number; height: number };
+  zoom: string;
+  scale: number;
+  boxes: { box: ComicBoxView; number: number }[];
+  onLoaded?: () => void;
+  outlined: boolean;
+  study?: ComicStudyTools;
+  annotations?: ComicAnnotationTools;
+}
+
+/** One page image owns loading/retry and places its study regions on the fitted image rectangle. */
 export function ComicPage({
-  document,
-  page,
-  api,
-  width,
-  height,
+  pageId,
+  imageUrl,
+  imageLabel,
+  viewport,
   zoom,
   scale,
   boxes,
-  numbers,
-  selectedId,
   onLoaded,
   outlined,
-  editing,
-  annotate,
-  bubbles,
-  cards,
-  blockMode,
-  onBlockMode,
-  onSelect,
-  onDraw,
-  onPlacement,
-}: Omit<ComicPageViewProps, "pages" | "rtl" | "debug" | "onDraw"> & {
-  page: ComicPageItem;
-  width: number;
-  height: number;
-  numbers: ComicBoxView[];
-  outlined: boolean;
-  bubbles: ComicBubbles | null;
-  onDraw?: (region: ComicRegion) => void;
-}) {
+  study,
+  annotations,
+}: ComicPageProps) {
+  const annotate = annotations?.enabled;
+  const editing = annotations?.locked;
   const stage = useRef<HTMLDivElement>(null);
   const [image, setImage] = useState({ width: 1, height: 1 });
   const [loaded, setLoaded] = useState(false);
   const [error, setError] = useState(false);
   const [attempt, setAttempt] = useState(0);
-  const { draft, dragBox, startDraw, startMove } = useComicRegionDrag(
+  const drag = useComicRegionDrag(
     stage,
     annotate,
     editing,
-    onDraw,
-    onPlacement,
+    (region) => annotations?.onDraw?.(region, pageId),
+    annotations?.onPlacement,
   );
+  const { draft, dragBox } = drag;
   const size = pageLayout(
-    width,
-    height,
+    viewport.width,
+    viewport.height,
     image.width,
     image.height,
     zoom,
@@ -93,13 +92,13 @@ export function ComicPage({
           height: size.height,
           display: error ? "none" : undefined,
         }}
-        onPointerDown={startDraw}
+        onPointerDown={drag.startDraw}
       >
         <img
           key={attempt}
           className="comic-image"
-          alt={`${document.title}, page ${document.pages.indexOf(page) + 1}`}
-          src={`${api}/pages/${encodeURIComponent(page.id)}?attempt=${attempt}`}
+          alt={imageLabel}
+          src={`${imageUrl}?attempt=${attempt}`}
           style={{ opacity: loaded ? 1 : 0 }}
           onLoad={(event) => {
             setImage({
@@ -115,27 +114,18 @@ export function ComicPage({
           }}
         />
         {loaded &&
-          boxes.flatMap((box) =>
+          boxes.flatMap(({ box, number }) =>
             box.regions.map((region, r) => (
               <ComicRegionOverlay
                 key={box.id + ":" + r}
                 box={box}
                 region={region}
-                r={r}
-                numbers={numbers}
-                selectedId={selectedId}
+                regionIndex={r}
+                number={number}
                 outlined={outlined}
-                editing={editing}
-                annotate={annotate}
-                bubbles={bubbles}
-                cards={cards}
-                blockMode={blockMode}
-                onBlockMode={onBlockMode}
-                onSelect={onSelect}
-                document={document}
-                draft={draft}
-                dragBox={dragBox}
-                startMove={startMove}
+                study={study}
+                annotations={annotations}
+                drag={drag}
               />
             )),
           )}

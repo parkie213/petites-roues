@@ -20,15 +20,21 @@ vi.mock("../src/comic/ComicPageView.tsx", () => ({
     return (
       <section aria-label="Displayed pages">
         <span>{props.pages.map((p) => p.id).join(",")}</span>
-        <span>Selected: {props.selectedId}</span>
+        <span>Selected: {props.study.selectedId}</span>
         <button onClick={props.onLoaded}>Image loaded</button>
-        <button onClick={() => props.onDraw(region, props.pages[0].id)}>
+        <button
+          onClick={() => props.annotations.onDraw(region, props.pages[0].id)}
+        >
           Draw box
         </button>
-        <button onClick={() => props.onPlacement(props.boxes[0], [region])}>
+        <button
+          onClick={() =>
+            props.annotations.onPlacement(props.boxes[0], [region])
+          }
+        >
           Move box
         </button>
-        <button onClick={() => props.onSelect("line-2")}>
+        <button onClick={() => props.study.onSelect("line-2")}>
           Select sentence
         </button>
       </section>
@@ -226,8 +232,8 @@ test("drawing locks navigation, suppresses duplicate writes, and selects the cre
   const { fetcher } = open({ write: () => pending.promise });
   await annotate();
   act(() => {
-    page.props.onDraw(region, "p1");
-    page.props.onDraw(region, "p1");
+    page.props.annotations.onDraw(region, "p1");
+    page.props.annotations.onDraw(region, "p1");
   });
   expect(
     fetcher.mock.calls.filter(([, options]) => options.method === "POST"),
