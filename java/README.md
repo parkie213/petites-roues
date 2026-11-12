@@ -6,7 +6,7 @@ React calls the desktop over HTTP; Android runs its own offline application.
 | Module | Owns | Internal production dependencies |
 | --- | --- | --- |
 | `content-model` | Study documents, Markdown quizzes/notes, defaults and intrinsic rules | None |
-| `quiz-application` | Shared chapter quiz brief construction | `content-model` |
+| `study-prompts` | Prepare source material and instructions for LLM study prompts | `content-model` |
 | `document-json` | JSON recognition, strict decoding, canonical encoding and file loading | `content-model` |
 | `content-library` | Repository identities, library entries, discovery, shelving, media linking and fingerprints | `content-model` |
 | `sync` | Desktop–phone protocol, client and downloads | `content-library` |
@@ -91,14 +91,16 @@ JDK-based comparator and its ordering contract. Commons IO is also unnecessary
 for the single extension lookup: filenames without a dot have no extension.
 The discovery, media-link precedence and fingerprint protocol remain project rules.
 
-## Chapter quizzes
+## Study prompts
 
 `ComicDocument.chapter(index)` owns chapter page selection: it excludes preface
 pages, stops at the next chapter and preserves manifest reading order. Invalid
 indices or boundary pages fail explicitly. This is document behavior, independent
 of quizzes.
 
-`quiz-application` owns `ChapterQuizBuilder`: deterministic Markdown construction
+`study-prompts` prepares material and instructions for an LLM; it does not run
+quizzes, assess answers or implement study activities. It currently owns
+`ChapterQuizBuilder`: deterministic Markdown construction
 from a selected chapter, teaching rules and optional type instructions. It includes
 source text and translations, omits learner notes and suggests a filename. It has
 no framework, filesystem, sharing or AI-client dependency. Android calls it offline;

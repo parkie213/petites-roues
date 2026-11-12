@@ -16,7 +16,7 @@
   <dependencies>
     <dependency>
       <groupId>app.petitesroues</groupId>
-      <artifactId>quiz-application</artifactId>
+      <artifactId>study-prompts</artifactId>
     </dependency>
     <dependency>
       <groupId>app.petitesroues</groupId>

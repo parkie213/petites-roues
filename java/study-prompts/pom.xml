@@ -11,10 +11,10 @@
     <version>0.1.0-SNAPSHOT</version>
   </parent>
 
-  <artifactId>quiz-application</artifactId>
+  <artifactId>study-prompts</artifactId>
 
   <properties>
-    <!-- Shared quiz construction runs on desktop and Android with Java 17. -->
+    <!-- Study prompt preparation runs on desktop and Android with Java 17. -->
     <maven.compiler.release>17</maven.compiler.release>
     <maven.compiler.testRelease>${java.version}</maven.compiler.testRelease>
   </properties>

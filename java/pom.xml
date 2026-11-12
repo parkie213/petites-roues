@@ -19,7 +19,7 @@
 
   <modules>
     <module>content-model</module>
-    <module>quiz-application</module>
+    <module>study-prompts</module>
     <module>document-test-fixtures</module>
     <module>document-json</module>
     <module>content-library</module>
@@ -37,7 +37,7 @@
     <dependencies>
       <dependency>
         <groupId>app.petitesroues</groupId>
-        <artifactId>quiz-application</artifactId>
+        <artifactId>study-prompts</artifactId>
         <version>${project.version}</version>
       </dependency>
 
