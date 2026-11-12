@@ -37,10 +37,6 @@ class VideoPlayback(context: Context, media: Uri, val timeline: CueTimeline) {
   var durationSeconds by mutableDoubleStateOf(0.0)
     private set
 
-  /** How far through the video [position] is, from 0 to 1; null until the duration is known. */
-  val fraction: Double?
-    get() = if (durationSeconds > 0) (position / durationSeconds).coerceIn(0.0, 1.0) else null
-
   var error by mutableStateOf<String?>(null)
     private set
 

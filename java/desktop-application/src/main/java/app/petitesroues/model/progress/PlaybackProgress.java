@@ -1,6 +1,4 @@
 package app.petitesroues.model.progress;
 
-/**
- * Local resume position; never included in portable study documents. Null timestamp means unsaved.
- */
+/** Desktop resume-position snapshot with an ISO timestamp; unsaved snapshots have no timestamp. */
 public record PlaybackProgress(double positionSeconds, String updatedAt) {}

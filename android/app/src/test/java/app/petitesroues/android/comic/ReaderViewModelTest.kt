@@ -83,12 +83,12 @@ class ReaderViewModelTest {
   fun `a page settling on screen is read and saved`() = runTest {
     val model = open()
 
-    model.showing(pages[1].id(), 0.5)
+    model.showing(pages[1].id(), pages.map { it.id() })
 
     assertEquals(pages[1].id(), model.state.value.pageId)
     val saved = progress.find(title.progressKey)
     assertEquals(pages[1].id(), saved?.pageId)
-    assertEquals(0.5, saved?.fraction)
+    assertEquals(2.0 / pages.size, saved?.fraction)
   }
 
   @Test

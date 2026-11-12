@@ -1,4 +1,4 @@
 package app.petitesroues.model.progress;
 
-/** Local comic resume position; null page and timestamp mean no saved position. */
+/** Desktop reading snapshot with an ISO timestamp; null page and timestamp mean unsaved. */
 public record ReadingProgress(String pageId, String updatedAt) {}

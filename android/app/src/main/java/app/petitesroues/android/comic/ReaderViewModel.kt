@@ -7,8 +7,10 @@ import androidx.lifecycle.ViewModel
 import app.petitesroues.android.Settings
 import app.petitesroues.android.data.Progress
 import app.petitesroues.android.data.ProgressStore
+import app.petitesroues.android.data.readingPosition
 import app.petitesroues.android.di.IoDispatcher
 import app.petitesroues.android.library.Title
+import app.petitesroues.model.progress.ReadingPosition
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedFactory
 import dagger.assisted.AssistedInject
@@ -71,7 +73,7 @@ constructor(
   private val _state =
     MutableStateFlow(
       ReaderUiState(
-        saved?.pageId,
+        saved?.readingPosition()?.pageId(),
         settings.comicLandscape,
         settings.comicOutlines,
         settings.listeningMode,
@@ -89,10 +91,10 @@ constructor(
   suspend fun page(entry: String, maxWidth: Int, maxHeight: Int): Result<ImageBitmap> =
     withContext(io) { runCatching { archive.page(entry, maxWidth, maxHeight) } }
 
-  /** The page [pageId] has settled on screen, [fraction] of the way through: it is saved. */
-  fun showing(pageId: String, fraction: Double) {
+  /** Saves the settled [pageId] against the current ordered manifest [pageIds]. */
+  fun showing(pageId: String, pageIds: List<String>) {
+    progress.savePage(title.progressKey, ReadingPosition(pageId), pageIds)
     _state.update { it.copy(pageId = pageId) }
-    progress.savePage(title.progressKey, pageId, fraction)
   }
 
   fun setLandscape(on: Boolean) {

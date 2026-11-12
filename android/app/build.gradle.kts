@@ -103,6 +103,7 @@ androidComponents {
 dependencies {
   implementation(libs.content.model)
   implementation(libs.study.prompts)
+  implementation(libs.learner.state.model)
   implementation(libs.document.json)
   implementation(libs.content.library)
   implementation(libs.sync)
