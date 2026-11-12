@@ -142,9 +142,9 @@ public class PhoneListener {
     var phone = connector;
     if (phone == null) return;
     connector = null;
-    advertiser.stop();
     service.removeConnector(phone);
     destroy(phone);
+    advertiser.close();
     LOG.info("Phones can no longer connect");
   }
 
