@@ -32,7 +32,10 @@ test("the comic opens on its cover, and its pages turn", async ({ page }) => {
   await expect(editRegions).toHaveAttribute("aria-pressed", "false");
   await editRegions.click();
   await expect(editRegions).toHaveAttribute("aria-pressed", "true");
+  await expect(page.getByText(/Changes save automatically/)).toHaveCount(0);
+  await page.getByRole("button", { name: "Region editing help" }).click();
   await expect(page.getByText(/Changes save automatically/)).toBeVisible();
+  await page.keyboard.press("Escape");
   const bubble = page.getByRole("button", {
     name: "Bubble 1: Le parapluie de Lulu",
   });

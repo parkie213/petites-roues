@@ -426,9 +426,35 @@ test("region editing is available directly from the toolbar and can be finished"
   expect(toggle.getAttribute("aria-pressed")).toBe("false");
   await userEvent.click(toggle);
   expect(toggle.getAttribute("aria-pressed")).toBe("true");
-  expect(screen.getByText(/Changes save automatically/)).toBeTruthy();
+  expect(screen.queryByText(/Changes save automatically/)).toBeNull();
+  expect(
+    screen.getByRole("button", { name: "Region editing help" }),
+  ).toBeTruthy();
   expect(page.props.annotations.enabled).toBe(true);
   await userEvent.click(toggle);
   expect(toggle.getAttribute("aria-pressed")).toBe("false");
   expect(page.props.annotations.enabled).toBe(false);
+});
+
+test("Delete removes the selected box only in unlocked region editing and outside text fields", async () => {
+  const confirm = vi.fn(() => false);
+  vi.stubGlobal("confirm", confirm);
+  localStorage.setItem("comic:study", "true");
+  open();
+  await screen.findByRole("button", { name: "Edit bubble regions" });
+  fireEvent.keyDown(window, { key: "Delete" });
+  expect(confirm).not.toHaveBeenCalled();
+  await annotate();
+  const input = document.createElement("input");
+  document.body.append(input);
+  fireEvent.keyDown(input, { key: "Delete" });
+  input.remove();
+  expect(confirm).not.toHaveBeenCalled();
+  fireEvent.keyDown(window, { key: "Delete", repeat: true });
+  expect(confirm).not.toHaveBeenCalled();
+  fireEvent.keyDown(window, { key: "Delete" });
+  expect(confirm).toHaveBeenCalledTimes(1);
+  await userEvent.click(screen.getByRole("button", { name: "Start editing" }));
+  fireEvent.keyDown(window, { key: "Delete" });
+  expect(confirm).toHaveBeenCalledTimes(1);
 });

@@ -1,13 +1,22 @@
-import { ActionIcon, Button, Menu, Tooltip } from "@mantine/core";
+import {
+  ActionIcon,
+  Button,
+  Menu,
+  Tooltip,
+  Popover,
+  Text,
+} from "@mantine/core";
 import {
   Ellipsis,
   Headphones,
+  HelpCircle,
+  Trash2,
   PanelRight,
   ScanText,
   SquareDashed,
 } from "lucide-react";
 import { useCallback, type Dispatch, type SetStateAction } from "react";
-import type { ComicView } from "../shared/types.ts";
+import type { ComicBoxView, ComicView } from "../shared/types.ts";
 import { QuizShare } from "../player/components/QuizShare.jsx";
 import { ComicToolbar, ToolbarToggle, ViewTools } from "./ComicFrame.jsx";
 import type { useComicView } from "./ComicFrame.jsx";
@@ -31,7 +40,11 @@ export function ComicReaderToolbar({
   debug,
   setDebug,
   annotations,
+  selectedBox,
+  onDeleteSelected,
 }: {
+  selectedBox: ComicBoxView | undefined;
+  onDeleteSelected: () => void;
   id: string;
   document: ComicView;
   index: number;
@@ -114,6 +127,38 @@ export function ComicReaderToolbar({
       >
         Edit bubble regions
       </Button>
+      {annotate && (
+        <>
+          <Button
+            size="compact-sm"
+            variant="subtle"
+            color="red"
+            disabled={!selectedBox || savingBox || editing || !!draftRegion}
+            onClick={onDeleteSelected}
+            leftSection={<Trash2 size={16} />}
+            title="Delete the selected box (Delete)"
+          >
+            {selectedBox && selectedBox.lines.length > 1
+              ? "Delete selected text block"
+              : "Delete selected bubble"}
+          </Button>
+          <Popover width={280} position="bottom-end" withArrow>
+            <Popover.Target>
+              <ActionIcon variant="subtle" aria-label="Region editing help">
+                <HelpCircle size={18} />
+              </ActionIcon>
+            </Popover.Target>
+            <Popover.Dropdown>
+              <Text size="sm">
+                Drag a region to move it; select it and drag its corners to
+                resize. Drag on empty page space to add a bubble. Press Delete
+                to remove the selected box. Changes save automatically and are
+                queued for review.
+              </Text>
+            </Popover.Dropdown>
+          </Popover>
+        </>
+      )}
       <QuizShare
         doc={document}
         disabled={chapters.length === 0}

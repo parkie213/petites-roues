@@ -62,6 +62,16 @@ export function ComicReader({ id }: { id: string }) {
     locked,
     onKey(event: KeyboardEvent) {
       if (
+        event.key === "Delete" &&
+        !event.repeat &&
+        annotate &&
+        !locked &&
+        selectedBox
+      ) {
+        event.preventDefault();
+        annotations.deleteSelected(selectedBox, selected);
+      }
+      if (
         event.key.toLowerCase() === "e" &&
         !event.repeat &&
         !locked &&
@@ -121,15 +131,15 @@ export function ComicReader({ id }: { id: string }) {
             debug={debug}
             setDebug={setDebug}
             annotations={annotations}
+            selectedBox={selectedBox}
+            onDeleteSelected={() =>
+              annotations.deleteSelected(selectedBox, selected)
+            }
           />
           <ComicReaderNotices
             saveError={saveError}
             onRetryProgress={() => save(page.id)}
             annotations={annotations}
-            selectedBox={selectedBox}
-            onDeleteSelected={() =>
-              annotations.deleteSelected(selectedBox, selected)
-            }
           />
           <div className="comic-reading-area">
             <ComicStage view={view}>
