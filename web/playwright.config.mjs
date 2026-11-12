@@ -31,8 +31,8 @@ export default defineConfig({
       name: "chromium",
       use: {
         ...devices["Desktop Chrome"],
-        // Videos wait for a key press or click before playing, as on a site the browser hasn't
-        // seen used, so a test decides where playback is and recordings don't vary with timing.
+        // Apply the browser's gesture policy. Player journeys additionally use pauseOnOpen:
+        // the app's muted-autoplay fallback is allowed even with this policy.
         launchOptions: { args: ["--autoplay-policy=user-gesture-required"] },
       },
     },

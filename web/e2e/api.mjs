@@ -3,6 +3,14 @@ import { mkdir, readdir, readFile, stat, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { test as base, expect } from "@playwright/test";
 import { forget, forgetProgress } from "./real-server.mjs";
+import { checkRequests } from "./requests.mjs";
+import {
+  compactWrites,
+  matchesWrite,
+  recordWrite,
+  replayWrite,
+} from "./write-recordings.mjs";
+export { expectWrite, readJson } from "./requests.mjs";
 
 /**
  * The browser tests' API: recorded from the real Java server, then replayed.
@@ -45,12 +53,13 @@ const portable = (text) => text.replaceAll(repository, "<repository>");
 
 const instant = /^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d(?:\.\d+)?Z$/;
 const disk = new Set(["freeBytes", "totalBytes"]);
-// Where a video stopped varies by a frame between runs, so positions are kept coarse.
-const coarse = { positionSeconds: 10, progress: 100 };
+// Library progress is a displayed fraction. Persisted playback positions stay exact: rounding a
+// cue start (7.02 to 7.0, for example) restores the wrong subtitle. Live PUTs use a checked template.
+const coarse = { progress: 100 };
 
 /**
- * [value] with what differs from run to run (times, the disk's free space, a video's exact
- * position) fixed.
+ * [value] with run-to-run metadata (timestamps, free space and displayed progress fractions)
+ * fixed. Persisted playback positions retain their precision.
  */
 function stable(value, name) {
   if (Array.isArray(value)) return value.map((item) => stable(item));
@@ -139,14 +148,26 @@ async function save(request, response) {
   const entry = { request: key(request), status: response.status(), type };
   const body = await response.body();
   const text = () => portable(body.toString());
-  if (type.includes("json"))
-    return { ...entry, json: stable(JSON.parse(text())) };
+  if (type.includes("json")) {
+    const answer = { ...entry, json: JSON.parse(text()) };
+    return stable(
+      request.method() === "GET"
+        ? answer
+        : recordWrite(
+            answer,
+            JSON.parse(portable(JSON.stringify(request.postDataJSON()))),
+          ),
+    );
+  }
   // A job's event stream is kept to its last event, the outcome: how many progress events come
   // before it depends on the machine's speed.
   if (type.startsWith("text/event-stream"))
     return { ...entry, text: text().trim().split(/\n\n+/).at(-1) + "\n\n" };
   if (type.startsWith("text/")) return { ...entry, text: text() };
-  if (body.length === 0) return entry;
+  if (body.length === 0)
+    return request.method() === "GET"
+      ? entry
+      : { ...entry, body: request.postDataJSON() };
   if (type.startsWith("video/")) {
     const file = await exampleFile(body);
     return file ? { ...entry, file } : { ...entry, omitted: "video" };
@@ -158,9 +179,6 @@ async function save(request, response) {
   await writeFile(path.join(blobs, name), body);
   return { ...entry, blob: name };
 }
-
-// The error reading a response's body after the page moved on from it.
-const abandoned = (error) => /disposed|navigated away/.test(error.message);
 
 async function record(page, file, run) {
   // A previous test's last progress save may have landed after it was undone.
@@ -209,16 +227,11 @@ async function record(page, file, run) {
   page.on("response", (response) => {
     const request = response.request();
     if (!isApi(request) || request.method() === "GET") return;
-    keep(
-      save(request, response).catch((error) => {
-        // A save the page abandoned as it unloaded has no answer to keep.
-        if (!abandoned(error)) throw error;
-      }),
-    );
+    keep(save(request, response));
   });
   await run(page);
   // What the page is still loading when the test ends (posters behind Back) is saved too.
-  await page.waitForLoadState("networkidle").catch(() => {});
+  await page.waitForLoadState("networkidle");
   await Promise.allSettled([...pending]);
   if (failures.length)
     throw new AggregateError(failures, "Saving responses failed");
@@ -235,14 +248,7 @@ async function record(page, file, run) {
     for (const [index, entry] of entries.entries())
       if (entry.request === "GET /api/jobs/latest")
         entries[index] = { request: entry.request, status: 204, type: "" };
-  const saved = entries
-    // How often a page saves (its position, say) depends on timing. A PUT replaces what it saves,
-    // so only its last answer is kept, and replay gives that to every save.
-    .filter(
-      (entry, index, all) =>
-        !entry.request.startsWith("PUT ") ||
-        entry.request !== all[index + 1]?.request,
-    )
+  const saved = compactWrites(entries)
     .map((entry) => standIn(JSON.stringify(entry)))
     // Identical answers to the same request are kept once.
     .filter((entry, index, all) => entry !== all[index - 1])
@@ -265,10 +271,17 @@ async function replay(page, file, run) {
   const served = new Map();
   const missing = [];
   await page.route("**/api/**", async (route) => {
-    const request = key(route.request());
-    const queue = queues.get(request);
-    if (!queue) {
-      missing.push(request);
+    const asked = route.request();
+    const request = key(asked);
+    const write = !["GET", "HEAD"].includes(asked.method());
+    const body = write
+      ? stable(JSON.parse(portable(JSON.stringify(asked.postDataJSON()))))
+      : null;
+    const queue = queues
+      .get(request)
+      ?.filter((entry) => !write || matchesWrite(entry, body));
+    if (!queue?.length) {
+      missing.push(write ? `${request} ${JSON.stringify(body)}` : request);
       return route.fulfill({
         status: 404,
         json: { error: `Not recorded: ${request}` },
@@ -280,7 +293,18 @@ async function replay(page, file, run) {
       served.set(request, index + 1);
       return queue[Math.min(index, queue.length - 1)];
     };
-    let entry = next(request);
+    let entry;
+    if (write) {
+      // Same-payload repeats share a contract; different payloads require their own recording.
+      const index = served.get(queue[0]) ?? 0;
+      served.set(queue[0], index + 1);
+      entry = replayWrite(
+        queue[Math.min(index, queue.length - 1)],
+        asked.postDataJSON(),
+      );
+    } else {
+      entry = next(request);
+    }
     // A redirect is followed here: the browser doesn't route a media element's redirected request.
     while (entry.location && queues.has(`GET ${entry.location}`))
       entry = next(`GET ${entry.location}`);
@@ -419,88 +443,37 @@ async function logMediaEvents(page, run, info) {
   }
 }
 
-/**
- * Runs a user action and checks its matching API write completed successfully. Match the request
- * body when several saves use the same URL, so an earlier save cannot satisfy the assertion.
- * Pair this with assertions of the resulting UI or persisted state in the journey.
- */
-export async function expectWrite(page, pathname, body, action) {
-  const response = page.waitForResponse((response) => {
-    const request = response.request();
-    return (
-      new URL(response.url()).pathname === pathname &&
-      !["GET", "HEAD"].includes(request.method()) &&
-      Object.entries(body).every(
-        ([name, value]) => request.postDataJSON()?.[name] === value,
-      )
-    );
-  });
-  await action();
-  const saved = await response;
-  expect(saved.ok(), `${saved.request().method()} ${pathname}`).toBe(true);
-  expect(await saved.finished(), `Response body for ${pathname}`).toBeNull();
-}
-
-/**
- * Every API write must finish successfully before a journey ends, in recording and replay alike.
- * This guard catches forgotten assertions; journeys must still wait at navigation boundaries
- * and assert the intended effect. A failed or abandoned write must never silently disappear.
- */
-async function checkWrites(page, run) {
-  const pending = new Set();
-  const failures = [];
-  const isWrite = (request) =>
-    new URL(request.url()).pathname.startsWith("/api/") &&
-    !["GET", "HEAD"].includes(request.method());
-  const requested = (request) => {
-    if (isWrite(request)) pending.add(request);
-  };
-  const failed = (request) => {
-    if (!isWrite(request)) return;
-    failures.push(`${key(request)}: ${request.failure()?.errorText}`);
-    pending.delete(request);
-  };
-  const responded = async (response) => {
-    const request = response.request();
-    if (!isWrite(request)) return;
-    try {
-      const error = await response.finished();
-      if (!response.ok() || error)
-        failures.push(`${key(request)}: ${error || response.status()}`);
-    } catch (error) {
-      failures.push(`${key(request)}: ${error.message}`);
-    } finally {
-      pending.delete(request);
-    }
-  };
-  page.on("request", requested);
-  page.on("requestfailed", failed);
-  page.on("response", responded);
-  try {
-    await run(page);
-    await expect
-      .poll(() => [...pending].map(key), {
-        message: "API writes still pending",
-      })
-      .toEqual([]);
-    expect(failures, "API writes must complete successfully").toEqual([]);
-  } finally {
-    page.off("request", requested);
-    page.off("requestfailed", failed);
-    page.off("response", responded);
-  }
-}
-
 /** Playwright's `test`, with every page's `/api` requests recorded or replayed. */
 export const test = base.extend({
   logMedia: [false, { option: true }],
-  page: async ({ page, logMedia }, use, info) => {
+  pauseOnOpen: [false, { option: true }],
+  page: async ({ page, logMedia, pauseOnOpen }, use, info) => {
+    if (pauseOnOpen) {
+      // Muted autoplay can succeed even with Chromium's gesture policy. Pause the first play
+      // of each video before its clock advances; later user-initiated playback remains real.
+      await page.addInitScript(() => {
+        const opened = new WeakSet();
+        globalThis.document.addEventListener(
+          "play",
+          (event) => {
+            const video = event.target;
+            if (
+              !(video instanceof globalThis.HTMLVideoElement) ||
+              opened.has(video)
+            )
+              return;
+            opened.add(video);
+            video.pause();
+          },
+          true,
+        );
+      });
+    }
     const file = recordingFile(info);
-    const checked = (page) => checkWrites(page, use);
-    const run = logMedia
-      ? (page) => logMediaEvents(page, checked, info)
-      : checked;
-    await (RECORD ? record(page, file, run) : replay(page, file, run));
+    const run = logMedia ? (page) => logMediaEvents(page, use, info) : use;
+    await checkRequests(page, (page) =>
+      RECORD ? record(page, file, run) : replay(page, file, run),
+    );
   },
 });
 
