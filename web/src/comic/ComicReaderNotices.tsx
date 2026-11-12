@@ -50,9 +50,10 @@ export function ComicReaderNotices({
           <Text size="sm">
             Drag an existing region to move it. Select a bubble to show its
             corner handles, then drag a corner to resize. Drag on empty page
-            space to add a bubble; text can be added in the study panel. Changes
-            save automatically and are queued for review. Use the toolbar’s Edit
-            bubble regions button to finish.
+            space to add a bubble; text can be added in the study panel. To
+            remove an accidental box, select it and choose Delete selected
+            bubble below. Changes save automatically and are queued for review.
+            Use the toolbar’s Edit bubble regions button to finish.
           </Text>
           {savingBox && <Text size="sm">Saving box…</Text>}
           {!savingBox && draftRegion && (
@@ -66,17 +67,23 @@ export function ComicReaderNotices({
             </Group>
           )}
           {selectedBox && (
-            <Button
-              size="compact-xs"
-              variant="subtle"
-              color="red"
-              mt="xs"
-              onClick={onDeleteSelected}
-            >
-              {selectedBox.lines.length > 1
-                ? "Delete selected text block"
-                : "Delete selected bubble"}
-            </Button>
+            <Group gap="xs" mt="xs">
+              <Text size="sm">
+                Selected: {selectedBox.lines[0].source || "Empty bubble"}
+              </Text>
+              <Button
+                size="compact-sm"
+                variant="light"
+                disabled={savingBox}
+                color="red"
+                mt="xs"
+                onClick={onDeleteSelected}
+              >
+                {selectedBox.lines.length > 1
+                  ? "Delete selected text block"
+                  : "Delete selected bubble"}
+              </Button>
+            </Group>
           )}
         </Alert>
       )}

@@ -125,7 +125,7 @@
   border: 2px solid #ffce72;
   background: #ffc45d1a;
 }
-.comic-region span {
+.comic-region-number {
   position: absolute;
   top: -15px;
   left: -2px;
@@ -136,7 +136,7 @@
   font: bold 10px sans-serif;
   line-height: 12px;
 }
-.comic-region.is-selected span {
+.comic-region.is-selected .comic-region-number {
   background: #ffce72;
   color: #242424;
 }
@@ -318,6 +318,8 @@
   position: absolute;
   width: 12px;
   height: 12px;
+  padding: 0;
+  cursor: nwse-resize;
   border-radius: 3px;
   background: #ffd54f;
   box-shadow: 0 0 0 1px #19232c;

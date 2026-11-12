@@ -65,18 +65,25 @@ export function ComicRegionOverlay({
       }}
       onClick={() => {
         if (draft) return;
-        if (bubbles) bubbles.pin(box.id, lineId);
+        if (annotate) study?.onSelect(lineId);
+        else if (bubbles) bubbles.pin(box.id, lineId);
         else study?.onSelect(lineId);
       }}
       onPointerEnter={(event) =>
-        event.pointerType === "mouse" && bubbles?.hover(box.id, lineId)
+        !annotate &&
+        event.pointerType === "mouse" &&
+        bubbles?.hover(box.id, lineId)
       }
       onPointerLeave={(event: PointerEvent) =>
         event.pointerType === "mouse" && bubbles?.leave()
       }
       onPointerDown={(event) => startMove(event, box, region)}
     >
-      {outlined && <span aria-hidden="true">{number}</span>}
+      {outlined && (
+        <span className="comic-region-number" aria-hidden="true">
+          {number}
+        </span>
+      )}
       {annotate &&
         isSelected &&
         !editing &&
@@ -86,8 +93,14 @@ export function ComicRegionOverlay({
             className="comic-region-handle"
             aria-hidden="true"
             style={{
-              [corner[0] === "n" ? "top" : "bottom"]: -6,
-              [corner[1] === "w" ? "left" : "right"]: -6,
+              top: corner[0] === "n" ? -6 : "auto",
+              bottom: corner[0] === "s" ? -6 : "auto",
+              left: corner[1] === "w" ? -6 : "auto",
+              right: corner[1] === "e" ? -6 : "auto",
+              cursor:
+                corner === "ne" || corner === "sw"
+                  ? "nesw-resize"
+                  : "nwse-resize",
             }}
             onPointerDown={(event) => startMove(event, box, region, corner)}
           />
