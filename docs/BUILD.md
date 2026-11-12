@@ -155,7 +155,9 @@ API only; its JAR does not contain the UI.
 
 The comic reader's Listen button (and the R key) speaks text with a local
 [Piper](https://github.com/rhasspy/piper) voice. Java keeps one Piper process per
-language running and generates audio per request; nothing is stored. It expects the
+language running, opened on first use. WAV responses are read directly from Piper’s stdout;
+no temporary audio files are created. Failed voices are replaced on a later request, and
+Spring closes all owned processes at shutdown. It expects the
 standalone Piper binary and voice models in these locations by default.
 
 On Linux x64, install Piper and the French Siwis voice once from the repository root
