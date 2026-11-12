@@ -1,5 +1,12 @@
 import { useStudyLanguages } from "../StudyLanguages.jsx";
-import { useEffect, useId, useLayoutEffect, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useId,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from "react";
 import {
   alignmentColors,
   alignmentState,
@@ -41,16 +48,17 @@ export function VideoSubtitles({
   const notesBox = useRef(null);
   const [notesPosition, setNotesPosition] = useState(null);
   const line = useRef(null);
-  const english = useRef(null);
-  const [englishBottom, setEnglishBottom] = useState(null);
-  const phrases = useRef(new Map());
+  const translationBox = useRef(null);
+  const [translationBottom, setTranslationBottom] = useState(null);
   const alignment = alignmentState(cue) === "ready" ? cue.alignment : null;
   const active = definitionIndex ?? pinned ?? focused ?? hovered;
-  useEffect(() => {
+  const clearSelection = useCallback(() => {
+    clearTimeout(leaveTimer.current);
     setPinned(null);
     setFocused(null);
     setHovered(null);
-  }, [definitionIndex]);
+  }, []);
+  useEffect(clearSelection, [definitionIndex, clearSelection]);
   const exploring = active !== null;
   useLayoutEffect(() => {
     onActiveChange?.(cue.id, exploring);
@@ -66,13 +74,27 @@ export function VideoSubtitles({
         )
       )
         return;
-      setPinned(null);
-      setHovered(null);
-      setFocused(null);
+      clearSelection();
     };
     document.addEventListener("pointerdown", clearOutside);
     return () => document.removeEventListener("pointerdown", clearOutside);
-  }, [pinned]);
+  }, [pinned, clearSelection]);
+  // Source buttons and translated chunks use the same selection rules. An unmatched
+  // translation chunk has no source index, so it cannot hover or pin a phrase.
+  function pin(event, index) {
+    event.stopPropagation();
+    if (index != null)
+      setPinned((current) => (current === index ? null : index));
+  }
+  function phraseEvents(index) {
+    return {
+      onMouseEnter: () => index != null && hover(index),
+      onMouseLeave: leave,
+      onFocus: () => setFocused(index ?? null),
+      onBlur: () => setFocused(null),
+      onClick: (event) => pin(event, index),
+    };
+  }
   const notes =
     alignment && active !== null
       ? [
@@ -86,24 +108,25 @@ export function VideoSubtitles({
       : [];
   useLayoutEffect(() => {
     if (active === null && !showTranslation) return;
+    const subtitleLayers = () =>
+      root.current.parentElement.querySelectorAll(
+        ".video-subtitle-line, .video-full-translation, .video-sentence-notes",
+      );
     const update = () => {
       const bounds = root.current.getBoundingClientRect();
-      const phrase = phrases.current.get(active)?.getBoundingClientRect();
       // The whole translation sits directly above this line and never moves between phrases.
       const lineTop = line.current.getBoundingClientRect().top - bounds.top;
-      setEnglishBottom(bounds.height - lineTop + 6);
+      setTranslationBottom(bounds.height - lineTop + 6);
       const note = notesBox.current?.getBoundingClientRect();
-      if (!phrase || !note) return;
+      if (!note) return;
       // The explanation sits above every subtitle line, the translation and sentence help.
       const tops = Array.from(
-        root.current.parentElement.querySelectorAll(
-          ".video-subtitle-line, .video-full-translation, .video-sentence-notes",
-        ),
+        subtitleLayers(),
         (element) => element.getBoundingClientRect().top - bounds.top,
       );
-      const englishHeight =
-        english.current?.getBoundingClientRect().height ?? 0;
-      const ceiling = Math.min(...tops) - englishHeight - 18;
+      const translationHeight =
+        translationBox.current?.getBoundingClientRect().height ?? 0;
+      const ceiling = Math.min(...tops) - translationHeight - 18;
       const maxHeight = Math.max(0, ceiling - 8);
       setNotesPosition(
         maxHeight >= 40
@@ -119,12 +142,8 @@ export function VideoSubtitles({
     const observer = new ResizeObserver(update);
     observer.observe(root.current);
     if (notesBox.current) observer.observe(notesBox.current);
-    if (english.current) observer.observe(english.current);
-    root.current.parentElement
-      .querySelectorAll(
-        ".video-subtitle-line, .video-full-translation, .video-sentence-notes",
-      )
-      .forEach((line) => observer.observe(line));
+    if (translationBox.current) observer.observe(translationBox.current);
+    subtitleLayers().forEach((line) => observer.observe(line));
     return () => observer.disconnect();
   }, [active, alignment, lineOffset, helpMode, showTranslation]);
   return (
@@ -135,9 +154,7 @@ export function VideoSubtitles({
       onMouseLeave={leave}
       onKeyDown={(event) => {
         if (event.key === "Escape") {
-          setPinned(null);
-          setFocused(null);
-          setHovered(null);
+          clearSelection();
           event.target.blur();
           event.stopPropagation();
         }
@@ -146,16 +163,16 @@ export function VideoSubtitles({
       {((active !== null && alignment) ||
         (showTranslation && cue.translation)) && (
         <div
-          ref={english}
+          ref={translationBox}
           id={description}
           role="group"
           aria-label="Translation"
           className="video-subtitle-english"
           lang={translationLanguage}
           style={
-            englishBottom == null
+            translationBottom == null
               ? { visibility: "hidden" }
-              : { bottom: englishBottom }
+              : { bottom: translationBottom }
           }
         >
           <span
@@ -164,68 +181,44 @@ export function VideoSubtitles({
             onMouseLeave={leave}
           >
             {alignment
-              ? translationContext(alignment, active).map((chunk, index) => (
-                  <span key={index}>
-                    {index > 0 && (cue.translationSeparator ?? " ")}
-                    <span
-                      className="video-subtitle-context-chunk"
-                      data-active={chunk.active || undefined}
-                      role={
-                        alignment.links[chunk.link]?.source.length
-                          ? "button"
-                          : undefined
-                      }
-                      tabIndex={
-                        alignment.links[chunk.link]?.source.length
-                          ? 0
-                          : undefined
-                      }
-                      aria-pressed={alignment.links[
-                        chunk.link
-                      ]?.source.includes(pinned)}
-                      onMouseEnter={() => {
-                        const source = alignment.links[chunk.link]?.source[0];
-                        if (source !== undefined) hover(source);
-                      }}
-                      onMouseLeave={leave}
-                      onFocus={() =>
-                        setFocused(
-                          alignment.links[chunk.link]?.source[0] ?? null,
-                        )
-                      }
-                      onBlur={() => setFocused(null)}
-                      onClick={(event) => {
-                        event.stopPropagation();
-                        const source = alignment.links[chunk.link]?.source[0];
-                        if (source !== undefined)
-                          setPinned(pinned === source ? null : source);
-                      }}
-                      onKeyDown={(event) => {
-                        if (event.key !== "Enter" && event.key !== " ") return;
-                        event.preventDefault();
-                        event.stopPropagation();
-                        const source = alignment.links[chunk.link]?.source[0];
-                        if (source !== undefined)
-                          setPinned(pinned === source ? null : source);
-                      }}
-                      style={{
-                        "--phrase-color":
-                          chunk.link < 0
-                            ? "transparent"
-                            : alignmentColors[
-                                chunk.link % alignmentColors.length
-                              ],
-                      }}
-                    >
-                      {chunk.text}
+              ? translationContext(alignment, active).map((chunk, index) => {
+                  const link = alignment.links[chunk.link];
+                  const source = link?.source[0];
+                  return (
+                    <span key={index}>
+                      {index > 0 && (cue.translationSeparator ?? " ")}
+                      <span
+                        className="video-subtitle-context-chunk"
+                        data-active={chunk.active || undefined}
+                        role={link?.source.length ? "button" : undefined}
+                        tabIndex={link?.source.length ? 0 : undefined}
+                        aria-pressed={link?.source.includes(pinned)}
+                        {...phraseEvents(source)}
+                        onKeyDown={(event) => {
+                          if (event.key !== "Enter" && event.key !== " ")
+                            return;
+                          event.preventDefault();
+                          pin(event, source);
+                        }}
+                        style={{
+                          "--phrase-color":
+                            chunk.link < 0
+                              ? "transparent"
+                              : alignmentColors[
+                                  chunk.link % alignmentColors.length
+                                ],
+                        }}
+                      >
+                        {chunk.text}
+                      </span>
                     </span>
-                  </span>
-                ))
+                  );
+                })
               : cue.translation}
           </span>
         </div>
       )}
-      {active !== null && alignment && notes.length > 0 && (
+      {notes.length > 0 && (
         <aside
           ref={notesBox}
           style={notesPosition || { visibility: "hidden" }}
@@ -260,10 +253,6 @@ export function VideoSubtitles({
             );
             return (
               <button
-                ref={(element) => {
-                  if (element) phrases.current.set(index, element);
-                  else phrases.current.delete(index);
-                }}
                 key={index}
                 type="button"
                 className="video-subtitle-phrase"
@@ -274,14 +263,7 @@ export function VideoSubtitles({
                 aria-pressed={pinned === index}
                 aria-describedby={active === index ? description : undefined}
                 data-active={active === index || undefined}
-                onMouseEnter={() => hover(index)}
-                onMouseLeave={leave}
-                onFocus={() => setFocused(index)}
-                onBlur={() => setFocused(null)}
-                onClick={(event) => {
-                  event.stopPropagation();
-                  setPinned(pinned === index ? null : index);
-                }}
+                {...phraseEvents(index)}
               >
                 {phrase}
               </button>
