@@ -125,7 +125,7 @@ export function ComicReader({ id }: { id: string }) {
             view={view}
             autoListen={autoListen}
             setAutoListen={setAutoListen}
-            studyOpen={studyOpen}
+            studyOpen={studyOpen || annotate}
             setStudyOpen={setStudyOpen}
             editing={editing}
             debug={debug}
@@ -157,7 +157,7 @@ export function ComicReader({ id }: { id: string }) {
                 study={{
                   selectedId: selected?.id,
                   onSelect: setSelectedId,
-                  cards: !studyOpen,
+                  cards: !studyOpen && !annotate,
                   blockMode,
                   onBlockMode: setBlockMode,
                 }}
@@ -169,9 +169,10 @@ export function ComicReader({ id }: { id: string }) {
                 }}
               />
             </ComicStage>
-            {studyOpen && (
+            {(studyOpen || annotate) && (
               <ComicStudyPanel
                 key={selected?.id || page.id}
+                editMode={annotate}
                 boxes={boxes}
                 lines={lines}
                 cue={selected}

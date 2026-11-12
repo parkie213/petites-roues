@@ -122,7 +122,7 @@ export function ComicReaderToolbar({
         className="comic-region-edit-toggle"
         variant={annotate ? "light" : "subtle"}
         aria-pressed={annotate}
-        disabled={savingBox || !!draftRegion || (editing && !annotate)}
+        disabled={savingBox || !!draftRegion || editing}
         onClick={annotations.toggleAnnotate}
         leftSection={<SquareDashed size={18} />}
       >
@@ -131,7 +131,7 @@ export function ComicReaderToolbar({
             style={{ visibility: annotate ? "hidden" : "visible" }}
             aria-hidden={annotate}
           >
-            Edit bubble regions
+            Edit mode
           </span>
           <span
             style={{ visibility: annotate ? "visible" : "hidden" }}
@@ -166,16 +166,18 @@ export function ComicReaderToolbar({
       </Tooltip>
       <Popover width={280} position="bottom-end" withArrow>
         <Popover.Target>
-          <ActionIcon variant="subtle" aria-label="Region editing help">
+          <ActionIcon variant="subtle" aria-label="Editing help">
             <HelpCircle size={18} />
           </ActionIcon>
         </Popover.Target>
         <Popover.Dropdown>
           <Text size="sm">
-            Turn on Edit bubble regions. Drag a region to move it; select it and
-            drag its corners to resize. Drag on empty page space to add a
-            bubble. Press Delete to remove the selected box. Changes save
-            automatically and are queued for review.
+            Turn on Edit mode. Drag a region to move it; select it and drag its
+            corners to resize. Drag on empty page space to add a bubble. Press
+            Delete to remove the selected box. Use Edit text in the side panel
+            to correct transcription, then Save text or Cancel. Region changes
+            save automatically; text corrections save when you choose Save text.
+            Both are queued for review.
           </Text>
         </Popover.Dropdown>
       </Popover>
@@ -208,7 +210,7 @@ export function ComicReaderToolbar({
           <Menu.Item
             leftSection={<PanelRight size={16} />}
             rightSection={studyOpen ? "✓" : null}
-            disabled={editing}
+            disabled={editing || annotate}
             onClick={() => setStudyOpen((value) => !value)}
           >
             Study panel

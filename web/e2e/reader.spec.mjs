@@ -29,7 +29,7 @@ test("the comic opens on its cover, and its pages turn", async ({ page }) => {
     page.getByRole("button", { name: "Bubble 1: Le parapluie de Lulu" }),
   ).toBeVisible();
   const editRegions = page.locator(".comic-region-edit-toggle");
-  await expect(editRegions).toHaveAccessibleName("Edit bubble regions");
+  await expect(editRegions).toHaveAccessibleName("Edit mode");
   await expect(editRegions).toHaveAttribute("aria-pressed", "false");
   const editBounds = await editRegions.boundingBox();
   await editRegions.click();
@@ -37,9 +37,13 @@ test("the comic opens on its cover, and its pages turn", async ({ page }) => {
   await expect(editRegions).toHaveAccessibleName("Exit edit mode");
   await expect(editRegions).toHaveCSS("background-color", "rgb(255, 213, 79)");
   expect(await editRegions.boundingBox()).toEqual(editBounds);
-  await expect(page.getByText(/Changes save automatically/)).toHaveCount(0);
-  await page.getByRole("button", { name: "Region editing help" }).click();
-  await expect(page.getByText(/Changes save automatically/)).toBeVisible();
+  await expect(page.getByText(/Region changes save automatically/)).toHaveCount(
+    0,
+  );
+  await page.getByRole("button", { name: "Editing help" }).click();
+  await expect(
+    page.getByText(/Region changes save automatically/),
+  ).toBeVisible();
   await page.keyboard.press("Escape");
   const bubble = page.getByRole("button", {
     name: "Bubble 1: Le parapluie de Lulu",
@@ -72,7 +76,20 @@ test("the comic opens on its cover, and its pages turn", async ({ page }) => {
     ).toBeLessThan(4);
   }
 
+  const editor = page.getByRole("complementary", { name: "Bubble editing" });
+  await expect(editor).toBeVisible();
+  await editor.getByRole("button", { name: "Edit text", exact: true }).click();
+  const transcription = editor.getByRole("textbox");
+  const original = await transcription.inputValue();
+  await transcription.fill("A corrected transcription");
+  await expect(editRegions).toBeDisabled();
+  await expect(page.getByRole("button", { name: /^Next page/ })).toBeDisabled();
+  await editor.getByRole("button", { name: "Cancel", exact: true }).click();
+  await expect(
+    editor.getByText(original, { exact: true }).first(),
+  ).toBeVisible();
   await editRegions.click();
+  await expect(editor).toHaveCount(0);
   await expect(editRegions).toHaveAttribute("aria-pressed", "false");
   expect(await editRegions.boundingBox()).toEqual(editBounds);
   await turn(page, "page-1", () =>

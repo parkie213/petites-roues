@@ -112,7 +112,7 @@ function open({
 }
 async function annotate() {
   await userEvent.click(
-    await screen.findByRole("button", { name: "Edit bubble regions" }),
+    await screen.findByRole("button", { name: "Edit mode" }),
   );
 }
 
@@ -421,17 +421,23 @@ test("quiz preparation uses the currently displayed chapter and stays stable dur
 test("region editing is available directly from the toolbar and can be finished", async () => {
   open();
   const toggle = await screen.findByRole("button", {
-    name: "Edit bubble regions",
+    name: "Edit mode",
   });
   expect(toggle.getAttribute("aria-pressed")).toBe("false");
   await userEvent.click(toggle);
   expect(toggle.getAttribute("aria-pressed")).toBe("true");
   expect(screen.getByRole("button", { name: "Exit edit mode" })).toBe(toggle);
-  expect(screen.queryByText(/Changes save automatically/)).toBeNull();
-  expect(
-    screen.getByRole("button", { name: "Region editing help" }),
-  ).toBeTruthy();
+  expect(screen.queryByText(/Region changes save automatically/)).toBeNull();
+  expect(screen.getByRole("button", { name: "Editing help" })).toBeTruthy();
   expect(page.props.annotations.enabled).toBe(true);
+  expect(
+    screen.getByRole("complementary", { name: "Study panel" }),
+  ).toBeTruthy();
+  await userEvent.click(screen.getByRole("button", { name: "Start editing" }));
+  expect(toggle.disabled).toBe(true);
+  expect(page.props.annotations.locked).toBe(true);
+  await userEvent.click(screen.getByRole("button", { name: "Finish editing" }));
+  expect(toggle.disabled).toBe(false);
   await userEvent.click(toggle);
   expect(toggle.getAttribute("aria-pressed")).toBe("false");
   expect(page.props.annotations.enabled).toBe(false);
@@ -442,7 +448,7 @@ test("Delete removes the selected box only in unlocked region editing and outsid
   vi.stubGlobal("confirm", confirm);
   localStorage.setItem("comic:study", "true");
   open();
-  await screen.findByRole("button", { name: "Edit bubble regions" });
+  await screen.findByRole("button", { name: "Edit mode" });
   fireEvent.keyDown(window, { key: "Delete" });
   expect(confirm).not.toHaveBeenCalled();
   await annotate();
