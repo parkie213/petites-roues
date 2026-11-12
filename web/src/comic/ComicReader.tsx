@@ -142,17 +142,21 @@ export function ComicReader({ id }: { id: string }) {
                 scale={view.scale}
                 boxes={boxes}
                 rtl={rtl}
-                selectedId={selected?.id}
-                onSelect={setSelectedId}
                 onLoaded={() => save(page.id)}
                 debug={debug}
-                cards={!studyOpen}
-                blockMode={blockMode}
-                onBlockMode={setBlockMode}
-                editing={locked}
-                annotate={annotate}
-                onDraw={addBubble}
-                onPlacement={savePlacement}
+                study={{
+                  selectedId: selected?.id,
+                  onSelect: setSelectedId,
+                  cards: !studyOpen,
+                  blockMode,
+                  onBlockMode: setBlockMode,
+                }}
+                annotations={{
+                  enabled: annotate,
+                  locked,
+                  onDraw: addBubble,
+                  onPlacement: savePlacement,
+                }}
               />
             </ComicStage>
             {studyOpen && (

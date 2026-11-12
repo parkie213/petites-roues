@@ -1,51 +1,37 @@
 import type { PointerEvent } from "react";
 import type { ComicBoxView, ComicRegion } from "../shared/types.ts";
-import type { ComicPageViewProps, PagePoint } from "./comic-page.ts";
-import type { ComicBubbles } from "./useComicBubbles.ts";
+import type { ComicAnnotationTools, ComicStudyTools } from "./comic-tools.ts";
 import type { useComicRegionDrag } from "./useComicRegionDrag.ts";
 import { ComicBubblePopover } from "./ComicBubblePopover.jsx";
+
+/** A numbered region receives study controls and the page's current drag, independently of its parent props. */
+interface ComicRegionOverlayProps {
+  box: ComicBoxView;
+  region: ComicRegion;
+  regionIndex: number;
+  number: number;
+  outlined: boolean;
+  study?: ComicStudyTools;
+  annotations?: ComicAnnotationTools;
+  drag: ReturnType<typeof useComicRegionDrag>;
+}
 
 /** A region selects its box's current sentence; only the first region anchors the study card. */
 export function ComicRegionOverlay({
   box,
   region,
-  r,
-  numbers,
-  selectedId,
+  regionIndex,
+  number,
   outlined,
-  editing,
-  annotate,
-  bubbles,
-  cards,
-  blockMode,
-  onBlockMode,
-  onSelect,
-  document,
-  draft,
-  dragBox,
-  startMove,
-}: Pick<
-  ComicPageViewProps,
-  | "document"
-  | "selectedId"
-  | "editing"
-  | "annotate"
-  | "cards"
-  | "blockMode"
-  | "onBlockMode"
-  | "onSelect"
-> & {
-  box: ComicBoxView;
-  region: ComicRegion;
-  r: number;
-  numbers: ComicBoxView[];
-  outlined: boolean;
-  bubbles: ComicBubbles | null;
-  draft: PagePoint | null;
-  dragBox: ComicRegion | null;
-  startMove: ReturnType<typeof useComicRegionDrag>["startMove"];
-}) {
-  const number = numbers.indexOf(box) + 1;
+  study,
+  annotations,
+  drag,
+}: ComicRegionOverlayProps) {
+  const selectedId = study?.selectedId;
+  const bubbles = study?.bubbles;
+  const annotate = annotations?.enabled;
+  const editing = annotations?.locked;
+  const { draft, dragBox, startMove } = drag;
   const selectedLine = box.lines.find((line) => line.id === selectedId);
   const isSelected = Boolean(selectedLine);
   // The line the box selects: a block keeps its current sentence, arriving fresh at the first.
@@ -55,7 +41,7 @@ export function ComicRegionOverlay({
   const rect = dragging ? dragBox : region;
   const button = (
     <button
-      key={box.id + ":" + r}
+      key={box.id + ":" + regionIndex}
       className={
         "comic-region" +
         (outlined ? " is-outlined" : "") +
@@ -80,7 +66,7 @@ export function ComicRegionOverlay({
       onClick={() => {
         if (draft) return;
         if (bubbles) bubbles.pin(box.id, lineId);
-        else onSelect(lineId);
+        else study?.onSelect(lineId);
       }}
       onPointerEnter={(event) =>
         event.pointerType === "mouse" && bubbles?.hover(box.id, lineId)
@@ -109,16 +95,16 @@ export function ComicRegionOverlay({
     </button>
   );
   // The card anchors to the box's first region only, so split bubbles open one card.
-  if (!bubbles || !cards || r > 0) return button;
+  if (!bubbles || !study?.cards || regionIndex > 0) return button;
   return (
     <ComicBubblePopover
-      key={box.id + ":" + r}
+      key={box.id + ":" + regionIndex}
       box={box}
       selectedId={selectedId}
-      blockMode={blockMode}
-      onBlockMode={onBlockMode}
-      onSelect={onSelect}
-      document={document}
+      blockMode={study.blockMode}
+      onBlockMode={study.onBlockMode}
+      onSelect={study.onSelect}
+      document={study.document}
       number={number}
       opened={isOpen}
       onDismiss={bubbles.dismiss}

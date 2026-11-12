@@ -120,8 +120,6 @@ export function BareComic({ fingerprint }) {
               scale={view.scale}
               boxes={[]}
               rtl={rtl}
-              onSelect={() => {}}
-              cards={false}
             />
           </ComicStage>
         </div>

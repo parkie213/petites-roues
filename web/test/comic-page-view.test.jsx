@@ -74,7 +74,30 @@ function open(overrides = {}) {
   };
   const wrap = (next) => (
     <MantineProvider env="test">
-      <ComicPageView {...next} />
+      <ComicPageView
+        document={next.document}
+        pages={next.pages}
+        api={next.api}
+        zoom={next.zoom}
+        scale={next.scale}
+        boxes={next.boxes}
+        rtl={next.rtl}
+        onLoaded={next.onLoaded}
+        debug={next.debug}
+        study={{
+          selectedId: next.selectedId,
+          onSelect: next.onSelect,
+          cards: next.cards,
+          blockMode: next.blockMode,
+          onBlockMode: next.onBlockMode,
+        }}
+        annotations={{
+          enabled: next.annotate,
+          locked: next.editing,
+          onDraw: next.onDraw,
+          onPlacement: next.onPlacement,
+        }}
+      />
     </MantineProvider>
   );
   const rendered = render(wrap(props));
@@ -366,4 +389,26 @@ test("a cancelled box move never publishes placement", () => {
   fireEvent.pointerCancel(window);
   fireEvent.pointerUp(window);
   expect(onPlacement).not.toHaveBeenCalled();
+});
+
+test("bare comics render their page images without study or annotation controls", () => {
+  render(
+    <MantineProvider env="test">
+      <ComicPageView
+        document={{ title: "Bare comic", pages }}
+        pages={[pages[1]]}
+        api="/api/raw"
+        zoom="page"
+        scale={100}
+        boxes={[]}
+        rtl={false}
+      />
+    </MantineProvider>,
+  );
+  const image = screen.getByRole("img", { name: "Bare comic, page 2" });
+  expect(image.getAttribute("src")).toBe("/api/raw/pages/p2?attempt=0");
+  load("Bare comic, page 2");
+  expect(screen.queryByLabelText("Loading page")).toBeNull();
+  expect(screen.queryByRole("dialog")).toBeNull();
+  expect(screen.queryByRole("button")).toBeNull();
 });

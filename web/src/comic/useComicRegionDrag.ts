@@ -6,8 +6,14 @@ import {
   type RefObject,
 } from "react";
 import type { ComicBoxView, ComicRegion } from "../shared/types.ts";
-import type { ComicPageViewProps, PagePoint } from "./comic-page.ts";
 import { clampRegion, regionFromDrag } from "./annotations.js";
+import type { ComicAnnotationTools } from "./comic-tools.ts";
+
+/** A pointer position measured as a fraction of the page image. */
+interface PagePoint {
+  x: number;
+  y: number;
+}
 
 /**
  * A page's temporary drawing/move/resize gesture. Coordinates are normalized to its image stage;
@@ -19,7 +25,7 @@ export function useComicRegionDrag(
   annotate: boolean | undefined,
   editing: boolean | undefined,
   onDraw: ((region: ComicRegion) => void) | undefined,
-  onPlacement: ComicPageViewProps["onPlacement"],
+  onPlacement: ComicAnnotationTools["onPlacement"],
 ) {
   const [draft, setDraft] = useState<PagePoint | null>(null);
   const [dragBox, setDragBox] = useState<ComicRegion | null>(null);
