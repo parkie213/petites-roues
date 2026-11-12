@@ -14,7 +14,7 @@ import { ComicReader } from "../src/comic/ComicReader.tsx";
 // The reader coordinates page loading and annotation operations. Image geometry and study
 // editing have their own components; these stand-ins expose their public callbacks.
 const page = vi.hoisted(() => ({ props: null }));
-vi.mock("../src/comic/ComicPageView.jsx", () => ({
+vi.mock("../src/comic/ComicPageView.tsx", () => ({
   ComicPageView: (props) => {
     page.props = props;
     return (

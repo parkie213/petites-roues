@@ -6,7 +6,7 @@ import type {
   ComicLineView,
   ComicView,
 } from "../shared/types.ts";
-import { ComicPageView } from "./ComicPageView.jsx";
+import { ComicPageView } from "./ComicPageView.tsx";
 import { ComicStudyPanel } from "./ComicStudyPanel.jsx";
 import { StudyLanguagesProvider } from "../player/StudyLanguages.jsx";
 import { QuickEdit } from "../player/components/QuickEdit.jsx";
