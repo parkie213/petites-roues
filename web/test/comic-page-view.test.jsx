@@ -412,3 +412,53 @@ test("bare comics render their page images without study or annotation controls"
   expect(screen.queryByRole("dialog")).toBeNull();
   expect(screen.queryByRole("button")).toBeNull();
 });
+
+test.each([0, 1])(
+  "moving split region %i preserves its sibling and preview",
+  (index) => {
+    const regions = [firstRegion, { x: 0.5, y: 0.5, width: 0.2, height: 0.2 }];
+    const split = box("First", "p1", regions);
+    const { onPlacement } = open({ annotate: true, boxes: [split] });
+    load();
+    const buttons = screen.getAllByRole("button", { name: "Bubble 1: First" });
+    fireEvent.pointerDown(buttons[index], {
+      button: 0,
+      clientX: 80,
+      clientY: 200,
+    });
+    fireEvent.pointerMove(window, { clientX: 160, clientY: 300 });
+    expect(buttons[1 - index].style.left).toBe(
+      `${regions[1 - index].x * 100}%`,
+    );
+    fireEvent.pointerUp(window);
+    expect(onPlacement).toHaveBeenCalledWith(
+      split,
+      regions.map((region, i) =>
+        i === index
+          ? {
+              ...region,
+              x: Number((region.x + 0.1).toFixed(6)),
+              y: Number((region.y + 0.1).toFixed(6)),
+            }
+          : region,
+      ),
+    );
+  },
+);
+
+test("resizing a split bubble preserves its other region", () => {
+  const other = { x: 0.5, y: 0.5, width: 0.2, height: 0.2 };
+  const split = box("First", "p1", [firstRegion, other]);
+  const { onPlacement } = open({ annotate: true, boxes: [split] });
+  load();
+  const button = screen.getAllByRole("button", { name: "Bubble 1: First" })[0];
+  drag(
+    button.querySelectorAll(".comic-region-handle")[3],
+    [320, 400],
+    [400, 500],
+  );
+  expect(onPlacement).toHaveBeenCalledWith(split, [
+    { ...firstRegion, width: 0.4, height: 0.3 },
+    other,
+  ]);
+});

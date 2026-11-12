@@ -31,13 +31,13 @@ export function ComicRegionOverlay({
   const bubbles = study?.bubbles;
   const annotate = annotations?.enabled;
   const editing = annotations?.locked;
-  const { draft, dragBox, startMove } = drag;
+  const { draft, dragBox, movingRegion, startMove } = drag;
   const selectedLine = box.lines.find((line) => line.id === selectedId);
   const isSelected = Boolean(selectedLine);
   // The line the box selects: a block keeps its current sentence, arriving fresh at the first.
   const lineId = (selectedLine || box.lines[0]).id;
   const isOpen = bubbles?.current?.id === box.id;
-  const dragging = !draft && dragBox && isSelected;
+  const dragging = !draft && dragBox && movingRegion === region;
   const rect = dragging ? dragBox : region;
   const button = (
     <button

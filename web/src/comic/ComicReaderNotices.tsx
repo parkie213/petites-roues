@@ -46,11 +46,13 @@ export function ComicReaderNotices({
         </Alert>
       )}
       {annotate && (
-        <Alert color="blue" title="Draw boxes for review">
+        <Alert color="blue" title="Edit bubble regions">
           <Text size="sm">
-            Drag on the page to save a box and queue it for review. Text is
-            optional and can be added later. Drag existing boxes to move them;
-            use the corners to resize.
+            Drag an existing region to move it. Select a bubble to show its
+            corner handles, then drag a corner to resize. Drag on empty page
+            space to add a bubble; text can be added in the study panel. Changes
+            save automatically and are queued for review. Use the toolbar’s Edit
+            bubble regions button to finish.
           </Text>
           {savingBox && <Text size="sm">Saving box…</Text>}
           {!savingBox && draftRegion && (

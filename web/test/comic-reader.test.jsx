@@ -112,10 +112,7 @@ function open({
 }
 async function annotate() {
   await userEvent.click(
-    await screen.findByRole("button", { name: "More options" }),
-  );
-  await userEvent.click(
-    await screen.findByRole("menuitem", { name: "Annotate bubbles" }),
+    await screen.findByRole("button", { name: "Edit bubble regions" }),
   );
 }
 
@@ -419,4 +416,19 @@ test("quiz preparation uses the currently displayed chapter and stays stable dur
   // Page navigation re-renders the reader without changing the quiz's selected document.
   fireEvent.keyDown(window, { key: "Home" });
   expect(quizRequests()).toHaveLength(1);
+});
+
+test("region editing is available directly from the toolbar and can be finished", async () => {
+  open();
+  const toggle = await screen.findByRole("button", {
+    name: "Edit bubble regions",
+  });
+  expect(toggle.getAttribute("aria-pressed")).toBe("false");
+  await userEvent.click(toggle);
+  expect(toggle.getAttribute("aria-pressed")).toBe("true");
+  expect(screen.getByText(/Changes save automatically/)).toBeTruthy();
+  expect(page.props.annotations.enabled).toBe(true);
+  await userEvent.click(toggle);
+  expect(toggle.getAttribute("aria-pressed")).toBe("false");
+  expect(page.props.annotations.enabled).toBe(false);
 });

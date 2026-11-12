@@ -1,4 +1,4 @@
-import { ActionIcon, Menu, Tooltip } from "@mantine/core";
+import { ActionIcon, Button, Menu, Tooltip } from "@mantine/core";
 import {
   Ellipsis,
   Headphones,
@@ -104,6 +104,16 @@ export function ComicReaderToolbar({
         icon={<Headphones size={18} />}
       />
       <ViewTools view={view} />
+      <Button
+        size="compact-sm"
+        variant={annotate ? "light" : "subtle"}
+        aria-pressed={annotate}
+        disabled={savingBox || !!draftRegion || (editing && !annotate)}
+        onClick={annotations.toggleAnnotate}
+        leftSection={<SquareDashed size={18} />}
+      >
+        Edit bubble regions
+      </Button>
       <QuizShare
         doc={document}
         disabled={chapters.length === 0}
@@ -138,15 +148,6 @@ export function ComicReaderToolbar({
           >
             Study panel
           </Menu.Item>
-          <Menu.Item
-            leftSection={<SquareDashed size={16} />}
-            rightSection={annotate ? "✓" : null}
-            disabled={savingBox || !!draftRegion}
-            onClick={annotations.toggleAnnotate}
-          >
-            Annotate bubbles
-          </Menu.Item>
-
           <Menu.Item
             leftSection={<ScanText size={16} />}
             rightSection={debug ? "✓" : null}
