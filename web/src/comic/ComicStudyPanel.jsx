@@ -22,6 +22,11 @@ import { boxOf } from "./annotations.js";
  * A sentence from a text block is shown inside its block's running text so its context stays in
  * view; the other sentences are one click away. `boxes` are the boxes on view, `lines` their
  * bubbles and sentences in reading order, which previous/next walk through.
+ *
+ * The panel owns the edit draft: null means viewing; any string, including an empty one, means
+ * editing. `onEditing` reports transitions so the reader can lock navigation. Cancel and a
+ * successful save discard the draft; a failed save retains it and keeps navigation locked for
+ * correction or retry.
  */
 export function ComicStudyPanel({
   boxes,
@@ -32,7 +37,6 @@ export function ComicStudyPanel({
   onSaved,
   onEditing,
 }) {
-  // Null means viewing; an empty string is still an editable draft.
   const [draft, setDraft] = useState(null);
   const editing = draft !== null;
   const [saving, setSaving] = useState(false);
