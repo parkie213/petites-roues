@@ -2,14 +2,20 @@ package app.petitesroues.library;
 
 import app.petitesroues.library.progress.LibraryProgress;
 import app.petitesroues.model.library.LibraryJob;
+import java.time.Duration;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.Optional;
 import java.util.UUID;
-import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
+import org.springframework.beans.factory.DisposableBean;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 /**
@@ -23,7 +29,7 @@ import org.springframework.stereotype.Service;
  * notifying followers.
  */
 @Service
-public class LibraryJobService {
+public class LibraryJobService implements DisposableBean {
   private static final System.Logger LOG = System.getLogger(LibraryJobService.class.getName());
 
   /** The work a job does, reporting progress as it goes. */
@@ -33,25 +39,41 @@ public class LibraryJobService {
   }
 
   private final LibraryUpdateService updates;
-  private final ExecutorService worker =
-      Executors.newSingleThreadExecutor(
-          task -> {
-            var thread = new Thread(task, "library-job");
-            thread.setDaemon(true);
-            return thread;
-          });
+  private final ExecutorService worker;
+  private final ExecutorService notifications;
+  private final Duration shutdownWait;
+  private boolean closed;
   private Job latest;
 
+  @Autowired
   public LibraryJobService(LibraryUpdateService updates) {
+    this(
+        updates,
+        Executors.newSingleThreadExecutor(
+            Thread.ofPlatform().daemon().name("library-job").factory()),
+        Executors.newVirtualThreadPerTaskExecutor(),
+        Duration.ofSeconds(5));
+  }
+
+  /** Takes ownership of both executors, including their shutdown. */
+  LibraryJobService(
+      LibraryUpdateService updates,
+      ExecutorService worker,
+      ExecutorService notifications,
+      Duration shutdownWait) {
     this.updates = updates;
+    this.worker = worker;
+    this.notifications = notifications;
+    this.shutdownWait = shutdownWait;
   }
 
   /** Starts {@code work} in the background, or returns the job already running. */
   public synchronized LibraryJob start(String kind, Work work) {
+    if (closed) throw new IllegalStateException("Library jobs are shutting down");
     if (latest != null && !latest.snapshot().finished()) return latest.snapshot();
     var job = new Job(UUID.randomUUID().toString(), kind);
-    latest = job;
     worker.execute(() -> run(job, work));
+    latest = job;
     return job.snapshot();
   }
 
@@ -61,12 +83,15 @@ public class LibraryJobService {
   }
 
   /**
-   * Calls {@code follower} with the job's state now and after every change until it finishes. A
-   * finished job is reported once. Returns a handle that stops the calls.
+   * Delivers the current state and subsequent updates asynchronously in order. Slow followers
+   * retain at most 64 pending states; older intermediate progress may be skipped. The terminal
+   * state is delivered once, unless the follower disconnects, throws, or shutdown interrupts it.
+   * Returns a handle that stops delivery without affecting the job.
    *
    * @throws NoSuchElementException if the job is not the latest one
    */
   public synchronized Runnable follow(String id, Consumer<LibraryJob> follower) {
+    if (closed) throw new IllegalStateException("Library jobs are shutting down");
     if (latest == null || !latest.id.equals(id))
       throw new NoSuchElementException("No such job: " + id);
     return latest.follow(follower);
@@ -75,9 +100,13 @@ public class LibraryJobService {
   private void run(Job job, Work work) {
     try {
       synchronized (updates) {
+        if (Thread.currentThread().isInterrupted() || job.snapshot().finished()) return;
         work.run(job::progress);
       }
       job.finish("succeeded", null);
+    } catch (InterruptedException interrupted) {
+      Thread.currentThread().interrupt();
+      job.finish("failed", "Server is shutting down");
     } catch (IllegalArgumentException | NoSuchElementException expected) {
       job.finish("failed", expected.getMessage());
     } catch (Exception unexpected) {
@@ -86,11 +115,43 @@ public class LibraryJobService {
     }
   }
 
-  /** One job's changing state and the followers to tell about it. */
-  private static final class Job {
+  /** Stops admission, allows bounded completion, then interrupts outstanding work and delivery. */
+  @Override
+  public void destroy() {
+    synchronized (this) {
+      if (closed) return;
+      closed = true;
+      worker.shutdown();
+    }
+    await(worker);
+    synchronized (this) {
+      if (latest != null) latest.finish("failed", "Server is shutting down");
+      notifications.shutdown();
+    }
+    await(notifications);
+  }
+
+  private void await(ExecutorService executor) {
+    try {
+      if (!executor.awaitTermination(shutdownWait.toMillis(), TimeUnit.MILLISECONDS)) {
+        executor.shutdownNow();
+        if (!executor.awaitTermination(shutdownWait.toMillis(), TimeUnit.MILLISECONDS))
+          LOG.log(
+              System.Logger.Level.WARNING, "Library job executor did not stop after interruption");
+      }
+    } catch (InterruptedException interrupted) {
+      executor.shutdownNow();
+      Thread.currentThread().interrupt();
+    }
+  }
+
+  /**
+   * One job's state; enqueueing under its monitor orders initial, progress and terminal delivery.
+   */
+  private final class Job {
     final String id;
     final String kind;
-    final List<Consumer<LibraryJob>> followers = new CopyOnWriteArrayList<>();
+    final List<Follower> followers = new ArrayList<>();
     private LibraryJob state;
 
     Job(String id, String kind) {
@@ -103,37 +164,65 @@ public class LibraryJobService {
       return state;
     }
 
-    void progress(LibraryProgress progress) {
-      LibraryJob next;
-      synchronized (this) {
-        next = state = new LibraryJob(id, kind, "running", progress, null);
-      }
-      followers.forEach(follower -> follower.accept(next));
+    synchronized void progress(LibraryProgress progress) {
+      if (state.finished()) return;
+      state = new LibraryJob(id, kind, "running", progress, null);
+      followers.forEach(follower -> follower.offer(state));
     }
 
-    void finish(String outcome, String error) {
-      LibraryJob next;
-      synchronized (this) {
-        next = state = new LibraryJob(id, kind, outcome, state.progress(), error);
-      }
-      // Under the lock, so a follower arriving now either sees the finish or is told it here.
-      synchronized (this) {
-        followers.forEach(follower -> follower.accept(next));
-        followers.clear();
-      }
+    synchronized void finish(String outcome, String error) {
+      if (state.finished()) return;
+      state = new LibraryJob(id, kind, outcome, state.progress(), error);
+      followers.forEach(follower -> follower.offer(state));
+      followers.clear();
     }
 
-    /** Registers first, then reports the current state, so no change falls between the two. */
-    Runnable follow(Consumer<LibraryJob> follower) {
-      synchronized (this) {
-        if (state.finished()) {
-          follower.accept(state);
-          return () -> {};
+    synchronized Runnable follow(Consumer<LibraryJob> consumer) {
+      var follower = new Follower(consumer);
+      follower.offer(state);
+      if (!state.finished()) followers.add(follower);
+      Future<?> delivery = notifications.submit(follower::deliver);
+      return () -> {
+        synchronized (this) {
+          followers.remove(follower);
         }
-        followers.add(follower);
+        delivery.cancel(true);
+      };
+    }
+
+    /** A bounded mailbox isolates a slow or broken observer from indexing and other observers. */
+    private final class Follower {
+      private final Consumer<LibraryJob> consumer;
+      private final ArrayBlockingQueue<LibraryJob> pending = new ArrayBlockingQueue<>(64);
+
+      Follower(Consumer<LibraryJob> consumer) {
+        this.consumer = consumer;
       }
-      follower.accept(snapshot());
-      return () -> followers.remove(follower);
+
+      void offer(LibraryJob next) {
+        if (!pending.offer(next)) {
+          pending.poll();
+          pending.offer(next);
+        }
+      }
+
+      void deliver() {
+        try {
+          while (true) {
+            var next = pending.take();
+            consumer.accept(next);
+            if (next.finished()) return;
+          }
+        } catch (InterruptedException interrupted) {
+          Thread.currentThread().interrupt();
+        } catch (RuntimeException failure) {
+          LOG.log(System.Logger.Level.DEBUG, "Library job follower disconnected", failure);
+        } finally {
+          synchronized (Job.this) {
+            followers.remove(this);
+          }
+        }
+      }
     }
   }
 }

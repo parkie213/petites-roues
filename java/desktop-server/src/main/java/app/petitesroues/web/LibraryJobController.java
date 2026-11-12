@@ -4,6 +4,7 @@ import app.petitesroues.library.ContentRepositoryService;
 import app.petitesroues.library.LibraryJobService;
 import app.petitesroues.model.library.LibraryJob;
 import java.io.IOException;
+import java.util.concurrent.CompletableFuture;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -75,8 +76,11 @@ public class LibraryJobController {
   @GetMapping(path = "/{id}/events", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
   public SseEmitter events(@PathVariable String id) {
     var emitter = new SseEmitter(0L);
-    Runnable[] stop = {() -> {}};
-    stop[0] =
+    var stop = new CompletableFuture<Runnable>();
+    emitter.onCompletion(() -> stop.thenAccept(Runnable::run));
+    emitter.onTimeout(() -> stop.thenAccept(Runnable::run));
+    emitter.onError(failure -> stop.thenAccept(Runnable::run));
+    stop.complete(
         jobs.follow(
             id,
             job -> {
@@ -85,12 +89,9 @@ public class LibraryJobController {
                 if (job.finished()) emitter.complete();
               } catch (IOException | IllegalStateException gone) {
                 // The browser went away or the stream already ended; stop following.
-                stop[0].run();
+                stop.thenAccept(Runnable::run);
               }
-            });
-    emitter.onCompletion(() -> stop[0].run());
-    emitter.onTimeout(() -> stop[0].run());
-    emitter.onError(failure -> stop[0].run());
+            }));
     return emitter;
   }
 }
