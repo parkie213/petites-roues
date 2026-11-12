@@ -111,7 +111,7 @@ class QuizPackTest {
         listOf(ComicChapter(1, "Cruauté", "a1"), ComicChapter(2, "Inconnu", "b1")),
       )
     val document = StudyDocument("t1", "Demon Slayer — Tome 1", "fr", "en", "en", null, null, comic)
-    val pack = QuizPack.chapter("# Subtitle quiz agent\n\nRules.", document, comic, 0)
+    val pack = QuizPack.chapter("# Subtitle quiz agent\n\nRules.", document, 0)
     assertTrue(pack.startsWith("# Chapter quiz: Demon Slayer — Tome 1, chapter 1 · Cruauté\n"))
     assertTrue(
       "## Bubbles in chapter 1 · Cruauté (pages 2–3)\n\nPick items from all over these lines, in a mixed order" in

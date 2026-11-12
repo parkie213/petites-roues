@@ -6,11 +6,12 @@ React calls the desktop over HTTP; Android runs its own offline application.
 | Module | Owns | Internal production dependencies |
 | --- | --- | --- |
 | `content-model` | Study documents, Markdown quizzes/notes, defaults and intrinsic rules | None |
+| `study-prompts` | Prepare source material and instructions for LLM study prompts | `content-model` |
 | `learner-state-model` | Video/page resume positions, validation and progress fractions | None |
 | `document-json` | JSON recognition, strict decoding, canonical encoding and file loading | `content-model` |
 | `content-library` | Repository identities, library entries, discovery, shelving, media linking and fingerprints | `content-model` |
 | `sync` | Desktop–phone protocol, client and downloads | `content-library` |
-| `desktop-application` | Desktop workflows, transactions, SQLite stores/migrations and local integrations | Content and learner-state models, JSON, library and sync |
+| `desktop-application` | Desktop workflows, transactions, SQLite stores/migrations and local integrations | Content and learner-state models, study prompts, JSON, library and sync |
 | `document-test-fixtures` | Reusable sample documents and model constructors for downstream tests | `content-model` |
 | `desktop-test-fixtures` | Test database setup and synthetic media | Flyway (external) |
 | `desktop-server` | HTTP controllers/filters, Spring Boot startup, phone listener and advertising | `desktop-application`, `document-json` |
@@ -21,7 +22,7 @@ versions, including ordinary fixture JARs, in `dependencyManagement`; child modu
 declare only the dependencies they need. Fixture dependencies also inherit test
 scope from the parent. Each child still declares its parent
 version because Maven must resolve the parent before inheriting that management.
-The five shared modules compile production
+The six shared modules compile production
 code for Java 17 for Android; the desktop modules and all tests use Java 25.
 
 ## Content models and document JSON
@@ -37,8 +38,8 @@ and fingerprint). `DocumentMetadata` extracts the same video/comic summary on bo
 platforms, without retaining cues or regions. Media linking consumes these shared
 entries; videos and comics use the same entry types, distinguished by media kind.
 Platform readers load content; library services and scanners associate it with a repository. Rendering and quiz
-sharing remain in the user interfaces. Local learner progress remains separate
-from portable content and currently lives in each application.
+sharing remain in the user interfaces. Learner position rules live in `learner-state-model`; each application persists its
+own progress separately from portable content.
 
 Its records and `StudyDocumentValidator` have no
 Jackson annotations, mappers, serialization methods or DI-framework dependencies.
@@ -90,6 +91,32 @@ runs beyond 254 digits; the standalone JAR is about 15 MB. We retain the small
 JDK-based comparator and its ordering contract. Commons IO is also unnecessary
 for the single extension lookup: filenames without a dot have no extension.
 The discovery, media-link precedence and fingerprint protocol remain project rules.
+
+## Study prompts
+
+`ComicDocument.pagesForChapter(index)` owns chapter page selection: it excludes preface
+pages, stops at the next chapter and preserves manifest reading order. Invalid
+indices or boundary pages fail explicitly. This is document behavior, independent
+of quizzes.
+
+`study-prompts` prepares material and instructions for an LLM; it does not run
+quizzes, assess answers or implement study activities. It currently owns
+`ChapterQuizBuilder`: deterministic Markdown construction
+from a selected chapter, teaching rules and optional type instructions. It includes
+source text and translations, omits learner notes and suggests a filename. It has
+no framework, filesystem, sharing or AI-client dependency. Android calls it offline;
+its video and general-quiz builders remain platform code.
+
+Desktop `ChapterQuizService` loads the current served document, including queued
+edits. `POST /api/titles/{id}/comic/quiz` accepts `chapterPageId`, `rules` and optional
+`type` (`label`, `instructions`), and returns `text` and `fileName` with no-store
+caching. Chapter identity is its first page ID, so a stale menu cannot silently
+select a different chapter after reordering. This operation writes no content or
+progress. Callers supply their bundled teaching guide and selected menu instructions.
+
+React prepares on dialog open/selection change, cancels stale requests and enables
+export only for the current result. Clipboard, chat opening, downloading and system
+sharing stay in the UI and run within the export click's user gesture.
 
 ## Learner progress
 

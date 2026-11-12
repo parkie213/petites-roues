@@ -57,6 +57,14 @@ grants, refresh state and counts. The desktop HTTP layer flattens entries into i
 existing response fields; Android derives its selection key from repository and
 path. Markdown rendering and sharing belong to the user interfaces.
 
+Chapter quiz prompts are assembled from annotated comic content rather than
+stored Markdown pages. `ComicDocument.pagesForChapter(index)` selects their pages;
+`study-prompts` builds a shared brief from source lines, translations, supplied
+teaching rules and a selected quiz type. Android calls the builder locally, while
+React prepares through the desktop using its current served document. Prompt
+construction prepares material and instructions for an LLM; it does not conduct
+study activities, assess answers, contact a chat model or save learner state.
+
 Playback and reading progress describe local learner activity, rather than content.
 Shared `PlaybackPosition` and `ReadingPosition` values and their intrinsic rules
 live in `learner-state-model`, separate from portable content. Desktop snapshots retain

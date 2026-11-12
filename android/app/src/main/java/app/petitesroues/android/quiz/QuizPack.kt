@@ -1,11 +1,10 @@
 package app.petitesroues.android.quiz
 
-import app.petitesroues.android.comic.Chapters
-import app.petitesroues.model.document.ComicDocument
 import app.petitesroues.model.document.Line
 import app.petitesroues.model.document.StudyDocument
 import app.petitesroues.model.document.VideoCue
 import app.petitesroues.model.pages.MarkdownPage
+import app.petitesroues.quiz.ChapterQuizBuilder
 import java.util.Locale
 
 /**
@@ -104,50 +103,15 @@ object QuizPack {
     )
   }
 
-  /**
-   * The chapter brief: every bubble and text block sentence of chapter [index] of [comic], in
-   * reading order.
-   */
-  fun chapter(
-    rules: String,
-    document: StudyDocument,
-    comic: ComicDocument,
-    index: Int,
-    type: Chosen? = null,
-  ): String {
-    val chapter = comic.chapters()[index]
-    val pages = comic.pages()
-    val start = { i: Int -> pages.indexOfFirst { it.id() == comic.chapters()[i].pageId() } }
-    val first = start(index)
-    val last = if (index + 1 < comic.chapters().size) start(index + 1) - 1 else pages.size - 1
-    val items =
-      (first..last).flatMap { position ->
-        val page = pages[position]
-        val name = "Page ${page.label().orEmpty().ifBlank { "${position + 1}" }}"
-        page
-          .boxes()
-          .flatMap { it.lines() }
-          .filter { it.source().isNotBlank() }
-          .map { Item(it, group = name) }
-      }
-    val name = Chapters.name(chapter)
-    return brief(
-      rules,
-      type,
-      document,
-      heading = "Chapter quiz: ${document.title()}, chapter $name",
-      intro =
-        "Run the subtitle quiz below for a learner on their phone, using the speech bubbles of the " +
-          "comic chapter they are reading: in the rules, a subtitle or line means a bubble, and the " +
-          "film means this comic. Bubbles are listed in reading order. Start the first exercise " +
-          "straight away. Instructions about the browser player do not apply here, and the rules " +
-          "mention files from the library (a teaching guide, documents) that are not included: " +
-          "work from the lines below.",
-      section = "Bubbles in chapter $name (pages ${first + 1}–${last + 1})",
-      empty = "None: this chapter's text has not been found yet.",
-      items = items,
-    )
-  }
+  /** Delegates chapter selection and brief construction to the shared application builder. */
+  fun chapter(rules: String, document: StudyDocument, index: Int, type: Chosen? = null): String =
+    ChapterQuizBuilder.build(
+        rules,
+        document,
+        index,
+        type?.let { ChapterQuizBuilder.Type(it.label, it.instructions) },
+      )
+      .text()
 
   /** The Markdown shared by every brief; a page [Item.group] becomes a heading when it changes. */
   private fun brief(

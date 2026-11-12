@@ -19,6 +19,7 @@
 
   <modules>
     <module>content-model</module>
+    <module>study-prompts</module>
     <module>learner-state-model</module>
     <module>document-test-fixtures</module>
     <module>document-json</module>
@@ -35,6 +36,11 @@
 
   <dependencyManagement>
     <dependencies>
+      <dependency>
+        <groupId>app.petitesroues</groupId>
+        <artifactId>study-prompts</artifactId>
+        <version>${project.version}</version>
+      </dependency>
       <dependency>
         <groupId>app.petitesroues</groupId>
         <artifactId>learner-state-model</artifactId>

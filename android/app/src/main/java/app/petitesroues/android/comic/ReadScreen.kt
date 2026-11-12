@@ -87,6 +87,7 @@ import app.petitesroues.model.document.ComicPage
 import app.petitesroues.model.document.ReadingDirection
 import app.petitesroues.model.document.StudyDocument
 import app.petitesroues.model.progress.ReadingPosition
+import app.petitesroues.quiz.ChapterQuizBuilder
 import kotlin.math.roundToInt
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.launch
@@ -432,11 +433,13 @@ fun ReadScreen(
         onShare = { type, chapter ->
           model.quizShared(type)
           quizzing = false
-          val name = chapters[chapter].number()?.let { "chapter $it" } ?: chapters[chapter].title()
-          QuizShare.share(context, document, QuizPack.fileName(document, name), type) {
-            rules,
-            chosen ->
-            QuizPack.chapter(rules, document, comic, chapter, chosen)
+          QuizShare.share(
+            context,
+            document,
+            ChapterQuizBuilder.fileName(document, chapter),
+            type,
+          ) { rules, chosen ->
+            QuizPack.chapter(rules, document, chapter, chosen)
           }
         },
         chapters = chapters.map(Chapters::name),
