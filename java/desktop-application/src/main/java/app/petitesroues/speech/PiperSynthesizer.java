@@ -1,69 +1,69 @@
 package app.petitesroues.speech;
 
+import io.github.jvoiceproject.piperjni.PiperJNI;
+import io.github.jvoiceproject.piperjni.PiperVoice;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.time.Duration;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import tools.jackson.databind.ObjectWriter;
+import javax.sound.sampled.AudioFileFormat;
+import javax.sound.sampled.AudioFormat;
+import javax.sound.sampled.AudioInputStream;
+import javax.sound.sampled.AudioSystem;
 
 /**
- * Owns reusable Piper voices, lazily opening one per requested language. Failed processes are
- * discarded and recreated on a later request. Shutdown prevents new process creation and closes
- * in-flight voices without waiting for their synthesis monitors. Has no document or HTTP
- * dependency.
+ * Owns lazily loaded JNI voices, one per requested language. Piper handles synthesis locking and
+ * native resource cleanup; this adapter selects models and encodes their PCM output as in-memory
+ * WAV audio. Native libraries and models are not loaded until speech is requested.
  */
 public final class PiperSynthesizer implements AutoCloseable {
-  private final Path executable;
   private final Path voices;
-  private final ObjectWriter json;
-  private final Duration timeout;
-  private final Map<String, PiperVoice> running = new HashMap<>();
+  private final Map<String, PiperVoice> loaded = new HashMap<>();
   private boolean closed;
 
-  /** The writer must produce compact, single-line JSON for Piper's request protocol. */
-  public PiperSynthesizer(Path executable, Path voices, ObjectWriter json) {
-    this(executable, voices, json, Duration.ofSeconds(30));
-  }
-
-  PiperSynthesizer(Path executable, Path voices, ObjectWriter json, Duration timeout) {
-    this.executable = executable;
+  /** Uses the model directory without loading native libraries or opening any models. */
+  public PiperSynthesizer(Path voices) {
     this.voices = voices;
-    this.json = json;
-    this.timeout = timeout;
   }
 
-  /**
-   * Synthesizes one utterance in memory; errors discard this voice without retrying the utterance.
-   */
+  /** Returns mono, 16-bit WAV audio without creating a child process or an audio file. */
   public byte[] synthesize(String language, String text) throws IOException {
     var voice = voice(language);
-    try {
-      return voice.synthesize(text);
-    } catch (IOException | RuntimeException failure) {
-      synchronized (this) {
-        running.remove(language, voice);
-      }
-      voice.close();
-      throw failure;
+    int sampleRate = voice.getSampleRate();
+    short[] samples = voice.textToAudio(text);
+    var pcm = ByteBuffer.allocate(samples.length * Short.BYTES).order(ByteOrder.LITTLE_ENDIAN);
+    pcm.asShortBuffer().put(samples);
+    var format = new AudioFormat(sampleRate, 16, 1, true, false);
+    var wav = new ByteArrayOutputStream();
+    try (var audio =
+        new AudioInputStream(new ByteArrayInputStream(pcm.array()), format, samples.length)) {
+      AudioSystem.write(audio, AudioFileFormat.Type.WAVE, wav);
     }
+    return wav.toByteArray();
   }
 
   private synchronized PiperVoice voice(String language) throws IOException {
     if (closed) throw new IllegalStateException("Speech synthesis is closed");
-    var existing = running.get(language);
-    if (existing != null && existing.isUsable()) return existing;
-    if (existing != null) {
-      running.remove(language);
-      existing.close();
+    var existing = loaded.get(language);
+    if (existing != null) return existing;
+    Path model = model(voices, language);
+    Path config = Path.of(model + ".json");
+    if (!Files.isRegularFile(config))
+      throw new SpeechUnavailableException("No Piper voice configuration at " + config);
+    try {
+      PiperJNI.loadLibrary();
+      var voice = PiperJNI.loadVoice(model, config);
+      loaded.put(language, voice);
+      return voice;
+    } catch (IOException | LinkageError failure) {
+      throw new SpeechUnavailableException("Could not load Piper voice at " + model, failure);
     }
-    if (!Files.isExecutable(executable))
-      throw new SpeechUnavailableException("Piper is not installed at " + executable);
-    var voice = new PiperVoice(executable, model(voices, language), json, timeout);
-    running.put(language, voice);
-    return voice;
   }
 
   /** First model by file name starting with the language followed by '_' or '-'. */
@@ -87,14 +87,18 @@ public final class PiperSynthesizer implements AutoCloseable {
     }
   }
 
-  /** Stops process admission before releasing every owned voice; repeated close is harmless. */
+  /**
+   * Prevents new voice loads and closes all owned models. Piper stops active synthesis between
+   * native chunks and waits for its native calls to return before freeing the model; it cannot
+   * forcibly interrupt a stuck native call. Repeated close is harmless.
+   */
   @Override
   public void close() {
     List<PiperVoice> current;
     synchronized (this) {
       closed = true;
-      current = List.copyOf(running.values());
-      running.clear();
+      current = List.copyOf(loaded.values());
+      loaded.clear();
     }
     current.forEach(PiperVoice::close);
   }

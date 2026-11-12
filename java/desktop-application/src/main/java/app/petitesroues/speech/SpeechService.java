@@ -8,9 +8,9 @@ import org.springframework.stereotype.Service;
 /**
  * Reads a title's source-language text aloud with a local Piper voice. The voice is chosen from the
  * document's {@code sourceLanguage}: the first model in the voices directory whose file name starts
- * with that language (for example {@code fr_FR-siwis-medium.onnx} for {@code fr}). Process
- * ownership and recovery belong to {@link PiperSynthesizer}. Audio is generated for every request
- * and never stored.
+ * with that language (for example {@code fr_FR-siwis-medium.onnx} for {@code fr}). Native voice
+ * ownership belongs to {@link PiperSynthesizer}. Audio is generated for every request and never
+ * stored.
  */
 @Service
 public class SpeechService {
@@ -29,7 +29,8 @@ public class SpeechService {
    *
    * @throws IllegalArgumentException if the text is blank or longer than {@value MAX_TEXT_LENGTH}
    *     characters
-   * @throws SpeechUnavailableException if Piper or a voice for the language is not installed
+   * @throws SpeechUnavailableException if the native library or a voice for the language is
+   *     unavailable
    */
   public byte[] speak(String titleId, String text) throws IOException {
     String spoken = text == null ? "" : text.strip();
