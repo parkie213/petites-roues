@@ -5,7 +5,7 @@ import { responseError } from "../shared/api.ts";
 import { findMedia, mediaName } from "../shared/media.ts";
 import { libraryReturnPath } from "../shared/library-return.ts";
 import { useStoredState } from "../shared/storage.ts";
-import { ComicPageView } from "./ComicPageView.jsx";
+import { ComicPageView } from "./ComicPageView.tsx";
 import {
   ComicStage,
   ComicToolbar,
