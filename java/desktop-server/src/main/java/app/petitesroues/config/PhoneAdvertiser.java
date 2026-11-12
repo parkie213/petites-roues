@@ -1,18 +1,21 @@
 package app.petitesroues.config;
 
 import app.petitesroues.sync.PhoneRoutes;
-import jakarta.annotation.PreDestroy;
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.net.InetAddress;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
+import java.util.concurrent.Executor;
+import java.util.concurrent.RejectedExecutionException;
+import java.util.function.BiFunction;
 import javax.jmdns.JmDNS;
 import javax.jmdns.ServiceInfo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
 
 /**
@@ -25,39 +28,62 @@ import org.springframework.stereotype.Component;
  * known addresses.
  */
 @Component
-public class PhoneAdvertiser {
+public class PhoneAdvertiser implements AutoCloseable {
   private static final Logger LOG = LoggerFactory.getLogger(PhoneAdvertiser.class);
 
-  private final ExecutorService worker =
-      Executors.newSingleThreadExecutor(
-          task -> {
-            var thread = new Thread(task, "phone-advertiser");
-            thread.setDaemon(true);
-            return thread;
-          });
+  private final Executor worker;
+  private final BiFunction<InetAddress, String, JmDNS> open;
   private final List<JmDNS> responders = new ArrayList<>();
+  private boolean closed;
+
+  /** Borrows a serial executor; Spring owns its scheduling and shutdown. */
+  @Autowired
+  public PhoneAdvertiser(@Qualifier("phoneAdvertisementExecutor") Executor worker) {
+    this(
+        worker,
+        (address, name) -> {
+          try {
+            return JmDNS.create(address, name);
+          } catch (IOException failure) {
+            throw new UncheckedIOException(failure);
+          }
+        });
+  }
+
+  /** Allows responder creation to be tested without opening multicast sockets. */
+  PhoneAdvertiser(Executor worker, BiFunction<InetAddress, String, JmDNS> open) {
+    this.worker = worker;
+    this.open = open;
+  }
 
   /** Starts announcing {@code port} on {@code addresses}, replacing any earlier announcement. */
-  public void start(List<InetAddress> addresses, String name, int port, String pin) {
+  public synchronized void start(List<InetAddress> addresses, String name, int port, String pin) {
+    requireOpen();
+    var requested = List.copyOf(addresses);
     worker.execute(
         () -> {
           stopNow();
-          for (var address : addresses) {
+          for (var address : requested) {
             try {
-              var responder = JmDNS.create(address, name);
+              var responder = open.apply(address, name);
               responders.add(responder);
               responder.registerService(service(name, port, pin));
             } catch (IOException | RuntimeException failure) {
               LOG.warn("Could not announce the phone listener on {}", address, failure);
             }
           }
-          if (!responders.isEmpty()) LOG.info("Announcing the phone listener on {}", addresses);
+          if (!responders.isEmpty()) LOG.info("Announcing the phone listener on {}", requested);
         });
   }
 
   /** Stops announcing. */
-  public void stop() {
+  public synchronized void stop() {
+    requireOpen();
     worker.execute(this::stopNow);
+  }
+
+  private void requireOpen() {
+    if (closed) throw new RejectedExecutionException("Phone announcements are closed");
   }
 
   /** The announcement: this service type, the listener's port and the certificate's pin. */
@@ -73,9 +99,8 @@ public class PhoneAdvertiser {
 
   private void stopNow() {
     for (var responder : responders) {
-      try {
+      try (responder) {
         responder.unregisterAllServices();
-        responder.close();
       } catch (IOException | RuntimeException failure) {
         LOG.debug("The phone listener's announcement did not close cleanly", failure);
       }
@@ -83,10 +108,14 @@ public class PhoneAdvertiser {
     responders.clear();
   }
 
-  /** Withdraws the announcement at shutdown, so phones do not keep finding a closed desktop. */
-  @PreDestroy
-  void shutdown() {
-    stop();
-    worker.shutdown();
+  /**
+   * Queues final withdrawal after earlier Start/Stop operations and rejects later changes. Spring
+   * drains the borrowed executor after this callback; this class never shuts that executor down.
+   */
+  @Override
+  public synchronized void close() {
+    if (closed) return;
+    closed = true;
+    worker.execute(this::stopNow);
   }
 }
