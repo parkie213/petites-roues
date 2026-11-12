@@ -60,7 +60,7 @@ export async function forgetProgress() {
 
 /**
  * Undoes what [requests] (`METHOD /path` keys) saved on the real server: reading and playback
- * progress is forgotten, queued subtitle edits are discarded and added folders are removed, so a
+ * progress is forgotten, queued subtitle/comic edits are discarded and added folders are removed, so a
  * test leaves the library as it found it.
  */
 export async function forget(requests) {
@@ -78,7 +78,7 @@ export async function forget(requests) {
     );
   await forgetProgress();
   for (const title of changed(
-    /^(?:PUT|POST|DELETE) \/api\/titles\/([^/]+)\/(?:cues|timings)\b/,
+    /^(?:PUT|POST|DELETE) \/api\/titles\/([^/]+)\/(?:cues|timings|comic\/(?:lines|boxes))\b/,
   )) {
     const queue = `${api}/api/titles/${title}/review-queue`;
     const rows = await (await fetch(queue)).json();
