@@ -4,24 +4,19 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 import app.petitesroues.sync.PhoneRoutes;
+import java.io.IOException;
 import java.net.InetAddress;
 import java.util.List;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.RejectedExecutionException;
-import java.util.concurrent.TimeUnit;
 import javax.jmdns.JmDNS;
 import javax.jmdns.ServiceInfo;
 import org.junit.jupiter.api.Test;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
-import org.springframework.context.event.ContextClosedEvent;
-import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 
 class PhoneAdvertiserTest {
   @Test
   void announcesTheListenersPortAndPinUnderTheSharedServiceType() {
     String pin = "sha256:" + "ab".repeat(32);
     var service = PhoneAdvertiser.service("study-desktop", 8878, pin);
-
     assertEquals(PhoneRoutes.SERVICE_TYPE + ".local.", service.getType());
     assertEquals("study-desktop", service.getName());
     assertEquals(8878, service.getPort());
@@ -29,81 +24,65 @@ class PhoneAdvertiserTest {
   }
 
   @Test
-  void springWiresTheNamedWorkerAndClosesItAfterTheAdvertiser() {
-    try (var context = new AnnotationConfigApplicationContext()) {
-      context.register(PhoneAdvertisementConfiguration.class, PhoneAdvertiser.class);
-      context.refresh();
-      var executor = context.getBean("phoneAdvertisementExecutor", ThreadPoolTaskExecutor.class);
-      var advertiser = context.getBean(PhoneAdvertiser.class);
-      advertiser.start(List.of(), "desktop", 8878, "pin");
-      context.close();
-      assertTrue(executor.getThreadPoolExecutor().isTerminated());
-      assertThrows(RejectedExecutionException.class, advertiser::stop);
-      advertiser.close();
-    }
-  }
-
-  @Test
-  void queuedStartStopAndFinalWithdrawalDrainInOrder() throws Exception {
+  void replacementClosesTheOldResponderAndSpringClosesTheLastOne() throws Exception {
     var first = mock(JmDNS.class);
     var second = mock(JmDNS.class);
-    var release = new CountDownLatch(1);
-    try (var context = new AnnotationConfigApplicationContext()) {
-      context.register(PhoneAdvertisementConfiguration.class);
-      context.registerBean(
-          "phoneAdvertiser",
-          PhoneAdvertiser.class,
-          () ->
-              new PhoneAdvertiser(
-                  context.getBean("phoneAdvertisementExecutor", ThreadPoolTaskExecutor.class),
-                  (address, name) -> name.equals("first") ? first : second),
-          definition -> definition.setDependsOn("phoneAdvertisementExecutor"));
-      context.addApplicationListener(
-          event -> {
-            if (event instanceof ContextClosedEvent) release.countDown();
-          });
-      context.refresh();
-      var executor = context.getBean("phoneAdvertisementExecutor", ThreadPoolTaskExecutor.class);
-      var entered = new CountDownLatch(1);
-      executor.execute(
-          () -> {
-            entered.countDown();
-            try {
-              release.await();
-            } catch (InterruptedException interrupted) {
-              Thread.currentThread().interrupt();
-            }
-          });
-      assertTrue(entered.await(5, TimeUnit.SECONDS));
+    var address = InetAddress.getLoopbackAddress();
+    try (var dns = mockStatic(JmDNS.class);
+        var context = new AnnotationConfigApplicationContext(PhoneAdvertiser.class)) {
+      dns.when(() -> JmDNS.create(address, "first")).thenReturn(first);
+      dns.when(() -> JmDNS.create(address, "second")).thenReturn(second);
       var advertiser = context.getBean(PhoneAdvertiser.class);
-      var addresses = List.of(InetAddress.getLoopbackAddress());
-      advertiser.start(addresses, "first", 8878, "pin");
-      advertiser.stop();
-      advertiser.start(addresses, "second", 8878, "pin");
+      advertiser.start(List.of(address), "first", 8878, "pin");
+      advertiser.start(List.of(address), "second", 8878, "pin");
       context.close();
-      assertTrue(executor.getThreadPoolExecutor().isTerminated());
+      advertiser.close();
       var order = inOrder(first, second);
       order.verify(first).registerService(any(ServiceInfo.class));
-      order.verify(first).unregisterAllServices();
       order.verify(first).close();
       order.verify(second).registerService(any(ServiceInfo.class));
-      order.verify(second).unregisterAllServices();
       order.verify(second).close();
       order.verifyNoMoreInteractions();
-      assertThrows(
-          RejectedExecutionException.class, () -> advertiser.start(addresses, "late", 8878, "pin"));
-    } finally {
-      release.countDown();
     }
   }
 
   @Test
-  void withdrawalClosesRespondersEvenWhenUnregisterFails() throws Exception {
-    var responder = mock(JmDNS.class);
-    doThrow(new IllegalStateException("unregister failed")).when(responder).unregisterAllServices();
-    try (var advertiser = new PhoneAdvertiser(Runnable::run, (address, name) -> responder)) {
-      advertiser.start(List.of(InetAddress.getLoopbackAddress()), "desktop", 8878, "pin");
+  void aFailedAnnouncementIsReleasedAndDoesNotPreventOtherAddresses() throws Exception {
+    var failed = mock(JmDNS.class);
+    var working = mock(JmDNS.class);
+    var firstAddress = InetAddress.getByName("127.0.0.1");
+    var secondAddress = InetAddress.getByName("127.0.0.2");
+    doThrow(new IOException("registration failed"))
+        .when(failed)
+        .registerService(any(ServiceInfo.class));
+    doThrow(new IOException("close failed")).when(failed).close();
+    try (var dns = mockStatic(JmDNS.class)) {
+      dns.when(() -> JmDNS.create(firstAddress, "desktop")).thenReturn(failed);
+      dns.when(() -> JmDNS.create(secondAddress, "desktop")).thenReturn(working);
+      try (var advertiser = new PhoneAdvertiser()) {
+        advertiser.start(List.of(firstAddress, secondAddress), "desktop", 8878, "pin");
+        verify(working).registerService(any(ServiceInfo.class));
+      }
+      verify(failed).close();
+      verify(working).close();
     }
-    verify(responder).close();
+  }
+
+  @Test
+  void disablingThenReenablingCreatesANewResponder() throws Exception {
+    var first = mock(JmDNS.class);
+    var second = mock(JmDNS.class);
+    var address = InetAddress.getLoopbackAddress();
+    try (var dns = mockStatic(JmDNS.class);
+        var advertiser = new PhoneAdvertiser()) {
+      dns.when(() -> JmDNS.create(address, "desktop")).thenReturn(first, second);
+      advertiser.start(List.of(address), "desktop", 8878, "pin");
+      advertiser.close();
+      advertiser.close();
+      advertiser.start(List.of(address), "desktop", 8878, "pin");
+      verify(first).close();
+      verify(second).registerService(any(ServiceInfo.class));
+    }
+    verify(second).close();
   }
 }
