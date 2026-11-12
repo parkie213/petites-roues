@@ -30,8 +30,10 @@ test("the comic opens on its cover, and its pages turn", async ({ page }) => {
   ).toBeVisible();
   const editRegions = page.getByRole("button", { name: "Edit bubble regions" });
   await expect(editRegions).toHaveAttribute("aria-pressed", "false");
+  const editBounds = await editRegions.boundingBox();
   await editRegions.click();
   await expect(editRegions).toHaveAttribute("aria-pressed", "true");
+  expect(await editRegions.boundingBox()).toEqual(editBounds);
   await expect(page.getByText(/Changes save automatically/)).toHaveCount(0);
   await page.getByRole("button", { name: "Region editing help" }).click();
   await expect(page.getByText(/Changes save automatically/)).toBeVisible();
@@ -69,6 +71,7 @@ test("the comic opens on its cover, and its pages turn", async ({ page }) => {
 
   await editRegions.click();
   await expect(editRegions).toHaveAttribute("aria-pressed", "false");
+  expect(await editRegions.boundingBox()).toEqual(editBounds);
   await turn(page, "page-1", () =>
     page.getByRole("button", { name: /^Next page/ }).click(),
   );

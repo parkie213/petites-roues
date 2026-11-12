@@ -127,38 +127,44 @@ export function ComicReaderToolbar({
       >
         Edit bubble regions
       </Button>
-      {annotate && (
-        <>
-          <Button
-            size="compact-sm"
-            variant="subtle"
-            color="red"
-            disabled={!selectedBox || savingBox || editing || !!draftRegion}
-            onClick={onDeleteSelected}
-            leftSection={<Trash2 size={16} />}
-            title="Delete the selected box (Delete)"
-          >
-            {selectedBox && selectedBox.lines.length > 1
+      <Tooltip
+        label={
+          selectedBox && selectedBox.lines.length > 1
+            ? "Delete selected text block (Delete)"
+            : "Delete selected bubble (Delete)"
+        }
+      >
+        <ActionIcon
+          variant="subtle"
+          color="red"
+          aria-label={
+            selectedBox && selectedBox.lines.length > 1
               ? "Delete selected text block"
-              : "Delete selected bubble"}
-          </Button>
-          <Popover width={280} position="bottom-end" withArrow>
-            <Popover.Target>
-              <ActionIcon variant="subtle" aria-label="Region editing help">
-                <HelpCircle size={18} />
-              </ActionIcon>
-            </Popover.Target>
-            <Popover.Dropdown>
-              <Text size="sm">
-                Drag a region to move it; select it and drag its corners to
-                resize. Drag on empty page space to add a bubble. Press Delete
-                to remove the selected box. Changes save automatically and are
-                queued for review.
-              </Text>
-            </Popover.Dropdown>
-          </Popover>
-        </>
-      )}
+              : "Delete selected bubble"
+          }
+          disabled={
+            !annotate || !selectedBox || savingBox || editing || !!draftRegion
+          }
+          onClick={onDeleteSelected}
+        >
+          <Trash2 size={16} />
+        </ActionIcon>
+      </Tooltip>
+      <Popover width={280} position="bottom-end" withArrow>
+        <Popover.Target>
+          <ActionIcon variant="subtle" aria-label="Region editing help">
+            <HelpCircle size={18} />
+          </ActionIcon>
+        </Popover.Target>
+        <Popover.Dropdown>
+          <Text size="sm">
+            Turn on Edit bubble regions. Drag a region to move it; select it and
+            drag its corners to resize. Drag on empty page space to add a
+            bubble. Press Delete to remove the selected box. Changes save
+            automatically and are queued for review.
+          </Text>
+        </Popover.Dropdown>
+      </Popover>
       <QuizShare
         doc={document}
         disabled={chapters.length === 0}
