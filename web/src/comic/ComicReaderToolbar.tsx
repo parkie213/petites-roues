@@ -118,7 +118,6 @@ export function ComicReaderToolbar({
         }}
         fileName={undefined}
         brief={undefined}
-        scopeContent={undefined}
         onOpen={undefined}
         prepare={prepareQuiz}
       />
