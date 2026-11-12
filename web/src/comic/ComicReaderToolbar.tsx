@@ -119,13 +119,27 @@ export function ComicReaderToolbar({
       <ViewTools view={view} />
       <Button
         size="compact-sm"
+        className="comic-region-edit-toggle"
         variant={annotate ? "light" : "subtle"}
         aria-pressed={annotate}
         disabled={savingBox || !!draftRegion || (editing && !annotate)}
         onClick={annotations.toggleAnnotate}
         leftSection={<SquareDashed size={18} />}
       >
-        Edit bubble regions
+        <span className="comic-region-edit-label">
+          <span
+            style={{ visibility: annotate ? "hidden" : "visible" }}
+            aria-hidden={annotate}
+          >
+            Edit bubble regions
+          </span>
+          <span
+            style={{ visibility: annotate ? "visible" : "hidden" }}
+            aria-hidden={!annotate}
+          >
+            Exit edit mode
+          </span>
+        </span>
       </Button>
       <Tooltip
         label={

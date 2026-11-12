@@ -732,3 +732,16 @@ ul.comic-card-help {
   background: color-mix(in srgb, var(--phrase-color) 30%, transparent);
   border-bottom: 3px solid var(--phrase-color);
 }
+
+/* Both labels reserve the same space so entering editing never moves the controls. */
+.comic-region-edit-label {
+  display: grid;
+}
+.comic-region-edit-label > span {
+  grid-area: 1 / 1;
+}
+.comic-toolbar .comic-region-edit-toggle[aria-pressed="true"] {
+  background: #ffd54f;
+  border-color: #ffd54f;
+  color: #242424;
+}

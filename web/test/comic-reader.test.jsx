@@ -426,6 +426,7 @@ test("region editing is available directly from the toolbar and can be finished"
   expect(toggle.getAttribute("aria-pressed")).toBe("false");
   await userEvent.click(toggle);
   expect(toggle.getAttribute("aria-pressed")).toBe("true");
+  expect(screen.getByRole("button", { name: "Exit edit mode" })).toBe(toggle);
   expect(screen.queryByText(/Changes save automatically/)).toBeNull();
   expect(
     screen.getByRole("button", { name: "Region editing help" }),
