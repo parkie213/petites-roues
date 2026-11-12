@@ -112,10 +112,7 @@ function open({
 }
 async function annotate() {
   await userEvent.click(
-    await screen.findByRole("button", { name: "More options" }),
-  );
-  await userEvent.click(
-    await screen.findByRole("menuitem", { name: "Annotate bubbles" }),
+    await screen.findByRole("button", { name: "Edit mode" }),
   );
 }
 
@@ -419,4 +416,52 @@ test("quiz preparation uses the currently displayed chapter and stays stable dur
   // Page navigation re-renders the reader without changing the quiz's selected document.
   fireEvent.keyDown(window, { key: "Home" });
   expect(quizRequests()).toHaveLength(1);
+});
+
+test("region editing is available directly from the toolbar and can be finished", async () => {
+  open();
+  const toggle = await screen.findByRole("button", {
+    name: "Edit mode",
+  });
+  expect(toggle.getAttribute("aria-pressed")).toBe("false");
+  await userEvent.click(toggle);
+  expect(toggle.getAttribute("aria-pressed")).toBe("true");
+  expect(screen.getByRole("button", { name: "Exit edit mode" })).toBe(toggle);
+  expect(screen.queryByText(/Region changes save automatically/)).toBeNull();
+  expect(screen.getByRole("button", { name: "Editing help" })).toBeTruthy();
+  expect(page.props.annotations.enabled).toBe(true);
+  expect(
+    screen.getByRole("complementary", { name: "Study panel" }),
+  ).toBeTruthy();
+  await userEvent.click(screen.getByRole("button", { name: "Start editing" }));
+  expect(toggle.disabled).toBe(true);
+  expect(page.props.annotations.locked).toBe(true);
+  await userEvent.click(screen.getByRole("button", { name: "Finish editing" }));
+  expect(toggle.disabled).toBe(false);
+  await userEvent.click(toggle);
+  expect(toggle.getAttribute("aria-pressed")).toBe("false");
+  expect(page.props.annotations.enabled).toBe(false);
+});
+
+test("Delete removes the selected box only in unlocked region editing and outside text fields", async () => {
+  const confirm = vi.fn(() => false);
+  vi.stubGlobal("confirm", confirm);
+  localStorage.setItem("comic:study", "true");
+  open();
+  await screen.findByRole("button", { name: "Edit mode" });
+  fireEvent.keyDown(window, { key: "Delete" });
+  expect(confirm).not.toHaveBeenCalled();
+  await annotate();
+  const input = document.createElement("input");
+  document.body.append(input);
+  fireEvent.keyDown(input, { key: "Delete" });
+  input.remove();
+  expect(confirm).not.toHaveBeenCalled();
+  fireEvent.keyDown(window, { key: "Delete", repeat: true });
+  expect(confirm).not.toHaveBeenCalled();
+  fireEvent.keyDown(window, { key: "Delete" });
+  expect(confirm).toHaveBeenCalledTimes(1);
+  await userEvent.click(screen.getByRole("button", { name: "Start editing" }));
+  fireEvent.keyDown(window, { key: "Delete" });
+  expect(confirm).toHaveBeenCalledTimes(1);
 });

@@ -26,7 +26,8 @@ import { boxOf } from "./annotations.js";
  * The panel owns the edit draft: null means viewing; any string, including an empty one, means
  * editing. `onEditing` reports transitions so the reader can lock navigation. Cancel and a
  * successful save discard the draft; a failed save retains it and keeps navigation locked for
- * correction or retry.
+ * correction or retry. Edit mode opens this same panel alongside region tools; starting a
+ * text draft locks those tools until Save or Cancel, so selection cannot discard corrections.
  */
 export function ComicStudyPanel({
   boxes,
@@ -36,6 +37,7 @@ export function ComicStudyPanel({
   onSelect,
   onSaved,
   onEditing,
+  editMode = false,
 }) {
   const [draft, setDraft] = useState(null);
   const editing = draft !== null;
@@ -79,7 +81,7 @@ export function ComicStudyPanel({
   return (
     <aside
       className="comic-study-panel comic-phrases"
-      aria-label="Bubble study"
+      aria-label={editMode ? "Bubble editing" : "Bubble study"}
     >
       <Stack gap="md">
         <Group justify="space-between" wrap="nowrap">
@@ -92,7 +94,9 @@ export function ComicStudyPanel({
                   : `Bubble ${boxes.indexOf(box) + 1} of ${boxes.length}`}
             </Title>
             <Text size="xs" c="dimmed">
-              Hover a bubble on the page to study it here.
+              {editMode
+                ? "Select a bubble on the page, then choose Edit text to correct its transcription."
+                : "Hover a bubble on the page to study it here."}
             </Text>
           </div>
           {cue && (

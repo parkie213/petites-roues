@@ -62,6 +62,16 @@ export function ComicReader({ id }: { id: string }) {
     locked,
     onKey(event: KeyboardEvent) {
       if (
+        event.key === "Delete" &&
+        !event.repeat &&
+        annotate &&
+        !locked &&
+        selectedBox
+      ) {
+        event.preventDefault();
+        annotations.deleteSelected(selectedBox, selected);
+      }
+      if (
         event.key.toLowerCase() === "e" &&
         !event.repeat &&
         !locked &&
@@ -115,21 +125,21 @@ export function ComicReader({ id }: { id: string }) {
             view={view}
             autoListen={autoListen}
             setAutoListen={setAutoListen}
-            studyOpen={studyOpen}
+            studyOpen={studyOpen || annotate}
             setStudyOpen={setStudyOpen}
             editing={editing}
             debug={debug}
             setDebug={setDebug}
             annotations={annotations}
+            selectedBox={selectedBox}
+            onDeleteSelected={() =>
+              annotations.deleteSelected(selectedBox, selected)
+            }
           />
           <ComicReaderNotices
             saveError={saveError}
             onRetryProgress={() => save(page.id)}
             annotations={annotations}
-            selectedBox={selectedBox}
-            onDeleteSelected={() =>
-              annotations.deleteSelected(selectedBox, selected)
-            }
           />
           <div className="comic-reading-area">
             <ComicStage view={view}>
@@ -147,7 +157,7 @@ export function ComicReader({ id }: { id: string }) {
                 study={{
                   selectedId: selected?.id,
                   onSelect: setSelectedId,
-                  cards: !studyOpen,
+                  cards: !studyOpen && !annotate,
                   blockMode,
                   onBlockMode: setBlockMode,
                 }}
@@ -159,9 +169,10 @@ export function ComicReader({ id }: { id: string }) {
                 }}
               />
             </ComicStage>
-            {studyOpen && (
+            {(studyOpen || annotate) && (
               <ComicStudyPanel
                 key={selected?.id || page.id}
+                editMode={annotate}
                 boxes={boxes}
                 lines={lines}
                 cue={selected}

@@ -29,6 +29,7 @@ export function useComicRegionDrag(
 ) {
   const [draft, setDraft] = useState<PagePoint | null>(null);
   const [dragBox, setDragBox] = useState<ComicRegion | null>(null);
+  const [movingRegion, setMovingRegion] = useState<ComicRegion | null>(null);
   const cleanup = useRef<(() => void) | undefined>(undefined);
   function endGesture() {
     cleanup.current?.();
@@ -38,10 +39,12 @@ export function useComicRegionDrag(
     endGesture();
     setDraft(null);
     setDragBox(null);
+    setMovingRegion(null);
   }
   useEffect(() => {
     setDraft(null);
     setDragBox(null);
+    setMovingRegion(null);
     return () => {
       cleanup.current?.();
       cleanup.current = undefined;
@@ -85,6 +88,7 @@ export function useComicRegionDrag(
       endGesture();
       setDraft(null);
       setDragBox(null);
+      setMovingRegion(null);
       if (drawn && drawn.width >= 0.01 && drawn.height >= 0.01) onDraw?.(drawn);
     };
     beginGesture(move, up);
@@ -101,6 +105,7 @@ export function useComicRegionDrag(
     event.stopPropagation();
     const origin = pointerFraction(event);
     if (!origin) return;
+    setMovingRegion(region);
     const original = { ...region };
     let updated: ComicRegion | null = null;
     const move = (moveEvent: PointerEvent) => {
@@ -130,10 +135,17 @@ export function useComicRegionDrag(
     const up = () => {
       endGesture();
       setDragBox(null);
-      if (updated) onPlacement?.(box, [updated]);
+      setMovingRegion(null);
+      if (updated) {
+        const replacement = updated;
+        onPlacement?.(
+          box,
+          box.regions.map((item) => (item === region ? replacement : item)),
+        );
+      }
     };
     beginGesture(move, up);
   }
 
-  return { draft, dragBox, startDraw, startMove };
+  return { draft, dragBox, movingRegion, startDraw, startMove };
 }

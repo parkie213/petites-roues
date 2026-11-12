@@ -31,13 +31,13 @@ export function ComicRegionOverlay({
   const bubbles = study?.bubbles;
   const annotate = annotations?.enabled;
   const editing = annotations?.locked;
-  const { draft, dragBox, startMove } = drag;
+  const { draft, dragBox, movingRegion, startMove } = drag;
   const selectedLine = box.lines.find((line) => line.id === selectedId);
   const isSelected = Boolean(selectedLine);
   // The line the box selects: a block keeps its current sentence, arriving fresh at the first.
   const lineId = (selectedLine || box.lines[0]).id;
   const isOpen = bubbles?.current?.id === box.id;
-  const dragging = !draft && dragBox && isSelected;
+  const dragging = !draft && dragBox && movingRegion === region;
   const rect = dragging ? dragBox : region;
   const button = (
     <button
@@ -65,18 +65,25 @@ export function ComicRegionOverlay({
       }}
       onClick={() => {
         if (draft) return;
-        if (bubbles) bubbles.pin(box.id, lineId);
+        if (annotate) study?.onSelect(lineId);
+        else if (bubbles) bubbles.pin(box.id, lineId);
         else study?.onSelect(lineId);
       }}
       onPointerEnter={(event) =>
-        event.pointerType === "mouse" && bubbles?.hover(box.id, lineId)
+        !annotate &&
+        event.pointerType === "mouse" &&
+        bubbles?.hover(box.id, lineId)
       }
       onPointerLeave={(event: PointerEvent) =>
         event.pointerType === "mouse" && bubbles?.leave()
       }
       onPointerDown={(event) => startMove(event, box, region)}
     >
-      {outlined && <span aria-hidden="true">{number}</span>}
+      {outlined && (
+        <span className="comic-region-number" aria-hidden="true">
+          {number}
+        </span>
+      )}
       {annotate &&
         isSelected &&
         !editing &&
@@ -86,8 +93,14 @@ export function ComicRegionOverlay({
             className="comic-region-handle"
             aria-hidden="true"
             style={{
-              [corner[0] === "n" ? "top" : "bottom"]: -6,
-              [corner[1] === "w" ? "left" : "right"]: -6,
+              top: corner[0] === "n" ? -6 : "auto",
+              bottom: corner[0] === "s" ? -6 : "auto",
+              left: corner[1] === "w" ? -6 : "auto",
+              right: corner[1] === "e" ? -6 : "auto",
+              cursor:
+                corner === "ne" || corner === "sw"
+                  ? "nesw-resize"
+                  : "nwse-resize",
             }}
             onPointerDown={(event) => startMove(event, box, region, corner)}
           />

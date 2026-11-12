@@ -1,13 +1,22 @@
-import { ActionIcon, Menu, Tooltip } from "@mantine/core";
+import {
+  ActionIcon,
+  Button,
+  Menu,
+  Tooltip,
+  Popover,
+  Text,
+} from "@mantine/core";
 import {
   Ellipsis,
   Headphones,
+  HelpCircle,
+  Trash2,
   PanelRight,
   ScanText,
   SquareDashed,
 } from "lucide-react";
 import { useCallback, type Dispatch, type SetStateAction } from "react";
-import type { ComicView } from "../shared/types.ts";
+import type { ComicBoxView, ComicView } from "../shared/types.ts";
 import { QuizShare } from "../player/components/QuizShare.jsx";
 import { ComicToolbar, ToolbarToggle, ViewTools } from "./ComicFrame.jsx";
 import type { useComicView } from "./ComicFrame.jsx";
@@ -31,7 +40,11 @@ export function ComicReaderToolbar({
   debug,
   setDebug,
   annotations,
+  selectedBox,
+  onDeleteSelected,
 }: {
+  selectedBox: ComicBoxView | undefined;
+  onDeleteSelected: () => void;
   id: string;
   document: ComicView;
   index: number;
@@ -104,6 +117,70 @@ export function ComicReaderToolbar({
         icon={<Headphones size={18} />}
       />
       <ViewTools view={view} />
+      <Button
+        size="compact-sm"
+        className="comic-region-edit-toggle"
+        variant={annotate ? "light" : "subtle"}
+        aria-pressed={annotate}
+        disabled={savingBox || !!draftRegion || editing}
+        onClick={annotations.toggleAnnotate}
+        leftSection={<SquareDashed size={18} />}
+      >
+        <span className="comic-region-edit-label">
+          <span
+            style={{ visibility: annotate ? "hidden" : "visible" }}
+            aria-hidden={annotate}
+          >
+            Edit mode
+          </span>
+          <span
+            style={{ visibility: annotate ? "visible" : "hidden" }}
+            aria-hidden={!annotate}
+          >
+            Exit edit mode
+          </span>
+        </span>
+      </Button>
+      <Tooltip
+        label={
+          selectedBox && selectedBox.lines.length > 1
+            ? "Delete selected text block (Delete)"
+            : "Delete selected bubble (Delete)"
+        }
+      >
+        <ActionIcon
+          variant="subtle"
+          color="red"
+          aria-label={
+            selectedBox && selectedBox.lines.length > 1
+              ? "Delete selected text block"
+              : "Delete selected bubble"
+          }
+          disabled={
+            !annotate || !selectedBox || savingBox || editing || !!draftRegion
+          }
+          onClick={onDeleteSelected}
+        >
+          <Trash2 size={16} />
+        </ActionIcon>
+      </Tooltip>
+      <Popover width={280} position="bottom-end" withArrow>
+        <Popover.Target>
+          <ActionIcon variant="subtle" aria-label="Editing help">
+            <HelpCircle size={18} />
+          </ActionIcon>
+        </Popover.Target>
+        <Popover.Dropdown>
+          <Text size="sm">
+            Turn on Edit mode. Drag a region to move it; select it and drag its
+            corners to resize. Drag on empty page space to add a bubble. Press
+            Delete to remove the selected box. Use Edit text in the side panel
+            to correct transcription, then Save text or Cancel. Region changes
+            save automatically; text corrections save when you choose Save text.
+            Both are queued for review.
+          </Text>
+        </Popover.Dropdown>
+      </Popover>
       <QuizShare
         doc={document}
         disabled={chapters.length === 0}
@@ -133,20 +210,11 @@ export function ComicReaderToolbar({
           <Menu.Item
             leftSection={<PanelRight size={16} />}
             rightSection={studyOpen ? "✓" : null}
-            disabled={editing}
+            disabled={editing || annotate}
             onClick={() => setStudyOpen((value) => !value)}
           >
             Study panel
           </Menu.Item>
-          <Menu.Item
-            leftSection={<SquareDashed size={16} />}
-            rightSection={annotate ? "✓" : null}
-            disabled={savingBox || !!draftRegion}
-            onClick={annotations.toggleAnnotate}
-          >
-            Annotate bubbles
-          </Menu.Item>
-
           <Menu.Item
             leftSection={<ScanText size={16} />}
             rightSection={debug ? "✓" : null}
