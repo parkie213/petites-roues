@@ -2,24 +2,19 @@ package app.petitesroues.library;
 
 import app.petitesroues.library.progress.LibraryProgress;
 import app.petitesroues.model.library.LibraryJob;
-import java.time.Duration;
 import java.util.NoSuchElementException;
 import java.util.Optional;
 import java.util.UUID;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executor;
-import java.util.concurrent.Future;
 import java.util.concurrent.FutureTask;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 
 /**
  * Runs one Add or Refresh at a time and retains its latest progress for polling and page reloads.
  * Work holds the shared edit/refresh monitor; the JDK task owns completion, failure and
  * cancellation. Only the latest job is retained, in memory. The executor is borrowed from the
- * composition layer.
+ * composition layer, which owns admission during shutdown and termination of running work.
  */
-public class LibraryJobService implements AutoCloseable {
+public class LibraryJobService {
   private static final System.Logger LOG = System.getLogger(LibraryJobService.class.getName());
 
   /** Repository work reports domain progress; it does not manage scheduling or transport. */
@@ -31,7 +26,6 @@ public class LibraryJobService implements AutoCloseable {
   private final LibraryUpdateService updates;
   private final Executor executor;
   private Job latest;
-  private boolean closed;
 
   public LibraryJobService(LibraryUpdateService updates, Executor executor) {
     this.updates = updates;
@@ -40,7 +34,6 @@ public class LibraryJobService implements AutoCloseable {
 
   /** Starts work, or returns the current job when one is already running. */
   public synchronized LibraryJob start(String kind, Work work) {
-    if (closed) throw new IllegalStateException("Library jobs are shutting down");
     if (latest != null && !latest.task.isDone()) return latest.snapshot();
     var job = new Job(kind, work);
     executor.execute(job.task);
@@ -58,33 +51,6 @@ public class LibraryJobService implements AutoCloseable {
     if (latest == null || !latest.id.equals(id))
       throw new NoSuchElementException("No such job: " + id);
     return latest.snapshot();
-  }
-
-  /** Stops admission, allows five seconds for work, then requests cooperative interruption. */
-  @Override
-  public void close() {
-    close(Duration.ofSeconds(5));
-  }
-
-  /** Bounds the wait for this service's work, without closing the borrowed executor. */
-  void close(Duration grace) {
-    Future<?> task;
-    synchronized (this) {
-      if (closed) return;
-      closed = true;
-      task = latest == null ? null : latest.task;
-    }
-    if (task == null) return;
-    try {
-      task.get(grace.toMillis(), TimeUnit.MILLISECONDS);
-    } catch (TimeoutException timeout) {
-      task.cancel(true);
-    } catch (InterruptedException interrupted) {
-      task.cancel(true);
-      Thread.currentThread().interrupt();
-    } catch (ExecutionException failed) {
-      // Reported by the task and exposed through its snapshot.
-    }
   }
 
   /** Application identity and progress surround the JDK's execution state. */
