@@ -13,7 +13,7 @@ type JobRequest =
  * The library page's contents and what the person does to them: adding, refreshing and removing
  * folders, and what came of it. One error and one message at a time describe the latest outcome;
  * each action clears them as it starts. Add and Refresh run on the server in the background,
- * streaming their progress as [job]; the library is loaded again once each finishes, or a folder
+ * polling their progress as [job]; the library is loaded again once each finishes, or a folder
  * is removed.
  */
 export function useLibrary() {
