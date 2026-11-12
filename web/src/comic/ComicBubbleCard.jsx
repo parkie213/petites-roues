@@ -26,12 +26,12 @@ const AUTO_LISTEN_DELAY = 250;
  * A bubble's text as a subtitle-style line of phrases with its whole translation and sentence
  * notes always shown beneath. Hovering or focusing a phrase highlights its part of the
  * translation, as the video player's translation strip does, and shows its explanation below;
- * clicking pins it. English chunks explore their source phrase the same way. The ask button opens
+ * clicking pins it. Translation chunks explore their source phrase the same way. The ask button opens
  * a question box that sends the bubble to a chat app (see {@link AskBox}); it and the listen button
  * sit at the card's foot so the source line has the full width. Highlighting never changes the card's size, so it never moves under the
  * pointer. The bubble is read aloud with R, or on opening when listen-on-open is enabled; the
  * listen button reads the pinned phrase alone when one is pinned. A quiet card never reads on
- opening: it is a hidden copy that only reserves space (see {@link ComicBlockCard}).
+ * opening: it is a hidden copy that only reserves space (see {@link ComicBlockCard}).
  */
 export function ComicBubbleCard({ cue, document, onKeep, quiet = false }) {
   const [asking, setAsking] = useState(false);
@@ -41,23 +41,30 @@ export function ComicBubbleCard({ cue, document, onKeep, quiet = false }) {
   const [pinned, setPinned] = useState(null);
   const alignment = alignmentState(cue) === "ready" ? cue.alignment : null;
   const active = alignment ? (hovered ?? pinned) : null;
-  // French phrases and their English chunks explore the same phrase. They are inline spans acting
+  const pinnedPhrase = alignment?.source[pinned];
+  // Source phrases and their translation chunks explore the same phrase. They are inline spans acting
   // as buttons, not <button>s: a button is always laid out as an inline-block, so a phrase that
   // wraps would become one box with a single underline across its full width.
-  const explore = (index) => ({
-    role: "button",
-    tabIndex: 0,
-    onKeyDown: (event) => {
-      if (event.key !== "Enter" && event.key !== " ") return;
-      event.preventDefault();
-      setPinned(pinned === index ? null : index);
-    },
-    onMouseEnter: () => setHovered(index),
-    onMouseLeave: () => setHovered(null),
-    onFocus: () => setHovered(index),
-    onBlur: () => setHovered(null),
-    onClick: () => setPinned(pinned === index ? null : index),
-  });
+  function explore(index) {
+    if (index === undefined) return {};
+    const togglePin = () =>
+      setPinned((current) => (current === index ? null : index));
+    return {
+      role: "button",
+      tabIndex: 0,
+      "aria-pressed": pinned === index,
+      onKeyDown: (event) => {
+        if (event.key !== "Enter" && event.key !== " ") return;
+        event.preventDefault();
+        togglePin();
+      },
+      onMouseEnter: () => setHovered(index),
+      onMouseLeave: () => setHovered(null),
+      onFocus: () => setHovered(index),
+      onBlur: () => setHovered(null),
+      onClick: togglePin,
+    };
+  }
   useEffect(() => {
     if (quiet || !autoListen || !cue.source) return;
     const timer = setTimeout(() => speak(cue.source), AUTO_LISTEN_DELAY);
@@ -95,7 +102,6 @@ export function ComicBubbleCard({ cue, document, onKeep, quiet = false }) {
                     ],
                 }}
                 data-active={active === index || undefined}
-                aria-pressed={pinned === index}
                 {...explore(index)}
               >
                 {phrase}
@@ -106,7 +112,7 @@ export function ComicBubbleCard({ cue, document, onKeep, quiet = false }) {
       <p className="comic-card-translation" lang={translationLanguage}>
         {alignment
           ? translationContext(alignment, active).map((chunk, index) => {
-              // An English chunk explores the first source phrase it translates.
+              // A translation chunk explores the first source phrase it translates.
               const phrase = alignment.links[chunk.link]?.source[0];
               const style = {
                 "--phrase-color":
@@ -117,21 +123,14 @@ export function ComicBubbleCard({ cue, document, onKeep, quiet = false }) {
               return (
                 <span key={index}>
                   {index > 0 && (cue.translationSeparator ?? " ")}
-                  {phrase === undefined ? (
-                    <span className="comic-card-chunk" style={style}>
-                      {chunk.text}
-                    </span>
-                  ) : (
-                    <span
-                      className="comic-card-chunk"
-                      style={style}
-                      data-active={chunk.active || undefined}
-                      aria-pressed={pinned === phrase}
-                      {...explore(phrase)}
-                    >
-                      {chunk.text}
-                    </span>
-                  )}
+                  <span
+                    className="comic-card-chunk"
+                    style={style}
+                    data-active={chunk.active || undefined}
+                    {...explore(phrase)}
+                  >
+                    {chunk.text}
+                  </span>
                 </span>
               );
             })
@@ -178,15 +177,13 @@ export function ComicBubbleCard({ cue, document, onKeep, quiet = false }) {
             </ActionIcon>
           </Tooltip>
         )}
-        <ListenButton
-          text={pinned !== null ? alignment.source[pinned] : cue.source}
-        />
+        <ListenButton text={pinnedPhrase ?? cue.source} />
       </div>
       {asking && (
         <AskBox
           document={document}
           cue={cue}
-          phrase={pinned}
+          phrase={pinnedPhrase ? pinned : null}
           onClose={() => setAsking(false)}
         />
       )}
