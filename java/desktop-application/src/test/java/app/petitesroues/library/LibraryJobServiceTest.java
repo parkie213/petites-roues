@@ -18,7 +18,7 @@ class LibraryJobServiceTest {
   private static void shutdown(
       LibraryJobService service, ExecutorService worker, ExecutorService notifications)
       throws InterruptedException {
-    service.stop(Duration.ofMillis(100));
+    service.close(Duration.ofMillis(100));
     worker.shutdownNow();
     notifications.shutdown();
     if (!notifications.awaitTermination(1, TimeUnit.SECONDS)) notifications.shutdownNow();
@@ -121,7 +121,7 @@ class LibraryJobServiceTest {
       assertTrue(observed.await(5, TimeUnit.SECONDS));
       stop.run();
       release.countDown();
-      service.stop(Duration.ofSeconds(1));
+      service.close(Duration.ofSeconds(1));
       assertFalse(worker.isShutdown(), "the service borrows the executor");
       assertFalse(notifications.isShutdown(), "the service borrows the executor");
       shutdown(service, worker, notifications);

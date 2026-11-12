@@ -26,7 +26,7 @@ import java.util.function.Consumer;
  * work itself belongs to {@link ContentRepositoryService}; this service owns scheduling, state and
  * notifying followers.
  */
-public class LibraryJobService {
+public class LibraryJobService implements AutoCloseable {
   private static final System.Logger LOG = System.getLogger(LibraryJobService.class.getName());
 
   /** The work a job does, reporting progress as it goes. */
@@ -103,10 +103,11 @@ public class LibraryJobService {
 
   /**
    * Stops admission and allows the current job five seconds to finish before requesting
-   * interruption.
+   * interruption. Borrowed executors remain open; their owner shuts them down after this service.
    */
-  public void stop() {
-    stop(Duration.ofSeconds(5));
+  @Override
+  public void close() {
+    close(Duration.ofSeconds(5));
   }
 
   /**
@@ -114,7 +115,7 @@ public class LibraryJobService {
    * Unfinished work receives a terminal failure state. Interruption is cooperative; the caller
    * remains responsible for terminating the borrowed executors and notification delivery.
    */
-  public void stop(Duration grace) {
+  void close(Duration grace) {
     Future<?> task;
     synchronized (this) {
       if (closed) return;

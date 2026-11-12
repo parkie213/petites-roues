@@ -27,7 +27,7 @@ public class LibraryJobConfiguration {
    * Spring stops job admission and gives work a bounded grace period before interrupting either
    * executor. Notification delivery may be interrupted during application shutdown.
    */
-  @Bean(destroyMethod = "stop")
+  @Bean
   public LibraryJobService libraryJobService(
       LibraryUpdateService updates,
       @Qualifier("libraryJobExecutor") ExecutorService worker,
