@@ -3,7 +3,7 @@ import { Container } from "@mantine/core";
 import { LibraryHeader } from "../library/LibraryHeader.jsx";
 import "../library/Library.css";
 import { BareComic } from "../comic/BareComic.jsx";
-import { ComicReader } from "../comic/ComicReader.jsx";
+import { ComicReader } from "../comic/ComicReader.tsx";
 import { Library } from "../library/Library.tsx";
 import { QuizPage } from "../library/QuizPage.jsx";
 import { Notes } from "../library/Notes.jsx";
