@@ -9,14 +9,12 @@ import java.util.NoSuchElementException;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.function.Consumer;
-import org.springframework.beans.factory.DisposableBean;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Service;
 
 /**
  * Runs Add and Refresh in the background so the library can show their progress instead of waiting
@@ -28,8 +26,7 @@ import org.springframework.stereotype.Service;
  * work itself belongs to {@link ContentRepositoryService}; this service owns scheduling, state and
  * notifying followers.
  */
-@Service
-public class LibraryJobService implements DisposableBean {
+public class LibraryJobService {
   private static final System.Logger LOG = System.getLogger(LibraryJobService.class.getName());
 
   /** The work a job does, reporting progress as it goes. */
@@ -41,30 +38,19 @@ public class LibraryJobService implements DisposableBean {
   private final LibraryUpdateService updates;
   private final ExecutorService worker;
   private final ExecutorService notifications;
-  private final Duration shutdownWait;
+  private Future<?> running;
   private boolean closed;
   private Job latest;
 
-  @Autowired
-  public LibraryJobService(LibraryUpdateService updates) {
-    this(
-        updates,
-        Executors.newSingleThreadExecutor(
-            Thread.ofPlatform().daemon().name("library-job").factory()),
-        Executors.newVirtualThreadPerTaskExecutor(),
-        Duration.ofSeconds(5));
-  }
-
-  /** Takes ownership of both executors, including their shutdown. */
-  LibraryJobService(
-      LibraryUpdateService updates,
-      ExecutorService worker,
-      ExecutorService notifications,
-      Duration shutdownWait) {
+  /**
+   * Borrows executors from its caller; their creation and shutdown remain the caller's
+   * responsibility.
+   */
+  public LibraryJobService(
+      LibraryUpdateService updates, ExecutorService worker, ExecutorService notifications) {
     this.updates = updates;
     this.worker = worker;
     this.notifications = notifications;
-    this.shutdownWait = shutdownWait;
   }
 
   /** Starts {@code work} in the background, or returns the job already running. */
@@ -72,7 +58,7 @@ public class LibraryJobService implements DisposableBean {
     if (closed) throw new IllegalStateException("Library jobs are shutting down");
     if (latest != null && !latest.snapshot().finished()) return latest.snapshot();
     var job = new Job(UUID.randomUUID().toString(), kind);
-    worker.execute(() -> run(job, work));
+    running = worker.submit(() -> run(job, work));
     latest = job;
     return job.snapshot();
   }
@@ -115,33 +101,33 @@ public class LibraryJobService implements DisposableBean {
     }
   }
 
-  /** Stops admission, allows bounded completion, then interrupts outstanding work and delivery. */
-  @Override
-  public void destroy() {
+  /**
+   * Stops admission and waits up to {@code grace} for the current job, then requests interruption.
+   * Unfinished work receives a terminal failure state. Interruption is cooperative; the caller
+   * remains responsible for terminating the borrowed executors and notification delivery.
+   */
+  public void stop(Duration grace) {
+    Future<?> task;
     synchronized (this) {
       if (closed) return;
       closed = true;
-      worker.shutdown();
+      task = running;
     }
-    await(worker);
+    if (task != null) {
+      try {
+        task.get(grace.toMillis(), TimeUnit.MILLISECONDS);
+      } catch (TimeoutException timeout) {
+        task.cancel(true);
+      } catch (InterruptedException interrupted) {
+        task.cancel(true);
+        Thread.currentThread().interrupt();
+      } catch (ExecutionException failure) {
+        LOG.log(
+            System.Logger.Level.ERROR, "Library job terminated unexpectedly", failure.getCause());
+      }
+    }
     synchronized (this) {
       if (latest != null) latest.finish("failed", "Server is shutting down");
-      notifications.shutdown();
-    }
-    await(notifications);
-  }
-
-  private void await(ExecutorService executor) {
-    try {
-      if (!executor.awaitTermination(shutdownWait.toMillis(), TimeUnit.MILLISECONDS)) {
-        executor.shutdownNow();
-        if (!executor.awaitTermination(shutdownWait.toMillis(), TimeUnit.MILLISECONDS))
-          LOG.log(
-              System.Logger.Level.WARNING, "Library job executor did not stop after interruption");
-      }
-    } catch (InterruptedException interrupted) {
-      executor.shutdownNow();
-      Thread.currentThread().interrupt();
     }
   }
 

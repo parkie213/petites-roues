@@ -6,6 +6,7 @@ import app.petitesroues.library.progress.LibraryProgress;
 import app.petitesroues.model.library.LibraryJob;
 import java.time.Duration;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
@@ -14,13 +15,22 @@ import java.util.stream.IntStream;
 import org.junit.jupiter.api.Test;
 
 class LibraryJobServiceTest {
+  private static void shutdown(
+      LibraryJobService service, ExecutorService worker, ExecutorService notifications)
+      throws InterruptedException {
+    service.stop(Duration.ofMillis(100));
+    worker.shutdownNow();
+    notifications.shutdown();
+    if (!notifications.awaitTermination(1, TimeUnit.SECONDS)) notifications.shutdownNow();
+    assertTrue(worker.awaitTermination(5, TimeUnit.SECONDS));
+    assertTrue(notifications.awaitTermination(5, TimeUnit.SECONDS));
+  }
+
   @Test
   void slowAndThrowingFollowersCannotFailOrBlockWork() throws Exception {
     var worker = Executors.newSingleThreadExecutor();
     var notifications = Executors.newVirtualThreadPerTaskExecutor();
-    var service =
-        new LibraryJobService(
-            new LibraryUpdateService(null), worker, notifications, Duration.ofSeconds(1));
+    var service = new LibraryJobService(new LibraryUpdateService(null), worker, notifications);
     var releaseWork = new CountDownLatch(1);
     var slowEntered = new CountDownLatch(1);
     var releaseSlow = new CountDownLatch(1);
@@ -85,7 +95,7 @@ class LibraryJobServiceTest {
     } finally {
       releaseWork.countDown();
       releaseSlow.countDown();
-      service.destroy();
+      shutdown(service, worker, notifications);
     }
     assertTrue(worker.isTerminated());
     assertTrue(notifications.isTerminated());
@@ -95,9 +105,7 @@ class LibraryJobServiceTest {
   void disconnectStopsDeliveryAndShutdownAllowsSuccessfulWorkToFinish() throws Exception {
     var worker = Executors.newSingleThreadExecutor();
     var notifications = Executors.newVirtualThreadPerTaskExecutor();
-    var service =
-        new LibraryJobService(
-            new LibraryUpdateService(null), worker, notifications, Duration.ofSeconds(1));
+    var service = new LibraryJobService(new LibraryUpdateService(null), worker, notifications);
     var release = new CountDownLatch(1);
     var observed = new CountDownLatch(1);
     var calls = new AtomicInteger();
@@ -113,24 +121,25 @@ class LibraryJobServiceTest {
       assertTrue(observed.await(5, TimeUnit.SECONDS));
       stop.run();
       release.countDown();
-      service.destroy();
+      service.stop(Duration.ofSeconds(1));
+      assertFalse(worker.isShutdown(), "the service borrows the executor");
+      assertFalse(notifications.isShutdown(), "the service borrows the executor");
+      shutdown(service, worker, notifications);
       assertEquals("succeeded", service.latest().orElseThrow().state());
       assertEquals(1, calls.get());
       assertTrue(worker.isTerminated());
       assertTrue(notifications.isTerminated());
     } finally {
       release.countDown();
-      service.destroy();
+      shutdown(service, worker, notifications);
     }
   }
 
   @Test
   void concurrentSubmissionsShareOneJobAndShutdownInterruptsIt() throws Exception {
-    var worker = Executors.newSingleThreadExecutor();
+    var worker = Executors.newVirtualThreadPerTaskExecutor();
     var notifications = Executors.newVirtualThreadPerTaskExecutor();
-    var service =
-        new LibraryJobService(
-            new LibraryUpdateService(null), worker, notifications, Duration.ofMillis(100));
+    var service = new LibraryJobService(new LibraryUpdateService(null), worker, notifications);
     var entered = new CountDownLatch(1);
     var interrupted = new CountDownLatch(1);
     var calls = new AtomicInteger();
@@ -159,15 +168,15 @@ class LibraryJobServiceTest {
                 .toList();
         for (var future : futures) assertEquals(first.id(), future.get(5, TimeUnit.SECONDS).id());
       }
-      service.destroy();
+      shutdown(service, worker, notifications);
       assertTrue(interrupted.await(5, TimeUnit.SECONDS));
       assertTrue(worker.awaitTermination(5, TimeUnit.SECONDS));
       assertTrue(service.latest().orElseThrow().finished());
       assertEquals(1, calls.get());
       assertThrows(IllegalStateException.class, () -> service.start("refresh", progress -> {}));
-      service.destroy();
+      shutdown(service, worker, notifications);
     } finally {
-      service.destroy();
+      shutdown(service, worker, notifications);
     }
   }
 }
