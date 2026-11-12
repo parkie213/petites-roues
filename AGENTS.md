@@ -1,5 +1,23 @@
 # Language learning workspace
 
+## Browser journey assertions
+
+Every journey must assert the intended effect of its requests: rendered domain state for
+reads, and successful persistence plus the resulting UI or state for writes. Use `expectWrite`
+from `web/e2e/api.mjs` around save actions: specify the method, path and meaningful request
+fields, then check its returned JSON. Await completion before navigation or the next dependent
+action. Visibility of optimistic UI or a 2xx response alone is not proof of persistence: use
+`readJson` for an independent persisted-state check, and reload when testing restoration.
+
+The shared request guard rejects unsuccessful API responses and failed/incomplete finite requests
+in recording and replay. It is a backstop, not a replacement for domain assertions. Only aborted
+image, media and event-stream reads are exempt from completion checks; their HTTP and transport
+errors still fail. JSON reads and writes must complete. Keep write payloads in recordings so
+replay cannot accept a different command at the same URL.
+Do not suppress abandoned writes or use sleeps to make recordings stable. Video journeys that
+need fixed positions use `pauseOnOpen`; the browser's gesture policy still allows muted autoplay.
+See `web/README.md#end-to-end-tests` for the assertion pattern and journey coverage.
+
 ## Java naming and responsibility conventions
 
 - `...Service` contains application logic and coordinates operations. Services may call stores,

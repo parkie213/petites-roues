@@ -1,4 +1,6 @@
-import { test, expect, looksLike } from "./api.mjs";
+import { test, expect, expectWrite, readJson, looksLike } from "./api.mjs";
+
+test.use({ pauseOnOpen: true });
 
 test("an episode steps through its subtitles, and Back returns to its series", async ({
   page,
@@ -16,25 +18,36 @@ test("an episode steps through its subtitles, and Back returns to its series", a
   await expect(page.getByText("0:00 / 1:02")).toBeVisible();
 
   // → steps to the next line's start, whose phrases show as buttons.
-  await page.keyboard.press("ArrowRight");
+  const progress = "/api/titles/peppa-pig-example-s01e01/progress";
+  expect(
+    await expectWrite(
+      page,
+      {
+        method: "PUT",
+        path: progress,
+        body: { positionSeconds: 2.5 },
+      },
+      () => page.keyboard.press("ArrowRight"),
+    ),
+  ).toMatchObject({ positionSeconds: 2.5 });
   await expect(
     page.getByRole("button", { name: "Il ne pleut plus" }),
   ).toBeVisible();
   // Wait for this seek's save before leaving the player. Otherwise Back can abandon its
   // response, making the recorded PUT appear or disappear depending on navigation timing.
-  const progressSaved = page.waitForResponse(
-    (response) =>
-      response
-        .url()
-        .endsWith("/api/titles/peppa-pig-example-s01e01/progress") &&
-      response.request().method() === "PUT" &&
-      response.request().postDataJSON().positionSeconds === 6.92,
-  );
-  await page.keyboard.press("ArrowRight");
+  expect(
+    await expectWrite(
+      page,
+      {
+        method: "PUT",
+        path: progress,
+        body: { positionSeconds: 6.92 },
+      },
+      () => page.keyboard.press("ArrowRight"),
+    ),
+  ).toMatchObject({ positionSeconds: 6.92 });
+  expect((await readJson(page, progress)).positionSeconds).toBeCloseTo(6.92, 1);
   await expect(page.getByRole("button", { name: "Bien sûr." })).toBeVisible();
-  const saved = await progressSaved;
-  expect(saved.ok()).toBe(true);
-  await saved.finished();
   // Keys work from a subtitle phrase too, as after reading its note.
   await page.getByRole("button", { name: "Bien sûr." }).focus();
   await page.keyboard.press("t");
