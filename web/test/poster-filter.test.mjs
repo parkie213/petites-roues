@@ -1,6 +1,6 @@
 import { test } from "vitest";
 import assert from "node:assert/strict";
-import { filterShelves } from "../src/library/poster-filter.js";
+import { filterShelves } from "../src/library/poster-filter.ts";
 
 const ready = { label: "Tome 1", entry: { unavailable: {} } };
 const missing = {

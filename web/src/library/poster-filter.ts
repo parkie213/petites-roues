@@ -1,9 +1,19 @@
 import { warnings } from "./cards.js";
+import type { PosterShelves } from "../shared/types.ts";
+import type { PosterFilters } from "./components/LibraryToolbar.tsx";
 
 /** Narrows displayed shelf cards without changing their contents or series navigation. */
 export function filterShelves(
-  shelves,
-  { search = "", mediaFilter = "all", attentionOnly = false } = {},
+  shelves: PosterShelves["shelves"],
+  {
+    search = "",
+    mediaFilter = "all",
+    attentionOnly = false,
+  }: {
+    search?: string;
+    mediaFilter?: PosterFilters["media"];
+    attentionOnly?: boolean;
+  } = {},
 ) {
   const query = search.trim().toLocaleLowerCase();
   return shelves
