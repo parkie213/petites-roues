@@ -419,12 +419,87 @@ async function logMediaEvents(page, run, info) {
   }
 }
 
+/**
+ * Runs a user action and checks its matching API write completed successfully. Match the request
+ * body when several saves use the same URL, so an earlier save cannot satisfy the assertion.
+ * Pair this with assertions of the resulting UI or persisted state in the journey.
+ */
+export async function expectWrite(page, pathname, body, action) {
+  const response = page.waitForResponse((response) => {
+    const request = response.request();
+    return (
+      new URL(response.url()).pathname === pathname &&
+      !["GET", "HEAD"].includes(request.method()) &&
+      Object.entries(body).every(
+        ([name, value]) => request.postDataJSON()?.[name] === value,
+      )
+    );
+  });
+  await action();
+  const saved = await response;
+  expect(saved.ok(), `${saved.request().method()} ${pathname}`).toBe(true);
+  expect(await saved.finished(), `Response body for ${pathname}`).toBeNull();
+}
+
+/**
+ * Every API write must finish successfully before a journey ends, in recording and replay alike.
+ * This guard catches forgotten assertions; journeys must still wait at navigation boundaries
+ * and assert the intended effect. A failed or abandoned write must never silently disappear.
+ */
+async function checkWrites(page, run) {
+  const pending = new Set();
+  const failures = [];
+  const isWrite = (request) =>
+    new URL(request.url()).pathname.startsWith("/api/") &&
+    !["GET", "HEAD"].includes(request.method());
+  const requested = (request) => {
+    if (isWrite(request)) pending.add(request);
+  };
+  const failed = (request) => {
+    if (!isWrite(request)) return;
+    failures.push(`${key(request)}: ${request.failure()?.errorText}`);
+    pending.delete(request);
+  };
+  const responded = async (response) => {
+    const request = response.request();
+    if (!isWrite(request)) return;
+    try {
+      const error = await response.finished();
+      if (!response.ok() || error)
+        failures.push(`${key(request)}: ${error || response.status()}`);
+    } catch (error) {
+      failures.push(`${key(request)}: ${error.message}`);
+    } finally {
+      pending.delete(request);
+    }
+  };
+  page.on("request", requested);
+  page.on("requestfailed", failed);
+  page.on("response", responded);
+  try {
+    await run(page);
+    await expect
+      .poll(() => [...pending].map(key), {
+        message: "API writes still pending",
+      })
+      .toEqual([]);
+    expect(failures, "API writes must complete successfully").toEqual([]);
+  } finally {
+    page.off("request", requested);
+    page.off("requestfailed", failed);
+    page.off("response", responded);
+  }
+}
+
 /** Playwright's `test`, with every page's `/api` requests recorded or replayed. */
 export const test = base.extend({
   logMedia: [false, { option: true }],
   page: async ({ page, logMedia }, use, info) => {
     const file = recordingFile(info);
-    const run = logMedia ? (page) => logMediaEvents(page, use, info) : use;
+    const checked = (page) => checkWrites(page, use);
+    const run = logMedia
+      ? (page) => logMediaEvents(page, checked, info)
+      : checked;
     await (RECORD ? record(page, file, run) : replay(page, file, run));
   },
 });

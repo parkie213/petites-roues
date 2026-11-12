@@ -1,4 +1,4 @@
-import { test, expect, looksLike } from "./api.mjs";
+import { test, expect, expectWrite, looksLike } from "./api.mjs";
 
 test("an episode steps through its subtitles, and Back returns to its series", async ({
   page,
@@ -22,19 +22,13 @@ test("an episode steps through its subtitles, and Back returns to its series", a
   ).toBeVisible();
   // Wait for this seek's save before leaving the player. Otherwise Back can abandon its
   // response, making the recorded PUT appear or disappear depending on navigation timing.
-  const progressSaved = page.waitForResponse(
-    (response) =>
-      response
-        .url()
-        .endsWith("/api/titles/peppa-pig-example-s01e01/progress") &&
-      response.request().method() === "PUT" &&
-      response.request().postDataJSON().positionSeconds === 6.92,
+  await expectWrite(
+    page,
+    "/api/titles/peppa-pig-example-s01e01/progress",
+    { positionSeconds: 6.92 },
+    () => page.keyboard.press("ArrowRight"),
   );
-  await page.keyboard.press("ArrowRight");
   await expect(page.getByRole("button", { name: "Bien sûr." })).toBeVisible();
-  const saved = await progressSaved;
-  expect(saved.ok()).toBe(true);
-  await saved.finished();
   // Keys work from a subtitle phrase too, as after reading its note.
   await page.getByRole("button", { name: "Bien sûr." }).focus();
   await page.keyboard.press("t");

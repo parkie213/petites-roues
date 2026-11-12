@@ -1,5 +1,15 @@
 # Language learning workspace
 
+## Browser journey assertions
+
+Every journey must assert the intended effect of its requests: rendered state for reads,
+and successful persistence plus the resulting UI or state for writes. Use `expectWrite`
+from `web/e2e/api.mjs` around actions that save, matching request fields when successive
+saves share an endpoint. Await completion before navigating away or issuing the next
+dependent action; visibility of optimistic UI is not proof of persistence. The shared
+write guard checks that all API writes finish successfully in recording and replay.
+Do not suppress abandoned writes or use sleeps to make recordings stable.
+
 ## Java naming and responsibility conventions
 
 - `...Service` contains application logic and coordinates operations. Services may call stores,
