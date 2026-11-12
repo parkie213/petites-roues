@@ -3,9 +3,8 @@ package app.petitesroues.web;
 import app.petitesroues.library.ContentRepositoryService;
 import app.petitesroues.library.LibraryJobService;
 import app.petitesroues.model.library.LibraryJob;
-import java.io.IOException;
+import org.springframework.http.CacheControl;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -13,13 +12,12 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 /**
- * Add and Refresh as background jobs whose progress streams to the library, so adding a large
- * folder shows how far it has got. The synchronous endpoints in {@link RepositoriesController}
- * remain for scripts and tests. Work runs in {@link LibraryJobService}; this controller starts jobs
- * and streams their state as server-sent events.
+ * Add and Refresh as background jobs whose progress the library polls, so adding a large folder
+ * shows how far it has got. The synchronous endpoints in {@link RepositoriesController} remain for
+ * scripts and tests. Work runs in {@link LibraryJobService}; this controller starts jobs and
+ * returns their latest state.
  */
 @RestController
 @RequestMapping("/api/jobs")
@@ -65,32 +63,14 @@ public class LibraryJobController {
   /** The running job, or the last to finish, so a reloaded page can pick it up; 204 if none. */
   @GetMapping("/latest")
   public ResponseEntity<LibraryJob> latest() {
-    return jobs.latest().map(ResponseEntity::ok).orElse(ResponseEntity.noContent().build());
+    return jobs.latest()
+        .map(job -> ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(job))
+        .orElse(ResponseEntity.noContent().cacheControl(CacheControl.noStore()).build());
   }
 
-  /**
-   * Streams the job's state as {@code job} events: now, after every change, and once finished, when
-   * the stream ends.
-   */
-  @GetMapping(path = "/{id}/events", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-  public SseEmitter events(@PathVariable String id) {
-    var emitter = new SseEmitter(0L);
-    Runnable[] stop = {() -> {}};
-    stop[0] =
-        jobs.follow(
-            id,
-            job -> {
-              try {
-                emitter.send(SseEmitter.event().name("job").data(job, MediaType.APPLICATION_JSON));
-                if (job.finished()) emitter.complete();
-              } catch (IOException | IllegalStateException gone) {
-                // The browser went away or the stream already ended; stop following.
-                stop[0].run();
-              }
-            });
-    emitter.onCompletion(() -> stop[0].run());
-    emitter.onTimeout(() -> stop[0].run());
-    emitter.onError(failure -> stop[0].run());
-    return emitter;
+  /** The latest snapshot of the retained job, including its terminal state. */
+  @GetMapping("/{id}")
+  public ResponseEntity<LibraryJob> job(@PathVariable String id) {
+    return ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(jobs.get(id));
   }
 }

@@ -15,7 +15,7 @@ export function useLibraryJob(onFinished) {
   const follow = useCallback((started, body) => {
     stop.current();
     setJob(started);
-    stop.current = followJob(started.id, (next) => {
+    stop.current = followJob(started, (next) => {
       if (next.state === "running") setJob(next);
       else {
         setJob(null);

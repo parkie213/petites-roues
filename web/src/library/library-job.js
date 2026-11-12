@@ -61,16 +61,29 @@ export async function latestJob(signal) {
 }
 
 /**
- * Calls onJob with the job's state as it streams from the server, ending after the finished state.
- * Returns a function that stops following.
+ * Polls sequentially while a job runs; disconnecting aborts a request and clears the next poll.
+ * Transport failures are retried, as they do not establish whether the server's work finished.
  */
-export function followJob(id, onJob) {
-  const source = new EventSource(`/api/jobs/${encodeURIComponent(id)}/events`);
-  source.addEventListener("job", (event) => {
-    const job = JSON.parse(event.data);
-    // Close before the server ends the stream, so the browser does not reconnect.
-    if (job.state !== "running") source.close();
-    onJob(job);
-  });
-  return () => source.close();
+export function followJob(started, onJob) {
+  const controller = new AbortController();
+  let timer;
+  async function poll() {
+    try {
+      const job = await request(`/api/jobs/${encodeURIComponent(started.id)}`, {
+        signal: controller.signal,
+      });
+      if (controller.signal.aborted) return;
+      onJob(job);
+      if (job.state !== "running") return;
+    } catch {
+      if (controller.signal.aborted) return;
+    }
+    timer = setTimeout(poll, 500);
+  }
+  if (started.state === "running") timer = setTimeout(poll, 500);
+  else onJob(started);
+  return () => {
+    controller.abort();
+    clearTimeout(timer);
+  };
 }
