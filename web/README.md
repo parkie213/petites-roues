@@ -70,6 +70,60 @@ screenshots, since a pause can land a frame apart between runs.
 throwaway library holding `example/media-fr` and `example/documents-fr`, so your own library and
 saved progress are untouched. Re-record after changing what a journey does or what the API
 returns, and commit the fixtures with the change. Recording is repeatable (times, random ids,
-file versions and exact video positions are saved as fixed stand-ins), so CI records again and
+file versions are saved as fixed stand-ins, and playback PUTs use a checked echo template), so CI records again and
 fails if the fixtures changed: that is how the frontend's canned responses are kept honest
 against the API.
+
+### Request and outcome assertions
+
+A journey must prove its user-visible outcome. For reads, assert actual content, navigation or
+filtering results rather than merely a successful request or a mounted container. For writes:
+
+1. Wrap the initiating action in `expectWrite(page, { method, path, body }, action)`. The helper
+   observes a new matching request, waits for its full successful response, and returns JSON.
+   Match meaningful fields (or use a predicate for a timing batch) and assert the returned data.
+2. Assert independently persisted state with `readJson(page, path)`, then the resulting UI.
+   This browser GET goes through recording/replay and gets a unique `journeyCheck` query so its
+   snapshot cannot be confused with an initial app load. It must follow the completed write.
+3. Await these checks before navigation, a dependent edit, or test completion. Reload when the
+   journey claims that an outcome survives reopening; optimistic state and session storage are
+   insufficient proof of persistence.
+
+For example, a comic turn checks the PUT payload and returned page ID, independently GETs the
+saved page ID, and asserts the visible page. The reader's Back journey also reloads and verifies
+that reading resumes on that page. The guard in `e2e/requests.mjs` checks all API response statuses
+and drains every finite request, including saves during recorder teardown. Failed, abandoned or
+unanswered JSON reads and writes fail the journey. Only aborted image, media and event-stream
+reads are exempt from completion checks: navigation, video range seeks and closing a completed
+job stream can intentionally abandon them. Their HTTP and transport errors still fail, and their
+intended domain effects still need assertions. Do not replace outcome assertions with `networkidle`, sleeps or retries.
+
+The current journeys cover these outcomes:
+
+| Journey                                   | Outcome evidence                                                                                                                                                                    |
+| ----------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Library shelves and repository navigation | Expected series/comic links, counts, and the document's Play link at its repository path                                                                                            |
+| Series episodes                           | Expected episode link after opening the series                                                                                                                                      |
+| Attention filter                          | Pressed filter state, affected series retained, unaffected comic hidden                                                                                                             |
+| Notes                                     | Expected note heading and example text                                                                                                                                              |
+| Quiz                                      | Expected quiz heading and continuation action                                                                                                                                       |
+| Add folder                                | Chosen folder, matching job command and acknowledgement, successful completion message/job state, registered repository, updated count after reload                                 |
+| Player stepping                           | Matching seek saves and returned positions, independently saved position, expected source/translation phrases, Back returns to the series                                           |
+| Comic page turns                          | Each saved/returned/read-back page ID and its visible bubble                                                                                                                        |
+| Comic bubble and Back                     | Saved page, contextual translation, reload resumes that page, Back returns to the library                                                                                           |
+| Subtitle editor                           | Persisted joined boundaries and retained neighbouring data, saved and independently read translation, actual play/pause and pause save, saved position and translation after reload |
+
+Writes are recorded with their payloads. Replay requires a matching payload as well as method
+and URL; a saved cover cannot satisfy a save to page 1. Repeated identical PUTs share a contract,
+while different payloads keep separate answers. Playback progress uses one explicit echo template:
+the recorder first verifies that the real server returned the submitted position, then replaces
+that number with `<request.positionSeconds>`. Replay fills it from the actual request. This
+keeps wall-clock playback out of fixtures without hiding a server that acknowledges the wrong
+position. Independent GET checkpoints still verify persisted state against the real server.
+Those saved GET positions remain exact: rounding a 7.02-second cue start to 7.0 would restore
+the preceding subtitle.
+
+Video journeys opt into `test.use({ pauseOnOpen: true })` to pause the first play of each video
+before its clock advances. Muted autoplay can otherwise bypass the browser's gesture policy.
+Later play/pause actions use the real media clock. Guard and recording-contract regression tests
+in `test/journey-requests.test.mjs` and `test/write-recordings.test.mjs` run with `npm test`.

@@ -1512,6 +1512,15 @@
     }
   },
   {
+    "request": "GET /api/titles/peppa-pig-example-s01e01/progress?journeyCheck=1",
+    "status": 200,
+    "type": "application/json",
+    "json": {
+      "positionSeconds": 6.92,
+      "updatedAt": "2026-01-01T00:00:00Z"
+    }
+  },
+  {
     "request": "GET /api/titles/peppa-pig-example-s01e01/review-queue",
     "status": 200,
     "type": "application/json",
@@ -1533,8 +1542,11 @@
     "status": 200,
     "type": "application/json",
     "json": {
-      "positionSeconds": 6.9,
+      "positionSeconds": "<request.positionSeconds>",
       "updatedAt": "2026-01-01T00:00:00Z"
+    },
+    "body": {
+      "positionSeconds": "<request.positionSeconds>"
     }
   }
 ]
