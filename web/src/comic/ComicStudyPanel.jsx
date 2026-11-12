@@ -32,8 +32,9 @@ export function ComicStudyPanel({
   onSaved,
   onEditing,
 }) {
-  const [editing, setEditing] = useState(false);
-  const [draft, setDraft] = useState(cue?.source || "");
+  // Null means viewing; an empty string is still an editable draft.
+  const [draft, setDraft] = useState(null);
+  const editing = draft !== null;
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const {
@@ -43,9 +44,9 @@ export function ComicStudyPanel({
     sourceName,
     translationName,
   } = useStudyLanguages();
-  function edit(value) {
-    setEditing(value);
-    onEditing(value);
+  function edit(source) {
+    setDraft(source);
+    onEditing(source !== null);
     setError("");
   }
   async function save() {
@@ -61,7 +62,7 @@ export function ComicStudyPanel({
         },
       );
       onSaved(document);
-      edit(false);
+      edit(null);
     } catch (failure) {
       setError(failure.message);
     } finally {
@@ -182,7 +183,7 @@ export function ComicStudyPanel({
                     size="xs"
                     variant="default"
                     disabled={saving}
-                    onClick={() => edit(false)}
+                    onClick={() => edit(null)}
                   >
                     Cancel
                   </Button>
@@ -232,10 +233,7 @@ export function ComicStudyPanel({
                 <Button
                   size="xs"
                   variant="light"
-                  onClick={() => {
-                    setDraft(cue.source);
-                    edit(true);
-                  }}
+                  onClick={() => edit(cue.source || "")}
                 >
                   {cue.source ? "Edit text" : "Add text"}
                 </Button>
