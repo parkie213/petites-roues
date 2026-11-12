@@ -211,3 +211,46 @@ export interface LibraryUsage {
   libraryBytes: number;
   disks: { freeBytes: number; repositories: string[] }[];
 }
+
+/** A shelf entry from GET /api/library/posters, including media without a study document. */
+export interface PosterEntry extends Omit<
+  CatalogueItem,
+  "relativePath" | "mediaLinkedByHand"
+> {
+  fingerprint?: string | null;
+  linkedByHand: boolean;
+}
+
+/** The server chooses the preferred copy and artwork for each title or episode. */
+export interface PosterSlot {
+  key: string;
+  entry: PosterEntry;
+  copies: PosterEntry[];
+  label: string;
+  detail?: string | null;
+  art?: PosterArt | null;
+}
+
+export interface PosterArt {
+  url: string;
+}
+
+/** A standalone title or a series whose slots are opened on a separate screen. */
+export interface PosterGroup {
+  key: string;
+  type: PosterEntry["type"];
+  language?: string | null;
+  name: string;
+  single: boolean;
+  slots: PosterSlot[];
+  seasons: number[];
+  count: string;
+  art?: PosterArt | null;
+}
+
+/** GET /api/library/posters; grouping and preferred copies belong to the server. */
+export interface PosterShelves {
+  shelves: { key: string; label: string; groups: PosterGroup[] }[];
+  folders: string[];
+  multilingual: boolean;
+}

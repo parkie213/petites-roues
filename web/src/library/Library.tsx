@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { ConnectPhone } from "./ConnectPhone.jsx";
 import { Documents } from "./Documents.jsx";
 import { LibraryBrowser } from "./LibraryBrowser.tsx";
-import { Posters } from "./Posters.jsx";
+import { Posters } from "./Posters.tsx";
 import { EmptyLibrary } from "./components/EmptyLibrary.tsx";
 import { LanguageChips } from "./components/LanguageChips.tsx";
 import { LibraryActions } from "./components/LibraryActions.tsx";
