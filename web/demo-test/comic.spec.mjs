@@ -318,6 +318,17 @@ test("chapter quiz exports only the chosen chapter and respects the selected qui
     );
   // This POST prepares text without mutating the document or saving a review command.
   const before = await readJson(page, comic);
+  expect(before).toEqual(
+    JSON.parse(
+      readFileSync(
+        new URL(
+          "../../example/documents-fr/comics/lulu/le-parapluie-de-lulu/document.json",
+          import.meta.url,
+        ),
+        "utf8",
+      ),
+    ),
+  );
   const first = await prepare("page-1", "Translate into French", () =>
     page.getByRole("button", { name: "Quiz me", exact: true }).click(),
   );

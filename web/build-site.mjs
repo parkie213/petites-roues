@@ -21,11 +21,7 @@ const document = JSON.parse(
     "utf8",
   ),
 );
-// Reuse the example repository’s study pages; the demo alone adds reading chapter scopes.
-const content = path.join(root, "example/demo");
-document.comic.chapters = JSON.parse(
-  await readFile(path.join(content, "chapters.json"), "utf8"),
-);
+// Read chapter scopes from the same comic document served by the desktop app.
 let previous = -1;
 for (const chapter of document.comic.chapters) {
   const index = document.comic.pages.findIndex(
@@ -33,7 +29,7 @@ for (const chapter of document.comic.chapters) {
   );
   if (!chapter.title?.trim() || index <= previous)
     throw new Error(
-      "Demo chapters must have titles and start on distinct pages in reading order.",
+      "Comic chapters must have titles and start on distinct pages in reading order.",
     );
   previous = index;
 }

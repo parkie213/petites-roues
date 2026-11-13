@@ -10,9 +10,6 @@ const document = JSON.parse(
     ),
   ),
 );
-document.comic.chapters = JSON.parse(
-  readFileSync(new URL("../../example/demo/chapters.json", import.meta.url)),
-);
 
 test.each([0, 1])(
   "chapter %s exports only its source and translations, with the selected type and rules",
