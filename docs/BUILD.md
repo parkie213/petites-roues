@@ -153,31 +153,41 @@ API only; its JAR does not contain the UI.
 
 ### Read aloud (optional)
 
-The comic reader's Listen button (and the R key) speaks text with a local
-[Piper](https://github.com/rhasspy/piper) voice. Java keeps one Piper process per
-language running and generates audio per request; nothing is stored. It expects the
-standalone Piper binary and voice models in these locations by default.
+The comic reader's Listen button (and the R key) speaks text with local
+[Piper JNI](https://github.com/jvoice-project/piper-jni) voices. The Maven dependency
+bundles Piper, ONNX Runtime and eSpeak data for Linux x64/arm64, macOS x64/arm64 and
+Windows x64. It loads native libraries into the JVM on the first speech request;
+no standalone Piper executable is needed. Voice models are separate downloads.
 
-On Linux x64, install Piper and the French Siwis voice once from the repository root
-(requires `curl` and `tar`, no `sudo`):
+Install the French Siwis voice once from the repository root (requires `curl`):
 
 ```bash
 bash setup/speech.sh
 ```
 
-The script reuses existing files. Other platforms and languages need a manual installation
-at the paths below, or the configuration overrides described afterwards:
+The script reuses existing files. For other languages, put an `.onnx` model and its
+matching `.onnx.json` configuration in `~/.local/share/piper/voices`, or set
+`--petitesroues.speech.voices=…`. The first model by file name whose name starts
+with the source language followed by `_` or `-` is selected (for example,
+`fr_FR-siwis-medium.onnx` for `fr`). Missing voices do not prevent application startup;
+the Listen button reports that reading aloud is unavailable.
 
-```text
-~/.local/share/piper/piper/piper           # petitesroues.speech.piper
-~/.local/share/piper/voices/fr_FR-*.onnx   # petitesroues.speech.voices (directory)
+Spring owns the loaded voices and closes them at shutdown. Piper handles concurrent
+calls and native resource cleanup. Audio is encoded as WAV in memory, with no audio
+files or child processes. Native libraries and eSpeak data are extracted by the JNI
+library into the JVM temporary directory. Native calls cannot be forcibly interrupted;
+a native crash would affect the server process.
+
+On JDK 25, allow native access with `--enable-native-access=ALL-UNNAMED` when
+launching Java (or `JAVA_TOOL_OPTIONS=--enable-native-access=ALL-UNNAMED`).
+See [third-party notices](THIRD-PARTY-NOTICES.md) for the bundled runtime licenses.
+
+The real-native test is enabled explicitly and runs in CI after installing the voice:
+
+```bash
+./java/mvnw -f java/pom.xml -pl desktop-server -am verify \
+  -Dpetitesroues.test.voices="$HOME/.local/share/piper/voices"
 ```
-
-The voice is the first `.onnx` model, by file name, whose name starts with the
-document's `sourceLanguage` followed by `_` or `-`; keep its `.onnx.json` beside it.
-Override either location with `--petitesroues.speech.piper=…` or
-`--petitesroues.speech.voices=…`. Without Piper the rest of the app works and the
-Listen button reports that reading aloud is unavailable.
 
 For Java-only iteration, install sibling modules first:
 

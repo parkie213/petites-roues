@@ -5,4 +5,8 @@ public class SpeechUnavailableException extends RuntimeException {
   public SpeechUnavailableException(String message) {
     super(message);
   }
+
+  public SpeechUnavailableException(String message, Throwable cause) {
+    super(message, cause);
+  }
 }
