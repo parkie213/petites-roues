@@ -5,8 +5,8 @@ import (Add/Refresh, `POST /api/titles/{id}/import`, completion), reads from the
 and claim and completion as described below, including the safe retry of a completed batch and the
 `prepare/` scripts' open-batch check and import, edits validated and queued in one transaction,
 and the removal of the shared library monitor (discovery runs without a lock; its commit is one
-transaction). Not yet implemented: request IDs for add and split, the discovery changes for
-Refresh All, the skeleton endpoint and the post-pull trigger. It replaces stage 1 of the state and concurrency plan (on
+transaction), and the skeleton endpoint. Not yet implemented: request IDs for add and split, the
+discovery changes for Refresh All and the post-pull trigger. It replaces stage 1 of the state and concurrency plan (on
 `codex/endpoint-consolidation`) and decides how content moves.
 
 ## Rules
@@ -91,11 +91,11 @@ shows that a file has changed on disk. Until decided, use Refresh.*
 
 ### 5. Start a new title
 
-Later work, not part of the concurrency change. The agent asks the service for a skeleton for a
-media file it already indexes. The service returns the document JSON with the reference
-fingerprint and a unique ID, and writes nothing. The agent writes it into the content repository,
-commits and imports it. This removes the second fingerprint implementation in
-`prepare/reference.py`. Until then `prepare/new_title.py` stays, followed by an import.
+The agent asks the service for a skeleton (`POST /api/titles/skeleton`) for a media file it
+already indexes. The service returns the document JSON with the reference fingerprint and an ID
+no known title has, and writes nothing. The agent writes it into the content repository, commits
+and imports it. `prepare/new_title.py` is this client, so starting a title no longer fingerprints
+in Python; `prepare/reference.py` keeps its own fingerprint for documents that already exist.
 
 ## Preparation scripts
 
