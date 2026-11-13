@@ -1,13 +1,10 @@
 package app.petitesroues.web;
 
 import app.petitesroues.library.LibraryService;
-import app.petitesroues.library.LibraryUpdateService;
 import app.petitesroues.model.document.StudyDocument;
-import app.petitesroues.model.editing.MergeCues;
-import app.petitesroues.model.editing.SplitCue;
-import app.petitesroues.model.editing.UpdateCueTiming;
-import app.petitesroues.model.editing.VideoCueEdit;
-import app.petitesroues.model.review.CorrectionSuggestion;
+import app.petitesroues.model.editing.CommandRequest;
+import app.petitesroues.study.DocumentCommandService;
+import app.petitesroues.study.StudyStateService;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
@@ -35,20 +32,44 @@ import org.springframework.web.bind.annotation.*;
 @RequestMapping("/api/titles/{id}")
 public class StudyController {
   private final LibraryService library;
-  private final LibraryUpdateService updates;
+  private final DocumentCommandService commands;
+  private final StudyStateService studies;
 
-  public StudyController(LibraryService library, LibraryUpdateService updates) {
+  public StudyController(
+      LibraryService library, DocumentCommandService commands, StudyStateService studies) {
     this.library = library;
-    this.updates = updates;
+    this.commands = commands;
+    this.studies = studies;
   }
 
-  /**
-   * GET the current document, including cue IDs, source text, translations, notes and listening
-   * checks.
-   */
+  /** Raw portable JSON by default; study view captures the state needed to open either player. */
   @GetMapping
-  public ResponseEntity<StudyDocument> document(@PathVariable String id) throws IOException {
-    return ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(library.document(id));
+  public ResponseEntity<?> document(
+      @PathVariable String id,
+      @RequestParam(defaultValue = "document") String view,
+      @RequestParam(defaultValue = "false") boolean download)
+      throws IOException {
+    if ("study".equals(view)) {
+      if (download) throw new IllegalArgumentException("Download requires the document view");
+      var state = studies.read(id);
+      return ResponseEntity.ok()
+          .cacheControl(CacheControl.noStore())
+          .header("X-State-Version", state.version())
+          .body(state);
+    }
+    if (!"document".equals(view))
+      throw new IllegalArgumentException("View must be document or study");
+    var result = commands.read(id);
+    var response =
+        ResponseEntity.ok()
+            .contentType(MediaType.APPLICATION_JSON)
+            .cacheControl(CacheControl.noStore())
+            .header("X-State-Version", result.version());
+    if (download)
+      response.header(
+          HttpHeaders.CONTENT_DISPOSITION,
+          ContentDisposition.attachment().filename("study.json").build().toString());
+    return response.body(result.document());
   }
 
   /**
@@ -63,131 +84,16 @@ public class StudyController {
     return Map.of("problems", library.problems(id, candidate));
   }
 
-  /**
-   * GET the current document as a downloadable {@code study.json}. Includes current annotations and
-   * reference metadata, but excludes local file paths and the local review queue.
-   */
-  @GetMapping("/export")
-  public ResponseEntity<StudyDocument> export(@PathVariable String id) throws IOException {
-    StudyDocument document = library.document(id);
+  /** One atomic typed command batch; headers carry the state token and assigned identities. */
+  @PostMapping("/commands")
+  public ResponseEntity<StudyDocument> commands(
+      @PathVariable String id, @RequestBody CommandRequest request) throws IOException {
+    var result = commands.execute(id, request);
     return ResponseEntity.ok()
-        .contentType(MediaType.APPLICATION_JSON)
-        .header(
-            HttpHeaders.CONTENT_DISPOSITION,
-            ContentDisposition.attachment().filename("study.json").build().toString())
-        .body(document);
-  }
-
-  /**
-   * POST timing changes for one or more existing cues; other cues and annotations are retained.
-   *
-   * <pre>{@code
-   * [{"id":"cue-1","start":2.5,"end":4.1}]
-   * }</pre>
-   *
-   * Returns {@code {"ok":true,"lines":50}}, where lines is the total cue count, not the edit count.
-   */
-  @PostMapping("/timings")
-  public SavedTimings save(@PathVariable String id, @RequestBody List<UpdateCueTiming> edits)
-      throws IOException {
-    return new SavedTimings(true, updates.saveCueTiming(id, edits));
-  }
-
-  public record SavedTimings(boolean ok, int lines) {}
-
-  /**
-   * Queues {@code {"suggestion":"What the user heard"}} for the cue addressed by ID. The latest
-   * document supplies the cue; no earlier cue state is submitted or compared.
-   */
-  @PostMapping("/cues/{cueId}/suggestion")
-  public StudyDocument suggestCorrection(
-      @PathVariable String id,
-      @PathVariable String cueId,
-      @RequestBody CorrectionSuggestion suggestion)
-      throws IOException {
-    return updates.suggestCorrection(id, cueId, suggestion.suggestion());
-  }
-
-  /**
-   * Queues {@code {"text":"..."}} as a review comment on a video or comic cue, such as a better
-   * translation or a question about a note. The document is unchanged; returns it as served.
-   */
-  @PostMapping("/cues/{cueId}/comment")
-  public StudyDocument comment(
-      @PathVariable String id, @PathVariable String cueId, @RequestBody Map<String, String> body)
-      throws IOException {
-    return updates.comment(id, cueId, body == null ? null : body.get("text"));
-  }
-
-  /**
-   * PUT a complete {@link VideoCueEdit} command with explicit timing and source text. Teaching
-   * fields are flat in this application request, whereas returned spec cues nest them under study.
-   * The addressed identity and phrase alignment remain server-owned.
-   *
-   * <p>Source-text, translation or continuation changes mark the phrase alignment stale.
-   * Source-text changes retain the existing listening check. An edit that changes nothing is not
-   * queued.
-   */
-  @PutMapping("/cues/{cueId}")
-  public StudyDocument editCue(
-      @PathVariable String id, @PathVariable String cueId, @RequestBody VideoCueEdit cue)
-      throws IOException {
-    return updates.editCue(id, cueId, cue);
-  }
-
-  /**
-   * POST a new cue. The server assigns its ID, inserts it in time order and queues annotation
-   * review. The body may also supply translations, notes, continuation and a listening check.
-   *
-   * <pre>{@code
-   * {"start":2.5,"end":4.1,"source":"Bonsoir !","notes":[]}
-   * }</pre>
-   */
-  @PostMapping("/cues")
-  public StudyDocument addCue(@PathVariable String id, @RequestBody VideoCueEdit cue)
-      throws IOException {
-    return updates.addCue(id, cue);
-  }
-
-  /**
-   * POST two nonblank source-text parts and a split time strictly inside the cue's bounds.
-   *
-   * <pre>{@code
-   * {"at":3.2,"first":"Bonsoir !","second":"Comment vas-tu ?"}
-   * }</pre>
-   *
-   * Optional {@code start}/{@code end} override the outer bounds in the same operation. The first
-   * part keeps the original ID and annotations; the second gets a new ID with no translation or
-   * notes. Both retain the listening check and require annotation review. Reconsider both parts:
-   * retained annotations may no longer fit the first part alone.
-   */
-  @PostMapping("/cues/{cueId}/split")
-  public StudyDocument splitCue(
-      @PathVariable String id, @PathVariable String cueId, @RequestBody SplitCue split)
-      throws IOException {
-    return updates.splitCue(id, cueId, split);
-  }
-
-  /**
-   * POST {@code {"ids":["cue-1","cue-2"]}} to combine consecutive cues, in chronological order.
-   * Selection order does not matter. Keeps the earliest ID/start and the latest end, joins source
-   * text with spaces, and retains outstanding checks. The first cue's annotations remain
-   * provisional; a merge task records all affected cue IDs, including those removed by the merge.
-   * Returns the updated document; invalid or nonconsecutive selections return 400.
-   */
-  @PostMapping("/cues/merge")
-  public StudyDocument mergeCues(@PathVariable String id, @RequestBody MergeCues merge)
-      throws IOException {
-    return updates.mergeCues(id, merge);
-  }
-
-  /**
-   * DELETE a cue, with no body. Its ID remains in the queued deletion; returns the document with
-   * the cue removed.
-   */
-  @DeleteMapping("/cues/{cueId}")
-  public StudyDocument deleteCue(@PathVariable String id, @PathVariable String cueId)
-      throws IOException {
-    return updates.deleteCue(id, cueId);
+        .cacheControl(CacheControl.noStore())
+        .header("X-State-Version", result.version())
+        .header("X-Created-Ids", String.join(",", result.createdIds()))
+        .header("X-Accepted-Version", result.acceptedVersion())
+        .body(result.document());
   }
 }

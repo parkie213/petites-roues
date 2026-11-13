@@ -2,13 +2,11 @@ package app.petitesroues.web;
 
 import app.petitesroues.library.LibraryUpdateService;
 import app.petitesroues.model.review.CueChange;
-import app.petitesroues.model.review.CueReviewRequest;
 import app.petitesroues.model.review.ReviewCompletion;
 import app.petitesroues.study.ReviewQueue;
 import app.petitesroues.study.ReviewQueueService;
 import java.io.IOException;
 import java.util.List;
-import java.util.Map;
 import org.springframework.http.CacheControl;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -42,32 +40,20 @@ public class ReviewController {
     return ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(review.pendingTitles());
   }
 
-  /**
-   * GET pending queue rows for a title as {@link CueChange}s, in sequence order, each with its
-   * replay {@code state}: pending, conflict, written or review.
-   */
-  @GetMapping({"/titles/{id}/review-queue", "/titles/{id}/changes"})
-  public ResponseEntity<List<CueChange>> pending(@PathVariable String id) throws IOException {
-    return ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(review.pending(id));
-  }
-
-  /** Completed rows and their decisions. */
-  @GetMapping("/titles/{id}/review-history")
-  public ResponseEntity<List<CueChange>> history(@PathVariable String id) {
-    return ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(review.history(id));
-  }
-
-  /**
-   * POST {@code [{"cueId":"cue-0001","text":"First-pass notes from openai/gpt-6-luna"}]} to queue
-   * cues for the reviewing agent, for example after a preparation script. All or none are queued;
-   * returns {@code {"queued":n}}. The document is unchanged, and players don't count these as their
-   * own pending edits.
-   */
-  @PostMapping("/titles/{id}/review/requests")
-  public Map<String, Integer> requestReview(
-      @PathVariable String id, @RequestBody List<CueReviewRequest> requests) throws IOException {
+  /** Pending replay state or completed decisions, selected explicitly without aliases. */
+  @GetMapping("/titles/{id}/review")
+  public ResponseEntity<List<CueChange>> review(
+      @PathVariable String id, @RequestParam(defaultValue = "pending") String status)
+      throws IOException {
     synchronized (updates) {
-      return Map.of("queued", review.requestReview(id, requests));
+      var rows =
+          switch (status) {
+            case "pending" -> review.pending(id);
+            case "completed" -> review.history(id);
+            default ->
+                throw new IllegalArgumentException("Review status must be pending or completed");
+          };
+      return ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(rows);
     }
   }
 
@@ -104,7 +90,7 @@ public class ReviewController {
   }
 
   /** POST the displayed pending sequences to discard those edits, reverting them in the player. */
-  @PostMapping("/titles/{id}/review-queue/discard")
+  @PostMapping("/titles/{id}/review/discard")
   public void discard(@PathVariable String id, @RequestBody List<Long> expected) {
     synchronized (updates) {
       review.discard(id, expected);

@@ -15,6 +15,7 @@ import {
  */
 export function usePlaybackProgress({
   api,
+  initialProgress,
   enabled,
   videoRef,
   position,
@@ -84,15 +85,15 @@ export function usePlaybackProgress({
     const interaction = () => {
       interacted = true;
     };
-    const progress = request(api + "/progress", { signal: abort.signal }).catch(
-      (error) => {
-        if (error.name !== "AbortError" && !disposed)
-          latest.current.onError(
-            "Saved playback position could not be loaded.",
-          );
-        return { positionSeconds: 0 };
-      },
-    );
+    const progress = (
+      initialProgress
+        ? Promise.resolve(initialProgress)
+        : request(api + "/progress", { signal: abort.signal })
+    ).catch((error) => {
+      if (error.name !== "AbortError" && !disposed)
+        latest.current.onError("Saved playback position could not be loaded.");
+      return { positionSeconds: 0 };
+    });
     const initialize = async () => {
       if (ready || restoring) return;
       restoring = true;
@@ -145,5 +146,5 @@ export function usePlaybackProgress({
       window.removeEventListener("pagehide", save);
       document.removeEventListener("visibilitychange", visibility);
     };
-  }, [api, enabled, videoRef]);
+  }, [api, enabled, videoRef, initialProgress]);
 }

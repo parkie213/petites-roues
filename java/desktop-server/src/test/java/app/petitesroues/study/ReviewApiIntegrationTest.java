@@ -1,6 +1,7 @@
 package app.petitesroues.study;
 
 import static app.petitesroues.support.DocumentFixtures.document;
+import static app.petitesroues.support.HttpClients.command;
 import static org.junit.jupiter.api.Assertions.*;
 
 import app.petitesroues.documents.StudyDocumentCodec;
@@ -37,12 +38,12 @@ class ReviewApiIntegrationTest extends HttpIntegrationTest {
             line.continuesPrevious(),
             cue.listeningCheck(),
             line.textCheck());
-    http.put().uri(api + "/cues/stable-cue").body(edit).retrieve().toBodilessEntity();
+    command(http, api, "edit-video-cue", "stable-cue", edit).retrieve().toBodilessEntity();
     assertArrayEquals(original, Files.readAllBytes(file));
     var served = http.get().uri(api).retrieve().body(StudyDocument.class);
     assertEquals("Bonsoir !", served.video().cues().get(0).line().source());
 
-    var queue = http.get().uri(api + "/review-queue").retrieve().body(JsonNode.class);
+    var queue = http.get().uri(api + "/review").retrieve().body(JsonNode.class);
     assertEquals("pending", queue.get(0).get("state").asString());
     assertEquals("edit-video-cue", queue.get(0).get("command").get("type").asString());
     assertEquals(
@@ -80,7 +81,7 @@ class ReviewApiIntegrationTest extends HttpIntegrationTest {
             .toBodilessEntity()
             .getStatusCode()
             .value());
-    var history = http.get().uri(api + "/review-history").retrieve().body(JsonNode.class);
+    var history = http.get().uri(api + "/review?status=completed").retrieve().body(JsonNode.class);
     assertEquals("applied", history.get(0).get("outcome").asString());
   }
 
@@ -93,23 +94,28 @@ class ReviewApiIntegrationTest extends HttpIntegrationTest {
     assertThrows(
         HttpClientErrorException.class,
         () ->
-            http.post()
-                .uri(api + "/review/requests")
-                .body(
+            command(
+                    http,
+                    api,
+                    "review-requests",
+                    null,
                     List.of(
                         Map.of("cueId", "stable-cue", "text", "First pass"),
                         Map.of("cueId", "missing", "text", "First pass")))
                 .retrieve()
                 .toBodilessEntity());
-    assertTrue(http.get().uri(api + "/review-queue").retrieve().body(JsonNode.class).isEmpty());
+    assertTrue(http.get().uri(api + "/review").retrieve().body(JsonNode.class).isEmpty());
 
     var queued =
-        http.post()
-            .uri(api + "/review/requests")
-            .body(List.of(Map.of("cueId", "stable-cue", "text", "First-pass notes from luna")))
+        command(
+                http,
+                api,
+                "review-requests",
+                null,
+                List.of(Map.of("cueId", "stable-cue", "text", "First-pass notes from luna")))
             .retrieve()
             .body(JsonNode.class);
-    assertEquals(1, queued.get("queued").asInt());
+    assertEquals(1, http.get().uri(api + "/review").retrieve().body(JsonNode.class).size());
     var batch = http.post().uri(api + "/review/batches").retrieve().body(JsonNode.class);
     var change = batch.get("changes").get(0);
     assertEquals("review-request", change.get("kind").asString());
@@ -120,5 +126,24 @@ class ReviewApiIntegrationTest extends HttpIntegrationTest {
         .retrieve()
         .toBodilessEntity();
     assertArrayEquals(original, Files.readAllBytes(documentPath("review-requests")));
+  }
+
+  @Test
+  void invalidStatusFailsAndRetiredReadAliasesAreNotServed() throws Exception {
+    registerTitle(document("review-routes"));
+    String api = "/api/titles/review-routes";
+    assertEquals(
+        400,
+        http.get()
+            .uri(api + "/review?status=unknown")
+            .<Integer>exchange((r, response) -> response.getStatusCode().value()));
+    for (String retired : List.of("/changes", "/review-queue", "/review-history"))
+      assertEquals(
+          404,
+          http.get()
+              .uri(api + retired)
+              .<Integer>exchange((r, response) -> response.getStatusCode().value()));
+    assertTrue(
+        http.get().uri(api + "/review?status=completed").retrieve().body(JsonNode.class).isEmpty());
   }
 }

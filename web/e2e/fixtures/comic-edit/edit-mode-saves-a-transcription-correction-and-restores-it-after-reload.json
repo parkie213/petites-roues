@@ -1,8 +1,11 @@
 [
   {
-    "request": "GET /api/titles/lulu-example-le-parapluie/comic",
+    "request": "GET /api/titles/lulu-example-le-parapluie?journeyCheck=2",
     "status": 200,
     "type": "application/json",
+    "headers": {
+      "x-state-version": "state-version-1"
+    },
     "json": {
       "id": "lulu-example-le-parapluie",
       "title": "Le parapluie de Lulu",
@@ -611,9 +614,12 @@
     }
   },
   {
-    "request": "GET /api/titles/lulu-example-le-parapluie/comic",
+    "request": "GET /api/titles/lulu-example-le-parapluie?journeyCheck=3",
     "status": 200,
     "type": "application/json",
+    "headers": {
+      "x-state-version": "state-version-2"
+    },
     "json": {
       "id": "lulu-example-le-parapluie",
       "title": "Le parapluie de Lulu",
@@ -1200,1202 +1206,1246 @@
     }
   },
   {
-    "request": "GET /api/titles/lulu-example-le-parapluie/comic?journeyCheck=2",
+    "request": "GET /api/titles/lulu-example-le-parapluie?view=study",
     "status": 200,
     "type": "application/json",
+    "headers": {
+      "x-state-version": "state-version-1"
+    },
     "json": {
-      "id": "lulu-example-le-parapluie",
-      "title": "Le parapluie de Lulu",
-      "sourceLanguage": "fr",
-      "translationLanguage": "en",
-      "notesLanguage": "en",
-      "comic": {
-        "readingDirection": "ltr",
-        "reference": {
-          "fingerprint": "v1:7de12dfdfe43bebb28a4907886ff180444276491db4897898162a138bc060199",
-          "sizeBytes": 591580
-        },
-        "pages": [
-          {
-            "id": "cover",
-            "entry": "001.jpg",
-            "boxes": [
-              {
-                "id": "9894e144-47dc-5fb1-99a3-bbf635937377",
-                "regions": [
-                  {
-                    "x": 0.064,
-                    "y": 0.0427,
-                    "width": 0.872,
-                    "height": 0.208
-                  }
-                ],
-                "lines": [
-                  {
-                    "id": "2725ebdc-b7e7-5829-a8c0-c3e718dc447b",
-                    "source": "Le parapluie de Lulu",
-                    "translation": "Lulu's Umbrella",
-                    "notes": [
-                      "The title is the comic's name on the cover."
-                    ],
-                    "alignment": {
-                      "source": [
-                        "Le parapluie de Lulu"
-                      ],
-                      "translation": [
-                        "Lulu's Umbrella"
-                      ],
-                      "links": [
-                        {
-                          "source": [
-                            0
-                          ],
-                          "translation": [
-                            0
-                          ],
-                          "note": "French has no \"'s\": it says \"the umbrella of Lulu\", `le parapluie de Lulu`, with `de` + the owner after the thing owned. `Parapluie` = umbrella, a masculine noun: `para-` (against, as in `parasol`) + `pluie` (rain)."
-                        }
-                      ]
-                    },
-                    "continuesPrevious": false
-                  }
-                ]
-              }
-            ]
+      "document": {
+        "id": "lulu-example-le-parapluie",
+        "title": "Le parapluie de Lulu",
+        "sourceLanguage": "fr",
+        "translationLanguage": "en",
+        "notesLanguage": "en",
+        "comic": {
+          "readingDirection": "ltr",
+          "reference": {
+            "fingerprint": "v1:7de12dfdfe43bebb28a4907886ff180444276491db4897898162a138bc060199",
+            "sizeBytes": 591580
           },
-          {
-            "id": "page-1",
-            "entry": "002.jpg",
-            "label": "1",
-            "boxes": [
-              {
-                "id": "6655220a-8dba-53e6-bdf0-b0fdf1aee8bb",
-                "regions": [
-                  {
-                    "x": 0.5036,
-                    "y": 0.1443,
-                    "width": 0.3927,
-                    "height": 0.0848
-                  }
-                ],
-                "lines": [
-                  {
-                    "id": "d3fd5d70-ac7a-5c8d-aa87-2a85d6514f09",
-                    "source": "Oh non, il pleut !",
-                    "translation": "Oh no, it's raining!",
-                    "notes": [],
-                    "alignment": {
-                      "source": [
-                        "Oh non,",
-                        "il pleut !"
+          "pages": [
+            {
+              "id": "cover",
+              "entry": "001.jpg",
+              "boxes": [
+                {
+                  "id": "9894e144-47dc-5fb1-99a3-bbf635937377",
+                  "regions": [
+                    {
+                      "x": 0.064,
+                      "y": 0.0427,
+                      "width": 0.872,
+                      "height": 0.208
+                    }
+                  ],
+                  "lines": [
+                    {
+                      "id": "2725ebdc-b7e7-5829-a8c0-c3e718dc447b",
+                      "source": "Le parapluie de Lulu",
+                      "translation": "Lulu's Umbrella",
+                      "notes": [
+                        "The title is the comic's name on the cover."
                       ],
-                      "translation": [
-                        "Oh no,",
-                        "it's raining!"
+                      "alignment": {
+                        "source": [
+                          "Le parapluie de Lulu"
+                        ],
+                        "translation": [
+                          "Lulu's Umbrella"
+                        ],
+                        "links": [
+                          {
+                            "source": [
+                              0
+                            ],
+                            "translation": [
+                              0
+                            ],
+                            "note": "French has no \"'s\": it says \"the umbrella of Lulu\", `le parapluie de Lulu`, with `de` + the owner after the thing owned. `Parapluie` = umbrella, a masculine noun: `para-` (against, as in `parasol`) + `pluie` (rain)."
+                          }
+                        ]
+                      },
+                      "continuesPrevious": false
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "page-1",
+              "entry": "002.jpg",
+              "label": "1",
+              "boxes": [
+                {
+                  "id": "6655220a-8dba-53e6-bdf0-b0fdf1aee8bb",
+                  "regions": [
+                    {
+                      "x": 0.5036,
+                      "y": 0.1443,
+                      "width": 0.3927,
+                      "height": 0.0848
+                    }
+                  ],
+                  "lines": [
+                    {
+                      "id": "d3fd5d70-ac7a-5c8d-aa87-2a85d6514f09",
+                      "source": "Oh non, il pleut !",
+                      "translation": "Oh no, it's raining!",
+                      "notes": [],
+                      "alignment": {
+                        "source": [
+                          "Oh non,",
+                          "il pleut !"
+                        ],
+                        "translation": [
+                          "Oh no,",
+                          "it's raining!"
+                        ],
+                        "links": [
+                          {
+                            "source": [
+                              0
+                            ],
+                            "translation": [
+                              0
+                            ],
+                            "note": "`Non` = no."
+                          },
+                          {
+                            "source": [
+                              1
+                            ],
+                            "translation": [
+                              1
+                            ],
+                            "note": "`Pleut → pleuvoir` = rain, present tense. Weather verbs take `il` with no real subject, like English \"it\": `il neige` — it's snowing. The French present covers both \"it rains\" and \"it's raining\"."
+                          }
+                        ]
+                      },
+                      "continuesPrevious": false
+                    }
+                  ]
+                },
+                {
+                  "id": "5885d39f-d6fe-5b36-bd37-7cca0d1182e3",
+                  "regions": [
+                    {
+                      "x": 0.2884,
+                      "y": 0.3819,
+                      "width": 0.3633,
+                      "height": 0.1163
+                    }
+                  ],
+                  "lines": [
+                    {
+                      "id": "a3ecf2c8-9183-5d5a-bd8f-5f47d327e4b7",
+                      "source": "Salut, Lulu ! Tu as l'air triste.",
+                      "translation": "Hi, Lulu! You look sad.",
+                      "notes": [
+                        "The frog, Gaston, is speaking."
                       ],
-                      "links": [
-                        {
-                          "source": [
-                            0
-                          ],
-                          "translation": [
-                            0
-                          ],
-                          "note": "`Non` = no."
-                        },
-                        {
-                          "source": [
-                            1
-                          ],
-                          "translation": [
-                            1
-                          ],
-                          "note": "`Pleut → pleuvoir` = rain, present tense. Weather verbs take `il` with no real subject, like English \"it\": `il neige` — it's snowing. The French present covers both \"it rains\" and \"it's raining\"."
-                        }
-                      ]
-                    },
-                    "continuesPrevious": false
-                  }
-                ]
-              },
-              {
-                "id": "5885d39f-d6fe-5b36-bd37-7cca0d1182e3",
-                "regions": [
-                  {
-                    "x": 0.2884,
-                    "y": 0.3819,
-                    "width": 0.3633,
-                    "height": 0.1163
-                  }
-                ],
-                "lines": [
-                  {
-                    "id": "a3ecf2c8-9183-5d5a-bd8f-5f47d327e4b7",
-                    "source": "Salut, Lulu ! Tu as l'air triste.",
-                    "translation": "Hi, Lulu! You look sad.",
-                    "notes": [
-                      "The frog, Gaston, is speaking."
-                    ],
-                    "alignment": {
-                      "source": [
-                        "Salut, Lulu !",
-                        "Tu as l'air triste."
+                      "alignment": {
+                        "source": [
+                          "Salut, Lulu !",
+                          "Tu as l'air triste."
+                        ],
+                        "translation": [
+                          "Hi, Lulu!",
+                          "You look sad."
+                        ],
+                        "links": [
+                          {
+                            "source": [
+                              0
+                            ],
+                            "translation": [
+                              0
+                            ],
+                            "note": "`Salut` = hi, an informal greeting between friends."
+                          },
+                          {
+                            "source": [
+                              1
+                            ],
+                            "translation": [
+                              1
+                            ],
+                            "note": "`Avoir l'air` + adjective = look, seem: literally \"have the air\" of being sad. `As → avoir`, present, with `tu`, the informal \"you\". `Triste` = sad."
+                          }
+                        ]
+                      },
+                      "continuesPrevious": false
+                    }
+                  ]
+                },
+                {
+                  "id": "958fa22b-fd56-5ae6-9384-5efb22e00f15",
+                  "regions": [
+                    {
+                      "x": 0.4275,
+                      "y": 0.7019,
+                      "width": 0.365,
+                      "height": 0.1163
+                    }
+                  ],
+                  "lines": [
+                    {
+                      "id": "2b6c07b4-f130-5d1d-8b1b-ce375245ad5d",
+                      "source": "J'ai oublié mon parapluie.",
+                      "translation": "I forgot my umbrella.",
+                      "notes": [],
+                      "alignment": {
+                        "source": [
+                          "J'ai oublié",
+                          "mon parapluie."
+                        ],
+                        "translation": [
+                          "I forgot",
+                          "my umbrella."
+                        ],
+                        "links": [
+                          {
+                            "source": [
+                              0
+                            ],
+                            "translation": [
+                              0
+                            ],
+                            "note": "Passé composé, the everyday past tense for a finished action: `ai → avoir` (present, with `je`) + the past participle `oublié → oublier` = forget. English says \"I forgot\" or \"I've forgotten\"."
+                          },
+                          {
+                            "source": [
+                              1
+                            ],
+                            "translation": [
+                              1
+                            ],
+                            "note": "`Mon` = my, before a masculine noun. `Parapluie` = umbrella, a masculine noun: `para-` (against, as in `parasol`) + `pluie` (rain)."
+                          }
+                        ]
+                      },
+                      "continuesPrevious": false
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "page-2",
+              "entry": "003.jpg",
+              "label": "2",
+              "boxes": [
+                {
+                  "id": "064d1d66-14bb-5a18-a4c4-f092218f48f8",
+                  "regions": [
+                    {
+                      "x": 0.4188,
+                      "y": 0.0685,
+                      "width": 0.3824,
+                      "height": 0.1163
+                    }
+                  ],
+                  "lines": [
+                    {
+                      "id": "e1ee4d06-f75a-5c9a-b73a-7ec67239d104",
+                      "source": "Ne t'en fais pas, j'adore la pluie !",
+                      "translation": "Don't worry, I love the rain!",
+                      "notes": [],
+                      "alignment": {
+                        "source": [
+                          "Ne t'en fais pas,",
+                          "j'adore la pluie !"
+                        ],
+                        "translation": [
+                          "Don't worry,",
+                          "I love the rain!"
+                        ],
+                        "links": [
+                          {
+                            "source": [
+                              0
+                            ],
+                            "translation": [
+                              0
+                            ],
+                            "note": "`Faire` = do or make, but `s'en faire` means worry: the pronouns `se` and `en` make a different verb. Here it is a negative command with `tu`: the pronouns `t'` (`te`) and `en` stay before the verb, inside `ne … pas`. Speaking politely or to several people: `ne vous en faites pas`."
+                          },
+                          {
+                            "source": [
+                              1
+                            ],
+                            "translation": [
+                              1
+                            ],
+                            "note": "`Adore → adorer` = love, present, with `je`; stronger than `aimer` for things you enjoy. `La pluie` = rain: French puts `la`/`le` before something liked in general, where English could drop \"the\"."
+                          }
+                        ]
+                      },
+                      "continuesPrevious": false
+                    }
+                  ]
+                },
+                {
+                  "id": "1ee8b7c7-ef28-52a2-afad-4dae3312d1b3",
+                  "regions": [
+                    {
+                      "x": 0.616,
+                      "y": 0.3927,
+                      "width": 0.328,
+                      "height": 0.0667
+                    }
+                  ],
+                  "lines": [
+                    {
+                      "id": "c8d0c648-8963-51eb-923c-28f57d372116",
+                      "source": "Plouf !",
+                      "translation": "Splash!",
+                      "notes": [
+                        "Gaston jumps into the puddle."
                       ],
-                      "translation": [
-                        "Hi, Lulu!",
-                        "You look sad."
+                      "alignment": {
+                        "source": [
+                          "Plouf !"
+                        ],
+                        "translation": [
+                          "Splash!"
+                        ],
+                        "links": [
+                          {
+                            "source": [
+                              0
+                            ],
+                            "translation": [
+                              0
+                            ],
+                            "note": "`Plouf` is the sound of something dropping into water: French for splash."
+                          }
+                        ]
+                      },
+                      "continuesPrevious": false
+                    }
+                  ]
+                },
+                {
+                  "id": "78dea224-e7cc-59c6-acae-3f9094e90885",
+                  "regions": [
+                    {
+                      "x": 0.4413,
+                      "y": 0.7085,
+                      "width": 0.4374,
+                      "height": 0.1163
+                    }
+                  ],
+                  "lines": [
+                    {
+                      "id": "f5508299-4148-51f2-97b8-e3b962513692",
+                      "source": "Mais moi, je n'aime pas être mouillée…",
+                      "translation": "But me, I don't like being wet…",
+                      "notes": [
+                        "French often names the speaker twice for contrast: `moi, je` — me, I. English usually uses stress instead: \"But I don't like being wet\"."
                       ],
-                      "links": [
-                        {
-                          "source": [
-                            0
-                          ],
-                          "translation": [
-                            0
-                          ],
-                          "note": "`Salut` = hi, an informal greeting between friends."
-                        },
-                        {
-                          "source": [
-                            1
-                          ],
-                          "translation": [
-                            1
-                          ],
-                          "note": "`Avoir l'air` + adjective = look, seem: literally \"have the air\" of being sad. `As → avoir`, present, with `tu`, the informal \"you\". `Triste` = sad."
-                        }
-                      ]
-                    },
-                    "continuesPrevious": false
-                  }
-                ]
-              },
-              {
-                "id": "958fa22b-fd56-5ae6-9384-5efb22e00f15",
-                "regions": [
-                  {
-                    "x": 0.4275,
-                    "y": 0.7019,
-                    "width": 0.365,
-                    "height": 0.1163
-                  }
-                ],
-                "lines": [
-                  {
-                    "id": "2b6c07b4-f130-5d1d-8b1b-ce375245ad5d",
-                    "source": "J'ai oublié mon parapluie.",
-                    "translation": "I forgot my umbrella.",
-                    "notes": [],
-                    "alignment": {
-                      "source": [
-                        "J'ai oublié",
-                        "mon parapluie."
+                      "alignment": {
+                        "source": [
+                          "Mais moi,",
+                          "je n'aime pas",
+                          "être mouillée…"
+                        ],
+                        "translation": [
+                          "But me,",
+                          "I don't like",
+                          "being wet…"
+                        ],
+                        "links": [
+                          {
+                            "source": [
+                              0
+                            ],
+                            "translation": [
+                              0
+                            ],
+                            "note": "`Mais` = but. `Moi` = me, the stressed form of \"I\", used to set the speaker against someone else: Gaston loves the rain, Lulu doesn't."
+                          },
+                          {
+                            "source": [
+                              1
+                            ],
+                            "translation": [
+                              1
+                            ],
+                            "note": "`Aime → aimer` = like, present, with `je`. `Ne … pas` around the verb makes it negative; `ne` becomes `n'` before a vowel."
+                          },
+                          {
+                            "source": [
+                              2
+                            ],
+                            "translation": [
+                              2
+                            ],
+                            "note": "`Être` = be, in the infinitive because it follows `aimer`: `j'aime nager` — I like swimming. `Mouillée` is the past participle of `mouiller` (wet), used as an adjective describing Lulu. It takes `-e` because Lulu is female; Gaston would say `mouillé`."
+                          }
+                        ]
+                      },
+                      "continuesPrevious": false
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "page-3",
+              "entry": "004.jpg",
+              "label": "3",
+              "boxes": [
+                {
+                  "id": "e4bbb5b9-a12a-5eec-8f13-46ffb207ab5e",
+                  "regions": [
+                    {
+                      "x": 0.475,
+                      "y": 0.0419,
+                      "width": 0.3299,
+                      "height": 0.1163
+                    }
+                  ],
+                  "lines": [
+                    {
+                      "id": "77deeb47-4141-554e-88d6-455b09ad16a2",
+                      "source": "Tiens, prends cette feuille.",
+                      "translation": "Here, take this leaf.",
+                      "notes": [],
+                      "alignment": {
+                        "source": [
+                          "Tiens,",
+                          "prends cette feuille."
+                        ],
+                        "translation": [
+                          "Here,",
+                          "take this leaf."
+                        ],
+                        "links": [
+                          {
+                            "source": [
+                              0
+                            ],
+                            "translation": [
+                              0
+                            ],
+                            "note": "`Tenir` = hold, but `tiens !` (its `tu` command) is what you say when handing something over: here, here you go. Politely or to several people: `tenez`."
+                          },
+                          {
+                            "source": [
+                              1
+                            ],
+                            "translation": [
+                              1
+                            ],
+                            "note": "`Prends → prendre` = take, a command to `tu`. `Cette` = this, the feminine form (masculine `ce`), because `feuille` is feminine. `Feuille` = leaf; it is also a sheet of paper."
+                          }
+                        ]
+                      },
+                      "continuesPrevious": false
+                    }
+                  ]
+                },
+                {
+                  "id": "78c66aa2-ccf4-510d-9612-c2fcd305b994",
+                  "regions": [
+                    {
+                      "x": 0.5396,
+                      "y": 0.3975,
+                      "width": 0.3808,
+                      "height": 0.1383
+                    }
+                  ],
+                  "lines": [
+                    {
+                      "id": "251197b7-3675-5b8b-a9e6-1281ff446b85",
+                      "source": "Merci ! C'est le meilleur parapluie du monde !",
+                      "translation": "Thanks! It's the best umbrella in the world!",
+                      "notes": [],
+                      "alignment": {
+                        "source": [
+                          "Merci !",
+                          "C'est le meilleur parapluie",
+                          "du monde !"
+                        ],
+                        "translation": [
+                          "Thanks!",
+                          "It's the best umbrella",
+                          "in the world!"
+                        ],
+                        "links": [
+                          {
+                            "source": [
+                              0
+                            ],
+                            "translation": [
+                              0
+                            ],
+                            "note": "`Merci` = thank you, thanks."
+                          },
+                          {
+                            "source": [
+                              1
+                            ],
+                            "translation": [
+                              1
+                            ],
+                            "note": "`C'est` = it is (`est → être`, with `ce`). `Meilleur` = better; with `le` before it, the best."
+                          },
+                          {
+                            "source": [
+                              2
+                            ],
+                            "translation": [
+                              2
+                            ],
+                            "note": "`Du` = `de` + `le`. After \"the best\", French says `de` (of) where English says \"in\": `le plus grand du monde` — the biggest in the world."
+                          }
+                        ]
+                      },
+                      "continuesPrevious": false
+                    }
+                  ]
+                },
+                {
+                  "id": "c9a5b357-5ed2-5d46-a69c-b6e0893c37a6",
+                  "regions": [
+                    {
+                      "x": 0.1504,
+                      "y": 0.6709,
+                      "width": 0.2792,
+                      "height": 0.1383
+                    }
+                  ],
+                  "lines": [
+                    {
+                      "id": "b7fa8610-a5e9-5bf3-828b-78b28dd45334",
+                      "source": "De rien. On rentre ensemble ?",
+                      "translation": "You're welcome. Shall we go home together?",
+                      "notes": [
+                        "Gaston is speaking."
                       ],
-                      "translation": [
-                        "I forgot",
-                        "my umbrella."
+                      "alignment": {
+                        "source": [
+                          "De rien.",
+                          "On rentre ensemble ?"
+                        ],
+                        "translation": [
+                          "You're welcome.",
+                          "Shall we go home together?"
+                        ],
+                        "links": [
+                          {
+                            "source": [
+                              0
+                            ],
+                            "translation": [
+                              0
+                            ],
+                            "note": "`De rien` = literally \"of nothing\": the usual reply to `merci`."
+                          },
+                          {
+                            "source": [
+                              1
+                            ],
+                            "translation": [
+                              1
+                            ],
+                            "note": "`On` = we, in everyday speech. `Rentre → rentrer` = go back, usually home, present. Said with a rising voice, a present-tense statement becomes a suggestion: \"shall we…?\". `Ensemble` = together."
+                          }
+                        ]
+                      },
+                      "continuesPrevious": false
+                    }
+                  ]
+                },
+                {
+                  "id": "ffab1fd6-6cd3-52ec-b6f4-a7933750ae64",
+                  "regions": [
+                    {
+                      "x": 0.6219,
+                      "y": 0.6976,
+                      "width": 0.2762,
+                      "height": 0.0848
+                    }
+                  ],
+                  "lines": [
+                    {
+                      "id": "8338f7c0-2bc9-5183-b18c-a723036a3dea",
+                      "source": "D'accord !",
+                      "translation": "OK!",
+                      "notes": [
+                        "Lulu answers Gaston's question."
                       ],
-                      "links": [
-                        {
-                          "source": [
-                            0
-                          ],
-                          "translation": [
-                            0
-                          ],
-                          "note": "Passé composé, the everyday past tense for a finished action: `ai → avoir` (present, with `je`) + the past participle `oublié → oublier` = forget. English says \"I forgot\" or \"I've forgotten\"."
-                        },
-                        {
-                          "source": [
-                            1
-                          ],
-                          "translation": [
-                            1
-                          ],
-                          "note": "`Mon` = my, before a masculine noun. `Parapluie` = umbrella, a masculine noun: `para-` (against, as in `parasol`) + `pluie` (rain)."
-                        }
-                      ]
-                    },
-                    "continuesPrevious": false
-                  }
-                ]
-              }
-            ]
-          },
-          {
-            "id": "page-2",
-            "entry": "003.jpg",
-            "label": "2",
-            "boxes": [
-              {
-                "id": "064d1d66-14bb-5a18-a4c4-f092218f48f8",
-                "regions": [
-                  {
-                    "x": 0.4188,
-                    "y": 0.0685,
-                    "width": 0.3824,
-                    "height": 0.1163
-                  }
-                ],
-                "lines": [
-                  {
-                    "id": "e1ee4d06-f75a-5c9a-b73a-7ec67239d104",
-                    "source": "Ne t'en fais pas, j'adore la pluie !",
-                    "translation": "Don't worry, I love the rain!",
-                    "notes": [],
-                    "alignment": {
-                      "source": [
-                        "Ne t'en fais pas,",
-                        "j'adore la pluie !"
-                      ],
-                      "translation": [
-                        "Don't worry,",
-                        "I love the rain!"
-                      ],
-                      "links": [
-                        {
-                          "source": [
-                            0
-                          ],
-                          "translation": [
-                            0
-                          ],
-                          "note": "`Faire` = do or make, but `s'en faire` means worry: the pronouns `se` and `en` make a different verb. Here it is a negative command with `tu`: the pronouns `t'` (`te`) and `en` stay before the verb, inside `ne … pas`. Speaking politely or to several people: `ne vous en faites pas`."
-                        },
-                        {
-                          "source": [
-                            1
-                          ],
-                          "translation": [
-                            1
-                          ],
-                          "note": "`Adore → adorer` = love, present, with `je`; stronger than `aimer` for things you enjoy. `La pluie` = rain: French puts `la`/`le` before something liked in general, where English could drop \"the\"."
-                        }
-                      ]
-                    },
-                    "continuesPrevious": false
-                  }
-                ]
-              },
-              {
-                "id": "1ee8b7c7-ef28-52a2-afad-4dae3312d1b3",
-                "regions": [
-                  {
-                    "x": 0.616,
-                    "y": 0.3927,
-                    "width": 0.328,
-                    "height": 0.0667
-                  }
-                ],
-                "lines": [
-                  {
-                    "id": "c8d0c648-8963-51eb-923c-28f57d372116",
-                    "source": "Plouf !",
-                    "translation": "Splash!",
-                    "notes": [
-                      "Gaston jumps into the puddle."
-                    ],
-                    "alignment": {
-                      "source": [
-                        "Plouf !"
-                      ],
-                      "translation": [
-                        "Splash!"
-                      ],
-                      "links": [
-                        {
-                          "source": [
-                            0
-                          ],
-                          "translation": [
-                            0
-                          ],
-                          "note": "`Plouf` is the sound of something dropping into water: French for splash."
-                        }
-                      ]
-                    },
-                    "continuesPrevious": false
-                  }
-                ]
-              },
-              {
-                "id": "78dea224-e7cc-59c6-acae-3f9094e90885",
-                "regions": [
-                  {
-                    "x": 0.4413,
-                    "y": 0.7085,
-                    "width": 0.4374,
-                    "height": 0.1163
-                  }
-                ],
-                "lines": [
-                  {
-                    "id": "f5508299-4148-51f2-97b8-e3b962513692",
-                    "source": "Mais moi, je n'aime pas être mouillée…",
-                    "translation": "But me, I don't like being wet…",
-                    "notes": [
-                      "French often names the speaker twice for contrast: `moi, je` — me, I. English usually uses stress instead: \"But I don't like being wet\"."
-                    ],
-                    "alignment": {
-                      "source": [
-                        "Mais moi,",
-                        "je n'aime pas",
-                        "être mouillée…"
-                      ],
-                      "translation": [
-                        "But me,",
-                        "I don't like",
-                        "being wet…"
-                      ],
-                      "links": [
-                        {
-                          "source": [
-                            0
-                          ],
-                          "translation": [
-                            0
-                          ],
-                          "note": "`Mais` = but. `Moi` = me, the stressed form of \"I\", used to set the speaker against someone else: Gaston loves the rain, Lulu doesn't."
-                        },
-                        {
-                          "source": [
-                            1
-                          ],
-                          "translation": [
-                            1
-                          ],
-                          "note": "`Aime → aimer` = like, present, with `je`. `Ne … pas` around the verb makes it negative; `ne` becomes `n'` before a vowel."
-                        },
-                        {
-                          "source": [
-                            2
-                          ],
-                          "translation": [
-                            2
-                          ],
-                          "note": "`Être` = be, in the infinitive because it follows `aimer`: `j'aime nager` — I like swimming. `Mouillée` is the past participle of `mouiller` (wet), used as an adjective describing Lulu. It takes `-e` because Lulu is female; Gaston would say `mouillé`."
-                        }
-                      ]
-                    },
-                    "continuesPrevious": false
-                  }
-                ]
-              }
-            ]
-          },
-          {
-            "id": "page-3",
-            "entry": "004.jpg",
-            "label": "3",
-            "boxes": [
-              {
-                "id": "e4bbb5b9-a12a-5eec-8f13-46ffb207ab5e",
-                "regions": [
-                  {
-                    "x": 0.475,
-                    "y": 0.0419,
-                    "width": 0.3299,
-                    "height": 0.1163
-                  }
-                ],
-                "lines": [
-                  {
-                    "id": "77deeb47-4141-554e-88d6-455b09ad16a2",
-                    "source": "Tiens, prends cette feuille.",
-                    "translation": "Here, take this leaf.",
-                    "notes": [],
-                    "alignment": {
-                      "source": [
-                        "Tiens,",
-                        "prends cette feuille."
-                      ],
-                      "translation": [
-                        "Here,",
-                        "take this leaf."
-                      ],
-                      "links": [
-                        {
-                          "source": [
-                            0
-                          ],
-                          "translation": [
-                            0
-                          ],
-                          "note": "`Tenir` = hold, but `tiens !` (its `tu` command) is what you say when handing something over: here, here you go. Politely or to several people: `tenez`."
-                        },
-                        {
-                          "source": [
-                            1
-                          ],
-                          "translation": [
-                            1
-                          ],
-                          "note": "`Prends → prendre` = take, a command to `tu`. `Cette` = this, the feminine form (masculine `ce`), because `feuille` is feminine. `Feuille` = leaf; it is also a sheet of paper."
-                        }
-                      ]
-                    },
-                    "continuesPrevious": false
-                  }
-                ]
-              },
-              {
-                "id": "78c66aa2-ccf4-510d-9612-c2fcd305b994",
-                "regions": [
-                  {
-                    "x": 0.5396,
-                    "y": 0.3975,
-                    "width": 0.3808,
-                    "height": 0.1383
-                  }
-                ],
-                "lines": [
-                  {
-                    "id": "251197b7-3675-5b8b-a9e6-1281ff446b85",
-                    "source": "Merci ! C'est le meilleur parapluie du monde !",
-                    "translation": "Thanks! It's the best umbrella in the world!",
-                    "notes": [],
-                    "alignment": {
-                      "source": [
-                        "Merci !",
-                        "C'est le meilleur parapluie",
-                        "du monde !"
-                      ],
-                      "translation": [
-                        "Thanks!",
-                        "It's the best umbrella",
-                        "in the world!"
-                      ],
-                      "links": [
-                        {
-                          "source": [
-                            0
-                          ],
-                          "translation": [
-                            0
-                          ],
-                          "note": "`Merci` = thank you, thanks."
-                        },
-                        {
-                          "source": [
-                            1
-                          ],
-                          "translation": [
-                            1
-                          ],
-                          "note": "`C'est` = it is (`est → être`, with `ce`). `Meilleur` = better; with `le` before it, the best."
-                        },
-                        {
-                          "source": [
-                            2
-                          ],
-                          "translation": [
-                            2
-                          ],
-                          "note": "`Du` = `de` + `le`. After \"the best\", French says `de` (of) where English says \"in\": `le plus grand du monde` — the biggest in the world."
-                        }
-                      ]
-                    },
-                    "continuesPrevious": false
-                  }
-                ]
-              },
-              {
-                "id": "c9a5b357-5ed2-5d46-a69c-b6e0893c37a6",
-                "regions": [
-                  {
-                    "x": 0.1504,
-                    "y": 0.6709,
-                    "width": 0.2792,
-                    "height": 0.1383
-                  }
-                ],
-                "lines": [
-                  {
-                    "id": "b7fa8610-a5e9-5bf3-828b-78b28dd45334",
-                    "source": "De rien. On rentre ensemble ?",
-                    "translation": "You're welcome. Shall we go home together?",
-                    "notes": [
-                      "Gaston is speaking."
-                    ],
-                    "alignment": {
-                      "source": [
-                        "De rien.",
-                        "On rentre ensemble ?"
-                      ],
-                      "translation": [
-                        "You're welcome.",
-                        "Shall we go home together?"
-                      ],
-                      "links": [
-                        {
-                          "source": [
-                            0
-                          ],
-                          "translation": [
-                            0
-                          ],
-                          "note": "`De rien` = literally \"of nothing\": the usual reply to `merci`."
-                        },
-                        {
-                          "source": [
-                            1
-                          ],
-                          "translation": [
-                            1
-                          ],
-                          "note": "`On` = we, in everyday speech. `Rentre → rentrer` = go back, usually home, present. Said with a rising voice, a present-tense statement becomes a suggestion: \"shall we…?\". `Ensemble` = together."
-                        }
-                      ]
-                    },
-                    "continuesPrevious": false
-                  }
-                ]
-              },
-              {
-                "id": "ffab1fd6-6cd3-52ec-b6f4-a7933750ae64",
-                "regions": [
-                  {
-                    "x": 0.6219,
-                    "y": 0.6976,
-                    "width": 0.2762,
-                    "height": 0.0848
-                  }
-                ],
-                "lines": [
-                  {
-                    "id": "8338f7c0-2bc9-5183-b18c-a723036a3dea",
-                    "source": "D'accord !",
-                    "translation": "OK!",
-                    "notes": [
-                      "Lulu answers Gaston's question."
-                    ],
-                    "alignment": {
-                      "source": [
-                        "D'accord !"
-                      ],
-                      "translation": [
-                        "OK!"
-                      ],
-                      "links": [
-                        {
-                          "source": [
-                            0
-                          ],
-                          "translation": [
-                            0
-                          ],
-                          "note": "`D'accord` = agreed, OK, from `accord` (agreement): `je suis d'accord` — I agree."
-                        }
-                      ]
-                    },
-                    "continuesPrevious": false
-                  }
-                ]
-              }
-            ]
-          }
-        ],
-        "chapters": [
-          {
-            "number": 1,
-            "title": "Sans parapluie",
-            "pageId": "page-1"
-          },
-          {
-            "number": 2,
-            "title": "On partage !",
-            "pageId": "page-2"
-          }
-        ]
+                      "alignment": {
+                        "source": [
+                          "D'accord !"
+                        ],
+                        "translation": [
+                          "OK!"
+                        ],
+                        "links": [
+                          {
+                            "source": [
+                              0
+                            ],
+                            "translation": [
+                              0
+                            ],
+                            "note": "`D'accord` = agreed, OK, from `accord` (agreement): `je suis d'accord` — I agree."
+                          }
+                        ]
+                      },
+                      "continuesPrevious": false
+                    }
+                  ]
+                }
+              ]
+            }
+          ],
+          "chapters": [
+            {
+              "number": 1,
+              "title": "Sans parapluie",
+              "pageId": "page-1"
+            },
+            {
+              "number": 2,
+              "title": "On partage !",
+              "pageId": "page-2"
+            }
+          ]
+        }
+      },
+      "version": "state-version-1",
+      "pending": [],
+      "progress": {
+        "pageId": null,
+        "updatedAt": null
       }
     }
   },
   {
-    "request": "GET /api/titles/lulu-example-le-parapluie/comic?journeyCheck=3",
+    "request": "GET /api/titles/lulu-example-le-parapluie?view=study",
     "status": 200,
     "type": "application/json",
+    "headers": {
+      "x-state-version": "state-version-2"
+    },
     "json": {
-      "id": "lulu-example-le-parapluie",
-      "title": "Le parapluie de Lulu",
-      "sourceLanguage": "fr",
-      "translationLanguage": "en",
-      "notesLanguage": "en",
-      "comic": {
-        "readingDirection": "ltr",
-        "reference": {
-          "fingerprint": "v1:7de12dfdfe43bebb28a4907886ff180444276491db4897898162a138bc060199",
-          "sizeBytes": 591580
-        },
-        "pages": [
-          {
-            "id": "cover",
-            "entry": "001.jpg",
-            "boxes": [
-              {
-                "id": "9894e144-47dc-5fb1-99a3-bbf635937377",
-                "regions": [
-                  {
-                    "x": 0.064,
-                    "y": 0.0427,
-                    "width": 0.872,
-                    "height": 0.208
-                  }
-                ],
-                "lines": [
-                  {
-                    "id": "2725ebdc-b7e7-5829-a8c0-c3e718dc447b",
-                    "source": "Le parapluie de Lulu !",
-                    "notes": [],
-                    "continuesPrevious": false
-                  }
-                ]
-              }
-            ]
+      "document": {
+        "id": "lulu-example-le-parapluie",
+        "title": "Le parapluie de Lulu",
+        "sourceLanguage": "fr",
+        "translationLanguage": "en",
+        "notesLanguage": "en",
+        "comic": {
+          "readingDirection": "ltr",
+          "reference": {
+            "fingerprint": "v1:7de12dfdfe43bebb28a4907886ff180444276491db4897898162a138bc060199",
+            "sizeBytes": 591580
           },
-          {
-            "id": "page-1",
-            "entry": "002.jpg",
-            "label": "1",
-            "boxes": [
-              {
-                "id": "6655220a-8dba-53e6-bdf0-b0fdf1aee8bb",
-                "regions": [
-                  {
-                    "x": 0.5036,
-                    "y": 0.1443,
-                    "width": 0.3927,
-                    "height": 0.0848
-                  }
-                ],
-                "lines": [
-                  {
-                    "id": "d3fd5d70-ac7a-5c8d-aa87-2a85d6514f09",
-                    "source": "Oh non, il pleut !",
-                    "translation": "Oh no, it's raining!",
-                    "notes": [],
-                    "alignment": {
-                      "source": [
-                        "Oh non,",
-                        "il pleut !"
+          "pages": [
+            {
+              "id": "cover",
+              "entry": "001.jpg",
+              "boxes": [
+                {
+                  "id": "9894e144-47dc-5fb1-99a3-bbf635937377",
+                  "regions": [
+                    {
+                      "x": 0.064,
+                      "y": 0.0427,
+                      "width": 0.872,
+                      "height": 0.208
+                    }
+                  ],
+                  "lines": [
+                    {
+                      "id": "2725ebdc-b7e7-5829-a8c0-c3e718dc447b",
+                      "source": "Le parapluie de Lulu !",
+                      "notes": [],
+                      "continuesPrevious": false
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "page-1",
+              "entry": "002.jpg",
+              "label": "1",
+              "boxes": [
+                {
+                  "id": "6655220a-8dba-53e6-bdf0-b0fdf1aee8bb",
+                  "regions": [
+                    {
+                      "x": 0.5036,
+                      "y": 0.1443,
+                      "width": 0.3927,
+                      "height": 0.0848
+                    }
+                  ],
+                  "lines": [
+                    {
+                      "id": "d3fd5d70-ac7a-5c8d-aa87-2a85d6514f09",
+                      "source": "Oh non, il pleut !",
+                      "translation": "Oh no, it's raining!",
+                      "notes": [],
+                      "alignment": {
+                        "source": [
+                          "Oh non,",
+                          "il pleut !"
+                        ],
+                        "translation": [
+                          "Oh no,",
+                          "it's raining!"
+                        ],
+                        "links": [
+                          {
+                            "source": [
+                              0
+                            ],
+                            "translation": [
+                              0
+                            ],
+                            "note": "`Non` = no."
+                          },
+                          {
+                            "source": [
+                              1
+                            ],
+                            "translation": [
+                              1
+                            ],
+                            "note": "`Pleut → pleuvoir` = rain, present tense. Weather verbs take `il` with no real subject, like English \"it\": `il neige` — it's snowing. The French present covers both \"it rains\" and \"it's raining\"."
+                          }
+                        ]
+                      },
+                      "continuesPrevious": false
+                    }
+                  ]
+                },
+                {
+                  "id": "5885d39f-d6fe-5b36-bd37-7cca0d1182e3",
+                  "regions": [
+                    {
+                      "x": 0.2884,
+                      "y": 0.3819,
+                      "width": 0.3633,
+                      "height": 0.1163
+                    }
+                  ],
+                  "lines": [
+                    {
+                      "id": "a3ecf2c8-9183-5d5a-bd8f-5f47d327e4b7",
+                      "source": "Salut, Lulu ! Tu as l'air triste.",
+                      "translation": "Hi, Lulu! You look sad.",
+                      "notes": [
+                        "The frog, Gaston, is speaking."
                       ],
-                      "translation": [
-                        "Oh no,",
-                        "it's raining!"
+                      "alignment": {
+                        "source": [
+                          "Salut, Lulu !",
+                          "Tu as l'air triste."
+                        ],
+                        "translation": [
+                          "Hi, Lulu!",
+                          "You look sad."
+                        ],
+                        "links": [
+                          {
+                            "source": [
+                              0
+                            ],
+                            "translation": [
+                              0
+                            ],
+                            "note": "`Salut` = hi, an informal greeting between friends."
+                          },
+                          {
+                            "source": [
+                              1
+                            ],
+                            "translation": [
+                              1
+                            ],
+                            "note": "`Avoir l'air` + adjective = look, seem: literally \"have the air\" of being sad. `As → avoir`, present, with `tu`, the informal \"you\". `Triste` = sad."
+                          }
+                        ]
+                      },
+                      "continuesPrevious": false
+                    }
+                  ]
+                },
+                {
+                  "id": "958fa22b-fd56-5ae6-9384-5efb22e00f15",
+                  "regions": [
+                    {
+                      "x": 0.4275,
+                      "y": 0.7019,
+                      "width": 0.365,
+                      "height": 0.1163
+                    }
+                  ],
+                  "lines": [
+                    {
+                      "id": "2b6c07b4-f130-5d1d-8b1b-ce375245ad5d",
+                      "source": "J'ai oublié mon parapluie.",
+                      "translation": "I forgot my umbrella.",
+                      "notes": [],
+                      "alignment": {
+                        "source": [
+                          "J'ai oublié",
+                          "mon parapluie."
+                        ],
+                        "translation": [
+                          "I forgot",
+                          "my umbrella."
+                        ],
+                        "links": [
+                          {
+                            "source": [
+                              0
+                            ],
+                            "translation": [
+                              0
+                            ],
+                            "note": "Passé composé, the everyday past tense for a finished action: `ai → avoir` (present, with `je`) + the past participle `oublié → oublier` = forget. English says \"I forgot\" or \"I've forgotten\"."
+                          },
+                          {
+                            "source": [
+                              1
+                            ],
+                            "translation": [
+                              1
+                            ],
+                            "note": "`Mon` = my, before a masculine noun. `Parapluie` = umbrella, a masculine noun: `para-` (against, as in `parasol`) + `pluie` (rain)."
+                          }
+                        ]
+                      },
+                      "continuesPrevious": false
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "page-2",
+              "entry": "003.jpg",
+              "label": "2",
+              "boxes": [
+                {
+                  "id": "064d1d66-14bb-5a18-a4c4-f092218f48f8",
+                  "regions": [
+                    {
+                      "x": 0.4188,
+                      "y": 0.0685,
+                      "width": 0.3824,
+                      "height": 0.1163
+                    }
+                  ],
+                  "lines": [
+                    {
+                      "id": "e1ee4d06-f75a-5c9a-b73a-7ec67239d104",
+                      "source": "Ne t'en fais pas, j'adore la pluie !",
+                      "translation": "Don't worry, I love the rain!",
+                      "notes": [],
+                      "alignment": {
+                        "source": [
+                          "Ne t'en fais pas,",
+                          "j'adore la pluie !"
+                        ],
+                        "translation": [
+                          "Don't worry,",
+                          "I love the rain!"
+                        ],
+                        "links": [
+                          {
+                            "source": [
+                              0
+                            ],
+                            "translation": [
+                              0
+                            ],
+                            "note": "`Faire` = do or make, but `s'en faire` means worry: the pronouns `se` and `en` make a different verb. Here it is a negative command with `tu`: the pronouns `t'` (`te`) and `en` stay before the verb, inside `ne … pas`. Speaking politely or to several people: `ne vous en faites pas`."
+                          },
+                          {
+                            "source": [
+                              1
+                            ],
+                            "translation": [
+                              1
+                            ],
+                            "note": "`Adore → adorer` = love, present, with `je`; stronger than `aimer` for things you enjoy. `La pluie` = rain: French puts `la`/`le` before something liked in general, where English could drop \"the\"."
+                          }
+                        ]
+                      },
+                      "continuesPrevious": false
+                    }
+                  ]
+                },
+                {
+                  "id": "1ee8b7c7-ef28-52a2-afad-4dae3312d1b3",
+                  "regions": [
+                    {
+                      "x": 0.616,
+                      "y": 0.3927,
+                      "width": 0.328,
+                      "height": 0.0667
+                    }
+                  ],
+                  "lines": [
+                    {
+                      "id": "c8d0c648-8963-51eb-923c-28f57d372116",
+                      "source": "Plouf !",
+                      "translation": "Splash!",
+                      "notes": [
+                        "Gaston jumps into the puddle."
                       ],
-                      "links": [
-                        {
-                          "source": [
-                            0
-                          ],
-                          "translation": [
-                            0
-                          ],
-                          "note": "`Non` = no."
-                        },
-                        {
-                          "source": [
-                            1
-                          ],
-                          "translation": [
-                            1
-                          ],
-                          "note": "`Pleut → pleuvoir` = rain, present tense. Weather verbs take `il` with no real subject, like English \"it\": `il neige` — it's snowing. The French present covers both \"it rains\" and \"it's raining\"."
-                        }
-                      ]
-                    },
-                    "continuesPrevious": false
-                  }
-                ]
-              },
-              {
-                "id": "5885d39f-d6fe-5b36-bd37-7cca0d1182e3",
-                "regions": [
-                  {
-                    "x": 0.2884,
-                    "y": 0.3819,
-                    "width": 0.3633,
-                    "height": 0.1163
-                  }
-                ],
-                "lines": [
-                  {
-                    "id": "a3ecf2c8-9183-5d5a-bd8f-5f47d327e4b7",
-                    "source": "Salut, Lulu ! Tu as l'air triste.",
-                    "translation": "Hi, Lulu! You look sad.",
-                    "notes": [
-                      "The frog, Gaston, is speaking."
-                    ],
-                    "alignment": {
-                      "source": [
-                        "Salut, Lulu !",
-                        "Tu as l'air triste."
+                      "alignment": {
+                        "source": [
+                          "Plouf !"
+                        ],
+                        "translation": [
+                          "Splash!"
+                        ],
+                        "links": [
+                          {
+                            "source": [
+                              0
+                            ],
+                            "translation": [
+                              0
+                            ],
+                            "note": "`Plouf` is the sound of something dropping into water: French for splash."
+                          }
+                        ]
+                      },
+                      "continuesPrevious": false
+                    }
+                  ]
+                },
+                {
+                  "id": "78dea224-e7cc-59c6-acae-3f9094e90885",
+                  "regions": [
+                    {
+                      "x": 0.4413,
+                      "y": 0.7085,
+                      "width": 0.4374,
+                      "height": 0.1163
+                    }
+                  ],
+                  "lines": [
+                    {
+                      "id": "f5508299-4148-51f2-97b8-e3b962513692",
+                      "source": "Mais moi, je n'aime pas être mouillée…",
+                      "translation": "But me, I don't like being wet…",
+                      "notes": [
+                        "French often names the speaker twice for contrast: `moi, je` — me, I. English usually uses stress instead: \"But I don't like being wet\"."
                       ],
-                      "translation": [
-                        "Hi, Lulu!",
-                        "You look sad."
+                      "alignment": {
+                        "source": [
+                          "Mais moi,",
+                          "je n'aime pas",
+                          "être mouillée…"
+                        ],
+                        "translation": [
+                          "But me,",
+                          "I don't like",
+                          "being wet…"
+                        ],
+                        "links": [
+                          {
+                            "source": [
+                              0
+                            ],
+                            "translation": [
+                              0
+                            ],
+                            "note": "`Mais` = but. `Moi` = me, the stressed form of \"I\", used to set the speaker against someone else: Gaston loves the rain, Lulu doesn't."
+                          },
+                          {
+                            "source": [
+                              1
+                            ],
+                            "translation": [
+                              1
+                            ],
+                            "note": "`Aime → aimer` = like, present, with `je`. `Ne … pas` around the verb makes it negative; `ne` becomes `n'` before a vowel."
+                          },
+                          {
+                            "source": [
+                              2
+                            ],
+                            "translation": [
+                              2
+                            ],
+                            "note": "`Être` = be, in the infinitive because it follows `aimer`: `j'aime nager` — I like swimming. `Mouillée` is the past participle of `mouiller` (wet), used as an adjective describing Lulu. It takes `-e` because Lulu is female; Gaston would say `mouillé`."
+                          }
+                        ]
+                      },
+                      "continuesPrevious": false
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "id": "page-3",
+              "entry": "004.jpg",
+              "label": "3",
+              "boxes": [
+                {
+                  "id": "e4bbb5b9-a12a-5eec-8f13-46ffb207ab5e",
+                  "regions": [
+                    {
+                      "x": 0.475,
+                      "y": 0.0419,
+                      "width": 0.3299,
+                      "height": 0.1163
+                    }
+                  ],
+                  "lines": [
+                    {
+                      "id": "77deeb47-4141-554e-88d6-455b09ad16a2",
+                      "source": "Tiens, prends cette feuille.",
+                      "translation": "Here, take this leaf.",
+                      "notes": [],
+                      "alignment": {
+                        "source": [
+                          "Tiens,",
+                          "prends cette feuille."
+                        ],
+                        "translation": [
+                          "Here,",
+                          "take this leaf."
+                        ],
+                        "links": [
+                          {
+                            "source": [
+                              0
+                            ],
+                            "translation": [
+                              0
+                            ],
+                            "note": "`Tenir` = hold, but `tiens !` (its `tu` command) is what you say when handing something over: here, here you go. Politely or to several people: `tenez`."
+                          },
+                          {
+                            "source": [
+                              1
+                            ],
+                            "translation": [
+                              1
+                            ],
+                            "note": "`Prends → prendre` = take, a command to `tu`. `Cette` = this, the feminine form (masculine `ce`), because `feuille` is feminine. `Feuille` = leaf; it is also a sheet of paper."
+                          }
+                        ]
+                      },
+                      "continuesPrevious": false
+                    }
+                  ]
+                },
+                {
+                  "id": "78c66aa2-ccf4-510d-9612-c2fcd305b994",
+                  "regions": [
+                    {
+                      "x": 0.5396,
+                      "y": 0.3975,
+                      "width": 0.3808,
+                      "height": 0.1383
+                    }
+                  ],
+                  "lines": [
+                    {
+                      "id": "251197b7-3675-5b8b-a9e6-1281ff446b85",
+                      "source": "Merci ! C'est le meilleur parapluie du monde !",
+                      "translation": "Thanks! It's the best umbrella in the world!",
+                      "notes": [],
+                      "alignment": {
+                        "source": [
+                          "Merci !",
+                          "C'est le meilleur parapluie",
+                          "du monde !"
+                        ],
+                        "translation": [
+                          "Thanks!",
+                          "It's the best umbrella",
+                          "in the world!"
+                        ],
+                        "links": [
+                          {
+                            "source": [
+                              0
+                            ],
+                            "translation": [
+                              0
+                            ],
+                            "note": "`Merci` = thank you, thanks."
+                          },
+                          {
+                            "source": [
+                              1
+                            ],
+                            "translation": [
+                              1
+                            ],
+                            "note": "`C'est` = it is (`est → être`, with `ce`). `Meilleur` = better; with `le` before it, the best."
+                          },
+                          {
+                            "source": [
+                              2
+                            ],
+                            "translation": [
+                              2
+                            ],
+                            "note": "`Du` = `de` + `le`. After \"the best\", French says `de` (of) where English says \"in\": `le plus grand du monde` — the biggest in the world."
+                          }
+                        ]
+                      },
+                      "continuesPrevious": false
+                    }
+                  ]
+                },
+                {
+                  "id": "c9a5b357-5ed2-5d46-a69c-b6e0893c37a6",
+                  "regions": [
+                    {
+                      "x": 0.1504,
+                      "y": 0.6709,
+                      "width": 0.2792,
+                      "height": 0.1383
+                    }
+                  ],
+                  "lines": [
+                    {
+                      "id": "b7fa8610-a5e9-5bf3-828b-78b28dd45334",
+                      "source": "De rien. On rentre ensemble ?",
+                      "translation": "You're welcome. Shall we go home together?",
+                      "notes": [
+                        "Gaston is speaking."
                       ],
-                      "links": [
-                        {
-                          "source": [
-                            0
-                          ],
-                          "translation": [
-                            0
-                          ],
-                          "note": "`Salut` = hi, an informal greeting between friends."
-                        },
-                        {
-                          "source": [
-                            1
-                          ],
-                          "translation": [
-                            1
-                          ],
-                          "note": "`Avoir l'air` + adjective = look, seem: literally \"have the air\" of being sad. `As → avoir`, present, with `tu`, the informal \"you\". `Triste` = sad."
-                        }
-                      ]
-                    },
-                    "continuesPrevious": false
-                  }
-                ]
-              },
-              {
-                "id": "958fa22b-fd56-5ae6-9384-5efb22e00f15",
-                "regions": [
-                  {
-                    "x": 0.4275,
-                    "y": 0.7019,
-                    "width": 0.365,
-                    "height": 0.1163
-                  }
-                ],
-                "lines": [
-                  {
-                    "id": "2b6c07b4-f130-5d1d-8b1b-ce375245ad5d",
-                    "source": "J'ai oublié mon parapluie.",
-                    "translation": "I forgot my umbrella.",
-                    "notes": [],
-                    "alignment": {
-                      "source": [
-                        "J'ai oublié",
-                        "mon parapluie."
+                      "alignment": {
+                        "source": [
+                          "De rien.",
+                          "On rentre ensemble ?"
+                        ],
+                        "translation": [
+                          "You're welcome.",
+                          "Shall we go home together?"
+                        ],
+                        "links": [
+                          {
+                            "source": [
+                              0
+                            ],
+                            "translation": [
+                              0
+                            ],
+                            "note": "`De rien` = literally \"of nothing\": the usual reply to `merci`."
+                          },
+                          {
+                            "source": [
+                              1
+                            ],
+                            "translation": [
+                              1
+                            ],
+                            "note": "`On` = we, in everyday speech. `Rentre → rentrer` = go back, usually home, present. Said with a rising voice, a present-tense statement becomes a suggestion: \"shall we…?\". `Ensemble` = together."
+                          }
+                        ]
+                      },
+                      "continuesPrevious": false
+                    }
+                  ]
+                },
+                {
+                  "id": "ffab1fd6-6cd3-52ec-b6f4-a7933750ae64",
+                  "regions": [
+                    {
+                      "x": 0.6219,
+                      "y": 0.6976,
+                      "width": 0.2762,
+                      "height": 0.0848
+                    }
+                  ],
+                  "lines": [
+                    {
+                      "id": "8338f7c0-2bc9-5183-b18c-a723036a3dea",
+                      "source": "D'accord !",
+                      "translation": "OK!",
+                      "notes": [
+                        "Lulu answers Gaston's question."
                       ],
-                      "translation": [
-                        "I forgot",
-                        "my umbrella."
-                      ],
-                      "links": [
-                        {
-                          "source": [
-                            0
-                          ],
-                          "translation": [
-                            0
-                          ],
-                          "note": "Passé composé, the everyday past tense for a finished action: `ai → avoir` (present, with `je`) + the past participle `oublié → oublier` = forget. English says \"I forgot\" or \"I've forgotten\"."
-                        },
-                        {
-                          "source": [
-                            1
-                          ],
-                          "translation": [
-                            1
-                          ],
-                          "note": "`Mon` = my, before a masculine noun. `Parapluie` = umbrella, a masculine noun: `para-` (against, as in `parasol`) + `pluie` (rain)."
-                        }
-                      ]
-                    },
-                    "continuesPrevious": false
-                  }
-                ]
-              }
-            ]
-          },
-          {
-            "id": "page-2",
-            "entry": "003.jpg",
-            "label": "2",
-            "boxes": [
-              {
-                "id": "064d1d66-14bb-5a18-a4c4-f092218f48f8",
-                "regions": [
-                  {
-                    "x": 0.4188,
-                    "y": 0.0685,
-                    "width": 0.3824,
-                    "height": 0.1163
-                  }
-                ],
-                "lines": [
-                  {
-                    "id": "e1ee4d06-f75a-5c9a-b73a-7ec67239d104",
-                    "source": "Ne t'en fais pas, j'adore la pluie !",
-                    "translation": "Don't worry, I love the rain!",
-                    "notes": [],
-                    "alignment": {
-                      "source": [
-                        "Ne t'en fais pas,",
-                        "j'adore la pluie !"
-                      ],
-                      "translation": [
-                        "Don't worry,",
-                        "I love the rain!"
-                      ],
-                      "links": [
-                        {
-                          "source": [
-                            0
-                          ],
-                          "translation": [
-                            0
-                          ],
-                          "note": "`Faire` = do or make, but `s'en faire` means worry: the pronouns `se` and `en` make a different verb. Here it is a negative command with `tu`: the pronouns `t'` (`te`) and `en` stay before the verb, inside `ne … pas`. Speaking politely or to several people: `ne vous en faites pas`."
-                        },
-                        {
-                          "source": [
-                            1
-                          ],
-                          "translation": [
-                            1
-                          ],
-                          "note": "`Adore → adorer` = love, present, with `je`; stronger than `aimer` for things you enjoy. `La pluie` = rain: French puts `la`/`le` before something liked in general, where English could drop \"the\"."
-                        }
-                      ]
-                    },
-                    "continuesPrevious": false
-                  }
-                ]
-              },
-              {
-                "id": "1ee8b7c7-ef28-52a2-afad-4dae3312d1b3",
-                "regions": [
-                  {
-                    "x": 0.616,
-                    "y": 0.3927,
-                    "width": 0.328,
-                    "height": 0.0667
-                  }
-                ],
-                "lines": [
-                  {
-                    "id": "c8d0c648-8963-51eb-923c-28f57d372116",
-                    "source": "Plouf !",
-                    "translation": "Splash!",
-                    "notes": [
-                      "Gaston jumps into the puddle."
-                    ],
-                    "alignment": {
-                      "source": [
-                        "Plouf !"
-                      ],
-                      "translation": [
-                        "Splash!"
-                      ],
-                      "links": [
-                        {
-                          "source": [
-                            0
-                          ],
-                          "translation": [
-                            0
-                          ],
-                          "note": "`Plouf` is the sound of something dropping into water: French for splash."
-                        }
-                      ]
-                    },
-                    "continuesPrevious": false
-                  }
-                ]
-              },
-              {
-                "id": "78dea224-e7cc-59c6-acae-3f9094e90885",
-                "regions": [
-                  {
-                    "x": 0.4413,
-                    "y": 0.7085,
-                    "width": 0.4374,
-                    "height": 0.1163
-                  }
-                ],
-                "lines": [
-                  {
-                    "id": "f5508299-4148-51f2-97b8-e3b962513692",
-                    "source": "Mais moi, je n'aime pas être mouillée…",
-                    "translation": "But me, I don't like being wet…",
-                    "notes": [
-                      "French often names the speaker twice for contrast: `moi, je` — me, I. English usually uses stress instead: \"But I don't like being wet\"."
-                    ],
-                    "alignment": {
-                      "source": [
-                        "Mais moi,",
-                        "je n'aime pas",
-                        "être mouillée…"
-                      ],
-                      "translation": [
-                        "But me,",
-                        "I don't like",
-                        "being wet…"
-                      ],
-                      "links": [
-                        {
-                          "source": [
-                            0
-                          ],
-                          "translation": [
-                            0
-                          ],
-                          "note": "`Mais` = but. `Moi` = me, the stressed form of \"I\", used to set the speaker against someone else: Gaston loves the rain, Lulu doesn't."
-                        },
-                        {
-                          "source": [
-                            1
-                          ],
-                          "translation": [
-                            1
-                          ],
-                          "note": "`Aime → aimer` = like, present, with `je`. `Ne … pas` around the verb makes it negative; `ne` becomes `n'` before a vowel."
-                        },
-                        {
-                          "source": [
-                            2
-                          ],
-                          "translation": [
-                            2
-                          ],
-                          "note": "`Être` = be, in the infinitive because it follows `aimer`: `j'aime nager` — I like swimming. `Mouillée` is the past participle of `mouiller` (wet), used as an adjective describing Lulu. It takes `-e` because Lulu is female; Gaston would say `mouillé`."
-                        }
-                      ]
-                    },
-                    "continuesPrevious": false
-                  }
-                ]
-              }
-            ]
-          },
-          {
-            "id": "page-3",
-            "entry": "004.jpg",
-            "label": "3",
-            "boxes": [
-              {
-                "id": "e4bbb5b9-a12a-5eec-8f13-46ffb207ab5e",
-                "regions": [
-                  {
-                    "x": 0.475,
-                    "y": 0.0419,
-                    "width": 0.3299,
-                    "height": 0.1163
-                  }
-                ],
-                "lines": [
-                  {
-                    "id": "77deeb47-4141-554e-88d6-455b09ad16a2",
-                    "source": "Tiens, prends cette feuille.",
-                    "translation": "Here, take this leaf.",
-                    "notes": [],
-                    "alignment": {
-                      "source": [
-                        "Tiens,",
-                        "prends cette feuille."
-                      ],
-                      "translation": [
-                        "Here,",
-                        "take this leaf."
-                      ],
-                      "links": [
-                        {
-                          "source": [
-                            0
-                          ],
-                          "translation": [
-                            0
-                          ],
-                          "note": "`Tenir` = hold, but `tiens !` (its `tu` command) is what you say when handing something over: here, here you go. Politely or to several people: `tenez`."
-                        },
-                        {
-                          "source": [
-                            1
-                          ],
-                          "translation": [
-                            1
-                          ],
-                          "note": "`Prends → prendre` = take, a command to `tu`. `Cette` = this, the feminine form (masculine `ce`), because `feuille` is feminine. `Feuille` = leaf; it is also a sheet of paper."
-                        }
-                      ]
-                    },
-                    "continuesPrevious": false
-                  }
-                ]
-              },
-              {
-                "id": "78c66aa2-ccf4-510d-9612-c2fcd305b994",
-                "regions": [
-                  {
-                    "x": 0.5396,
-                    "y": 0.3975,
-                    "width": 0.3808,
-                    "height": 0.1383
-                  }
-                ],
-                "lines": [
-                  {
-                    "id": "251197b7-3675-5b8b-a9e6-1281ff446b85",
-                    "source": "Merci ! C'est le meilleur parapluie du monde !",
-                    "translation": "Thanks! It's the best umbrella in the world!",
-                    "notes": [],
-                    "alignment": {
-                      "source": [
-                        "Merci !",
-                        "C'est le meilleur parapluie",
-                        "du monde !"
-                      ],
-                      "translation": [
-                        "Thanks!",
-                        "It's the best umbrella",
-                        "in the world!"
-                      ],
-                      "links": [
-                        {
-                          "source": [
-                            0
-                          ],
-                          "translation": [
-                            0
-                          ],
-                          "note": "`Merci` = thank you, thanks."
-                        },
-                        {
-                          "source": [
-                            1
-                          ],
-                          "translation": [
-                            1
-                          ],
-                          "note": "`C'est` = it is (`est → être`, with `ce`). `Meilleur` = better; with `le` before it, the best."
-                        },
-                        {
-                          "source": [
-                            2
-                          ],
-                          "translation": [
-                            2
-                          ],
-                          "note": "`Du` = `de` + `le`. After \"the best\", French says `de` (of) where English says \"in\": `le plus grand du monde` — the biggest in the world."
-                        }
-                      ]
-                    },
-                    "continuesPrevious": false
-                  }
-                ]
-              },
-              {
-                "id": "c9a5b357-5ed2-5d46-a69c-b6e0893c37a6",
-                "regions": [
-                  {
-                    "x": 0.1504,
-                    "y": 0.6709,
-                    "width": 0.2792,
-                    "height": 0.1383
-                  }
-                ],
-                "lines": [
-                  {
-                    "id": "b7fa8610-a5e9-5bf3-828b-78b28dd45334",
-                    "source": "De rien. On rentre ensemble ?",
-                    "translation": "You're welcome. Shall we go home together?",
-                    "notes": [
-                      "Gaston is speaking."
-                    ],
-                    "alignment": {
-                      "source": [
-                        "De rien.",
-                        "On rentre ensemble ?"
-                      ],
-                      "translation": [
-                        "You're welcome.",
-                        "Shall we go home together?"
-                      ],
-                      "links": [
-                        {
-                          "source": [
-                            0
-                          ],
-                          "translation": [
-                            0
-                          ],
-                          "note": "`De rien` = literally \"of nothing\": the usual reply to `merci`."
-                        },
-                        {
-                          "source": [
-                            1
-                          ],
-                          "translation": [
-                            1
-                          ],
-                          "note": "`On` = we, in everyday speech. `Rentre → rentrer` = go back, usually home, present. Said with a rising voice, a present-tense statement becomes a suggestion: \"shall we…?\". `Ensemble` = together."
-                        }
-                      ]
-                    },
-                    "continuesPrevious": false
-                  }
-                ]
-              },
-              {
-                "id": "ffab1fd6-6cd3-52ec-b6f4-a7933750ae64",
-                "regions": [
-                  {
-                    "x": 0.6219,
-                    "y": 0.6976,
-                    "width": 0.2762,
-                    "height": 0.0848
-                  }
-                ],
-                "lines": [
-                  {
-                    "id": "8338f7c0-2bc9-5183-b18c-a723036a3dea",
-                    "source": "D'accord !",
-                    "translation": "OK!",
-                    "notes": [
-                      "Lulu answers Gaston's question."
-                    ],
-                    "alignment": {
-                      "source": [
-                        "D'accord !"
-                      ],
-                      "translation": [
-                        "OK!"
-                      ],
-                      "links": [
-                        {
-                          "source": [
-                            0
-                          ],
-                          "translation": [
-                            0
-                          ],
-                          "note": "`D'accord` = agreed, OK, from `accord` (agreement): `je suis d'accord` — I agree."
-                        }
-                      ]
-                    },
-                    "continuesPrevious": false
-                  }
-                ]
-              }
-            ]
+                      "alignment": {
+                        "source": [
+                          "D'accord !"
+                        ],
+                        "translation": [
+                          "OK!"
+                        ],
+                        "links": [
+                          {
+                            "source": [
+                              0
+                            ],
+                            "translation": [
+                              0
+                            ],
+                            "note": "`D'accord` = agreed, OK, from `accord` (agreement): `je suis d'accord` — I agree."
+                          }
+                        ]
+                      },
+                      "continuesPrevious": false
+                    }
+                  ]
+                }
+              ]
+            }
+          ],
+          "chapters": [
+            {
+              "number": 1,
+              "title": "Sans parapluie",
+              "pageId": "page-1"
+            },
+            {
+              "number": 2,
+              "title": "On partage !",
+              "pageId": "page-2"
+            }
+          ]
+        }
+      },
+      "version": "state-version-2",
+      "pending": [
+        {
+          "sequence": 1,
+          "timestamp": "2026-01-01T00:00:00Z",
+          "kind": "edit",
+          "cueIds": [
+            "2725ebdc-b7e7-5829-a8c0-c3e718dc447b"
+          ],
+          "suggestion": null,
+          "reviewedAt": null,
+          "outcome": null,
+          "batch": null,
+          "state": "pending",
+          "command": {
+            "type": "edit-comic-text",
+            "lineId": "2725ebdc-b7e7-5829-a8c0-c3e718dc447b",
+            "edit": {
+              "expectedSource": "Le parapluie de Lulu",
+              "source": "Le parapluie de Lulu !"
+            }
           }
-        ],
-        "chapters": [
-          {
-            "number": 1,
-            "title": "Sans parapluie",
-            "pageId": "page-1"
-          },
-          {
-            "number": 2,
-            "title": "On partage !",
-            "pageId": "page-2"
-          }
-        ]
+        }
+      ],
+      "progress": {
+        "pageId": "cover",
+        "updatedAt": "2026-01-01T00:00:00Z"
       }
     }
   },
@@ -2406,16 +2456,7 @@
     "blob": "88a5242cb71ac778.jpg"
   },
   {
-    "request": "GET /api/titles/lulu-example-le-parapluie/comic/progress",
-    "status": 200,
-    "type": "application/json",
-    "json": {
-      "pageId": null,
-      "updatedAt": null
-    }
-  },
-  {
-    "request": "GET /api/titles/lulu-example-le-parapluie/comic/progress",
+    "request": "GET /api/titles/lulu-example-le-parapluie/progress?journeyCheck=1",
     "status": 200,
     "type": "application/json",
     "json": {
@@ -2424,7 +2465,7 @@
     }
   },
   {
-    "request": "GET /api/titles/lulu-example-le-parapluie/comic/progress?journeyCheck=1",
+    "request": "GET /api/titles/lulu-example-le-parapluie/progress?journeyCheck=4",
     "status": 200,
     "type": "application/json",
     "json": {
@@ -2433,18 +2474,12 @@
     }
   },
   {
-    "request": "GET /api/titles/lulu-example-le-parapluie/comic/progress?journeyCheck=4",
+    "request": "POST /api/titles/lulu-example-le-parapluie/commands",
     "status": 200,
     "type": "application/json",
-    "json": {
-      "pageId": "cover",
-      "updatedAt": "2026-01-01T00:00:00Z"
-    }
-  },
-  {
-    "request": "PUT /api/titles/lulu-example-le-parapluie/comic/lines/2725ebdc-b7e7-5829-a8c0-c3e718dc447b",
-    "status": 200,
-    "type": "application/json",
+    "headers": {
+      "x-state-version": "state-version-2"
+    },
     "json": {
       "id": "lulu-example-le-parapluie",
       "title": "Le parapluie de Lulu",
@@ -3030,12 +3065,22 @@
       }
     },
     "body": {
-      "expectedSource": "Le parapluie de Lulu",
-      "source": "Le parapluie de Lulu !"
+      "requestId": "<request.requestId>",
+      "expectedVersion": "state-version-1",
+      "commands": [
+        {
+          "type": "edit-comic-text",
+          "lineId": "2725ebdc-b7e7-5829-a8c0-c3e718dc447b",
+          "edit": {
+            "expectedSource": "Le parapluie de Lulu",
+            "source": "Le parapluie de Lulu !"
+          }
+        }
+      ]
     }
   },
   {
-    "request": "PUT /api/titles/lulu-example-le-parapluie/comic/progress",
+    "request": "PUT /api/titles/lulu-example-le-parapluie/progress",
     "status": 200,
     "type": "application/json",
     "json": {

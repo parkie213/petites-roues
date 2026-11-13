@@ -39,11 +39,16 @@ public class ComicService {
    */
   public StudyDocument open(String id) throws IOException {
     var comic = document(id);
+    validateArchive(id, comic);
+    return comic;
+  }
+
+  /** Validates the archive against the captured manifest without loading a second document. */
+  public void validateArchive(String id, StudyDocument comic) throws IOException {
     var entries = reader.entries(archive(id));
     for (var page : comic.comic().pages())
       if (!entries.contains(page.entry()))
         throw new IllegalArgumentException("CBZ page is missing: " + page.entry());
-    return comic;
   }
 
   /** Finds an immutable page identity in manifest order; it is not an archive path. */

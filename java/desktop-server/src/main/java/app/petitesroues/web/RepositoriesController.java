@@ -11,14 +11,8 @@ import java.util.Map;
 import org.springframework.web.bind.annotation.*;
 
 /**
- * Exposes content-root registration, listing, refresh and removal, plus the system file dialog used
- * to choose repository folders and files to import. Add and Refresh delegate recursive discovery
- * and index updates to {@link ContentRepositoryService}; ordinary listing reads the index without
- * discovery.
- *
- * <p>Mutations share the {@link LibraryUpdateService} monitor with player edits so a title cannot
- * be replaced or unregistered during an edit's read/change/save operation. Removing a registration
- * leaves content files on disk.
+ * Lists and removes registrations and opens local file dialogs. Add and Refresh are accepted only
+ * through the discovery job API. Removal keeps files on disk and coordinates with pending edits.
  */
 @RestController
 @RequestMapping("/api")
@@ -42,29 +36,6 @@ public class RepositoriesController {
   @GetMapping("/repositories")
   public List<ContentRepository> list() {
     return repositories.list();
-  }
-
-  @PostMapping("/repositories")
-  public ContentRepository add(@RequestBody ContentRepositoryService.Add request)
-      throws IOException {
-    synchronized (updates) {
-      return repositories.add(request);
-    }
-  }
-
-  /** Refreshes every registered folder: the library's one Refresh button. */
-  @PostMapping("/repositories/refresh")
-  public List<ContentRepository> refreshAll() throws IOException {
-    synchronized (updates) {
-      return repositories.refreshAll();
-    }
-  }
-
-  @PostMapping("/repositories/{id}/refresh")
-  public ContentRepository refresh(@PathVariable String id) throws IOException {
-    synchronized (updates) {
-      return repositories.refresh(id);
-    }
   }
 
   @DeleteMapping("/repositories/{id}")

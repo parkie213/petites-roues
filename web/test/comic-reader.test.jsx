@@ -99,7 +99,13 @@ function open({
     if (options.method) return write(url, options);
     if (read) return read(url, options);
     return Response.json(
-      url.endsWith("/progress") ? { pageId: resume } : comic(),
+      {
+        document: comic(),
+        version: "reader-state",
+        pending: [],
+        progress: { pageId: resume },
+      },
+      { headers: { "X-State-Version": "reader-state" } },
     );
   });
   vi.stubGlobal("fetch", fetcher);
@@ -133,7 +139,7 @@ test("loads the saved page but records progress only after the page image loads"
   await userEvent.click(screen.getByRole("button", { name: "Image loaded" }));
   await waitFor(() =>
     expect(fetcher).toHaveBeenCalledWith(
-      "/api/titles/comic/comic/progress",
+      "/api/titles/comic/progress",
       expect.objectContaining({
         method: "PUT",
         body: JSON.stringify({ pageId: "p2" }),
@@ -212,7 +218,7 @@ test("shows progress failures with a retry for the displayed page", async () => 
   );
 });
 
-test("load failures explain the problem and unmount aborts both initial requests", async () => {
+test("load failures explain the problem and unmount aborts the coherent opening request", async () => {
   const { fetcher, unmount } = open({
     read: () => Response.json({ error: "Comic missing" }, { status: 404 }),
   });
@@ -221,7 +227,7 @@ test("load failures explain the problem and unmount aborts both initial requests
   unmount();
   expect(
     fetcher.mock.calls
-      .slice(0, 2)
+      .slice(0, 1)
       .every(([, options]) => options.signal.aborted),
   ).toBe(true);
 });
@@ -247,16 +253,25 @@ test("drawing locks navigation, suppresses duplicate writes, and selects the cre
     regions: [region],
     lines: [line("new-line", "")],
   });
-  await act(async () => pending.resolve(Response.json(saved)));
+  await act(async () =>
+    pending.resolve(
+      Response.json(saved, {
+        headers: {
+          "X-Created-Ids": "new,new-line",
+          "X-State-Version": "reader-next",
+        },
+      }),
+    ),
+  );
   expect(await screen.findByText("Selected: new-line")).toBeTruthy();
   expect(screen.getByRole("button", { name: "Next page (→)" }).disabled).toBe(
     false,
   );
   expect(fetcher).toHaveBeenLastCalledWith(
-    "/api/titles/comic/comic/boxes",
+    "/api/titles/comic/commands",
     expect.objectContaining({
       method: "POST",
-      body: JSON.stringify({ pageId: "p1", region }),
+      body: expect.any(String),
     }),
   );
 });
@@ -301,10 +316,10 @@ test("placement retains expected regions; deletion confirms the entire selected 
   await annotate();
   await userEvent.click(screen.getByRole("button", { name: "Move box" }));
   expect(fetcher).toHaveBeenLastCalledWith(
-    "/api/titles/comic/comic/boxes/box-1/placement",
+    "/api/titles/comic/commands",
     expect.objectContaining({
-      method: "PUT",
-      body: JSON.stringify({ expectedRegions: [region], regions: [region] }),
+      method: "POST",
+      body: expect.any(String),
     }),
   );
   await userEvent.click(
@@ -319,8 +334,8 @@ test("placement retains expected regions; deletion confirms the entire selected 
     screen.getByRole("button", { name: "Delete selected text block" }),
   );
   expect(fetcher).toHaveBeenLastCalledWith(
-    "/api/titles/comic/comic/boxes/box-1",
-    expect.objectContaining({ method: "DELETE" }),
+    "/api/titles/comic/commands",
+    expect.objectContaining({ method: "POST" }),
   );
 });
 
@@ -377,8 +392,13 @@ test("RTL and spread mode keep manifest progress while reversing arrow navigatio
   const rtl = comic();
   rtl.comic.readingDirection = "rtl";
   open({
-    read: (url) =>
-      Response.json(url.endsWith("/progress") ? { pageId: "p1" } : rtl),
+    read: () =>
+      Response.json({
+        document: rtl,
+        version: "rtl-state",
+        pending: [],
+        progress: { pageId: "p1" },
+      }),
   });
   await screen.findByRole("button", { name: "Image loaded" });
   expect(page.props.pages.map((p) => p.id)).toEqual(["p1"]);

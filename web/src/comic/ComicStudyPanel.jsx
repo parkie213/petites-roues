@@ -11,7 +11,7 @@ import {
   Textarea,
   Title,
 } from "@mantine/core";
-import { request } from "../shared/api.ts";
+import { sendCommands } from "../shared/api.ts";
 import { LearnerNote } from "../player/components/LearnerNote.jsx";
 import { ComicPhrasePairs } from "./ComicPhrasePairs.jsx";
 import { useStudyLanguages } from "../player/StudyLanguages.jsx";
@@ -60,14 +60,13 @@ export function ComicStudyPanel({
     setSaving(true);
     setError("");
     try {
-      const document = await request(
-        `${api}/lines/${encodeURIComponent(cue.id)}`,
+      const document = await sendCommands(api, [
         {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ expectedSource: cue.source, source: draft }),
+          type: "edit-comic-text",
+          lineId: cue.id,
+          edit: { expectedSource: cue.source, source: draft },
         },
-      );
+      ]);
       onSaved(document);
       edit(null);
     } catch (failure) {

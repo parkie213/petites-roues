@@ -2,6 +2,8 @@ package app.petitesroues;
 
 import static app.petitesroues.support.DocumentFixtures.document;
 import static app.petitesroues.support.HttpClients.client;
+import static app.petitesroues.support.HttpClients.command;
+import static app.petitesroues.support.HttpClients.discover;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
@@ -10,12 +12,14 @@ import app.petitesroues.documents.StudyDocumentCodec;
 import app.petitesroues.library.persistence.CatalogueStore;
 import app.petitesroues.model.document.StudyDocument;
 import app.petitesroues.model.editing.UpdateCueTiming;
-import app.petitesroues.study.DocumentStore;
+import app.petitesroues.model.library.ContentRepository;
+import app.petitesroues.study.ReviewQueue;
 import com.zaxxer.hikari.HikariDataSource;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -54,7 +58,7 @@ class ApplicationConcurrencyTest {
   }
 
   @Autowired ObjectMapper mapper;
-  @MockitoSpyBean DocumentStore documents;
+  @MockitoSpyBean ReviewQueue queue;
   @LocalServerPort int port;
   @Autowired CatalogueStore catalogue;
 
@@ -124,7 +128,7 @@ class ApplicationConcurrencyTest {
     var read = new CountDownLatch(1);
     var resume = new CountDownLatch(1);
     var pauseOnce = new AtomicBoolean(true);
-    // Pause after a real read, exposing the read/write gap without mocking storage behaviour.
+    // Pause after a real queue write while the edit transaction and monitor are still held.
     doAnswer(
             call -> {
               Object result = call.callRealMethod();
@@ -134,8 +138,8 @@ class ApplicationConcurrencyTest {
               }
               return result;
             })
-        .when(documents)
-        .read(any());
+        .when(queue)
+        .append(any(), any());
     try (var threads = Executors.newFixedThreadPool(2)) {
       try {
         var firstResult =
@@ -175,10 +179,12 @@ class ApplicationConcurrencyTest {
   }
 
   private void edit(String id, String cue, double start, double end) {
-    http()
-        .post()
-        .uri("/api/titles/" + id + "/timings")
-        .body(List.of(new UpdateCueTiming(cue, start, end)))
+    command(
+            http(),
+            "/api/titles/" + id,
+            "timing",
+            null,
+            List.of(new UpdateCueTiming(cue, start, end)))
         .retrieve()
         .toBodilessEntity();
   }
@@ -186,11 +192,11 @@ class ApplicationConcurrencyTest {
   private void registerTitle(StudyDocument title) throws Exception {
     Path file = Files.createTempDirectory(ROOT, "registered-").resolve("document.json");
     Files.write(file, new StudyDocumentCodec().encode(title).getBytes(StandardCharsets.UTF_8));
-    http()
-        .post()
-        .uri("/api/repositories")
-        .body(java.util.Map.of("localPath", file.getParent().toString()))
-        .retrieve()
-        .toBodilessEntity();
+    discover(
+        http(),
+        "add",
+        null,
+        Map.of("localPath", file.getParent().toString()),
+        ContentRepository.class);
   }
 }

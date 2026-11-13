@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { request } from "../shared/api.ts";
+import { loadStudyState } from "../shared/api.ts";
 import { libraryReturnPath } from "../shared/library-return.ts";
 import type { CueView, VideoView } from "../shared/types.ts";
 
@@ -18,28 +18,37 @@ export function useStudyDocument({
   const [doc, setDoc] = useState<VideoView | null>(null);
   const [cues, setCues] = useState<CueView[]>([]);
   const [changes, setChanges] = useState<unknown[]>([]);
+  const [progress, setProgress] = useState<{
+    positionSeconds?: number;
+    updatedAt?: string | null;
+  }>();
   const [error, setError] = useState("");
   const [returnPath] = useState(libraryReturnPath);
   useEffect(() => {
     // A video without a study document has no title to load.
     if (!api) return;
     const controller = new AbortController();
-    request<VideoView>(api, { signal: controller.signal })
-      .then((document) => {
-        setDoc(document);
-        setCues(document.cues);
-        window.document.title = `Petites Roues · ${document.title}`;
+    loadStudyState<VideoView>(api, controller.signal)
+      .then((state) => {
+        setDoc(state.document);
+        setCues(state.document.cues);
+        setChanges(state.pending);
+        setProgress(state.progress);
+        window.document.title = `Petites Roues · ${state.document.title}`;
       })
       .catch((e: Error) => {
         if (e.name !== "AbortError") setError(e.message);
       });
-    request<unknown[]>(api + "/review-queue", { signal: controller.signal })
-      .then(setChanges)
-      .catch((e: Error) => {
-        if (e.name !== "AbortError")
-          setStatus("Review queue unavailable: " + e.message);
-      });
     return () => controller.abort();
   }, [api, setStatus]);
-  return { doc, cues, setCues, changes, setChanges, error, returnPath };
+  return {
+    doc,
+    cues,
+    setCues,
+    changes,
+    setChanges,
+    error,
+    returnPath,
+    progress,
+  };
 }

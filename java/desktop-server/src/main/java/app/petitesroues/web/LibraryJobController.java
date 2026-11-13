@@ -1,10 +1,10 @@
 package app.petitesroues.web;
 
-import app.petitesroues.library.ContentRepositoryService;
+import app.petitesroues.library.LibraryDiscoveryService;
 import app.petitesroues.library.LibraryJobService;
+import app.petitesroues.model.library.DiscoveryRequest;
 import app.petitesroues.model.library.LibraryJob;
 import org.springframework.http.CacheControl;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -23,41 +23,17 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api/jobs")
 public class LibraryJobController {
   private final LibraryJobService jobs;
-  private final ContentRepositoryService repositories;
+  private final LibraryDiscoveryService discovery;
 
-  public LibraryJobController(LibraryJobService jobs, ContentRepositoryService repositories) {
+  public LibraryJobController(LibraryJobService jobs, LibraryDiscoveryService discovery) {
     this.jobs = jobs;
-    this.repositories = repositories;
+    this.discovery = discovery;
   }
 
-  /**
-   * What to do: {@code add} a folder at {@code localPath} (optionally {@code name}d), or {@code
-   * refresh} one folder by {@code repositoryId}, or every folder when it is absent.
-   */
-  public record Start(String kind, String localPath, String name, String repositoryId) {}
-
-  /** Starts the job, or returns the one already running, with 202 Accepted. */
+  /** Accepts the exact discovery command; a different in-flight operation returns 409. */
   @PostMapping
-  public ResponseEntity<LibraryJob> start(@RequestBody Start request) {
-    LibraryJob job =
-        switch (request.kind() == null ? "" : request.kind()) {
-          case "add" ->
-              jobs.start(
-                  "add",
-                  progress ->
-                      repositories.add(
-                          new ContentRepositoryService.Add(request.localPath(), request.name()),
-                          progress));
-          case "refresh" ->
-              jobs.start(
-                  "refresh",
-                  progress -> {
-                    if (request.repositoryId() == null) repositories.refreshAll(progress);
-                    else repositories.refresh(request.repositoryId(), progress);
-                  });
-          default -> throw new IllegalArgumentException("Unknown job: " + request.kind());
-        };
-    return ResponseEntity.status(HttpStatus.ACCEPTED).body(job);
+  public ResponseEntity<LibraryJob> start(@RequestBody DiscoveryRequest request) {
+    return ResponseEntity.accepted().body(discovery.start(request));
   }
 
   /** The running job, or the last to finish, so a reloaded page can pick it up; 204 if none. */

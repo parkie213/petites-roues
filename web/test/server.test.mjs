@@ -25,7 +25,7 @@ test("Node serves React routes and streams API requests, downloads and ranges", 
         .end(Buffer.from([2, 3, 4]));
       return;
     }
-    if (req.url.endsWith("/export")) {
+    if (req.url.includes("download=true")) {
       res
         .writeHead(200, {
           "Content-Type": "application/json",
@@ -105,7 +105,7 @@ test("Node serves React routes and streams API requests, downloads and ranges", 
   assert.equal(video.status, 206);
   assert.equal(video.headers.get("Content-Range"), "bytes 2-4/10");
   assert.deepEqual([...new Uint8Array(await video.arrayBuffer())], [2, 3, 4]);
-  const download = await fetch(origin + "/api/titles/example/export");
+  const download = await fetch(origin + "/api/titles/example?download=true");
   assert.match(download.headers.get("Content-Disposition"), /attachment/);
   assert.deepEqual(await download.json(), { cues: [] });
 });

@@ -73,6 +73,7 @@ export function Watch({
     autoPause: autoPause && !previewing,
     setStatus,
     saveProgress: !bare,
+    initialProgress: study.progress,
     autoPlay: true,
   });
   const { video, time, seek, play, pause, toggle } = playback;

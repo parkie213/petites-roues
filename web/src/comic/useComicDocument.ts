@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { request } from "../shared/api.ts";
+import { loadStudyState } from "../shared/api.ts";
 import type { ComicView } from "../shared/types.ts";
 import { resumePage } from "./navigation.js";
 
@@ -10,13 +10,8 @@ export function useComicDocument(api: string) {
   const [error, setError] = useState("");
   useEffect(() => {
     const abort = new AbortController();
-    Promise.all([
-      request<ComicView>(api, { signal: abort.signal }),
-      request<{ pageId?: string | null }>(api + "/progress", {
-        signal: abort.signal,
-      }),
-    ])
-      .then(([comic, progress]) => {
+    loadStudyState<ComicView>(api, abort.signal)
+      .then(({ document: comic, progress }) => {
         setIndex(resumePage(comic.pages, progress.pageId));
         setDocument(comic);
       })

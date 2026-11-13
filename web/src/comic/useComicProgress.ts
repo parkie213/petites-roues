@@ -21,7 +21,7 @@ export function useComicProgress(api: string) {
     writes.current = writes.current
       .catch(() => {})
       .then(() =>
-        request(api + "/progress", {
+        request(api.replace(/\/comic$/, "") + "/progress", {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ pageId }),

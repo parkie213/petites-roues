@@ -2,12 +2,15 @@ package app.petitesroues;
 
 import static app.petitesroues.support.DocumentFixtures.document;
 import static app.petitesroues.support.HttpClients.client;
+import static app.petitesroues.support.HttpClients.command;
+import static app.petitesroues.support.HttpClients.discover;
 import static org.junit.jupiter.api.Assertions.*;
 
 import app.petitesroues.documents.StudyDocumentCodec;
 import app.petitesroues.media.MediaFingerprint;
 import app.petitesroues.model.document.StudyDocument;
 import app.petitesroues.model.document.VideoReference;
+import app.petitesroues.model.library.ContentRepository;
 import app.petitesroues.model.library.Library;
 import app.petitesroues.support.HttpIntegrationTest;
 import java.nio.charset.StandardCharsets;
@@ -28,11 +31,12 @@ class ApplicationSmokeTest extends HttpIntegrationTest {
   void registerMediaThenDocumentsLinkByFingerprintAndResumePlayback() throws Exception {
     Path media = Files.createDirectories(root.resolve("media/series"));
     Path video = Files.copy(root.resolve("video.mp4"), media.resolve("Episode 1.mp4"));
-    http.post()
-        .uri("/api/repositories")
-        .body(Map.of("localPath", root.resolve("media").toString()))
-        .retrieve()
-        .toBodilessEntity();
+    discover(
+        http,
+        "add",
+        null,
+        Map.of("localPath", root.resolve("media").toString()),
+        ContentRepository.class);
     var unmatched = http.get().uri("/api/library").retrieve().body(Library.class);
     var mediaFolder = unmatched.repositories().getFirst();
     assertTrue(mediaFolder.entries().isEmpty());
@@ -49,11 +53,7 @@ class ApplicationSmokeTest extends HttpIntegrationTest {
         new StudyDocumentCodec().encode(title).getBytes(StandardCharsets.UTF_8));
 
     var registered =
-        http.post()
-            .uri("/api/repositories")
-            .body(Map.of("localPath", repository.toString()))
-            .retrieve()
-            .body(JsonNode.class);
+        discover(http, "add", null, Map.of("localPath", repository.toString()), JsonNode.class);
 
     // Each folder lists what it holds: the documents folder its title, the media folder its video,
     // which now names that title and no longer warns.
@@ -133,9 +133,11 @@ class ApplicationSmokeTest extends HttpIntegrationTest {
     registerTitle(document("edit-command"));
     String api = "/api/titles/edit-command";
     var edited =
-        http.put()
-            .uri(api + "/cues/stable-cue")
-            .body(
+        command(
+                http,
+                api,
+                "edit-video-cue",
+                "stable-cue",
                 Map.of(
                     "source",
                     "Salut !",
@@ -156,9 +158,7 @@ class ApplicationSmokeTest extends HttpIntegrationTest {
     assertFalse(cue.line().alignment() != null);
     assertEquals(
         400,
-        http.put()
-            .uri(api + "/cues/stable-cue")
-            .body(Map.of("source", "Missing timing"))
+        command(http, api, "edit-video-cue", "stable-cue", Map.of("source", "Missing timing"))
             .<Integer>exchange((request, response) -> response.getStatusCode().value())
             .intValue());
     assertEquals(edited, http.get().uri(api).retrieve().body(StudyDocument.class));

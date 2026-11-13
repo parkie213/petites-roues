@@ -42,7 +42,7 @@ export function jobSucceeded(job, body) {
 
 /**
  * Starts an Add ({kind: "add", localPath}) or Refresh ({kind: "refresh", repositoryId?}); returns
- * the job, which is the one already running if there is one.
+ * the accepted job; a different operation already running is a conflict.
  */
 export function startJob(body) {
   return request("/api/jobs", {

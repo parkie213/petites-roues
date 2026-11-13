@@ -3,7 +3,8 @@ import { isDeepStrictEqual } from "node:util";
 
 const position = "<request.positionSeconds>";
 const playback = (entry) =>
-  /^PUT \/api\/titles\/[^/]+\/progress$/.test(entry.request);
+  /^PUT \/api\/titles\/[^/]+\/progress$/.test(entry.request) &&
+  entry.json?.positionSeconds !== undefined;
 
 /**
  * Keep a write's payload with its answer. Playback saves are a checked echo contract: verify the
@@ -25,6 +26,12 @@ export function recordWrite(entry, body) {
       json: { ...entry.json, positionSeconds: position },
     };
   }
+  if (entry.request.endsWith("/commands")) {
+    assert.equal(typeof body.requestId, "string");
+    assert.equal(typeof body.expectedVersion, "string");
+    assert(Array.isArray(body.commands) && body.commands.length > 0);
+    body = { ...body, requestId: "<request.requestId>" };
+  }
   return { ...entry, body };
 }
 
@@ -37,6 +44,10 @@ export function matchesWrite(entry, body) {
     )
       return false;
     body = { ...body, positionSeconds: position };
+  }
+  if (entry.request.endsWith("/commands")) {
+    if (typeof body?.requestId !== "string" || !body.requestId) return false;
+    body = { ...body, requestId: "<request.requestId>" };
   }
   return isDeepStrictEqual(entry.body, body);
 }

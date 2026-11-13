@@ -8,14 +8,8 @@ import {
   Text,
   Textarea,
 } from "@mantine/core";
-import { request } from "../../shared/api.ts";
+import { sendCommands } from "../../shared/api.ts";
 import { useStudyLanguages } from "../StudyLanguages.jsx";
-
-const json = (method, body) => ({
-  method,
-  headers: { "Content-Type": "application/json" },
-  body: JSON.stringify(body),
-});
 
 /**
  * Fix one subtitle or comic bubble, or leave a comment for the reviewing agent, without leaving
@@ -46,16 +40,18 @@ export function QuickEdit({
     setBusy(true);
     setError("");
     try {
-      let saved = null;
+      const commands = [];
       if (comic && sourceChanged)
-        saved = await request(
-          `${api}/comic/lines/${encodeURIComponent(cue.id)}`,
-          json("PUT", { expectedSource: cue.source, source: source.trim() }),
-        );
+        commands.push({
+          type: "edit-comic-text",
+          lineId: cue.id,
+          edit: { expectedSource: cue.source, source: source.trim() },
+        });
       else if (sourceChanged || translationChanged)
-        saved = await request(
-          `${api}/cues/${encodeURIComponent(cue.id)}`,
-          json("PUT", {
+        commands.push({
+          type: "edit-video-cue",
+          cueId: cue.id,
+          edit: {
             start: cue.start,
             end: cue.end,
             source: source.trim(),
@@ -64,13 +60,11 @@ export function QuickEdit({
             continuesPrevious: Boolean(cue.continuesPrevious),
             listeningCheck: cue.listeningCheck ?? null,
             textCheck: cue.textCheck ?? null,
-          }),
-        );
+          },
+        });
       if (comment.trim())
-        saved = await request(
-          `${api}/cues/${encodeURIComponent(cue.id)}/comment`,
-          json("POST", { text: comment.trim() }),
-        );
+        commands.push({ type: "comment", cueId: cue.id, text: comment.trim() });
+      const saved = await sendCommands(api, commands);
       onSaved?.(saved);
       onClose();
     } catch (failure) {

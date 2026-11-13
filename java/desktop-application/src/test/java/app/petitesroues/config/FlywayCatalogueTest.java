@@ -17,13 +17,13 @@ class FlywayCatalogueTest {
       var jdbc = new JdbcTemplate(source);
       jdbc.execute("PRAGMA foreign_keys=ON");
       var flyway = DatabaseFixtures.flyway(source);
-      assertEquals(2, flyway.migrate().migrationsExecuted);
+      assertEquals(3, flyway.migrate().migrationsExecuted);
       assertEquals(0, flyway.migrate().migrationsExecuted);
       flyway.validate();
       assertEquals(
-          8,
+          9,
           jdbc.queryForObject(
-              "SELECT count(*) FROM sqlite_master WHERE type='table' AND name IN ('repositories','titles','media','review_batches','review_queue','playback_progress','reading_progress','flyway_schema_history')",
+              "SELECT count(*) FROM sqlite_master WHERE type='table' AND name IN ('repositories','titles','media','review_batches','review_queue','playback_progress','reading_progress','command_receipts','flyway_schema_history')",
               Integer.class));
       assertTrue(
           jdbc.queryForList("PRAGMA table_info(media)").stream()

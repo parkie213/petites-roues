@@ -6,6 +6,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import app.petitesroues.model.library.ContentRepository;
 import app.petitesroues.model.library.LibraryJob;
 import app.petitesroues.support.HttpIntegrationTest;
+import java.nio.file.Files;
 import java.time.Duration;
 import java.util.List;
 import java.util.Map;
@@ -59,5 +60,38 @@ class LibraryJobIntegrationTest extends HttpIntegrationTest {
     assertThrows(
         HttpClientErrorException.NotFound.class,
         () -> http.get().uri("/api/jobs/nope").retrieve().toBodilessEntity());
+  }
+
+  @Test
+  void refreshAllReportsEachTargetAndContinuesAfterFailure() throws Exception {
+    var bad = Files.createDirectory(root.resolve("bad"));
+    var good = Files.createDirectory(root.resolve("good"));
+    assertEquals("succeeded", run(Map.of("kind", "add", "localPath", bad.toString())).state());
+    assertEquals("succeeded", run(Map.of("kind", "add", "localPath", good.toString())).state());
+    Files.delete(bad);
+    var refreshed = run(Map.of("kind", "refresh"));
+    assertEquals("failed", refreshed.state());
+    assertEquals(2, refreshed.outcomes().size());
+    assertEquals(
+        1,
+        refreshed.outcomes().stream().filter(outcome -> "failed".equals(outcome.state())).count());
+    var saved =
+        refreshed.outcomes().stream()
+            .filter(outcome -> "succeeded".equals(outcome.state()))
+            .findFirst()
+            .orElseThrow();
+    assertEquals(good.toString(), saved.repository().localPath());
+    assertEquals(
+        saved.repository().lastRefreshedAt(),
+        jdbc.queryForObject(
+            "SELECT last_refreshed_at FROM repositories WHERE id=?",
+            String.class,
+            saved.repositoryId()));
+    int retired =
+        http.post()
+            .uri("/api/repositories")
+            .body(Map.of("localPath", good.toString()))
+            .<Integer>exchange((request, response) -> response.getStatusCode().value());
+    assertTrue(retired == 404 || retired == 405);
   }
 }

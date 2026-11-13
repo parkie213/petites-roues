@@ -8,6 +8,7 @@ import {
   waitFor,
 } from "@testing-library/react";
 import { beforeEach, expect, test, vi } from "vitest";
+import { request } from "../src/shared/api.ts";
 import { ComicStudyPanel } from "../src/comic/ComicStudyPanel.jsx";
 import { StudyLanguagesProvider } from "../src/player/StudyLanguages.jsx";
 
@@ -47,7 +48,7 @@ function open(overrides = {}) {
     boxes,
     lines: [first, second, last],
     cue: first,
-    api: "/api/comic",
+    api: "/api/titles/panel/comic",
     onSelect: vi.fn(),
     onSaved: vi.fn(),
     onEditing: vi.fn(),
@@ -82,7 +83,18 @@ function deferred() {
   });
   return { promise, resolve };
 }
-beforeEach(() => vi.stubGlobal("fetch", vi.fn()));
+beforeEach(async () => {
+  vi.stubGlobal(
+    "fetch",
+    vi
+      .fn()
+      .mockResolvedValue(
+        Response.json({}, { headers: { "X-State-Version": "panel-state" } }),
+      ),
+  );
+  await request("/api/titles/panel");
+  vi.stubGlobal("fetch", vi.fn());
+});
 
 test("empty pages explain the absence of annotations and show no editing or navigation controls", () => {
   open({ cue: undefined, boxes: [], lines: [] });
@@ -136,15 +148,19 @@ test("saving uses the original text as a conflict guard and keeps the editor loc
   fireEvent.change(draft(), { target: { value: " Changed text. " } });
   fireEvent.click(button("Save text"));
   expect(fetch).toHaveBeenCalledWith(
-    "/api/comic/lines/line%2Fone",
+    "/api/titles/panel/commands",
     expect.objectContaining({
-      method: "PUT",
-      body: JSON.stringify({
-        expectedSource: first.source,
-        source: " Changed text. ",
-      }),
+      method: "POST",
+      body: expect.any(String),
     }),
   );
+  expect(JSON.parse(fetch.mock.calls[0][1].body).commands).toEqual([
+    {
+      type: "edit-comic-text",
+      lineId: "line/one",
+      edit: { expectedSource: first.source, source: " Changed text. " },
+    },
+  ]);
   expect(draft().disabled).toBe(true);
   expect(button("Cancel").disabled).toBe(true);
   expect(onSaved).not.toHaveBeenCalled();

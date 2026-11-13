@@ -6,6 +6,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import app.petitesroues.library.LibraryJobService;
 import app.petitesroues.library.LibraryUpdateService;
 import java.time.Duration;
+import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeUnit;
@@ -52,6 +53,7 @@ class ExecutorConfigurationTest {
       var virtual = new AtomicBoolean();
       jobs.start(
           "refresh",
+          "test-command",
           progress -> {
             virtual.set(Thread.currentThread().isVirtual());
             entered.countDown();
@@ -62,6 +64,7 @@ class ExecutorConfigurationTest {
               rows.next();
               result.set(rows.getInt(1));
             }
+            return List.of();
           });
       assertTrue(entered.await(5, TimeUnit.SECONDS));
       context.close();
@@ -69,7 +72,9 @@ class ExecutorConfigurationTest {
       assertEquals(1, result.get());
       assertEquals("succeeded", jobs.latest().orElseThrow().state());
       assertTrue(connection.isClosed());
-      assertThrows(RejectedExecutionException.class, () -> jobs.start("refresh", progress -> {}));
+      assertThrows(
+          RejectedExecutionException.class,
+          () -> jobs.start("refresh", "test-command", progress -> List.of()));
     }
   }
 
@@ -83,10 +88,12 @@ class ExecutorConfigurationTest {
       var entered = new CountDownLatch(1);
       jobs.start(
           "refresh",
+          "test-command",
           progress -> {
             entered.countDown();
             try {
               new CountDownLatch(1).await();
+              return List.of();
             } catch (InterruptedException failure) {
               interrupted.countDown();
               throw failure;
@@ -99,7 +106,9 @@ class ExecutorConfigurationTest {
       await().atMost(Duration.ofSeconds(5)).until(() -> jobs.latest().orElseThrow().finished());
       assertEquals("failed", jobs.latest().orElseThrow().state());
       assertEquals("Server is shutting down", jobs.latest().orElseThrow().error());
-      assertThrows(RejectedExecutionException.class, () -> jobs.start("refresh", progress -> {}));
+      assertThrows(
+          RejectedExecutionException.class,
+          () -> jobs.start("refresh", "test-command", progress -> List.of()));
     }
   }
 }

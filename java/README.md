@@ -195,3 +195,15 @@ From the repository root:
 
 Media integration tests require FFmpeg. CI builds shared artifacts before desktop
 and Android consumers; see [the workflow](../.github/workflows/ci.yml).
+
+## Consolidated HTTP operations
+
+The [HTTP surface](../docs/HTTP-API.md) lists the current 58 method/path routes.
+Typed edit batches share one acceptance/version/retry contract. Opening either
+player uses one study-state read; raw documents remain a portable representation
+of the same title URL. Video and comic progress share a title-owned resource.
+Add/Refresh run only through discovery jobs, whose terminal outcomes must be
+checked before dependent work. Review pending/history are filtered listings.
+
+This is separate from the proposed accepted-document storage migration; document
+files remain agent-owned and the server still captures them while serving state.

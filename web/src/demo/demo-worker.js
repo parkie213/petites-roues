@@ -37,7 +37,7 @@ async function respond(request) {
   const pages = document.comic.pages;
   const asset = (path) =>
     fetch(new URL(path, self.registration.scope), { signal: request.signal });
-  if (path === comic + "/progress") {
+  if (path === api + "/progress") {
     if (request.method === "GET") return json(await progress());
     if (request.method === "PUT") {
       const body = await request.json();
@@ -66,7 +66,16 @@ async function respond(request) {
   }
   if (request.method !== "GET")
     return json({ error: "This action needs the desktop server." }, 403);
-  if (path === comic) return json(document);
+  if (path === api) {
+    if (url.searchParams.get("view") === "study")
+      return json({
+        document,
+        version: "demo",
+        pending: [],
+        progress: await progress(),
+      });
+    return json(document);
+  }
   if (path.startsWith(comic + "/pages/")) {
     const id = decodeURIComponent(path.slice((comic + "/pages/").length));
     if (pages.some((page) => page.id === id))

@@ -53,8 +53,7 @@ export async function forgetProgress() {
   for (const entry of library.repositories.flatMap((repo) => repo.entries))
     if (entry.progress != null)
       await fetch(
-        `${api}/titles/${encodeURIComponent(entry.id)}/` +
-          (entry.type === "comic" ? "comic/progress" : "progress"),
+        `${api}/titles/${encodeURIComponent(entry.id)}/` + "progress",
         { method: "DELETE" },
       );
 }
@@ -94,9 +93,9 @@ export async function forget(requests) {
   }
   await forgetProgress();
   for (const title of changed(
-    /^(?:PUT|POST|DELETE) \/api\/titles\/([^/]+)\/(?:cues|timings|comic\/(?:lines|boxes))\b/,
+    /^(?:PUT|POST|DELETE) \/api\/titles\/([^/]+)\/(?:commands)\b/,
   )) {
-    const queue = `${api}/api/titles/${title}/review-queue`;
+    const queue = `${api}/api/titles/${title}/review`;
     const rows = await (await fetch(queue)).json();
     await fetch(`${queue}/discard`, {
       method: "POST",
@@ -136,13 +135,27 @@ export default async function startRealServer() {
   try {
     await waitForServer(server);
     for (const localPath of folders) {
-      const response = await fetch(`${api}/repositories`, {
+      const response = await fetch(`${api}/jobs`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ localPath }),
+        body: JSON.stringify({ kind: "add", localPath }),
       });
       if (!response.ok)
         throw Error(`Adding ${localPath} failed: ${await response.text()}`);
+      const started = await response.json();
+      let job = started;
+      const deadline = Date.now() + 30000;
+      while (job.state === "running" && Date.now() < deadline) {
+        await new Promise((resolve) => setTimeout(resolve, 50));
+        job = await (
+          await fetch(`${api}/jobs/${encodeURIComponent(started.id)}`)
+        ).json();
+      }
+      if (job.state !== "succeeded")
+        throw Error(job.error || "Add job did not finish");
+      const saved = await (await fetch(`${api}/repositories`)).json();
+      if (!saved.some((repository) => repository.localPath === localPath))
+        throw Error("Add was not persisted");
     }
   } catch (error) {
     server.kill();

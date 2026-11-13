@@ -13,7 +13,7 @@ async function turn(page, pageId, action) {
   expect(await readJson(page, progress)).toMatchObject(expected);
 }
 
-const progress = "/api/titles/lulu-example-le-parapluie/comic/progress";
+const progress = "/api/titles/lulu-example-le-parapluie/progress";
 
 test("the comic opens on its cover, and its pages turn", async ({ page }) => {
   await page.goto("/");

@@ -9,13 +9,15 @@ async function openCover(page, action) {
       page,
       {
         method: "PUT",
-        path: api + "/progress",
+        path: api.replace(/\/comic$/, "") + "/progress",
         body: { pageId: "cover" },
       },
       action,
     ),
   ).toMatchObject({ pageId: "cover" });
-  expect(await readJson(page, api + "/progress")).toMatchObject({
+  expect(
+    await readJson(page, api.replace(/\/comic$/, "") + "/progress"),
+  ).toMatchObject({
     pageId: "cover",
   });
 }
@@ -24,7 +26,7 @@ test("edit mode saves a transcription correction and restores it after reload", 
   page,
 }) => {
   await openCover(page, () => page.goto("/reader/lulu-example-le-parapluie/"));
-  const original = firstLine(await readJson(page, api));
+  const original = firstLine(await readJson(page, api.replace(/\/comic$/, "")));
   await page.getByRole("button", { name: "Edit mode", exact: true }).click();
   const panel = page.getByRole("complementary", { name: "Bubble editing" });
   await panel.getByRole("button", { name: "Edit text", exact: true }).click();
@@ -33,16 +35,25 @@ test("edit mode saves a transcription correction and restores it after reload", 
   const saved = await expectWrite(
     page,
     {
-      method: "PUT",
-      path: api + "/lines/" + original.id,
-      body: { expectedSource: original.source, source },
+      method: "POST",
+      path: api.replace(/\/comic$/, "") + "/commands",
+      body: (body) =>
+        body.commands?.some(
+          (command) =>
+            command.type === "edit-comic-text" &&
+            command.lineId === original.id &&
+            command.edit.expectedSource === original.source &&
+            command.edit.source === source,
+        ),
     },
     () => panel.getByRole("button", { name: "Save text", exact: true }).click(),
   );
   expect(firstLine(saved)).toMatchObject({ source, notes: [] });
   expect(firstLine(saved).translation).toBeFalsy();
   expect(firstLine(saved).alignment).toBeFalsy();
-  expect(firstLine(await readJson(page, api)).source).toBe(source);
+  expect(
+    firstLine(await readJson(page, api.replace(/\/comic$/, ""))).source,
+  ).toBe(source);
   await expect(
     panel.getByRole("button", { name: "Edit text", exact: true }),
   ).toBeVisible();

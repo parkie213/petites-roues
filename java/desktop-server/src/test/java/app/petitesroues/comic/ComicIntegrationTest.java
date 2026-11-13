@@ -1,5 +1,7 @@
 package app.petitesroues.comic;
 
+import static app.petitesroues.support.HttpClients.command;
+import static app.petitesroues.support.HttpClients.discover;
 import static app.petitesroues.support.SpecFixtures.*;
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -10,6 +12,7 @@ import app.petitesroues.model.document.ComicReference;
 import app.petitesroues.model.document.ReadingDirection;
 import app.petitesroues.model.document.StudyDocument;
 import app.petitesroues.model.library.CatalogueItem;
+import app.petitesroues.model.library.ContentRepository;
 import app.petitesroues.model.library.Library;
 import app.petitesroues.support.DocumentFixtures;
 import app.petitesroues.support.HttpIntegrationTest;
@@ -61,11 +64,12 @@ class ComicIntegrationTest extends HttpIntegrationTest {
                                 MediaFingerprint.of(folder.resolve("book.cbz")), null))))
             .getBytes(StandardCharsets.UTF_8));
     var repository =
-        http.post()
-            .uri("/api/repositories")
-            .body(Map.of("localPath", root.resolve("comics").toString()))
-            .retrieve()
-            .body(JsonNode.class);
+        discover(
+            http,
+            "add",
+            null,
+            Map.of("localPath", root.resolve("comics").toString()),
+            JsonNode.class);
     var catalogue = http.get().uri("/api/library").retrieve().body(Library.class);
     var title = catalogue.repositories().getFirst().entries().getFirst();
     assertEquals("comic", title.type());
@@ -74,9 +78,11 @@ class ComicIntegrationTest extends HttpIntegrationTest {
     assertFalse(title.videoAvailable());
     assertTrue(title.unavailable().isEmpty());
     String api = "/api/titles/" + title.id();
-    var loaded = http.get().uri(api + "/comic").retrieve().body(StudyDocument.class);
-    assertEquals(comic.comic().pages(), loaded.comic().pages());
-    var exported = http.get().uri(api + "/export").retrieve().body(JsonNode.class);
+    var loaded = http.get().uri(api + "?view=study").retrieve().body(JsonNode.class);
+    assertEquals(
+        comic.comic().pages(),
+        mapper.treeToValue(loaded.path("document"), StudyDocument.class).comic().pages());
+    var exported = http.get().uri(api + "?download=true").retrieve().body(JsonNode.class);
     assertTrue(exported.has("comic"));
     assertTrue(exported.path("comic").path("pages").get(0).path("boxes").isEmpty());
     assertFalse(exported.has("durationSeconds"));
@@ -97,71 +103,40 @@ class ComicIntegrationTest extends HttpIntegrationTest {
             .<Integer>exchange((req, res) -> res.getStatusCode().value())
             .intValue());
     assertTrue(
-        http.get()
-            .uri(api + "/comic/progress")
-            .retrieve()
-            .body(JsonNode.class)
-            .path("pageId")
-            .isNull());
+        http.get().uri(api + "/progress").retrieve().body(JsonNode.class).path("pageId").isNull());
     assertEquals(
         404,
         http.put()
-            .uri(api + "/comic/progress")
+            .uri(api + "/progress")
             .body(Map.of("pageId", "unknown"))
             .<Integer>exchange((req, res) -> res.getStatusCode().value())
             .intValue());
-    http.put()
-        .uri(api + "/comic/progress")
-        .body(Map.of("pageId", "story"))
-        .retrieve()
-        .toBodilessEntity();
-    http.post()
-        .uri("/api/repositories/" + repository.path("id").asText() + "/refresh")
-        .retrieve()
-        .toBodilessEntity();
+    http.put().uri(api + "/progress").body(Map.of("pageId", "story")).retrieve().toBodilessEntity();
+    discover(http, "refresh", repository.path("id").asText(), null, ContentRepository.class);
     assertEquals(
         "story",
-        http.get()
-            .uri(api + "/comic/progress")
-            .retrieve()
-            .body(JsonNode.class)
-            .path("pageId")
-            .asText());
+        http.get().uri(api + "/progress").retrieve().body(JsonNode.class).path("pageId").asText());
     // The library card shows how far through the comic the page is: page 2 of 2, then 1 of 2.
     assertEquals(1.0, libraryEntry().progress());
-    http.put()
-        .uri(api + "/comic/progress")
-        .body(Map.of("pageId", "cover"))
-        .retrieve()
-        .toBodilessEntity();
+    http.put().uri(api + "/progress").body(Map.of("pageId", "cover")).retrieve().toBodilessEntity();
     assertEquals(0.5, libraryEntry().progress());
     // Clearing forgets the page: the card shows no progress and the comic opens at the start.
-    http.delete().uri(api + "/comic/progress").retrieve().toBodilessEntity();
+    http.delete().uri(api + "/progress").retrieve().toBodilessEntity();
     assertNull(libraryEntry().progress());
     assertTrue(
-        http.get()
-            .uri(api + "/comic/progress")
-            .retrieve()
-            .body(JsonNode.class)
-            .path("pageId")
-            .isNull());
-    http.put()
-        .uri(api + "/comic/progress")
-        .body(Map.of("pageId", "story"))
-        .retrieve()
-        .toBodilessEntity();
+        http.get().uri(api + "/progress").retrieve().body(JsonNode.class).path("pageId").isNull());
+    http.put().uri(api + "/progress").body(Map.of("pageId", "story")).retrieve().toBodilessEntity();
     assertEquals(0, jdbc.queryForObject("SELECT count(*) FROM playback_progress", Integer.class));
     assertEquals(
         400,
-        http.post()
-            .uri(api + "/timings")
-            .body(List.of())
+        command(http, api, "timing", null, List.of())
             .<Integer>exchange((req, res) -> res.getStatusCode().value())
             .intValue());
     assertEquals(
         400,
-        http.get()
+        http.put()
             .uri(api + "/progress")
+            .body(Map.of("positionSeconds", 1))
             .<Integer>exchange((req, res) -> res.getStatusCode().value())
             .intValue());
     // Disappearing media is represented in the catalogue without losing the document or progress.
@@ -180,7 +155,7 @@ class ComicIntegrationTest extends HttpIntegrationTest {
     assertEquals(
         404,
         http.get()
-            .uri(api + "/comic")
+            .uri(api + "?view=study")
             .<Integer>exchange((req, res) -> res.getStatusCode().value())
             .intValue());
     http.delete()

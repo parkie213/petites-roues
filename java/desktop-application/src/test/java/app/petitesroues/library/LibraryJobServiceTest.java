@@ -4,7 +4,9 @@ import static org.awaitility.Awaitility.await;
 import static org.junit.jupiter.api.Assertions.*;
 
 import app.petitesroues.library.progress.LibraryProgress;
+import app.petitesroues.study.StateConflictException;
 import java.time.Duration;
+import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
 import java.util.concurrent.RejectedExecutionException;
@@ -24,10 +26,12 @@ class LibraryJobServiceTest {
         var first =
             jobs.start(
                 "refresh",
+                "same-command",
                 listener -> {
                   listener.report(progress);
                   entered.countDown();
                   release.await();
+                  return List.of();
                 });
         assertTrue(entered.await(5, TimeUnit.SECONDS));
         assertEquals(progress, jobs.get(first.id()).progress());
@@ -36,10 +40,15 @@ class LibraryJobServiceTest {
                 .mapToObj(
                     i ->
                         executor.submit(
-                            () -> jobs.start("add", listener -> fail("duplicate work"))))
+                            () ->
+                                jobs.start(
+                                    "refresh", "same-command", listener -> fail("duplicate work"))))
                 .toList();
         for (var attempt : attempts)
           assertEquals(first.id(), attempt.get(5, TimeUnit.SECONDS).id());
+        assertThrows(
+            StateConflictException.class,
+            () -> jobs.start("refresh", "different-target", listener -> List.of()));
         release.countDown();
         await().atMost(Duration.ofSeconds(5)).until(() -> jobs.get(first.id()).finished());
         assertEquals("succeeded", jobs.get(first.id()).state());
@@ -58,7 +67,9 @@ class LibraryJobServiceTest {
             task -> {
               throw new RejectedExecutionException();
             });
-    assertThrows(RejectedExecutionException.class, () -> jobs.start("add", listener -> {}));
+    assertThrows(
+        RejectedExecutionException.class,
+        () -> jobs.start("add", "add-command", listener -> List.of()));
     assertTrue(jobs.latest().isEmpty());
   }
 }
