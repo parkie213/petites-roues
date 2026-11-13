@@ -43,6 +43,20 @@ def title_id(document):
     raise SystemExit(f"{document} is not a registered title; add it in the library first")
 
 
+def skeleton(request):
+    """The empty study document the app builds for media in its index (see
+    TitleSkeletonController). Writes nothing; stops with the app's own message when it refuses."""
+    try:
+        return call("POST", "/api/titles/skeleton", request)
+    except SystemExit as error:
+        text = str(error)
+        start = text.find("{")
+        try:
+            raise SystemExit(json.loads(text[start:])["error"]) from None
+        except (ValueError, KeyError, TypeError):
+            raise SystemExit(text) from None
+
+
 def problems(title, document):
     """Every structural problem in a candidate document; empty means the app would load it."""
     return call("POST", f"/api/titles/{title}/validate", document)["problems"]

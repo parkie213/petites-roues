@@ -68,6 +68,17 @@ public class CatalogueStore {
         .findFirst();
   }
 
+  /** A title with this portable document ID in any repository, including a missing one. */
+  public Optional<CatalogueEntry> findByDocumentId(String documentId) {
+    return jdbc
+        .query(
+            SELECT + " WHERE t.document_id = ? ORDER BY t.id",
+            (row, index) -> mapTitle(row),
+            documentId)
+        .stream()
+        .findFirst();
+  }
+
   public boolean contains(String id) {
     return !jdbc.queryForList("SELECT id FROM titles WHERE id = ?", String.class, id).isEmpty();
   }

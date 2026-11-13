@@ -74,16 +74,19 @@ are never printed, and the config file is read as data rather than executed as s
 
 ## Start the document
 
-Put the video or `.cbz` in your media folder, then start its document in your documents folder:
+Put the video or `.cbz` in your media folder, then register that folder in the app and **Refresh**
+it: the app builds the document from its media index and refuses a file it has not indexed. The
+app must be running. Then start the document in your documents folder:
 
 ```bash
 python3 prepare/new_title.py --document ~/gits/study-content/comics/naruto/t02/document.json \
   --media ~/media/fr/comics/naruto/Naruto-T02.cbz --title "Naruto T02" --series Naruto --volume 2
 ```
 
-The script writes an empty `document.json` with the media recorded as its
+The script asks the app for the document (`POST /api/titles/skeleton`, which writes nothing) and
+saves it as an empty `document.json` with the media recorded as its
 [reference](DOCUMENT-FORMAT.md#reference-media); the media stays where it is. The document ID
-defaults to the title with dashes (`naruto-t02`) and must be unique in the documents folder.
+defaults to the title with dashes (`naruto-t02`) and must not belong to any title in the library.
 Languages default to French source with English translation and notes (`--source`,
 `--translation`, `--notes`).
 
@@ -92,8 +95,8 @@ Languages default to French source with English translation and notes (`--source
 - **Videos:** browsers play only a file's first audio track, whatever track is marked default,
   and not AC3 or DTS, and `transcribe.py` transcribes the same track. `new_title.py` and
   `transcribe.py` refuse a video whose first track is tagged with another language than the
-  `sourceLanguage`, listing its tracks; an untagged track is only reported, so listen to the
-  start before transcribing. Pass `--ignore-track-language` when a tag is wrong. The library also
+  `sourceLanguage`, listing its tracks; an untagged track is let through (`transcribe.py` reports
+  it), so listen to the start before transcribing. Pass `--ignore-track-language` when a tag is wrong. The library also
   names the language that plays when a file has several, and warns when it isn't the document's
   `sourceLanguage`. Reorder the tracks so the one you study comes
   first, keeping the others (`ffprobe -v error -show_entries stream=index:stream_tags=language -select_streams a in.mkv`

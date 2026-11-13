@@ -10,6 +10,7 @@ from unittest.mock import patch
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 import app
 import batches
+import new_title
 import openrouter
 import phrases
 import sample
@@ -65,6 +66,37 @@ class PreparationTests(unittest.TestCase):
         with patch.object(app, 'URL', 'http://localhost:8877'), patch('urllib.request.build_opener') as opener:
             opener.return_value.open.return_value = Response(b'')
             self.assertIsNone(app.call('POST', '/complete', {}))
+
+    def test_new_title_saves_the_app_skeleton_and_refuses_an_existing_document(self):
+        skeleton = {'id': 'naruto-t02', 'title': 'Naruto T02', 'sourceLanguage': 'fr',
+                    'comic': {'readingDirection': 'rtl', 'pages': []}}
+        with tempfile.TemporaryDirectory() as directory:
+            document = Path(directory) / 'comics/naruto/document.json'
+            argv = ['new_title.py', '--document', str(document), '--media', 'Naruto-T02.cbz',
+                    '--title', 'Naruto T02', '--volume', '2', '--ltr']
+            with patch.object(sys, 'argv', argv), patch('sys.stdout', new=io.StringIO()) as out, \
+                    patch.object(new_title, 'skeleton', return_value=skeleton) as ask:
+                new_title.main()
+            request = ask.call_args.args[0]
+            self.assertEqual(request['media'], str(Path('Naruto-T02.cbz').resolve()))
+            self.assertEqual((request['title'], request['id'], request['volume']), ('Naruto T02', None, 2))
+            self.assertEqual((request['sourceLanguage'], request['leftToRight']), ('fr', True))
+            self.assertEqual(json.loads(document.read_text()), skeleton)
+            self.assertEqual(out.getvalue(), f'{document}: naruto-t02, referencing Naruto-T02.cbz\n')
+            with patch.object(sys, 'argv', argv), patch.object(new_title, 'skeleton') as ask:
+                with self.assertRaisesRegex(SystemExit, 'already exists'):
+                    new_title.main()
+            ask.assert_not_called()
+
+    def test_skeleton_refusal_shows_the_apps_message_and_writes_nothing(self):
+        refusal = SystemExit('POST /api/titles/skeleton: HTTP 409 {"error":"A title with document ID x already exists: X"}')
+        with patch.object(app, 'call', side_effect=refusal):
+            with self.assertRaises(SystemExit) as raised:
+                app.skeleton({'media': '/m.mp4', 'title': 'X'})
+        self.assertEqual(str(raised.exception), 'A title with document ID x already exists: X')
+        with patch.object(app, 'call', side_effect=SystemExit('The app is not reachable at u (r); start it first')):
+            with self.assertRaisesRegex(SystemExit, 'not reachable'):
+                app.skeleton({})
 
     def test_open_batch_stops_a_rewrite_before_any_work(self):
         pending = [{'titleId': 'a', 'title': 'A', 'pending': 2, 'openBatch': 7},
