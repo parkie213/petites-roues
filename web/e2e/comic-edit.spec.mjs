@@ -26,7 +26,7 @@ test("edit mode saves a transcription correction and restores it after reload", 
   page,
 }) => {
   await openCover(page, () => page.goto("/reader/lulu-example-le-parapluie/"));
-  const original = firstLine(await readJson(page, api));
+  const original = firstLine(await readJson(page, api.replace(/\/comic$/, "")));
   await page.getByRole("button", { name: "Edit mode", exact: true }).click();
   const panel = page.getByRole("complementary", { name: "Bubble editing" });
   await panel.getByRole("button", { name: "Edit text", exact: true }).click();
@@ -51,7 +51,9 @@ test("edit mode saves a transcription correction and restores it after reload", 
   expect(firstLine(saved)).toMatchObject({ source, notes: [] });
   expect(firstLine(saved).translation).toBeFalsy();
   expect(firstLine(saved).alignment).toBeFalsy();
-  expect(firstLine(await readJson(page, api)).source).toBe(source);
+  expect(
+    firstLine(await readJson(page, api.replace(/\/comic$/, ""))).source,
+  ).toBe(source);
   await expect(
     panel.getByRole("button", { name: "Edit text", exact: true }),
   ).toBeVisible();

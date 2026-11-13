@@ -6,6 +6,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import app.petitesroues.model.library.ContentRepository;
 import app.petitesroues.model.library.LibraryJob;
 import app.petitesroues.support.HttpIntegrationTest;
+import java.nio.file.Files;
 import java.time.Duration;
 import java.util.List;
 import java.util.Map;
@@ -63,11 +64,11 @@ class LibraryJobIntegrationTest extends HttpIntegrationTest {
 
   @Test
   void refreshAllReportsEachTargetAndContinuesAfterFailure() throws Exception {
-    var bad = java.nio.file.Files.createDirectory(root.resolve("bad"));
-    var good = java.nio.file.Files.createDirectory(root.resolve("good"));
+    var bad = Files.createDirectory(root.resolve("bad"));
+    var good = Files.createDirectory(root.resolve("good"));
     assertEquals("succeeded", run(Map.of("kind", "add", "localPath", bad.toString())).state());
     assertEquals("succeeded", run(Map.of("kind", "add", "localPath", good.toString())).state());
-    java.nio.file.Files.delete(bad);
+    Files.delete(bad);
     var refreshed = run(Map.of("kind", "refresh"));
     assertEquals("failed", refreshed.state());
     assertEquals(2, refreshed.outcomes().size());

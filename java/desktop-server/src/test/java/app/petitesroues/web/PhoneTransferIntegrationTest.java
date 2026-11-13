@@ -219,7 +219,7 @@ class PhoneTransferIntegrationTest extends HttpIntegrationTest {
     // Moving the media on the desktop and refreshing changes nothing for the phone.
     Files.createDirectories(media.resolve("films"));
     Files.move(media.resolve("comics/demon"), media.resolve("films/demon"));
-    discover(http, "refresh", null, null, app.petitesroues.model.library.ContentRepository.class);
+    discover(http, "refresh", null, null, ContentRepository.class);
     assertEquals(
         List.of(),
         TransferPlan.of(client.titles(desktop), folder).steps(),

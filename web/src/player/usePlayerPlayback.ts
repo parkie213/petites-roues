@@ -15,6 +15,7 @@ interface Options {
   setStatus: (message: string) => void;
   /** Whether the position is restored on opening and saved as it changes. */
   saveProgress?: boolean;
+  initialProgress?: { positionSeconds?: number; updatedAt?: string | null };
   /** Whether playback starts by itself once the video is ready. */
   autoPlay?: boolean;
 }
@@ -32,6 +33,7 @@ export function usePlayerPlayback({
   autoPause,
   setStatus,
   saveProgress = true,
+  initialProgress,
   autoPlay = false,
 }: Options) {
   const video = useRef<HTMLVideoElement>(null);
@@ -107,6 +109,7 @@ export function usePlayerPlayback({
   }
   usePlaybackProgress({
     api,
+    initialProgress,
     enabled: saveProgress && Boolean(doc),
     videoRef: video,
     position: (element: HTMLVideoElement) =>

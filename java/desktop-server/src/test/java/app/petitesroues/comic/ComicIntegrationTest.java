@@ -12,6 +12,7 @@ import app.petitesroues.model.document.ComicReference;
 import app.petitesroues.model.document.ReadingDirection;
 import app.petitesroues.model.document.StudyDocument;
 import app.petitesroues.model.library.CatalogueItem;
+import app.petitesroues.model.library.ContentRepository;
 import app.petitesroues.model.library.Library;
 import app.petitesroues.support.DocumentFixtures;
 import app.petitesroues.support.HttpIntegrationTest;
@@ -77,9 +78,11 @@ class ComicIntegrationTest extends HttpIntegrationTest {
     assertFalse(title.videoAvailable());
     assertTrue(title.unavailable().isEmpty());
     String api = "/api/titles/" + title.id();
-    var loaded = http.get().uri(api + "/comic").retrieve().body(StudyDocument.class);
-    assertEquals(comic.comic().pages(), loaded.comic().pages());
-    var exported = http.get().uri(api + "/export").retrieve().body(JsonNode.class);
+    var loaded = http.get().uri(api + "?view=study").retrieve().body(JsonNode.class);
+    assertEquals(
+        comic.comic().pages(),
+        mapper.treeToValue(loaded.path("document"), StudyDocument.class).comic().pages());
+    var exported = http.get().uri(api + "?download=true").retrieve().body(JsonNode.class);
     assertTrue(exported.has("comic"));
     assertTrue(exported.path("comic").path("pages").get(0).path("boxes").isEmpty());
     assertFalse(exported.has("durationSeconds"));
@@ -109,12 +112,7 @@ class ComicIntegrationTest extends HttpIntegrationTest {
             .<Integer>exchange((req, res) -> res.getStatusCode().value())
             .intValue());
     http.put().uri(api + "/progress").body(Map.of("pageId", "story")).retrieve().toBodilessEntity();
-    discover(
-        http,
-        "refresh",
-        repository.path("id").asText(),
-        null,
-        app.petitesroues.model.library.ContentRepository.class);
+    discover(http, "refresh", repository.path("id").asText(), null, ContentRepository.class);
     assertEquals(
         "story",
         http.get().uri(api + "/progress").retrieve().body(JsonNode.class).path("pageId").asText());
@@ -157,7 +155,7 @@ class ComicIntegrationTest extends HttpIntegrationTest {
     assertEquals(
         404,
         http.get()
-            .uri(api + "/comic")
+            .uri(api + "?view=study")
             .<Integer>exchange((req, res) -> res.getStatusCode().value())
             .intValue());
     http.delete()

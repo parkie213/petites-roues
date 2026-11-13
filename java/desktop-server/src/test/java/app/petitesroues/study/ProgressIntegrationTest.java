@@ -4,6 +4,7 @@ import static app.petitesroues.support.DocumentFixtures.document;
 import static org.junit.jupiter.api.Assertions.*;
 
 import app.petitesroues.support.HttpIntegrationTest;
+import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
 import tools.jackson.databind.JsonNode;
@@ -16,7 +17,7 @@ class ProgressIntegrationTest extends HttpIntegrationTest {
     String api = "/api/titles/positions/progress";
     http.put().uri(api).body(Map.of("positionSeconds", 3.5)).retrieve().toBodilessEntity();
     for (var invalid :
-        java.util.List.of(
+        List.of(
             Map.of("positionSeconds", 1, "pageId", "cover"),
             Map.of("pageId", "cover"),
             Map.of("positionSeconds", -1))) {

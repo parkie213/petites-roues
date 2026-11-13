@@ -10,6 +10,7 @@ import app.petitesroues.documents.StudyDocumentCodec;
 import app.petitesroues.media.MediaFingerprint;
 import app.petitesroues.model.document.StudyDocument;
 import app.petitesroues.model.document.VideoReference;
+import app.petitesroues.model.library.ContentRepository;
 import app.petitesroues.model.library.Library;
 import app.petitesroues.support.HttpIntegrationTest;
 import java.nio.charset.StandardCharsets;
@@ -35,7 +36,7 @@ class ApplicationSmokeTest extends HttpIntegrationTest {
         "add",
         null,
         Map.of("localPath", root.resolve("media").toString()),
-        app.petitesroues.model.library.ContentRepository.class);
+        ContentRepository.class);
     var unmatched = http.get().uri("/api/library").retrieve().body(Library.class);
     var mediaFolder = unmatched.repositories().getFirst();
     assertTrue(mediaFolder.entries().isEmpty());

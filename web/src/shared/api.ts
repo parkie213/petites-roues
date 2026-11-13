@@ -182,3 +182,28 @@ export async function sendCommands<T>(
     throw failure;
   }
 }
+
+/** Application state is distinct from portable document JSON. */
+export interface StudyState<T> {
+  document: T;
+  version: string;
+  pending: unknown[];
+  progress: {
+    positionSeconds?: number;
+    pageId?: string | null;
+    updatedAt?: string | null;
+  };
+}
+
+/** One coherent opening read for either player; archive validation remains server-owned. */
+export async function loadStudyState<T>(
+  api: string,
+  signal?: AbortSignal,
+): Promise<StudyState<T>> {
+  const title = api.replace(/\/comic$/, "");
+  const state = await request<StudyState<StudyDocument>>(
+    title + "?view=study",
+    { signal },
+  );
+  return { ...state, document: playerDocument(state.document) as T };
+}

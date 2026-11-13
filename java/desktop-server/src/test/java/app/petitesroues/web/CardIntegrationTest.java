@@ -10,6 +10,7 @@ import app.petitesroues.model.document.ComicDocument;
 import app.petitesroues.model.document.ComicReference;
 import app.petitesroues.model.document.ReadingDirection;
 import app.petitesroues.model.library.CatalogueItem;
+import app.petitesroues.model.library.ContentRepository;
 import app.petitesroues.model.library.Library;
 import app.petitesroues.support.DocumentFixtures;
 import app.petitesroues.support.HttpIntegrationTest;
@@ -82,7 +83,7 @@ class CardIntegrationTest extends HttpIntegrationTest {
         "add",
         null,
         Map.of("localPath", root.resolve("manga").toString()),
-        app.petitesroues.model.library.ContentRepository.class);
+        ContentRepository.class);
 
     var title = onlyTitle();
     assertEquals(1, title.volume());
@@ -100,7 +101,7 @@ class CardIntegrationTest extends HttpIntegrationTest {
     // A poster in the CBZ's own folder, found by Refresh, replaces the cover under a new URL; small
     // images stay small.
     Files.write(tome.resolve("poster.png"), image(100, 150));
-    discover(http, "refresh", null, null, app.petitesroues.model.library.ContentRepository.class);
+    discover(http, "refresh", null, null, ContentRepository.class);
     assertTrue(onlyTitle().posterAvailable());
     assertEquals(100, image(api + "/card").getWidth());
     assertNotEquals(coverUrl, location(api + "/card"), "replaced source must change the URL");
@@ -117,11 +118,11 @@ class CardIntegrationTest extends HttpIntegrationTest {
     // The nearest poster above the CBZ's own folder is the series card, the registered folder
     // included (it may be the series folder itself).
     Files.write(root.resolve("manga/poster.jpg"), image(10, 10));
-    discover(http, "refresh", null, null, app.petitesroues.model.library.ContentRepository.class);
+    discover(http, "refresh", null, null, ContentRepository.class);
     assertTrue(onlyTitle().seriesPosterAvailable());
     assertEquals(10, image(api + "/series-card").getWidth());
     Files.write(series.resolve("poster.png"), image(300, 450));
-    discover(http, "refresh", null, null, app.petitesroues.model.library.ContentRepository.class);
+    discover(http, "refresh", null, null, ContentRepository.class);
     assertEquals(300, image(api + "/series-card").getWidth());
 
     // A CBZ no document references has the same cards by fingerprint: its first page by name.
@@ -133,7 +134,7 @@ class CardIntegrationTest extends HttpIntegrationTest {
         zip.closeEntry();
       }
     }
-    discover(http, "refresh", null, null, app.petitesroues.model.library.ContentRepository.class);
+    discover(http, "refresh", null, null, ContentRepository.class);
     var media =
         http
             .get()
@@ -153,7 +154,7 @@ class CardIntegrationTest extends HttpIntegrationTest {
     assertEquals(60, image(mediaApi + "/card").getWidth());
     assertEquals(10, image(mediaApi + "/series-card").getWidth());
     Files.write(loose.resolve("extra.webp"), image(50, 75));
-    discover(http, "refresh", null, null, app.petitesroues.model.library.ContentRepository.class);
+    discover(http, "refresh", null, null, ContentRepository.class);
     assertEquals(50, image(mediaApi + "/card").getWidth());
 
     // Without a poster or CBZ there is no card image: the library draws a placeholder.

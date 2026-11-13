@@ -11,6 +11,7 @@ import app.petitesroues.model.document.ComicBox;
 import app.petitesroues.model.document.Line;
 import app.petitesroues.model.document.ReadingDirection;
 import app.petitesroues.model.document.StudyDocument;
+import app.petitesroues.model.library.ContentRepository;
 import app.petitesroues.support.DocumentFixtures;
 import app.petitesroues.support.HttpIntegrationTest;
 import java.nio.charset.StandardCharsets;
@@ -44,12 +45,7 @@ class ComicAnnotationIntegrationTest extends HttpIntegrationTest {
     Files.write(
         folder.resolve("document.json"),
         new StudyDocumentCodec().encode(doc).getBytes(StandardCharsets.UTF_8));
-    discover(
-        http,
-        "add",
-        null,
-        Map.of("localPath", folder.toString()),
-        app.petitesroues.model.library.ContentRepository.class);
+    discover(http, "add", null, Map.of("localPath", folder.toString()), ContentRepository.class);
     return "/api/titles/comic";
   }
 

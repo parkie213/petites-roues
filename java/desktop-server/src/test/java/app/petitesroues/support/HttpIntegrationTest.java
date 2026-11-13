@@ -8,6 +8,7 @@ import app.petitesroues.media.MediaFingerprint;
 import app.petitesroues.model.document.StudyDocument;
 import app.petitesroues.model.document.VideoDocument;
 import app.petitesroues.model.document.VideoReference;
+import app.petitesroues.model.library.ContentRepository;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -100,19 +101,9 @@ public abstract class HttpIntegrationTest {
       String repositoryId =
           jdbc.queryForObject(
               "SELECT repository_id FROM titles WHERE id=?", String.class, title.id());
-      discover(
-          http,
-          "refresh",
-          repositoryId,
-          null,
-          app.petitesroues.model.library.ContentRepository.class);
+      discover(http, "refresh", repositoryId, null, ContentRepository.class);
     } else {
-      discover(
-          http,
-          "add",
-          null,
-          Map.of("localPath", folder.toString()),
-          app.petitesroues.model.library.ContentRepository.class);
+      discover(http, "add", null, Map.of("localPath", folder.toString()), ContentRepository.class);
     }
   }
 }

@@ -124,7 +124,7 @@ function idStandIns() {
       })
       .replace(fileVersion, "/$1/recorded")
       .replace(
-        /("(?:expectedVersion|x-state-version)"\s*:\s*")([a-f0-9]{64})/g,
+        /("(?:expectedVersion|x-state-version|version)"\s*:\s*")([a-f0-9]{64})/g,
         (_, prefix, version) => {
           if (!versions.has(version))
             versions.set(version, `state-version-${versions.size + 1}`);

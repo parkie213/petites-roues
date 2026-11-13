@@ -4,6 +4,7 @@ import static app.petitesroues.support.HttpClients.discover;
 import static org.junit.jupiter.api.Assertions.*;
 
 import app.petitesroues.media.MediaFingerprint;
+import app.petitesroues.model.library.ContentRepository;
 import app.petitesroues.support.HttpIntegrationTest;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -33,7 +34,7 @@ class BareComicIntegrationTest extends HttpIntegrationTest {
         "add",
         null,
         Map.of("localPath", root.resolve("media").toString()),
-        app.petitesroues.model.library.ContentRepository.class);
+        ContentRepository.class);
     String base = "/api/media/" + MediaFingerprint.of(cbz) + "/pages";
 
     List<String> pages =

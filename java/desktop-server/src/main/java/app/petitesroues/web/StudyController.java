@@ -4,6 +4,7 @@ import app.petitesroues.library.LibraryService;
 import app.petitesroues.model.document.StudyDocument;
 import app.petitesroues.model.editing.CommandRequest;
 import app.petitesroues.study.DocumentCommandService;
+import app.petitesroues.study.StudyStateService;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
@@ -32,23 +33,43 @@ import org.springframework.web.bind.annotation.*;
 public class StudyController {
   private final LibraryService library;
   private final DocumentCommandService commands;
+  private final StudyStateService studies;
 
-  public StudyController(LibraryService library, DocumentCommandService commands) {
+  public StudyController(
+      LibraryService library, DocumentCommandService commands, StudyStateService studies) {
     this.library = library;
     this.commands = commands;
+    this.studies = studies;
   }
 
-  /**
-   * GET the current document, including cue IDs, source text, translations, notes and listening
-   * checks.
-   */
+  /** Raw portable JSON by default; study view captures the state needed to open either player. */
   @GetMapping
-  public ResponseEntity<StudyDocument> document(@PathVariable String id) throws IOException {
-    var state = commands.read(id);
-    return ResponseEntity.ok()
-        .cacheControl(CacheControl.noStore())
-        .header("X-State-Version", state.version())
-        .body(state.document());
+  public ResponseEntity<?> document(
+      @PathVariable String id,
+      @RequestParam(defaultValue = "document") String view,
+      @RequestParam(defaultValue = "false") boolean download)
+      throws IOException {
+    if ("study".equals(view)) {
+      if (download) throw new IllegalArgumentException("Download requires the document view");
+      var state = studies.read(id);
+      return ResponseEntity.ok()
+          .cacheControl(CacheControl.noStore())
+          .header("X-State-Version", state.version())
+          .body(state);
+    }
+    if (!"document".equals(view))
+      throw new IllegalArgumentException("View must be document or study");
+    var result = commands.read(id);
+    var response =
+        ResponseEntity.ok()
+            .contentType(MediaType.APPLICATION_JSON)
+            .cacheControl(CacheControl.noStore())
+            .header("X-State-Version", result.version());
+    if (download)
+      response.header(
+          HttpHeaders.CONTENT_DISPOSITION,
+          ContentDisposition.attachment().filename("study.json").build().toString());
+    return response.body(result.document());
   }
 
   /**
@@ -61,21 +82,6 @@ public class StudyController {
   public Map<String, List<String>> validate(@PathVariable String id, @RequestBody byte[] candidate)
       throws IOException {
     return Map.of("problems", library.problems(id, candidate));
-  }
-
-  /**
-   * GET the current document as a downloadable {@code study.json}. Includes current annotations and
-   * reference metadata, but excludes local file paths and the local review queue.
-   */
-  @GetMapping("/export")
-  public ResponseEntity<StudyDocument> export(@PathVariable String id) throws IOException {
-    StudyDocument document = library.document(id);
-    return ResponseEntity.ok()
-        .contentType(MediaType.APPLICATION_JSON)
-        .header(
-            HttpHeaders.CONTENT_DISPOSITION,
-            ContentDisposition.attachment().filename("study.json").build().toString())
-        .body(document);
   }
 
   /** One atomic typed command batch; headers carry the state token and assigned identities. */

@@ -12,6 +12,7 @@ import app.petitesroues.documents.StudyDocumentCodec;
 import app.petitesroues.library.persistence.CatalogueStore;
 import app.petitesroues.model.document.StudyDocument;
 import app.petitesroues.model.editing.UpdateCueTiming;
+import app.petitesroues.model.library.ContentRepository;
 import app.petitesroues.study.ReviewQueue;
 import com.zaxxer.hikari.HikariDataSource;
 import java.nio.charset.StandardCharsets;
@@ -196,6 +197,6 @@ class ApplicationConcurrencyTest {
         "add",
         null,
         Map.of("localPath", file.getParent().toString()),
-        app.petitesroues.model.library.ContentRepository.class);
+        ContentRepository.class);
   }
 }

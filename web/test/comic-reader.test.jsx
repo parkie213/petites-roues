@@ -99,7 +99,12 @@ function open({
     if (options.method) return write(url, options);
     if (read) return read(url, options);
     return Response.json(
-      url.endsWith("/progress") ? { pageId: resume } : comic(),
+      {
+        document: comic(),
+        version: "reader-state",
+        pending: [],
+        progress: { pageId: resume },
+      },
       { headers: { "X-State-Version": "reader-state" } },
     );
   });
@@ -213,7 +218,7 @@ test("shows progress failures with a retry for the displayed page", async () => 
   );
 });
 
-test("load failures explain the problem and unmount aborts both initial requests", async () => {
+test("load failures explain the problem and unmount aborts the coherent opening request", async () => {
   const { fetcher, unmount } = open({
     read: () => Response.json({ error: "Comic missing" }, { status: 404 }),
   });
@@ -222,7 +227,7 @@ test("load failures explain the problem and unmount aborts both initial requests
   unmount();
   expect(
     fetcher.mock.calls
-      .slice(0, 2)
+      .slice(0, 1)
       .every(([, options]) => options.signal.aborted),
   ).toBe(true);
 });
@@ -387,8 +392,13 @@ test("RTL and spread mode keep manifest progress while reversing arrow navigatio
   const rtl = comic();
   rtl.comic.readingDirection = "rtl";
   open({
-    read: (url) =>
-      Response.json(url.endsWith("/progress") ? { pageId: "p1" } : rtl),
+    read: () =>
+      Response.json({
+        document: rtl,
+        version: "rtl-state",
+        pending: [],
+        progress: { pageId: "p1" },
+      }),
   });
   await screen.findByRole("button", { name: "Image loaded" });
   expect(page.props.pages.map((p) => p.id)).toEqual(["p1"]);

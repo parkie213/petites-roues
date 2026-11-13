@@ -248,7 +248,7 @@ test("the real speech API plays saved bubbles, phrases, R replay and listening m
   await turn(page, "page-2", () =>
     page.getByRole("button", { name: /^Next page/ }).click(),
   );
-  const document = await readJson(page, comic);
+  const document = await readJson(page, api);
   const line = document.comic.pages.find((p) => p.id === "page-2").boxes[0]
     .lines[0];
   await playClip(
@@ -323,7 +323,7 @@ test("chapter quiz exports only the chosen chapter and respects the selected qui
       action,
     );
   // This POST prepares text without mutating the document or saving a review command.
-  const before = await readJson(page, comic);
+  const before = await readJson(page, api);
   expect(before).toEqual(
     JSON.parse(
       readFileSync(
@@ -369,6 +369,6 @@ test("chapter quiz exports only the chosen chapter and respects the selected qui
     "quiz-le-parapluie-de-lulu-chapter-2.md",
   );
   expect(readFileSync(await file.path(), "utf8")).toBe(vocabulary.text);
-  expect(await readJson(page, comic)).toEqual(before);
+  expect(await readJson(page, api)).toEqual(before);
   await page.screenshot({ path: info.outputPath("chapter-quiz.png") });
 });

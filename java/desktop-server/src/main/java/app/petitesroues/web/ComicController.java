@@ -1,7 +1,6 @@
 package app.petitesroues.web;
 
 import app.petitesroues.comic.ComicService;
-import app.petitesroues.model.document.StudyDocument;
 import java.io.IOException;
 import java.time.Duration;
 import java.util.List;
@@ -22,12 +21,6 @@ public class ComicController {
 
   public ComicController(ComicService comics) {
     this.comics = comics;
-  }
-
-  /** Opens a registered comic after checking every manifest entry against its local archive. */
-  @GetMapping("/titles/{id}/comic")
-  public ResponseEntity<StudyDocument> open(@PathVariable String id) throws IOException {
-    return ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(comics.open(id));
   }
 
   @GetMapping("/titles/{id}/comic/pages/{pageId}")

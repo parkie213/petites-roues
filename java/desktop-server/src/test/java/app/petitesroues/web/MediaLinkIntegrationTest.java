@@ -95,7 +95,7 @@ class MediaLinkIntegrationTest extends HttpIntegrationTest {
   }
 
   private void refresh() {
-    discover(http, "refresh", null, null, app.petitesroues.model.library.ContentRepository.class);
+    discover(http, "refresh", null, null, ContentRepository.class);
   }
 
   @Test
