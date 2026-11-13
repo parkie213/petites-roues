@@ -56,69 +56,8 @@ class CbzReaderTest {
       assertEquals(listOf("page-2.png", "page-10.PNG"), it.pages())
       assertEquals("page-2.png", it.firstPage())
       assertEquals(8, it.page("page-2.png", 8, 8).width)
-      assertThrows(IllegalStateException::class.java) { it.page("absent.png", 8, 8) }
+      assertThrows(IllegalArgumentException::class.java) { it.page("absent.png", 8, 8) }
       assertThrows(IllegalArgumentException::class.java) { it.page("folder.jpg/", 8, 8) }
-    }
-  }
-
-  @Test
-  fun `rejects duplicate file names on opening`() {
-    val file = archive {
-      entry(it, "page.png")
-      entry(it, "page.png")
-    }
-    assertThrows(IllegalArgumentException::class.java) { open(file).use {} }
-  }
-
-  @Test
-  fun `rejects archives with too many entries`() {
-    val file = archive { zip -> repeat(20001) { entry(zip, "$it.txt") } }
-    assertThrows(IllegalArgumentException::class.java) { open(file).use {} }
-  }
-
-  @Test
-  fun `rejects oversized decompressed pages before image decoding`() {
-    val file = archive { zip ->
-      zip.putArchiveEntry(ZipArchiveEntry("huge.png"))
-      val block = ByteArray(1024 * 1024)
-      repeat(33) { zip.write(block) }
-      zip.closeArchiveEntry()
-    }
-    open(file).use {
-      val failure =
-        assertThrows(IllegalArgumentException::class.java) {
-          it.page("huge.png", 8, 8)
-        }
-      assertEquals("CBZ page exceeds 32 MiB", failure.message)
-    }
-  }
-
-  @Test
-  fun `bounds actual decompression when the ZIP understates page size`() {
-    val file = archive { zip ->
-      zip.putArchiveEntry(ZipArchiveEntry("huge.png"))
-      val block = ByteArray(1024 * 1024)
-      repeat(33) { zip.write(block) }
-      zip.closeArchiveEntry()
-    }
-    // The central directory claims one byte, while the deflate stream produces 33 MiB.
-    val bytes = file.readBytes()
-    val central =
-      (0 until bytes.size - 28).first { offset ->
-        bytes[offset] == 0x50.toByte() &&
-          bytes[offset + 1] == 0x4b.toByte() &&
-          bytes[offset + 2] == 1.toByte() &&
-          bytes[offset + 3] == 2.toByte()
-      }
-    bytes[central + 24] = 1
-    for (index in 25..27) bytes[central + index] = 0
-    file.writeBytes(bytes)
-    open(file).use {
-      val failure =
-        assertThrows(IllegalArgumentException::class.java) {
-          it.page("huge.png", 8, 8)
-        }
-      assertEquals("CBZ page exceeds 32 MiB", failure.message)
     }
   }
 

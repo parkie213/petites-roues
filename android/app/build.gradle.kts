@@ -114,7 +114,7 @@ dependencies {
   implementation(libs.lifecycle.runtime.compose)
   implementation(libs.media3.exoplayer)
   implementation(libs.media3.ui.compose)
-  implementation(libs.commons.compress)
+  testImplementation(libs.commons.compress)
   implementation(libs.markdown.renderer.m3)
   implementation(libs.play.services.code.scanner)
   implementation(libs.hilt.android)
