@@ -7,8 +7,8 @@ import app.petitesroues.android.Settings
 import app.petitesroues.android.screens.SDK
 import app.petitesroues.android.testing.FakeDesktop
 import app.petitesroues.android.testing.FakeNsd
-import app.petitesroues.model.sync.Desktop
 import app.petitesroues.sync.DesktopException
+import app.petitesroues.sync.model.Desktop
 import java.io.IOException
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertSame

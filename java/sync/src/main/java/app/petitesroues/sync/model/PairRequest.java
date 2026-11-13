@@ -1,4 +1,4 @@
-package app.petitesroues.model.sync;
+package app.petitesroues.sync.model;
 
 /**
  * What a phone sends to pair: the secret from the desktop's QR code and its own name.

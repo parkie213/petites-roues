@@ -1,6 +1,6 @@
 package app.petitesroues.sync;
 
-import app.petitesroues.model.sync.PairingCode;
+import app.petitesroues.sync.model.PairingCode;
 import java.util.ArrayList;
 import java.util.List;
 import tools.jackson.core.JacksonException;

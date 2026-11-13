@@ -2,7 +2,7 @@ package app.petitesroues.sync;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-import app.petitesroues.model.sync.PairingCode;
+import app.petitesroues.sync.model.PairingCode;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 

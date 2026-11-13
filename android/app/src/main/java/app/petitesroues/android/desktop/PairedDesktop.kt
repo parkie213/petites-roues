@@ -2,8 +2,8 @@ package app.petitesroues.android.desktop
 
 import android.util.Log
 import app.petitesroues.android.Settings
-import app.petitesroues.model.sync.Desktop
 import app.petitesroues.sync.DesktopException
+import app.petitesroues.sync.model.Desktop
 import java.io.IOException
 import javax.inject.Inject
 import javax.inject.Singleton

@@ -1,4 +1,4 @@
-package app.petitesroues.model.sync;
+package app.petitesroues.sync.model;
 
 import java.util.List;
 

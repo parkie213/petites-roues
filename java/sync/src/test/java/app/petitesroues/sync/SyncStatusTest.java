@@ -3,9 +3,9 @@ package app.petitesroues.sync;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 
-import app.petitesroues.model.sync.DesktopTitle;
-import app.petitesroues.model.sync.TitleFile;
 import app.petitesroues.sync.SyncStatus.State;
+import app.petitesroues.sync.model.DesktopTitle;
+import app.petitesroues.sync.model.TitleFile;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;

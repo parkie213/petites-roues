@@ -5,7 +5,7 @@ import android.net.Uri
 import androidx.core.content.edit
 import androidx.core.net.toUri
 import app.petitesroues.android.comic.ListeningMode
-import app.petitesroues.model.sync.Desktop
+import app.petitesroues.sync.model.Desktop
 import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -62,7 +62,7 @@ class Settings @Inject constructor(@ApplicationContext context: Context) {
 
   /**
    * The desktop's series and standalone titles this phone follows, by
-   * [app.petitesroues.model.sync.DesktopTitle.group]: syncing fetches their new titles as well as
+   * [app.petitesroues.sync.model.DesktopTitle.group]: syncing fetches their new titles as well as
    * updates to what is already on the phone.
    */
   var followed: Set<String>

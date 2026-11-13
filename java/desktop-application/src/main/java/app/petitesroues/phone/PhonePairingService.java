@@ -2,8 +2,8 @@ package app.petitesroues.phone;
 
 import app.petitesroues.model.phone.PairedPhone;
 import app.petitesroues.model.phone.PhonePairing;
-import app.petitesroues.model.sync.PairingCode;
-import app.petitesroues.model.sync.PhoneToken;
+import app.petitesroues.sync.model.PairingCode;
+import app.petitesroues.sync.model.PhoneToken;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;

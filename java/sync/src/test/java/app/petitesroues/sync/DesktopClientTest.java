@@ -3,10 +3,10 @@ package app.petitesroues.sync;
 import static org.junit.jupiter.api.Assertions.*;
 
 import app.petitesroues.media.MediaFingerprint;
-import app.petitesroues.model.sync.Desktop;
-import app.petitesroues.model.sync.Hello;
-import app.petitesroues.model.sync.PairingCode;
-import app.petitesroues.model.sync.TitleFile;
+import app.petitesroues.sync.model.Desktop;
+import app.petitesroues.sync.model.Hello;
+import app.petitesroues.sync.model.PairingCode;
+import app.petitesroues.sync.model.TitleFile;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpsConfigurator;
 import com.sun.net.httpserver.HttpsServer;
