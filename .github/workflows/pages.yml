@@ -31,7 +31,8 @@ jobs:
       - run: npm ci
         working-directory: web
       - name: Build website and static comic demo
-        run: python3 site/build.py
+        run: npm run build:site
+        working-directory: web
       - uses: actions/configure-pages@v6
       - uses: actions/upload-pages-artifact@v5
         with:

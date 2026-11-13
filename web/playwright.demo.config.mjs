@@ -18,8 +18,7 @@ export default defineConfig({
     },
   ],
   webServer: {
-    command:
-      "python3 ../site/build.py && python3 -m http.server 18876 --bind 0.0.0.0 --directory ../site/dist",
+    command: "npm run build:site && npm run preview:site -- --host 0.0.0.0",
     url: "http://127.0.0.1:18876/demo/",
     reuseExistingServer: false,
   },

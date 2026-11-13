@@ -1,11 +1,11 @@
 # petites roues website
 
 The landing page links to GitHub and a demo at `demo/`. The demo runs the **actual web app**:
-`site/build.py` uses the normal Vite entry point and copies its output, then opts the demo HTML
+`web/build-site.mjs` uses the normal Vite entry point and copies its output, then opts the demo HTML
 into canned responses. There is no separate demo library or reader UI.
 
-Run `npm ci --prefix web`, then `python3 site/build.py`. Preview with
-`python3 -m http.server 18876 --directory site/dist` and open http://localhost:18876/.
+Run `npm ci --prefix web`, then `npm run build:site --prefix web`. Preview with
+`npm run preview:site --prefix web` and open http://localhost:18876/.
 The build bundles only the original Le parapluie de Lulu document, its four CBZ page images and
 recorded French audio from `example/` and `site/demo-audio/`. Videos are not included yet.
 
@@ -31,6 +31,7 @@ the clips and their text-to-file manifest:
 python3 site/demo_audio.py --piper ~/.local/share/piper/piper/piper --model ~/.local/share/piper/voices/fr_FR-siwis-medium.onnx
 ```
 
-The recorder needs Piper, the voice and ffmpeg; Pages builds need none of them.
-`site/build.py` rejects missing recordings. Listen, pinned-phrase listening, R replay and
+The separate Python recorder needs Piper, the voice and ffmpeg; Pages builds and browser
+tests use only Node. The Node packager uses Vite’s build API and fflate to extract CBZ images.
+`web/build-site.mjs` rejects missing recordings. Listen, pinned-phrase listening, R replay and
 listen-on-hover all use the real reader's controls and playback code with saved MP3 responses.
