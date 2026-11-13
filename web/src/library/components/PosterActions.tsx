@@ -64,9 +64,7 @@ export function PosterCopies({
 
 /** Forgets a title's resume position: its comic page or its video position. */
 async function clearProgress(entry: PosterEntry) {
-  const url =
-    titlePath(entry.id) +
-    (entry.type === "comic" ? "/comic/progress" : "/progress");
+  const url = titlePath(entry.id) + "/progress";
   const response = await fetch(url, { method: "DELETE" });
   if (!response.ok) throw await responseError(response);
 }

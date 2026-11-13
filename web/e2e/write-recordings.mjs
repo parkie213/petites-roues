@@ -3,7 +3,8 @@ import { isDeepStrictEqual } from "node:util";
 
 const position = "<request.positionSeconds>";
 const playback = (entry) =>
-  /^PUT \/api\/titles\/[^/]+\/progress$/.test(entry.request);
+  /^PUT \/api\/titles\/[^/]+\/progress$/.test(entry.request) &&
+  entry.json?.positionSeconds !== undefined;
 
 /**
  * Keep a write's payload with its answer. Playback saves are a checked echo contract: verify the

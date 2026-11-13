@@ -134,7 +134,7 @@ test("loads the saved page but records progress only after the page image loads"
   await userEvent.click(screen.getByRole("button", { name: "Image loaded" }));
   await waitFor(() =>
     expect(fetcher).toHaveBeenCalledWith(
-      "/api/titles/comic/comic/progress",
+      "/api/titles/comic/progress",
       expect.objectContaining({
         method: "PUT",
         body: JSON.stringify({ pageId: "p2" }),

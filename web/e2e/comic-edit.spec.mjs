@@ -9,13 +9,15 @@ async function openCover(page, action) {
       page,
       {
         method: "PUT",
-        path: api + "/progress",
+        path: api.replace(/\/comic$/, "") + "/progress",
         body: { pageId: "cover" },
       },
       action,
     ),
   ).toMatchObject({ pageId: "cover" });
-  expect(await readJson(page, api + "/progress")).toMatchObject({
+  expect(
+    await readJson(page, api.replace(/\/comic$/, "") + "/progress"),
+  ).toMatchObject({
     pageId: "cover",
   });
 }

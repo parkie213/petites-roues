@@ -53,8 +53,7 @@ export async function forgetProgress() {
   for (const entry of library.repositories.flatMap((repo) => repo.entries))
     if (entry.progress != null)
       await fetch(
-        `${api}/titles/${encodeURIComponent(entry.id)}/` +
-          (entry.type === "comic" ? "comic/progress" : "progress"),
+        `${api}/titles/${encodeURIComponent(entry.id)}/` + "progress",
         { method: "DELETE" },
       );
 }

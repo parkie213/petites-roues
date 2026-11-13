@@ -3020,7 +3020,7 @@
     "blob": "88a5242cb71ac778.jpg"
   },
   {
-    "request": "GET /api/titles/lulu-example-le-parapluie/comic/progress",
+    "request": "GET /api/titles/lulu-example-le-parapluie/progress",
     "status": 200,
     "type": "application/json",
     "json": {
@@ -3029,7 +3029,7 @@
     }
   },
   {
-    "request": "GET /api/titles/lulu-example-le-parapluie/comic/progress",
+    "request": "GET /api/titles/lulu-example-le-parapluie/progress",
     "status": 200,
     "type": "application/json",
     "json": {
@@ -3038,7 +3038,7 @@
     }
   },
   {
-    "request": "GET /api/titles/lulu-example-le-parapluie/comic/progress?journeyCheck=1",
+    "request": "GET /api/titles/lulu-example-le-parapluie/progress?journeyCheck=1",
     "status": 200,
     "type": "application/json",
     "json": {
@@ -3047,7 +3047,7 @@
     }
   },
   {
-    "request": "GET /api/titles/lulu-example-le-parapluie/comic/progress?journeyCheck=4",
+    "request": "GET /api/titles/lulu-example-le-parapluie/progress?journeyCheck=4",
     "status": 200,
     "type": "application/json",
     "json": {
@@ -3662,7 +3662,7 @@
     }
   },
   {
-    "request": "PUT /api/titles/lulu-example-le-parapluie/comic/progress",
+    "request": "PUT /api/titles/lulu-example-le-parapluie/progress",
     "status": 200,
     "type": "application/json",
     "json": {

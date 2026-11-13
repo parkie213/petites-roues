@@ -98,59 +98,32 @@ class ComicIntegrationTest extends HttpIntegrationTest {
             .<Integer>exchange((req, res) -> res.getStatusCode().value())
             .intValue());
     assertTrue(
-        http.get()
-            .uri(api + "/comic/progress")
-            .retrieve()
-            .body(JsonNode.class)
-            .path("pageId")
-            .isNull());
+        http.get().uri(api + "/progress").retrieve().body(JsonNode.class).path("pageId").isNull());
     assertEquals(
         404,
         http.put()
-            .uri(api + "/comic/progress")
+            .uri(api + "/progress")
             .body(Map.of("pageId", "unknown"))
             .<Integer>exchange((req, res) -> res.getStatusCode().value())
             .intValue());
-    http.put()
-        .uri(api + "/comic/progress")
-        .body(Map.of("pageId", "story"))
-        .retrieve()
-        .toBodilessEntity();
+    http.put().uri(api + "/progress").body(Map.of("pageId", "story")).retrieve().toBodilessEntity();
     http.post()
         .uri("/api/repositories/" + repository.path("id").asText() + "/refresh")
         .retrieve()
         .toBodilessEntity();
     assertEquals(
         "story",
-        http.get()
-            .uri(api + "/comic/progress")
-            .retrieve()
-            .body(JsonNode.class)
-            .path("pageId")
-            .asText());
+        http.get().uri(api + "/progress").retrieve().body(JsonNode.class).path("pageId").asText());
     // The library card shows how far through the comic the page is: page 2 of 2, then 1 of 2.
     assertEquals(1.0, libraryEntry().progress());
-    http.put()
-        .uri(api + "/comic/progress")
-        .body(Map.of("pageId", "cover"))
-        .retrieve()
-        .toBodilessEntity();
+    http.put().uri(api + "/progress").body(Map.of("pageId", "cover")).retrieve().toBodilessEntity();
     assertEquals(0.5, libraryEntry().progress());
     // Clearing forgets the page: the card shows no progress and the comic opens at the start.
-    http.delete().uri(api + "/comic/progress").retrieve().toBodilessEntity();
+    http.delete().uri(api + "/progress").retrieve().toBodilessEntity();
     assertNull(libraryEntry().progress());
     assertTrue(
-        http.get()
-            .uri(api + "/comic/progress")
-            .retrieve()
-            .body(JsonNode.class)
-            .path("pageId")
-            .isNull());
-    http.put()
-        .uri(api + "/comic/progress")
-        .body(Map.of("pageId", "story"))
-        .retrieve()
-        .toBodilessEntity();
+        http.get().uri(api + "/progress").retrieve().body(JsonNode.class).path("pageId").isNull());
+    http.put().uri(api + "/progress").body(Map.of("pageId", "story")).retrieve().toBodilessEntity();
     assertEquals(0, jdbc.queryForObject("SELECT count(*) FROM playback_progress", Integer.class));
     assertEquals(
         400,
@@ -159,8 +132,9 @@ class ComicIntegrationTest extends HttpIntegrationTest {
             .intValue());
     assertEquals(
         400,
-        http.get()
+        http.put()
             .uri(api + "/progress")
+            .body(Map.of("positionSeconds", 1))
             .<Integer>exchange((req, res) -> res.getStatusCode().value())
             .intValue());
     // Disappearing media is represented in the catalogue without losing the document or progress.

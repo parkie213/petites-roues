@@ -146,10 +146,9 @@ test.each(["video", "comic"])(
       await screen.findByRole("menuitem", { name: "Clear progress" }),
     );
     await waitFor(() => expect(onChanged).toHaveBeenCalledWith());
-    expect(fetcher).toHaveBeenLastCalledWith(
-      `/api/titles/film/${type === "comic" ? "comic/" : ""}progress`,
-      { method: "DELETE" },
-    );
+    expect(fetcher).toHaveBeenLastCalledWith("/api/titles/film/progress", {
+      method: "DELETE",
+    });
   },
 );
 

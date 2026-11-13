@@ -6,7 +6,7 @@ import {
   replayWrite,
 } from "../e2e/write-recordings.mjs";
 
-const comic = "PUT /api/titles/example/comic/progress";
+const comic = "PUT /api/titles/example/progress";
 const playback = "PUT /api/titles/example/progress";
 const answer = (request, json) => ({
   request,

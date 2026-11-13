@@ -14,11 +14,17 @@ const reader =
 async function turn(page, pageId, action) {
   const saved = await expectWrite(
     page,
-    { method: "PUT", path: comic + "/progress", body: { pageId } },
+    {
+      method: "PUT",
+      path: comic.replace(/\/comic$/, "") + "/progress",
+      body: { pageId },
+    },
     action,
   );
   expect(saved.pageId).toBe(pageId);
-  expect((await readJson(page, comic + "/progress")).pageId).toBe(pageId);
+  expect(
+    (await readJson(page, comic.replace(/\/comic$/, "") + "/progress")).pageId,
+  ).toBe(pageId);
 }
 async function open(page) {
   await turn(page, "cover", () => page.goto(reader));

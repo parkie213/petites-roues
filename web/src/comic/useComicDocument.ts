@@ -12,9 +12,12 @@ export function useComicDocument(api: string) {
     const abort = new AbortController();
     Promise.all([
       request<ComicView>(api, { signal: abort.signal }),
-      request<{ pageId?: string | null }>(api + "/progress", {
-        signal: abort.signal,
-      }),
+      request<{ pageId?: string | null }>(
+        api.replace(/\/comic$/, "") + "/progress",
+        {
+          signal: abort.signal,
+        },
+      ),
     ])
       .then(([comic, progress]) => {
         setIndex(resumePage(comic.pages, progress.pageId));

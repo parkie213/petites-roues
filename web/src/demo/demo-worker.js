@@ -37,7 +37,7 @@ async function respond(request) {
   const pages = document.comic.pages;
   const asset = (path) =>
     fetch(new URL(path, self.registration.scope), { signal: request.signal });
-  if (path === comic + "/progress") {
+  if (path === api + "/progress") {
     if (request.method === "GET") return json(await progress());
     if (request.method === "PUT") {
       const body = await request.json();

@@ -2,7 +2,7 @@ import { EventEmitter } from "node:events";
 import { describe, expect, it, vi } from "vitest";
 import { checkRequests, expectWrite, readJson } from "../e2e/requests.mjs";
 
-const path = "/api/titles/example/comic/progress";
+const path = "/api/titles/example/progress";
 const deferred = () => {
   let resolve;
   const promise = new Promise((done) => {
