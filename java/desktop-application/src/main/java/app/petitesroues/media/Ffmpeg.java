@@ -1,14 +1,12 @@
 package app.petitesroues.media;
 
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
-import java.util.concurrent.TimeUnit;
 import org.springframework.stereotype.Component;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
@@ -25,9 +23,11 @@ public class Ffmpeg {
   private static final Set<String> PLAYABLE = Set.of("aac", "mp3", "opus", "flac", "vorbis");
 
   private final ObjectMapper mapper;
+  private final ProcessRunner processes;
 
-  public Ffmpeg(ObjectMapper mapper) {
+  public Ffmpeg(ObjectMapper mapper, ProcessRunner processes) {
     this.mapper = mapper;
+    this.processes = processes;
   }
 
   /**
@@ -69,7 +69,8 @@ public class Ffmpeg {
   /** The container's duration in seconds as ffprobe reports it, to the millisecond. */
   public double duration(Path video) throws IOException {
     var output =
-        run(List.of("ffprobe", "-v", "error", "-show_format", "-of", "json", video.toString()));
+        processes.run(
+            List.of("ffprobe", "-v", "error", "-show_format", "-of", "json", video.toString()));
     double duration = mapper.readTree(output).path("format").path("duration").asDouble(0);
     if (!(duration > 0)) throw new IOException("ffprobe reports no duration for " + video);
     return Math.round(duration * 1000) / 1000.0;
@@ -77,7 +78,8 @@ public class Ffmpeg {
 
   private JsonNode streams(Path video) throws IOException {
     var output =
-        run(List.of("ffprobe", "-v", "error", "-show_streams", "-of", "json", video.toString()));
+        processes.run(
+            List.of("ffprobe", "-v", "error", "-show_streams", "-of", "json", video.toString()));
     return mapper.readTree(output).path("streams");
   }
 
@@ -91,7 +93,7 @@ public class Ffmpeg {
     Path partial =
         Files.createTempFile(target.getParent(), target.getFileName() + ".", ".partial.jpg");
     try {
-      run(
+      processes.run(
           List.of(
               "ffmpeg",
               "-nostdin",
@@ -119,39 +121,5 @@ public class Ffmpeg {
   private static String text(JsonNode node, String field) {
     String value = node.path(field).asString("");
     return value.isBlank() ? null : value;
-  }
-
-  /** Runs a tool to completion, returning stdout; a nonzero exit reports its stderr. */
-  private static String run(List<String> command) throws IOException {
-    Process process;
-    try {
-      process = new ProcessBuilder(command).redirectErrorStream(false).start();
-    } catch (IOException missing) {
-      throw new IOException(command.getFirst() + " is not installed or not on the PATH", missing);
-    }
-    var stderr = process.getErrorStream();
-    var errors = new StringBuilder();
-    var drain =
-        Thread.ofVirtual()
-            .start(
-                () -> {
-                  try {
-                    errors.append(new String(stderr.readAllBytes(), StandardCharsets.UTF_8));
-                  } catch (IOException ignored) {
-                    // The exit status reports the failure.
-                  }
-                });
-    String output = new String(process.getInputStream().readAllBytes(), StandardCharsets.UTF_8);
-    try {
-      if (!process.waitFor(6, TimeUnit.HOURS)) process.destroyForcibly();
-      drain.join();
-    } catch (InterruptedException interrupted) {
-      process.destroyForcibly();
-      Thread.currentThread().interrupt();
-      throw new IOException(command.getFirst() + " was interrupted", interrupted);
-    }
-    if (process.exitValue() != 0)
-      throw new IOException(command.getFirst() + " failed: " + errors.toString().strip());
-    return output;
   }
 }

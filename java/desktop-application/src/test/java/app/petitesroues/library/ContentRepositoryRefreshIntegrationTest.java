@@ -17,6 +17,7 @@ import app.petitesroues.library.persistence.MediaStore;
 import app.petitesroues.media.Ffmpeg;
 import app.petitesroues.media.MediaFingerprint;
 import app.petitesroues.media.MediaProbe;
+import app.petitesroues.media.ProcessRunner;
 import app.petitesroues.model.document.StudyDocument;
 import app.petitesroues.model.document.VideoDocument;
 import app.petitesroues.model.document.VideoReference;
@@ -32,8 +33,11 @@ import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -48,6 +52,13 @@ import tools.jackson.databind.json.JsonMapper;
 
 /** Exercises repository reconciliation with real files, SQLite and transaction rollback. */
 class ContentRepositoryRefreshIntegrationTest {
+  private final ExecutorService processExecutor = Executors.newVirtualThreadPerTaskExecutor();
+
+  @AfterEach
+  void closeProcessExecutor() {
+    processExecutor.close();
+  }
+
   @TempDir Path root;
   SingleConnectionDataSource source;
   JdbcTemplate jdbc;
@@ -85,7 +96,8 @@ class ContentRepositoryRefreshIntegrationTest {
         registration,
         new ReviewQueue(jdbc, mapper),
         new MediaStore(jdbc),
-        new MediaProbe(new Ffmpeg(mapper)));
+        new MediaProbe(
+            new Ffmpeg(mapper, new ProcessRunner(processExecutor, Duration.ofSeconds(30)))));
   }
 
   private Path write(String folder, StudyDocument document) throws IOException {
