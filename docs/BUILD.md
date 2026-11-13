@@ -107,6 +107,15 @@ trust: no certificate authority or host name is involved, and the desktop's addr
 Each phone then authenticates with its own token. A new library has a new certificate, so phones
 pair again.
 
+The phone port owns a separate embedded server and MVC context. Its controller,
+authentication filter and JSON mapping are installed before it accepts requests;
+it has no desktop controllers, static resources or parent MVC context. Desktop
+routes stay unavailable even while the listener is starting or stopping, without
+classifying requests by a mutable port number. Disabling phones destroys that
+server and context while leaving the desktop UI running. This boundary shares
+application services and the existing document storage; it requires no storage
+migration.
+
 While the listener is open, the desktop also announces it on the local network with multicast DNS
 (`_petitesroues._tcp`, with the certificate's pin; JmDNS). When the address a phone saved stops
 answering, for example after the router gives the computer a new one, the phone looks for that

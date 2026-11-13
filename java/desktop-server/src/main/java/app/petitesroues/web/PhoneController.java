@@ -20,8 +20,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 /**
- * What paired phones call, through the phone listener only ({@link LocalRequestFilter}); every
- * route but {@code /phone/pair} needs a phone's token ({@link PhoneRequestFilter}). The routes and
+ * What paired phones call, registered explicitly in the isolated phone context only; every route
+ * but {@code /phone/pair} needs a phone's token ({@link PhoneRequestFilter}). The routes and
  * records are shared with the phone's client ({@code app.petitesroues.sync}).
  */
 @RestController

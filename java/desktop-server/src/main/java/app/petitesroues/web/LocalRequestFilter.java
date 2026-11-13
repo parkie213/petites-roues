@@ -1,6 +1,5 @@
 package app.petitesroues.web;
 
-import app.petitesroues.config.PhoneListener;
 import jakarta.servlet.*;
 import jakarta.servlet.http.*;
 import java.io.IOException;
@@ -13,29 +12,18 @@ import org.springframework.web.filter.OncePerRequestFilter;
 /**
  * Keeps each port to its own routes. The UI port serves this application's browser pages, so local
  * file imports and edits must originate from it: requests must be addressed to localhost and
- * same-origin. The phone listener ({@link PhoneListener}) serves only {@code /phone/**}, which
- * {@link PhoneRequestFilter} authenticates; {@code /phone/**} is not found on the UI port.
+ * same-origin. Phone routes are absent from this desktop context and are rejected here as well. The
+ * separate phone web server does not install this filter or any desktop routes.
  */
 @Component
 @Order(1)
 public class LocalRequestFilter extends OncePerRequestFilter {
-  private final PhoneListener phones;
-
-  public LocalRequestFilter(PhoneListener phones) {
-    this.phones = phones;
-  }
-
   @Override
   protected void doFilterInternal(
       HttpServletRequest request, HttpServletResponse response, FilterChain chain)
       throws ServletException, IOException {
-    boolean phonePort = phones.handles(request);
-    if (phonePort != PhoneRequestFilter.isPhonePath(request)) {
+    if (PhoneRequestFilter.isPhonePath(request)) {
       response.sendError(404);
-      return;
-    }
-    if (phonePort) {
-      chain.doFilter(request, response);
       return;
     }
     if (!Set.of("127.0.0.1", "localhost", "[::1]").contains(request.getServerName())) {

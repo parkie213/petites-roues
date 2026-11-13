@@ -2,7 +2,7 @@ package app.petitesroues.config;
 
 import app.petitesroues.phone.PhoneCertificateService;
 import app.petitesroues.settings.SettingsStore;
-import jakarta.servlet.http.HttpServletRequest;
+import jakarta.annotation.PreDestroy;
 import java.net.Inet4Address;
 import java.net.InetAddress;
 import java.net.NetworkInterface;
@@ -12,9 +12,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.regex.Pattern;
-import org.apache.catalina.LifecycleException;
-import org.apache.catalina.LifecycleState;
-import org.apache.catalina.Service;
 import org.apache.catalina.connector.Connector;
 import org.apache.tomcat.util.net.SSLHostConfig;
 import org.apache.tomcat.util.net.SSLHostConfigCertificate;
@@ -27,15 +24,15 @@ import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
 
 /**
- * The phone listener: a second port, on every network interface, through which paired phones reach
- * this desktop. It speaks only HTTPS (TLS 1.3) with this desktop's self-signed certificate ({@link
- * PhoneCertificateService}), which phones trust by the pin the pairing code carries. It serves only
- * {@code /phone/**} ({@link app.petitesroues.web.LocalRequestFilter}); the browser UI's port stays
- * on 127.0.0.1. Opened and closed while the server runs, from the "Allow phones to connect" switch;
- * the choice is remembered ({@link #SETTING}) and restored at startup. Closed until first switched
- * on, since it opens a port on the local network. While open it is announced on the network ({@link
- * PhoneAdvertiser}), so phones find this desktop when its address changes. {@code
- * petitesroues.phone.port} (default 8878) chooses the port, 0 any free one.
+ * The phone listener: a separate phone-only web server, on every network interface, through which
+ * paired phones reach this desktop. It speaks only HTTPS (TLS 1.3) with this desktop's self-signed
+ * certificate ({@link PhoneCertificateService}), which phones trust by the pin the pairing code
+ * carries. It serves only {@code /phone/**} in an isolated {@link PhoneRouteContext}; the browser
+ * UI's port stays on 127.0.0.1. Opened and closed while the server runs, from the "Allow phones to
+ * connect" switch; the choice is remembered ({@link #SETTING}) and restored at startup. Closed
+ * until first switched on, since it opens a port on the local network. While open it is announced
+ * on the network ({@link PhoneAdvertiser}), so phones find this desktop when its address changes.
+ * {@code petitesroues.phone.port} (default 8878) chooses the port, 0 any free one.
  */
 @Component
 public class PhoneListener {
@@ -60,25 +57,28 @@ public class PhoneListener {
   private final PhoneCertificateService certificates;
   private final PhoneAdvertiser advertiser;
   private final int configuredPort;
-  private Service service;
-  private volatile Connector connector;
+  private final PhoneRouteContext routes;
+  private boolean ready;
+  private volatile PhoneRouteContext.Running server;
 
   public PhoneListener(
       SettingsStore settings,
       PhoneCertificateService certificates,
       PhoneAdvertiser advertiser,
+      PhoneRouteContext routes,
       @Value("${petitesroues.phone.port:8878}") int configuredPort) {
     this.settings = settings;
     this.certificates = certificates;
     this.advertiser = advertiser;
+    this.routes = routes;
     this.configuredPort = configuredPort;
   }
 
   /** Once the UI port is up, reopens the phone listener if it was left switched on. */
   @EventListener
   public synchronized void started(ServletWebServerInitializedEvent event) {
-    if (!(event.getWebServer() instanceof TomcatWebServer tomcat)) return;
-    service = tomcat.getTomcat().getService();
+    if (!(event.getWebServer() instanceof TomcatWebServer)) return;
+    ready = true;
     if (settings.get(SETTING).map(Boolean::parseBoolean).orElse(false)) {
       try {
         open();
@@ -102,23 +102,18 @@ public class PhoneListener {
   }
 
   private void open() {
-    if (connector != null) return;
-    if (service == null) throw new IllegalStateException("The server is still starting");
-    var phone = new Connector();
-    phone.setPort(configuredPort);
-    phone.setProperty("address", "0.0.0.0");
-    secure(phone);
-    service.addConnector(phone);
-    if (phone.getState() != LifecycleState.STARTED) {
-      service.removeConnector(phone);
-      destroy(phone);
+    if (server != null) return;
+    if (!ready) throw new IllegalStateException("The server is still starting");
+    PhoneRouteContext.Running phone;
+    try {
+      phone = routes.start(configuredPort, this, this::secure);
+    } catch (RuntimeException failure) {
       throw new IllegalStateException(
-          "Port " + configuredPort + " is in use; choose another with petitesroues.phone.port");
+          "Could not open the phone listener on port " + configuredPort, failure);
     }
-    connector = phone;
-    LOG.info("Phones can connect on port {}", phone.getLocalPort());
-    advertiser.start(
-        addresses(), desktopName(), phone.getLocalPort(), certificates.certificate().pin());
+    server = phone;
+    LOG.info("Phones can connect on port {}", phone.port());
+    advertiser.start(addresses(), desktopName(), phone.port(), certificates.certificate().pin());
   }
 
   /** Makes the connector serve TLS 1.3 only, with this desktop's certificate. */
@@ -138,39 +133,29 @@ public class PhoneListener {
     phone.setProperty("SSLEnabled", "true");
   }
 
-  private void close() {
-    var phone = connector;
+  /** Stops the isolated server and releases its MVC context, including on application shutdown. */
+  @PreDestroy
+  public synchronized void close() {
+    var phone = server;
     if (phone == null) return;
-    connector = null;
-    service.removeConnector(phone);
-    destroy(phone);
-    advertiser.close();
-    LOG.info("Phones can no longer connect");
-  }
-
-  private static void destroy(Connector phone) {
+    server = null;
     try {
-      phone.destroy();
-    } catch (LifecycleException e) {
-      LOG.debug("Phone listener did not close cleanly", e);
+      phone.close();
+    } finally {
+      advertiser.close();
     }
+    LOG.info("Phones can no longer connect");
   }
 
   /** Whether the phone listener is open. */
   public boolean enabled() {
-    return connector != null;
+    return server != null;
   }
 
   /** The port it listens on, or -1 when it is off. */
   public int port() {
-    var phone = connector;
-    return phone == null ? -1 : phone.getLocalPort();
-  }
-
-  /** Whether the request arrived through the phone listener rather than the UI port. */
-  public boolean handles(HttpServletRequest request) {
-    var phone = connector;
-    return phone != null && request.getLocalPort() == phone.getLocalPort();
+    var phone = server;
+    return phone == null ? -1 : phone.port();
   }
 
   /**
