@@ -1,7 +1,6 @@
 package app.petitesroues.config;
 
 import app.petitesroues.library.LibraryJobService;
-import app.petitesroues.library.LibraryUpdateService;
 import app.petitesroues.media.ProcessRunner;
 import java.time.Duration;
 import java.util.concurrent.ExecutorService;
@@ -32,7 +31,7 @@ public class ExecutorConfiguration {
    * the application services keeps their database dependencies alive during that grace period.
    */
   @Bean
-  @DependsOn({"contentRepositoryService", "libraryUpdateService"})
+  @DependsOn("contentRepositoryService")
   public SimpleAsyncTaskExecutor libraryJobExecutor() {
     var executor = new SimpleAsyncTaskExecutor("library-job-");
     executor.setVirtualThreads(true);
@@ -42,8 +41,7 @@ public class ExecutorConfiguration {
 
   @Bean
   public LibraryJobService libraryJobService(
-      LibraryUpdateService updates,
       @Qualifier("libraryJobExecutor") SimpleAsyncTaskExecutor executor) {
-    return new LibraryJobService(updates, executor);
+    return new LibraryJobService(executor);
   }
 }

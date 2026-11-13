@@ -72,12 +72,12 @@ public class ReviewQueueService {
    *
    * @throws DocumentConflictException if the title has no accepted copy yet
    */
-  public Effective effective(CatalogueEntry title) throws IOException {
+  public Effective effective(CatalogueEntry title) {
     return transactions.execute(
         status -> replay(acceptedCopy(title), queue.read(title), change -> true));
   }
 
-  public StudyDocument document(CatalogueEntry title) throws IOException {
+  public StudyDocument document(CatalogueEntry title) {
     return effective(title).document();
   }
 
@@ -95,13 +95,12 @@ public class ReviewQueueService {
 
   /**
    * Queues a review request for each cue, all or none: every cue must exist in the served document
-   * and every request needs text. Returns how many were queued.
+   * and every request needs text. The validation and the appends share one transaction. Returns how
+   * many were queued.
    */
-  public int requestReview(String id, List<CueReviewRequest> requests) throws IOException {
+  public int requestReview(String id, List<CueReviewRequest> requests) {
     if (requests == null || requests.isEmpty())
       throw new IllegalArgumentException("List at least one cue to review");
-    var title = entry(id);
-    var current = document(title);
     var edits =
         requests.stream()
             .map(
@@ -109,8 +108,13 @@ public class ReviewQueueService {
                     new DocumentEdit.ReviewRequest(
                         r.cueId(), r.text() == null ? null : r.text().strip()))
             .toList();
-    for (var edit : edits) DocumentEdits.apply(current, edit);
-    transactions.executeWithoutResult(status -> edits.forEach(edit -> queue.append(title, edit)));
+    transactions.executeWithoutResult(
+        status -> {
+          var title = entry(id);
+          var current = document(title);
+          for (var edit : edits) DocumentEdits.apply(current, edit);
+          edits.forEach(edit -> queue.append(title, edit));
+        });
     return edits.size();
   }
 
@@ -121,9 +125,9 @@ public class ReviewQueueService {
    */
   public Optional<BatchView> claim(String id, int limit) throws IOException {
     if (limit < 1) throw new IllegalArgumentException("Limit must be positive");
-    var title = entry(id);
     return transactions.execute(
         status -> {
+          var title = entry(id);
           var copy = acceptedCopy(title);
           var open = queue.openBatch(title);
           if (open.isEmpty() && queue.read(title).isEmpty()) return Optional.<BatchView>empty();

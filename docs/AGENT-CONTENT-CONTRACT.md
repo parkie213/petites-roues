@@ -3,9 +3,10 @@
 Status: draft for review, 13 November 2026, partly implemented. Implemented: the accepted copy,
 import (Add/Refresh, `POST /api/titles/{id}/import`, completion), reads from the accepted copy,
 and claim and completion as described below, including the safe retry of a completed batch and the
-`prepare/` scripts' open-batch check and import. Not yet implemented: edits queued in one
-transaction with request IDs, the discovery changes for Refresh All, the skeleton endpoint and the
-post-pull trigger. It replaces stage 1 of the state and concurrency plan (on
+`prepare/` scripts' open-batch check and import, edits validated and queued in one transaction,
+and the removal of the shared library monitor (discovery runs without a lock; its commit is one
+transaction). Not yet implemented: request IDs for add and split, the discovery changes for
+Refresh All, the skeleton endpoint and the post-pull trigger. It replaces stage 1 of the state and concurrency plan (on
 `codex/endpoint-consolidation`) and decides how content moves.
 
 ## Rules
@@ -111,7 +112,7 @@ identities are kept. There is no recovery mode and no reader for the old replay 
 ## What this makes unnecessary
 
 - the batch file-hash rule that decides whether edits replay over a rewritten file;
-- the shared library monitor around discovery;
+- the shared library monitor around discovery (removed);
 - client-supplied expected versions on edits (a request ID covers retried split and add);
 - a repository generation counter and a separate publication receipt table.
 

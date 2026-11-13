@@ -18,7 +18,7 @@ class LibraryJobServiceTest {
     var release = new CountDownLatch(1);
     try (var executor = Executors.newVirtualThreadPerTaskExecutor()) {
       try {
-        var jobs = new LibraryJobService(new LibraryUpdateService(null), executor);
+        var jobs = new LibraryJobService(executor);
         var entered = new CountDownLatch(1);
         var progress = new LibraryProgress("repo", "media", 2, 3, "video.mp4");
         var first =
@@ -54,7 +54,6 @@ class LibraryJobServiceTest {
   void failedSubmissionDoesNotPublishAPhantomJob() {
     var jobs =
         new LibraryJobService(
-            new LibraryUpdateService(null),
             task -> {
               throw new RejectedExecutionException();
             });

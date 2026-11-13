@@ -1,6 +1,5 @@
 package app.petitesroues.web;
 
-import app.petitesroues.library.LibraryUpdateService;
 import app.petitesroues.model.review.CueChange;
 import app.petitesroues.model.review.CueReviewRequest;
 import app.petitesroues.model.review.ReviewCompletion;
@@ -30,11 +29,9 @@ import org.springframework.web.bind.annotation.*;
 @RequestMapping("/api")
 public class ReviewController {
   private final ReviewQueueService review;
-  private final LibraryUpdateService updates;
 
-  public ReviewController(ReviewQueueService review, LibraryUpdateService updates) {
+  public ReviewController(ReviewQueueService review) {
     this.review = review;
-    this.updates = updates;
   }
 
   /** GET titles with pending queue rows, oldest work first, and any open batch. */
@@ -67,9 +64,7 @@ public class ReviewController {
   @PostMapping("/titles/{id}/review/requests")
   public Map<String, Integer> requestReview(
       @PathVariable String id, @RequestBody List<CueReviewRequest> requests) throws IOException {
-    synchronized (updates) {
-      return Map.of("queued", review.requestReview(id, requests));
-    }
+    return Map.of("queued", review.requestReview(id, requests));
   }
 
   /**
@@ -79,12 +74,10 @@ public class ReviewController {
   @PostMapping("/titles/{id}/review/batches")
   public ResponseEntity<ReviewQueueService.BatchView> claim(
       @PathVariable String id, @RequestParam(defaultValue = "50") int limit) throws IOException {
-    synchronized (updates) {
-      return review
-          .claim(id, limit)
-          .map(batch -> ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(batch))
-          .orElseGet(() -> ResponseEntity.noContent().build());
-    }
+    return review
+        .claim(id, limit)
+        .map(batch -> ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(batch))
+        .orElseGet(() -> ResponseEntity.noContent().build());
   }
 
   /**
@@ -100,9 +93,7 @@ public class ReviewController {
       @PathVariable long batch,
       @RequestBody(required = false) ReviewCompletion completion)
       throws IOException {
-    synchronized (updates) {
-      review.complete(id, batch, completion);
-    }
+    review.complete(id, batch, completion);
   }
 
   /**
@@ -113,19 +104,15 @@ public class ReviewController {
   @PostMapping("/titles/{id}/import")
   public ResponseEntity<Map<String, String>> importFile(@PathVariable String id)
       throws IOException {
-    synchronized (updates) {
-      var result = review.importFile(id);
-      return ResponseEntity.ok()
-          .cacheControl(CacheControl.noStore())
-          .body(Map.of("result", result.name().toLowerCase(Locale.ROOT)));
-    }
+    var result = review.importFile(id);
+    return ResponseEntity.ok()
+        .cacheControl(CacheControl.noStore())
+        .body(Map.of("result", result.name().toLowerCase(Locale.ROOT)));
   }
 
   /** POST the displayed pending sequences to discard those edits, reverting them in the player. */
   @PostMapping("/titles/{id}/review-queue/discard")
   public void discard(@PathVariable String id, @RequestBody List<Long> expected) {
-    synchronized (updates) {
-      review.discard(id, expected);
-    }
+    review.discard(id, expected);
   }
 }

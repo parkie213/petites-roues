@@ -15,7 +15,6 @@ import app.petitesroues.model.library.IndexedMedia;
 import app.petitesroues.study.DocumentStore;
 import app.petitesroues.study.ReviewQueue;
 import java.io.IOException;
-import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Instant;
@@ -24,6 +23,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
+import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 import java.util.function.Function;
@@ -50,9 +50,14 @@ import org.springframework.transaction.support.TransactionTemplate;
  * Missing titles retain their catalogue entries and pending reviews until the repository is
  * removed.
  *
- * <p>Ordinary browsing reads the SQLite index; media is probed only by Add and Refresh. Application
- * callers hold {@link LibraryUpdateService}'s monitor while adding, refreshing or removing a
- * repository to coordinate these operations with document edits.
+ * <p>Ordinary browsing reads the SQLite index; media is probed only by Add and Refresh. No lock is
+ * held while discovering, so player edits proceed during a slow scan. Correctness comes from the
+ * short transactions: the application's single database connection serializes them, and each one
+ * decides and writes together. The index transaction first confirms the repository is still
+ * registered and has not been refreshed since discovery began; otherwise it changes nothing and
+ * fails with a message, and never recreates a removed repository or its titles. Removal checks for
+ * unwritten edits and deletes in one transaction, so it either refuses or leaves no queue rows
+ * behind.
  */
 @Service
 public class ContentRepositoryService {
@@ -126,6 +131,11 @@ public class ContentRepositoryService {
     return add(request, LibraryProgress.Listener.NONE);
   }
 
+  private void requireUnregistered(Path root) {
+    if (list().stream().anyMatch(r -> Path.of(r.localPath()).equals(root)))
+      throw new IllegalArgumentException("This repository is already registered");
+  }
+
   /** {@link #add(Add)}, reporting progress as it scans, probes and reads. */
   public ContentRepository add(Add request, LibraryProgress.Listener progress) throws IOException {
     if (request == null || request.localPath() == null || request.localPath().isBlank())
@@ -133,8 +143,7 @@ public class ContentRepositoryService {
     if (!Files.isDirectory(Path.of(request.localPath())))
       throw new IllegalArgumentException("Repository directory not found");
     Path root = Path.of(request.localPath()).toRealPath();
-    if (list().stream().anyMatch(r -> Path.of(r.localPath()).equals(root)))
-      throw new IllegalArgumentException("This repository is already registered");
+    requireUnregistered(root);
     String id = UUID.randomUUID().toString();
     String name =
         request.name() == null || request.name().isBlank()
@@ -144,6 +153,9 @@ public class ContentRepositoryService {
     progress.report(new LibraryProgress(name, "saving", 0, 0, null));
     transactions.executeWithoutResult(
         status -> {
+          // A concurrent Add of the same folder may have committed during discovery. The check is
+          // conclusive here; the UNIQUE path constraint remains the backstop.
+          requireUnregistered(root);
           repositories.insert(id, name, root.toString());
           updateIndex(id, discovered);
         });
@@ -153,11 +165,13 @@ public class ContentRepositoryService {
   /**
    * Rediscovers a registered folder and atomically updates its index. Documents absent from the
    * scan are marked missing; their rows are retained. A failed refresh leaves the previous index
-   * and refresh timestamp intact.
+   * and refresh timestamp intact. Discovery takes no lock; the index transaction applies it only if
+   * the repository is still registered and no other refresh has committed since this one began.
    *
    * @throws NoSuchElementException if the repository ID is unknown
-   * @throws IllegalArgumentException if the folder is missing or discovered documents violate
-   *     validation, identity or ownership rules
+   * @throws IllegalArgumentException if the folder is missing, discovered documents violate
+   *     validation, identity or ownership rules, or the repository was removed or refreshed by
+   *     another operation during discovery
    * @throws IOException if the directory traversal or a document read fails
    */
   public ContentRepository refresh(String id) throws IOException {
@@ -176,7 +190,20 @@ public class ContentRepositoryService {
             media.inRepository(id),
             progress);
     progress.report(new LibraryProgress(repository.name(), "saving", 0, 0, null));
-    transactions.executeWithoutResult(status -> updateIndex(id, discovered));
+    transactions.executeWithoutResult(
+        status -> {
+          ContentRepository current;
+          try {
+            current = repositories.find(id);
+          } catch (NoSuchElementException removed) {
+            throw new IllegalArgumentException(
+                repository.name() + " was removed while it was being refreshed", removed);
+          }
+          if (!Objects.equals(current.lastRefreshedAt(), repository.lastRefreshedAt()))
+            throw new IllegalArgumentException(
+                repository.name() + " was refreshed by another operation; try again");
+          updateIndex(id, discovered);
+        });
     return repositories.find(id);
   }
 
@@ -271,12 +298,15 @@ public class ContentRepositoryService {
 
   /**
    * Reads each file once, validates those claiming to be study documents, rejects duplicate IDs.
+   * Each document's path is resolved here, with the other file access, and must lie inside the
+   * repository, so the index transaction touches no file.
    */
   private List<DiscoveredDocument> readDocuments(
       Path root, String folder, List<Path> candidates, LibraryProgress.Listener progress)
       throws IOException {
     List<DiscoveredDocument> documents = new ArrayList<>();
     Set<String> ids = new HashSet<>();
+    Path realRoot = root.toRealPath();
     int count = 0;
     for (Path file : candidates) {
       progress.report(
@@ -288,6 +318,9 @@ public class ContentRepositoryService {
               root.relativize(file).toString().replace('\\', '/')));
       byte[] bytes = Files.readAllBytes(file);
       if (!reader.isStudyDocument(bytes)) continue;
+      Path real = file.toRealPath();
+      if (!real.startsWith(realRoot))
+        throw new IllegalArgumentException("Document is outside its owning repository");
       StudyDocument document;
       try {
         document = reader.decode(bytes);
@@ -299,33 +332,29 @@ public class ContentRepositoryService {
         throw new IllegalArgumentException("Duplicate title ID in repository: " + document.id());
       documents.add(
           new DiscoveredDocument(
-              file, new DocumentStore.Bytes(bytes, document, DocumentStore.sha256(bytes))));
+              real, new DocumentStore.Bytes(bytes, document, DocumentStore.sha256(bytes))));
     }
     return documents;
   }
 
   /**
-   * Reconciles a complete discovery result inside the caller's transaction. Existing titles start
-   * as missing; each discovered title is registered and marked present, and the folder's media
-   * index is replaced. Registration assigns or retains each local entry ID from the document
-   * already read, through {@link RepositoryContentService}, and each title's accepted copy is saved
-   * by {@link DocumentImportService#accept}. No file is read here; checked failures are wrapped so
-   * the enclosing transaction rolls back.
+   * Reconciles a complete discovery result inside the caller's transaction, which has already
+   * confirmed the repository exists. Existing titles start as missing; each discovered title is
+   * registered and marked present, and the folder's media index is replaced. Registration assigns
+   * or retains each local entry ID from the document already read, through {@link
+   * RepositoryContentService}, and each title's accepted copy is saved by {@link
+   * DocumentImportService#accept}. No file, process or network access happens here.
    */
   private void updateIndex(String repositoryId, Discovered discovered) {
     repositories.markTitlesMissing(repositoryId);
     for (var item : discovered.documents()) {
-      try {
-        var read = item.read();
-        var entry =
-            registration.register(
-                new RepositoryContentService.Registration(item.documentPath().toString(), true),
-                read.document(),
-                repositoryId);
-        imports.accept(entry, discovered.acceptedHashes().get(read.document().id()), read);
-      } catch (IOException failure) {
-        throw new UncheckedIOException(failure);
-      }
+      var read = item.read();
+      var entry =
+          registration.register(
+              new RepositoryContentService.Registration(item.documentPath().toString(), true),
+              read.document(),
+              repositoryId);
+      imports.accept(entry, discovered.acceptedHashes().get(read.document().id()), read);
     }
     media.replace(repositoryId, discovered.media());
     repositories.recordRefresh(repositoryId, Instant.now().toString());
@@ -334,14 +363,15 @@ public class ContentRepositoryService {
   /**
    * Unregisters the repository and its titles in one transaction. Foreign-key cascades remove their
    * local review state. Documents and media remain on disk. Refused while player edits are queued
-   * but not yet written into the files, since removal would lose them.
+   * but not yet written into the files, since removal would lose them. The check and the delete
+   * share the transaction, so an edit cannot be queued between them.
    *
    * @throws NoSuchElementException if the repository ID is unknown
    */
   public void remove(String id) {
-    repositories.find(id);
     transactions.executeWithoutResult(
         status -> {
+          repositories.find(id);
           int unwritten = queue.unwrittenEdits(id);
           if (unwritten > 0)
             throw new IllegalArgumentException(

@@ -78,7 +78,7 @@ class DocumentEditingServiceTest {
             transactions);
     served = new ReviewQueueService(titles, store, accepted, imports, log, transactions);
     write(document(entry.id()));
-    editing = new DocumentEditingService(titles, served, log);
+    editing = new DocumentEditingService(titles, served, log, transactions);
   }
 
   /** Writes the file as an agent or preparation script would, without the app noticing. */

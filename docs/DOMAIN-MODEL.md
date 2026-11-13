@@ -112,6 +112,10 @@ document is served, so the learner sees their change straight away while the fil
   the accepted copy at claim time and its edits keep replaying until the batch is completed.
   Completion imports the agent's file as the new accepted copy and closes the edits in one
   transaction, so they are never applied twice or lost.
+- Loading the served document, validating an edit and queueing it also happen in one transaction.
+  The database has a single connection, so two concurrent edits are each validated against a
+  state that includes the other, and an edit cannot be queued for a repository that was removed
+  a moment before.
 
 A queued edit moves through these states:
 
@@ -126,7 +130,9 @@ The library is this machine's index of what it can open, and what the learner ha
 - A **content repository** is a registered local folder. It may be a Git checkout, but the app
   doesn't need Git. Add/Refresh discovers its `document.json` files, registers a **title**
   for each one and imports the file as the title's accepted copy. A title with an open review
-  batch is skipped: its completion is its import.
+  batch is skipped: its completion is its import. Discovery holds no lock, so edits continue
+  during a slow scan; the commit is one transaction that fails if the repository was removed or
+  refreshed meanwhile.
 - A title has two identities. `id` is local: player URLs, progress and the review queue use it.
   `documentId` is the document's own ID, unique within its repository but not across
   repositories.
