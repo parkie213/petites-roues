@@ -7,6 +7,8 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.Executor;
 import java.util.concurrent.FutureTask;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Runs one Add or Refresh at a time and retains its latest progress for polling and page reloads.
@@ -15,7 +17,7 @@ import java.util.concurrent.FutureTask;
  * composition layer, which owns admission during shutdown and termination of running work.
  */
 public class LibraryJobService {
-  private static final System.Logger LOG = System.getLogger(LibraryJobService.class.getName());
+  private static final Logger LOG = LoggerFactory.getLogger(LibraryJobService.class);
 
   /** Repository work reports domain progress; it does not manage scheduling or transport. */
   @FunctionalInterface
@@ -76,7 +78,7 @@ public class LibraryJobService {
                 } catch (Exception failure) {
                   if (!(failure instanceof IllegalArgumentException
                       || failure instanceof NoSuchElementException))
-                    LOG.log(System.Logger.Level.ERROR, "Library job failed", failure);
+                    LOG.error("Library job failed", failure);
                   throw failure;
                 }
                 return null;
