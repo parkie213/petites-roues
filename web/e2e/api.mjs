@@ -150,6 +150,19 @@ async function save(request, response) {
   const text = () => portable(body.toString());
   if (type.includes("json")) {
     const answer = { ...entry, json: JSON.parse(text()) };
+    if (
+      request.method() === "GET" &&
+      response.status() === 200 &&
+      new URL(request.url()).pathname === "/api/speech/voices/catalogue"
+    ) {
+      // The separately installed Siwis fixture can differ by upstream revision. Only catalogue
+      // display sizes are approximate; document/media sizes retain their exact domain values.
+      const megabyte = 1024 * 1024;
+      answer.json.voices = answer.json.voices.map((voice) => ({
+        ...voice,
+        sizeBytes: Math.round(voice.sizeBytes / megabyte) * megabyte,
+      }));
+    }
     return stable(
       request.method() === "GET"
         ? answer
@@ -172,9 +185,35 @@ async function save(request, response) {
     const file = await exampleFile(body);
     return file ? { ...entry, file } : { ...entry, omitted: "video" };
   }
-  const name =
-    sha256(body).slice(0, 16) +
-    (type.includes("png") ? ".png" : type.includes("webp") ? ".webp" : ".jpg");
+  if (
+    type.startsWith("audio/wav") &&
+    new URL(request.url()).pathname.endsWith("/preview") &&
+    response.status() === 200
+  ) {
+    // Piper's generated waveform varies. Recording still calls real JNI and the browser plays
+    // that response; replay needs stable audio bytes rather than a new blob on every recording.
+    expect(body.subarray(0, 4).toString()).toBe("RIFF");
+    expect(body.length).toBeGreaterThan(44);
+    expect(body.subarray(44).some((sample) => sample !== 0)).toBe(true);
+    return {
+      ...entry,
+      file: "java/desktop-test-fixtures/src/main/resources/media/voice-preview.wav",
+    };
+  }
+  if (type.startsWith("audio/mpeg")) {
+    const file =
+      "java/desktop-test-fixtures/src/main/resources/media/voice-sample.mp3";
+    if (body.equals(await readFile(path.join(repository, file))))
+      return { ...entry, file };
+  }
+  const extension =
+    {
+      "audio/mpeg": ".mp3",
+      "audio/wav": ".wav",
+      "image/png": ".png",
+      "image/webp": ".webp",
+    }[type.split(";")[0]] || ".jpg";
+  const name = sha256(body).slice(0, 16) + extension;
   await mkdir(blobs, { recursive: true });
   await writeFile(path.join(blobs, name), body);
   return { ...entry, blob: name };

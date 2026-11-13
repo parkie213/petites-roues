@@ -1,6 +1,7 @@
+import { startVoiceProvider } from "./voice-provider.mjs";
 import { spawn } from "node:child_process";
 import { createWriteStream } from "node:fs";
-import { mkdtemp, readdir, rm } from "node:fs/promises";
+import { mkdtemp, readdir, rm, mkdir, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 
@@ -76,6 +77,21 @@ export async function forget(requests) {
     new Set(
       requests.flatMap((request) => pattern.exec(request)?.slice(1) ?? []),
     );
+  for (const language of changed(/^PUT \/api\/speech\/voices\/([^/]+)$/))
+    await fetch(`${api}/api/speech/voices/${language}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ voice: null }),
+    });
+  for (const id of changed(
+    /^POST \/api\/speech\/voices\/catalogue\/([^/]+)\/install$/,
+  )) {
+    const speechDirectory = process.env.PETITESROUES_E2E_VOICES;
+    if (!speechDirectory || id !== "fr_FR-comparison-medium")
+      throw Error("Unexpected voice fixture installation");
+    for (const suffix of [".onnx", ".onnx.json", ".MODEL_CARD"])
+      await rm(path.join(speechDirectory, id + suffix), { force: true });
+  }
   await forgetProgress();
   for (const title of changed(
     /^(?:PUT|POST|DELETE) \/api\/titles\/([^/]+)\/(?:cues|timings|comic\/(?:lines|boxes))\b/,
@@ -92,6 +108,14 @@ export async function forget(requests) {
 
 export default async function startRealServer() {
   const folder = await mkdtemp(path.join(os.tmpdir(), "petites-roues-e2e-"));
+  // Listing/preferences need model/configuration pairs, not native synthesis or downloaded models.
+  const provider = await startVoiceProvider(folder);
+  const voices = path.join(folder, "voices");
+  process.env.PETITESROUES_E2E_VOICES = voices;
+  await mkdir(voices);
+  for (const voice of ["fr_FR-a.onnx", "fr_FR-b.onnx"])
+    for (const suffix of ["", ".json"])
+      await writeFile(path.join(voices, voice + suffix), suffix ? "{}" : "");
   const log = createWriteStream(path.join(folder, "server.log"));
   const server = spawn(
     "java",
@@ -99,6 +123,10 @@ export default async function startRealServer() {
       "-jar",
       await jar(),
       `--server.port=${API_PORT}`,
+      `--petitesroues.speech.voices=${voices}`,
+      `--petitesroues.speech.catalogue=${provider.url}voices.json`,
+      `--petitesroues.speech.repository=${provider.url}`,
+      `--petitesroues.speech.samples=${provider.url}`,
       `--spring.datasource.url=jdbc:sqlite:${path.join(folder, "library.sqlite")}`,
     ],
     { cwd: folder, stdio: ["ignore", "pipe", "pipe"] },
@@ -118,6 +146,7 @@ export default async function startRealServer() {
     }
   } catch (error) {
     server.kill();
+    await provider.close();
     throw Error(`${error.message} (log: ${path.join(folder, "server.log")})`, {
       cause: error,
     });
@@ -125,6 +154,7 @@ export default async function startRealServer() {
   return async () => {
     server.kill();
     await new Promise((resolve) => server.once("exit", resolve));
+    await provider.close();
     await rm(folder, { recursive: true, force: true });
   };
 }

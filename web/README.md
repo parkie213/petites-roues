@@ -127,3 +127,11 @@ Video journeys opt into `test.use({ pauseOnOpen: true })` to pause the first pla
 before its clock advances. Muted autoplay can otherwise bypass the browser's gesture policy.
 Later play/pause actions use the real media clock. Guard and recording-contract regression tests
 in `test/journey-requests.test.mjs` and `test/write-recordings.test.mjs` run with `npm test`.
+
+The voice catalogue journey uses a local provider fixture to install a real French
+Siwis model and preview it through JNI. Before recording, run `bash setup/speech.sh`
+(or set `PETITESROUES_TEST_VOICES` to the directory containing that model). Replay needs
+neither models nor network. The provider uses port 18879. Its comparison sample is a
+fixed MP3 tone; recordings validate real native WAV output and retain a fixed tone for
+replay because Piper waveforms vary between calls. Catalogue sizes are recorded to the
+nearest MB to accommodate revisions of the same separately installed test model.

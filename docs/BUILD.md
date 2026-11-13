@@ -167,9 +167,37 @@ bash setup/speech.sh
 
 The script reuses existing files. For other languages, put an `.onnx` model and its
 matching `.onnx.json` configuration in `~/.local/share/piper/voices`, or set
-`--petitesroues.speech.voices=…`. The first model by file name whose name starts
-with the source language followed by `_` or `-` is selected (for example,
-`fr_FR-siwis-medium.onnx` for `fr`). Missing voices do not prevent application startup;
+`--petitesroues.speech.voices=…`. Open **Read-aloud voices** from the library header to choose an installed voice for
+each source language. Preferences are saved in SQLite on this desktop. **Automatic**
+uses the first complete model/configuration pair by filename whose name starts with
+the source language followed by `_` or `-` (for example, `fr_FR-siwis-medium.onnx`
+for `fr`). Regional source tags share their primary-language preference. A missing
+selected model reports unavailable rather than switching voices silently. Reopen the
+dialog after adding model files manually.
+
+The **Find voices** tab loads the [Piper catalogue](https://huggingface.co/rhasspy/piper-voices)
+on demand. Filter by language or search by name, region or quality, then **Listen**
+to an upstream sample before installing. Samples use speaker zero for multi-speaker
+models; speaker selection is not yet exposed. Each entry links its model card and
+license and shows the model's download size. **Install** downloads the model,
+configuration and model card, verifies their catalogue sizes and checksums, and makes
+the complete pair available in the selector. Existing installations are not overwritten.
+Download failures can be retried. Installation does not save a voice preference.
+
+Enter a sentence in **Text for installed voice previews** and use **Preview** on an
+installed catalogue entry to compare the same text through local synthesis without
+changing your saved choice. The button beside the selector previews its current
+choice. Playback stops when the dialog closes. Installed selection and previews
+work offline. Fetching newer metadata and prerecorded samples needs internet access. Catalogue
+metadata is cached in memory for an hour and saved as `catalogue-cache.json` in the
+configured voices directory. **Refresh** bypasses the freshness check. The dialog
+shows the last successful fetch time and any refresh failure. On an outage, an
+existing copy remains usable, including after restarting the server; failures never
+advance its fetch time or replace it with incomplete/invalid JSON. Failed automatic
+refreshes wait a minute before retrying; explicit Refresh retries immediately.
+A first fetch still needs internet access when no saved copy exists. Online samples
+and model downloads require their respective providers. Model deletion remains
+manual. Missing voices do not prevent application startup;
 the Listen button reports that reading aloud is unavailable.
 
 Spring owns the loaded voices and closes them at shutdown. Piper handles concurrent
