@@ -1,3 +1,4 @@
+import { isDemo } from "../shared/app-location.js";
 import { useState } from "react";
 import { Alert, Button, Loader } from "@mantine/core";
 import { titlePath } from "../shared/api.ts";
@@ -73,6 +74,7 @@ export function ComicReader({ id }: { id: string }) {
       }
       if (
         event.key.toLowerCase() === "e" &&
+        !isDemo &&
         !event.repeat &&
         !locked &&
         !annotate &&

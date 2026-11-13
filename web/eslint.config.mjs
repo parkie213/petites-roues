@@ -27,6 +27,10 @@ export default defineConfig([
   },
   js.configs.recommended,
   {
+    files: ["src/demo/demo-worker.js"],
+    languageOptions: { globals: globals.serviceworker },
+  },
+  {
     plugins: { "react-hooks": reactHooks },
     rules: {
       "react-hooks/rules-of-hooks": "error",
@@ -54,12 +58,12 @@ export default defineConfig([
     },
   },
   {
-    files: ["*.mjs", "test/**/*.mjs", "e2e/**/*.mjs"],
+    files: ["*.mjs", "test/**/*.mjs", "e2e/**/*.mjs", "demo-test/**/*.mjs"],
     languageOptions: { globals: globals.node },
   },
   {
     // Tests that render components run in jsdom, a simulated browser inside Node.
-    files: ["test/**/*.jsx"],
+    files: ["test/**/*.jsx", "demo-test/**/*.mjs"],
     languageOptions: {
       globals: { ...globals.browser, ...globals.node },
       parserOptions: { ecmaFeatures: { jsx: true } },

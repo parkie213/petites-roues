@@ -1,3 +1,4 @@
+import { appHref } from "../shared/app-location.js";
 import { useEffect, useRef, useState, type MouseEvent } from "react";
 import {
   Anchor,
@@ -91,7 +92,7 @@ export function LibraryBrowser({
             separator={<ChevronRight size={12} />}
             styles={{ root: { flexWrap: "wrap" } }}
           >
-            <Anchor size="xs" c="dimmed" href="/">
+            <Anchor size="xs" c="dimmed" href={appHref("/")}>
               Library
             </Anchor>
             {repo && (

@@ -1,3 +1,4 @@
+import { isDemo } from "../shared/app-location.js";
 import { useState } from "react";
 import { ChevronDown, ChevronUp } from "lucide-react";
 import {
@@ -241,6 +242,7 @@ export function ComicStudyPanel({
                 <Button
                   size="xs"
                   variant="light"
+                  disabled={isDemo}
                   onClick={() => edit(cue.source || "")}
                 >
                   {cue.source ? "Edit text" : "Add text"}

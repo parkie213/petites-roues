@@ -1,3 +1,4 @@
+import { isDemo } from "../shared/app-location.js";
 import {
   ActionIcon,
   Button,
@@ -122,7 +123,7 @@ export function ComicReaderToolbar({
         className="comic-region-edit-toggle"
         variant={annotate ? "light" : "subtle"}
         aria-pressed={annotate}
-        disabled={savingBox || !!draftRegion || editing}
+        disabled={isDemo || savingBox || !!draftRegion || editing}
         onClick={annotations.toggleAnnotate}
         leftSection={<SquareDashed size={18} />}
       >

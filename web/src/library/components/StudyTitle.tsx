@@ -1,3 +1,4 @@
+import { appHref } from "../../shared/app-location.js";
 import {
   ActionIcon,
   Button,
@@ -41,7 +42,9 @@ export function StudyTitle({
               fullWidth
               rightSection={<ChevronRight size={14} />}
               aria-label={`${comic ? "Read" : entry.videoAvailable ? "Play" : "Open"} ${entry.title}`}
-              href={`/${comic ? "reader" : entry.videoAvailable ? "watch" : "player"}/${encodeURIComponent(entry.id)}/`}
+              href={appHref(
+                `/${comic ? "reader" : entry.videoAvailable ? "watch" : "player"}/${encodeURIComponent(entry.id)}/`,
+              )}
             >
               {comic
                 ? "Read"
@@ -56,7 +59,7 @@ export function StudyTitle({
                 size={30}
                 title="Edit"
                 aria-label={`Edit ${entry.title}`}
-                href={`/player/${encodeURIComponent(entry.id)}/`}
+                href={appHref(`/player/${encodeURIComponent(entry.id)}/`)}
               >
                 <Pencil size={14} />
               </ActionIcon>

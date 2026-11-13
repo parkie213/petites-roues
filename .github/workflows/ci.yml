@@ -124,6 +124,8 @@ jobs:
       # In Playwright's Docker image, as locally, so screenshots match their references.
       - name: End-to-end journeys and screenshots against the recordings
         run: npm run e2e:screenshots
+      - name: Static GitHub Pages comic demo
+        run: npm run e2e:screenshots -- --config playwright.demo.config.mjs
       - name: Keep the end-to-end report when a journey failed
         if: failure()
         uses: actions/upload-artifact@v7

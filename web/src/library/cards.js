@@ -1,3 +1,4 @@
+import { appHref } from "../shared/app-location.js";
 /**
  * What a Posters card does with its entry. The server groups entries into shelves and cards
  * (GET /api/library/posters); these helpers only read an entry it sent.
@@ -12,7 +13,9 @@ export const warnings = (entry) => Object.values(entry.unavailable ?? {});
  */
 export function openHref(entry) {
   if (entry.fingerprint)
-    return `/${entry.type === "comic" ? "comic" : "video"}/${encodeURIComponent(entry.fingerprint)}/`;
+    return appHref(
+      `/${entry.type === "comic" ? "comic" : "video"}/${encodeURIComponent(entry.fingerprint)}/`,
+    );
   if (!entry.documentAvailable) return null;
   const view =
     entry.type === "comic"
@@ -20,5 +23,5 @@ export function openHref(entry) {
       : entry.videoAvailable
         ? "watch"
         : "player";
-  return `/${view}/${encodeURIComponent(entry.id)}/`;
+  return appHref(`/${view}/${encodeURIComponent(entry.id)}/`);
 }

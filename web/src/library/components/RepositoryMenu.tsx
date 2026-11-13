@@ -1,3 +1,4 @@
+import { isDemo } from "../../shared/app-location.js";
 import { ActionIcon, Menu, Text } from "@mantine/core";
 import { MoreHorizontal, RefreshCw, Trash2 } from "lucide-react";
 import type { ContentRepository } from "../../shared/types.ts";
@@ -37,7 +38,7 @@ export function RepositoryMenu({
           {repo.localPath}
         </Text>
         <Menu.Item
-          disabled={busy}
+          disabled={isDemo || busy}
           leftSection={<RefreshCw size={15} />}
           onClick={() => refresh(repo.id)}
         >
@@ -45,7 +46,7 @@ export function RepositoryMenu({
         </Menu.Item>
         <Menu.Divider />
         <Menu.Item
-          disabled={busy}
+          disabled={isDemo || busy}
           color="red"
           leftSection={<Trash2 size={15} />}
           onClick={() => onRemove(repo.id)}

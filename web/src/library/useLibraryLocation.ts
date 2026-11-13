@@ -1,3 +1,4 @@
+import { appLocation, appHistory, appHref } from "../shared/app-location.js";
 import { useEffect, useState } from "react";
 import { rememberLibraryPage } from "../shared/library-return.ts";
 import {
@@ -19,12 +20,12 @@ import {
 export function useLibraryLocation() {
   const [selection, setSelection] = useState<Selection>(() => {
     const remembered = storedView();
-    if (!location.search && remembered !== "columns")
-      history.replaceState(null, "", viewHref(remembered));
+    if (!appLocation().search && remembered !== "columns")
+      appHistory(viewHref(remembered), true);
     return readSelection();
   });
   useEffect(() => {
-    rememberLibraryPage(location.pathname + location.search);
+    rememberLibraryPage(appLocation().pathname + appLocation().search);
   }, [selection]);
   useEffect(() => {
     const update = () => setSelection(readSelection());
@@ -34,8 +35,10 @@ export function useLibraryLocation() {
 
   /** Shows the library URL [next], adding it to history unless it is already shown. */
   function go(next: string) {
-    if (next !== location.pathname + location.search)
-      history.pushState(null, "", next);
+    if (
+      appHref(next) !== appHref(appLocation().pathname + appLocation().search)
+    )
+      appHistory(next);
     setSelection(readSelection());
   }
   return {
