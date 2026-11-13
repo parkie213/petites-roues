@@ -31,7 +31,6 @@ import app.petitesroues.study.ReviewQueue;
 import app.petitesroues.study.ReviewQueueService;
 import app.petitesroues.support.DatabaseFixtures;
 import java.io.IOException;
-import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
@@ -176,6 +175,7 @@ class ContentRepositoryRefreshIntegrationTest {
     assertEquals("shared", second.documentId());
     var queue = new ReviewQueue(jdbc, mapper);
     var store = new DocumentStore(reader);
+    var transactions = new TransactionTemplate(new DataSourceTransactionManager(source));
     var served =
         new ReviewQueueService(
             catalogue,
@@ -183,7 +183,7 @@ class ContentRepositoryRefreshIntegrationTest {
             new AcceptedDocumentStore(jdbc),
             imports(new RepositoryContentService(repositories, catalogue)),
             queue,
-            new TransactionTemplate(new DataSourceTransactionManager(source)));
+            transactions);
     var library =
         new LibraryService(
             catalogue,
@@ -193,7 +193,7 @@ class ContentRepositoryRefreshIntegrationTest {
             new PlaybackProgressStore(jdbc),
             new ReadingProgressStore(jdbc),
             new TitleMediaService(new MediaStore(jdbc), new MediaLinkStore(jdbc)));
-    var editing = new DocumentEditingService(catalogue, served, queue);
+    var editing = new DocumentEditingService(catalogue, served, queue, transactions);
     byte[] originalFirst = Files.readAllBytes(firstFile);
     var cue =
         library
@@ -330,7 +330,7 @@ class ContentRepositoryRefreshIntegrationTest {
     write("a", changed);
     Path second = write("b", document("new-title"));
     var registration = spy(new RepositoryContentService(repositories, catalogue));
-    doThrow(new IOException("Second registration failed"))
+    doThrow(new IllegalStateException("Second registration failed"))
         .when(registration)
         .register(
             eq(new RepositoryContentService.Registration(second.toString(), true)),
@@ -338,7 +338,7 @@ class ContentRepositoryRefreshIntegrationTest {
             eq(repository.id()));
     var failing = service(registration);
 
-    assertThrows(UncheckedIOException.class, () -> failing.refresh(repository.id()));
+    assertThrows(IllegalStateException.class, () -> failing.refresh(repository.id()));
     verify(registration)
         .register(
             eq(

@@ -1,7 +1,6 @@
 package app.petitesroues.web;
 
 import app.petitesroues.library.ContentRepositoryService;
-import app.petitesroues.library.LibraryUpdateService;
 import app.petitesroues.library.SystemFileDialog;
 import app.petitesroues.model.library.ContentRepository;
 import java.io.IOException;
@@ -16,9 +15,9 @@ import org.springframework.web.bind.annotation.*;
  * and index updates to {@link ContentRepositoryService}; ordinary listing reads the index without
  * discovery.
  *
- * <p>Mutations share the {@link LibraryUpdateService} monitor with player edits so a title cannot
- * be replaced or unregistered during an edit's read/change/save operation. Removing a registration
- * leaves content files on disk.
+ * <p>Requests are not serialized here: {@link ContentRepositoryService} discovers without a lock
+ * and commits in short transactions, so player edits proceed during Add and Refresh. Removing a
+ * registration leaves content files on disk.
  */
 @RestController
 @RequestMapping("/api")
@@ -27,15 +26,10 @@ public class RepositoriesController {
       List.of("mp4", "mkv", "webm", "mov", "m4v", "avi", "ogv", "cbz");
 
   private final ContentRepositoryService repositories;
-  private final LibraryUpdateService updates;
   private final SystemFileDialog dialog;
 
-  public RepositoriesController(
-      ContentRepositoryService repositories,
-      LibraryUpdateService updates,
-      SystemFileDialog dialog) {
+  public RepositoriesController(ContentRepositoryService repositories, SystemFileDialog dialog) {
     this.repositories = repositories;
-    this.updates = updates;
     this.dialog = dialog;
   }
 
@@ -47,32 +41,24 @@ public class RepositoriesController {
   @PostMapping("/repositories")
   public ContentRepository add(@RequestBody ContentRepositoryService.Add request)
       throws IOException {
-    synchronized (updates) {
-      return repositories.add(request);
-    }
+    return repositories.add(request);
   }
 
   /** Refreshes every registered folder: the library's one Refresh button. */
   @PostMapping("/repositories/refresh")
   public List<ContentRepository> refreshAll() throws IOException {
-    synchronized (updates) {
-      return repositories.refreshAll();
-    }
+    return repositories.refreshAll();
   }
 
   @PostMapping("/repositories/{id}/refresh")
   public ContentRepository refresh(@PathVariable String id) throws IOException {
-    synchronized (updates) {
-      return repositories.refresh(id);
-    }
+    return repositories.refresh(id);
   }
 
   @DeleteMapping("/repositories/{id}")
   public Map<String, Boolean> remove(@PathVariable String id) {
-    synchronized (updates) {
-      repositories.remove(id);
-      return Map.of("removed", true);
-    }
+    repositories.remove(id);
+    return Map.of("removed", true);
   }
 
   /**

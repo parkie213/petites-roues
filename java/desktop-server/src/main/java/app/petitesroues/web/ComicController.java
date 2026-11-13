@@ -2,12 +2,12 @@ package app.petitesroues.web;
 
 import app.petitesroues.comic.ComicService;
 import app.petitesroues.comic.ReadingProgressService;
-import app.petitesroues.library.LibraryUpdateService;
 import app.petitesroues.model.document.StudyDocument;
 import app.petitesroues.model.editing.ComicBoxCreate;
 import app.petitesroues.model.editing.ComicBoxUpdate;
 import app.petitesroues.model.editing.ComicTextEdit;
 import app.petitesroues.model.progress.ReadingProgress;
+import app.petitesroues.study.DocumentEditingService;
 import java.io.IOException;
 import java.time.Duration;
 import java.util.List;
@@ -25,13 +25,13 @@ import org.springframework.web.bind.annotation.*;
 @RequestMapping("/api")
 public class ComicController {
   private final ComicService comics;
-  private final LibraryUpdateService updates;
+  private final DocumentEditingService editing;
   private final ReadingProgressService progress;
 
   public ComicController(
-      ComicService comics, ReadingProgressService progress, LibraryUpdateService updates) {
+      ComicService comics, ReadingProgressService progress, DocumentEditingService editing) {
     this.comics = comics;
-    this.updates = updates;
+    this.editing = editing;
     this.progress = progress;
   }
 
@@ -79,14 +79,14 @@ public class ComicController {
   public StudyDocument edit(
       @PathVariable String id, @PathVariable String lineId, @RequestBody ComicTextEdit edit)
       throws IOException {
-    return updates.editComicText(id, lineId, edit);
+    return editing.editComicText(id, lineId, edit);
   }
 
   /** Adds one drawn box with one line; ids and reading order are assigned server-side. */
   @PostMapping("/titles/{id}/comic/boxes")
   public StudyDocument create(@PathVariable String id, @RequestBody ComicBoxCreate create)
       throws IOException {
-    return updates.createComicBox(id, create);
+    return editing.createComicBox(id, create);
   }
 
   /** Replaces one box's regions and optional order; its lines stay as they are. */
@@ -94,14 +94,14 @@ public class ComicController {
   public StudyDocument updatePlacement(
       @PathVariable String id, @PathVariable String boxId, @RequestBody ComicBoxUpdate update)
       throws IOException {
-    return updates.placeComicBox(id, boxId, update);
+    return editing.placeComicBox(id, boxId, update);
   }
 
   /** Removes one box, with all its lines, from the document. */
   @DeleteMapping("/titles/{id}/comic/boxes/{boxId}")
   public StudyDocument delete(@PathVariable String id, @PathVariable String boxId)
       throws IOException {
-    return updates.deleteComicBox(id, boxId);
+    return editing.deleteComicBox(id, boxId);
   }
 
   @GetMapping("/titles/{id}/comic/progress")

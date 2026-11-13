@@ -6,8 +6,6 @@ import app.petitesroues.model.document.StudyDocument;
 import app.petitesroues.model.library.CatalogueEntry;
 import app.petitesroues.model.library.CatalogueLocation;
 import app.petitesroues.model.library.documents.DocumentMetadata;
-import java.io.IOException;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.UUID;
 import org.springframework.stereotype.Service;
@@ -41,7 +39,8 @@ public class RepositoryContentService {
   /**
    * An explicit request to index a document already on disk.
    *
-   * @param documentPath absolute path to the study document's JSON file
+   * @param documentPath absolute, already resolved real path of the study document's JSON file,
+   *     which the caller has checked lies inside the repository; registration does no file access
    * @param replace whether an existing entry in the target scope with the document's ID may be
    *     updated; does not authorize overwriting the document file
    */
@@ -53,8 +52,8 @@ public class RepositoryContentService {
    * file's contents are not read again.
    */
   @Transactional
-  public synchronized CatalogueEntry register(
-      Registration request, StudyDocument document, String repositoryId) throws IOException {
+  public CatalogueEntry register(
+      Registration request, StudyDocument document, String repositoryId) {
     return index(request, document, repositoryId);
   }
 
@@ -77,14 +76,11 @@ public class RepositoryContentService {
     return updated;
   }
 
-  private CatalogueEntry index(Registration request, StudyDocument document, String repositoryId)
-      throws IOException {
+  private CatalogueEntry index(Registration request, StudyDocument document, String repositoryId) {
     if (request == null || request.documentPath() == null)
       throw new IllegalArgumentException("Document path is required");
     Path file = Path.of(request.documentPath());
     if (!file.isAbsolute()) throw new IllegalArgumentException("Document path must be absolute");
-    if (!Files.isRegularFile(file)) throw new IllegalArgumentException("Missing file: " + file);
-    file = file.toRealPath();
     CatalogueEntry previous = repository.findDocument(repositoryId, document.id()).orElse(null);
     if (previous != null && !request.replace()) throw new TitleExistsException();
     // One physical file must not acquire independent edit histories through overlapping roots.
@@ -100,7 +96,7 @@ public class RepositoryContentService {
             ? previous.id()
             : repository.contains(document.id()) ? UUID.randomUUID().toString() : document.id();
     var owningRepository = repositories.find(repositoryId);
-    Path root = Path.of(owningRepository.localPath()).toRealPath();
+    Path root = Path.of(owningRepository.localPath());
     if (!file.startsWith(root))
       throw new IllegalArgumentException("Document is outside its owning repository");
     String storedPath = root.relativize(file).toString().replace('\\', '/');

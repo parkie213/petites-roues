@@ -1,13 +1,13 @@
 package app.petitesroues.web;
 
 import app.petitesroues.library.LibraryService;
-import app.petitesroues.library.LibraryUpdateService;
 import app.petitesroues.model.document.StudyDocument;
 import app.petitesroues.model.editing.MergeCues;
 import app.petitesroues.model.editing.SplitCue;
 import app.petitesroues.model.editing.UpdateCueTiming;
 import app.petitesroues.model.editing.VideoCueEdit;
 import app.petitesroues.model.review.CorrectionSuggestion;
+import app.petitesroues.study.DocumentEditingService;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
@@ -36,11 +36,11 @@ import org.springframework.web.bind.annotation.*;
 @RequestMapping("/api/titles/{id}")
 public class StudyController {
   private final LibraryService library;
-  private final LibraryUpdateService updates;
+  private final DocumentEditingService editing;
 
-  public StudyController(LibraryService library, LibraryUpdateService updates) {
+  public StudyController(LibraryService library, DocumentEditingService editing) {
     this.library = library;
-    this.updates = updates;
+    this.editing = editing;
   }
 
   /**
@@ -91,7 +91,7 @@ public class StudyController {
   @PostMapping("/timings")
   public SavedTimings save(@PathVariable String id, @RequestBody List<UpdateCueTiming> edits)
       throws IOException {
-    return new SavedTimings(true, updates.saveCueTiming(id, edits));
+    return new SavedTimings(true, editing.saveCueTiming(id, edits));
   }
 
   public record SavedTimings(boolean ok, int lines) {}
@@ -106,7 +106,7 @@ public class StudyController {
       @PathVariable String cueId,
       @RequestBody CorrectionSuggestion suggestion)
       throws IOException {
-    return updates.suggestCorrection(id, cueId, suggestion.suggestion());
+    return editing.suggestCorrection(id, cueId, suggestion.suggestion());
   }
 
   /**
@@ -117,7 +117,7 @@ public class StudyController {
   public StudyDocument comment(
       @PathVariable String id, @PathVariable String cueId, @RequestBody Map<String, String> body)
       throws IOException {
-    return updates.comment(id, cueId, body == null ? null : body.get("text"));
+    return editing.comment(id, cueId, body == null ? null : body.get("text"));
   }
 
   /**
@@ -133,7 +133,7 @@ public class StudyController {
   public StudyDocument editCue(
       @PathVariable String id, @PathVariable String cueId, @RequestBody VideoCueEdit cue)
       throws IOException {
-    return updates.editCue(id, cueId, cue);
+    return editing.editCue(id, cueId, cue);
   }
 
   /**
@@ -147,7 +147,7 @@ public class StudyController {
   @PostMapping("/cues")
   public StudyDocument addCue(@PathVariable String id, @RequestBody VideoCueEdit cue)
       throws IOException {
-    return updates.addCue(id, cue);
+    return editing.addCue(id, cue);
   }
 
   /**
@@ -166,7 +166,7 @@ public class StudyController {
   public StudyDocument splitCue(
       @PathVariable String id, @PathVariable String cueId, @RequestBody SplitCue split)
       throws IOException {
-    return updates.splitCue(id, cueId, split);
+    return editing.splitCue(id, cueId, split);
   }
 
   /**
@@ -179,7 +179,7 @@ public class StudyController {
   @PostMapping("/cues/merge")
   public StudyDocument mergeCues(@PathVariable String id, @RequestBody MergeCues merge)
       throws IOException {
-    return updates.mergeCues(id, merge);
+    return editing.mergeCues(id, merge);
   }
 
   /**
@@ -189,6 +189,6 @@ public class StudyController {
   @DeleteMapping("/cues/{cueId}")
   public StudyDocument deleteCue(@PathVariable String id, @PathVariable String cueId)
       throws IOException {
-    return updates.deleteCue(id, cueId);
+    return editing.deleteCue(id, cueId);
   }
 }

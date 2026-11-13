@@ -149,6 +149,23 @@ module; services do not initialise the database themselves. The server owns Boot
 Flyway startup integration and discovers migrations from the application JAR.
 Migration SQL and checksums must remain unchanged when moving resources.
 
+### Transactions and concurrency
+
+Correctness comes from short SQLite transactions, not from a Java lock. This depends on the
+database having one pooled connection (`spring.datasource.hikari.maximum-pool-size=1` in the
+server's `application.properties`; the pool also sets `busy_timeout`): a transaction holds the
+connection, so all other database work waits for it. With a larger pool the read-then-write
+checks below would no longer be atomic. A test fails if the pool size changes.
+
+- Every player or reader edit loads the served document, validates the edit and queues it in one
+  transaction (`DocumentEditingService`), as does a review request. Claim, complete, discard and
+  import decide and write in one transaction; their file reads happen before it.
+- Add and Refresh discover (scan, read, probe) with no lock and no transaction, so edits proceed
+  meanwhile. The commit is one transaction that first checks the repository still exists and has
+  not been refreshed since discovery began; otherwise it changes nothing and the job fails with a
+  message. Removal checks for unwritten edits and deletes in one transaction.
+- No file, process or network access happens inside these transactions.
+
 HTTP integration tests stay in `desktop-server`. `document-test-fixtures` and
 `desktop-test-fixtures` are ordinary JAR modules, consumed with test scope. There
 are no attached test JARs, classifiers or sibling source-directory links. Neither
