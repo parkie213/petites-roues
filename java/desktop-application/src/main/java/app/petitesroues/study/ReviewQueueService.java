@@ -1,5 +1,6 @@
 package app.petitesroues.study;
 
+import app.petitesroues.library.LibraryUpdateMonitor;
 import app.petitesroues.library.persistence.CatalogueStore;
 import app.petitesroues.model.document.StudyDocument;
 import app.petitesroues.model.editing.DocumentEdit;
@@ -22,22 +23,28 @@ import org.springframework.transaction.support.TransactionTemplate;
  * <p>A batch remembers the SHA-256 of the file it was claimed against. Its edits are replayed only
  * while the file still has that hash, so once the agent rewrites the file they are not applied a
  * second time. Edits that no longer apply to the file are skipped and reported as conflicts.
+ *
+ * <p>Mutating operations run while holding the shared {@link LibraryUpdateMonitor}, so claiming,
+ * completing or discarding cannot interleave with a player edit or a repository replacement.
  */
 @Service
 public class ReviewQueueService {
   private static final Set<String> OUTCOMES =
       Set.of("applied", "already_correct", "not_adopted", "reviewed");
 
+  private final LibraryUpdateMonitor monitor;
   private final CatalogueStore titles;
   private final DocumentStore documents;
   private final ReviewQueue queue;
   private final TransactionTemplate transactions;
 
   public ReviewQueueService(
+      LibraryUpdateMonitor monitor,
       CatalogueStore titles,
       DocumentStore documents,
       ReviewQueue queue,
       TransactionTemplate transactions) {
+    this.monitor = monitor;
     this.titles = titles;
     this.documents = documents;
     this.queue = queue;
@@ -81,18 +88,20 @@ public class ReviewQueueService {
   public int requestReview(String id, List<CueReviewRequest> requests) throws IOException {
     if (requests == null || requests.isEmpty())
       throw new IllegalArgumentException("List at least one cue to review");
-    var title = entry(id);
-    var current = document(title);
-    var edits =
-        requests.stream()
-            .map(
-                r ->
-                    new DocumentEdit.ReviewRequest(
-                        r.cueId(), r.text() == null ? null : r.text().strip()))
-            .toList();
-    for (var edit : edits) DocumentEdits.apply(current, edit);
-    transactions.executeWithoutResult(status -> edits.forEach(edit -> queue.append(title, edit)));
-    return edits.size();
+    synchronized (monitor) {
+      var title = entry(id);
+      var current = document(title);
+      var edits =
+          requests.stream()
+              .map(
+                  r ->
+                      new DocumentEdit.ReviewRequest(
+                          r.cueId(), r.text() == null ? null : r.text().strip()))
+              .toList();
+      for (var edit : edits) DocumentEdits.apply(current, edit);
+      transactions.executeWithoutResult(status -> edits.forEach(edit -> queue.append(title, edit)));
+      return edits.size();
+    }
   }
 
   /**
@@ -101,25 +110,27 @@ public class ReviewQueueService {
    */
   public Optional<BatchView> claim(String id, int limit) throws IOException {
     if (limit < 1) throw new IllegalArgumentException("Limit must be positive");
-    var title = entry(id);
-    var snapshot = documents.read(title);
-    var batch =
-        transactions.execute(
-            status -> {
-              var open = queue.openBatch(title);
-              if (open.isPresent()) return open;
-              if (queue.read(title).isEmpty()) return Optional.<ReviewQueue.Batch>empty();
-              return Optional.of(queue.claim(title, snapshot.sha256(), limit));
-            });
-    if (batch.isEmpty()) return Optional.empty();
-    long batchId = batch.get().id();
-    var rows = queue.read(title);
-    var effective =
-        replay(title, snapshot, rows, change -> Objects.equals(change.batch(), batchId));
-    var changes =
-        effective.pending().stream().filter(c -> Objects.equals(c.batch(), batchId)).toList();
-    return Optional.of(
-        new BatchView(batchId, batch.get().baseSha256(), changes, effective.document()));
+    synchronized (monitor) {
+      var title = entry(id);
+      var snapshot = documents.read(title);
+      var batch =
+          transactions.execute(
+              status -> {
+                var open = queue.openBatch(title);
+                if (open.isPresent()) return open;
+                if (queue.read(title).isEmpty()) return Optional.<ReviewQueue.Batch>empty();
+                return Optional.of(queue.claim(title, snapshot.sha256(), limit));
+              });
+      if (batch.isEmpty()) return Optional.empty();
+      long batchId = batch.get().id();
+      var rows = queue.read(title);
+      var effective =
+          replay(title, snapshot, rows, change -> Objects.equals(change.batch(), batchId));
+      var changes =
+          effective.pending().stream().filter(c -> Objects.equals(c.batch(), batchId)).toList();
+      return Optional.of(
+          new BatchView(batchId, batch.get().baseSha256(), changes, effective.document()));
+    }
   }
 
   /**
@@ -134,36 +145,38 @@ public class ReviewQueueService {
         request == null || request.outcomes() == null ? Map.<Long, String>of() : request.outcomes();
     if (!OUTCOMES.contains(fallback) || !OUTCOMES.containsAll(overrides.values()))
       throw new IllegalArgumentException("Unsupported review outcome");
-    var title = entry(id);
-    var snapshot = documents.read(title);
-    transactions.executeWithoutResult(
-        status -> {
-          var batch =
-              queue
-                  .batch(title, batchId)
-                  .filter(b -> b.completedAt() == null)
-                  .orElseThrow(() -> new NoSuchElementException("No open batch " + batchId));
-          var rows =
-              queue.read(title).stream().filter(c -> Objects.equals(c.batch(), batchId)).toList();
-          var sequences = rows.stream().map(CueChange::sequence).toList();
-          if (!sequences.containsAll(overrides.keySet()))
-            throw new IllegalArgumentException("Outcome for an edit outside this batch");
-          var outcomes = new LinkedHashMap<Long, String>();
-          for (var row : rows)
-            outcomes.put(row.sequence(), overrides.getOrDefault(row.sequence(), fallback));
-          boolean unwritten =
-              rows.stream()
-                  .anyMatch(
-                      r ->
-                          r.command() != null
-                              && r.command().changesDocument()
-                              && !"not_adopted".equals(outcomes.get(r.sequence())));
-          if (unwritten && snapshot.sha256().equals(batch.baseSha256()))
-            throw new IllegalArgumentException(
-                "document.json is unchanged since this batch was claimed. Write the batch's"
-                    + " edits into it first, or complete them as not_adopted.");
-          queue.complete(title, batchId, outcomes, Instant.now().toString());
-        });
+    synchronized (monitor) {
+      var title = entry(id);
+      var snapshot = documents.read(title);
+      transactions.executeWithoutResult(
+          status -> {
+            var batch =
+                queue
+                    .batch(title, batchId)
+                    .filter(b -> b.completedAt() == null)
+                    .orElseThrow(() -> new NoSuchElementException("No open batch " + batchId));
+            var rows =
+                queue.read(title).stream().filter(c -> Objects.equals(c.batch(), batchId)).toList();
+            var sequences = rows.stream().map(CueChange::sequence).toList();
+            if (!sequences.containsAll(overrides.keySet()))
+              throw new IllegalArgumentException("Outcome for an edit outside this batch");
+            var outcomes = new LinkedHashMap<Long, String>();
+            for (var row : rows)
+              outcomes.put(row.sequence(), overrides.getOrDefault(row.sequence(), fallback));
+            boolean unwritten =
+                rows.stream()
+                    .anyMatch(
+                        r ->
+                            r.command() != null
+                                && r.command().changesDocument()
+                                && !"not_adopted".equals(outcomes.get(r.sequence())));
+            if (unwritten && snapshot.sha256().equals(batch.baseSha256()))
+              throw new IllegalArgumentException(
+                  "document.json is unchanged since this batch was claimed. Write the batch's"
+                      + " edits into it first, or complete them as not_adopted.");
+            queue.complete(title, batchId, outcomes, Instant.now().toString());
+          });
+    }
   }
 
   /**
@@ -171,13 +184,15 @@ public class ReviewQueueService {
    * decisions are kept.
    */
   public void discard(String id, List<Long> expected) {
-    transactions.executeWithoutResult(
-        status -> {
-          var title = entry(id);
-          if (!queue.read(title).stream().map(CueChange::sequence).toList().equals(expected))
-            throw new IllegalArgumentException("Queue changed; reload before discarding");
-          queue.discard(title);
-        });
+    synchronized (monitor) {
+      transactions.executeWithoutResult(
+          status -> {
+            var title = entry(id);
+            if (!queue.read(title).stream().map(CueChange::sequence).toList().equals(expected))
+              throw new IllegalArgumentException("Queue changed; reload before discarding");
+            queue.discard(title);
+          });
+    }
   }
 
   /** Replays the selected pending edits over the file, recording each edit's state. */

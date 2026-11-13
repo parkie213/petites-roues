@@ -7,6 +7,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import app.petitesroues.documents.StudyDocumentCodec;
 import app.petitesroues.documents.StudyDocumentJson;
 import app.petitesroues.documents.StudyDocumentReader;
+import app.petitesroues.library.LibraryUpdateMonitor;
 import app.petitesroues.library.persistence.CatalogueStore;
 import app.petitesroues.model.document.StudyDocument;
 import app.petitesroues.model.editing.DocumentEdit;
@@ -50,6 +51,7 @@ class ReviewQueueTest {
     queue = new ReviewQueue(jdbc, mapper);
     service =
         new ReviewQueueService(
+            new LibraryUpdateMonitor(),
             new CatalogueStore(jdbc),
             new DocumentStore(new StudyDocumentReader(codec)),
             queue,

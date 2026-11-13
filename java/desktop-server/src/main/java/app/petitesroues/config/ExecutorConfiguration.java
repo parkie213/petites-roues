@@ -1,7 +1,7 @@
 package app.petitesroues.config;
 
 import app.petitesroues.library.LibraryJobService;
-import app.petitesroues.library.LibraryUpdateService;
+import app.petitesroues.library.LibraryUpdateMonitor;
 import app.petitesroues.media.ProcessRunner;
 import java.time.Duration;
 import java.util.concurrent.ExecutorService;
@@ -42,8 +42,8 @@ public class ExecutorConfiguration {
 
   @Bean
   public LibraryJobService libraryJobService(
-      LibraryUpdateService updates,
+      LibraryUpdateMonitor monitor,
       @Qualifier("libraryJobExecutor") SimpleAsyncTaskExecutor executor) {
-    return new LibraryJobService(updates, executor);
+    return new LibraryJobService(monitor, executor);
   }
 }

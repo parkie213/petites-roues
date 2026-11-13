@@ -10,9 +10,9 @@ import java.util.concurrent.FutureTask;
 
 /**
  * Runs one Add or Refresh at a time and retains its latest progress for polling and page reloads.
- * Work holds the shared edit/refresh monitor; the JDK task owns completion, failure and
- * cancellation. Only the latest job is retained, in memory. The executor is borrowed from the
- * composition layer, which owns admission during shutdown and termination of running work.
+ * Work runs while holding the shared {@link LibraryUpdateMonitor}; the JDK task owns completion,
+ * failure and cancellation. Only the latest job is retained, in memory. The executor is borrowed
+ * from the composition layer, which owns admission during shutdown and termination of running work.
  */
 public class LibraryJobService {
   private static final System.Logger LOG = System.getLogger(LibraryJobService.class.getName());
@@ -23,12 +23,12 @@ public class LibraryJobService {
     void run(LibraryProgress.Listener progress) throws Exception;
   }
 
-  private final LibraryUpdateService updates;
+  private final LibraryUpdateMonitor monitor;
   private final Executor executor;
   private Job latest;
 
-  public LibraryJobService(LibraryUpdateService updates, Executor executor) {
-    this.updates = updates;
+  public LibraryJobService(LibraryUpdateMonitor monitor, Executor executor) {
+    this.monitor = monitor;
     this.executor = executor;
   }
 
@@ -66,7 +66,7 @@ public class LibraryJobService {
           new FutureTask<>(
               () -> {
                 try {
-                  synchronized (updates) {
+                  synchronized (monitor) {
                     if (Thread.currentThread().isInterrupted()) throw new InterruptedException();
                     work.run(next -> progress = next);
                   }
