@@ -202,6 +202,44 @@ and [workspace conventions](../AGENTS.md).
 
 ## Verification
 
+### ArchUnit trial
+
+`desktop-server` has a test-scoped ArchUnit dependency and four ordinary JUnit
+architecture checks. They enforce existing responsibilities from `AGENTS.md`:
+
+- Services, including nested classes, must not depend on JDBC types.
+- Scanners, including nested classes, must not depend on JDBC, named stores or
+  the `ReviewQueue` persistence component.
+- Desktop application code must not depend on the HTTP adapter, server
+  configuration, Spring HTTP/web types or servlet types.
+- `content-model` and `learner-state-model` must stay independent of Spring,
+  JDBC, JPA, servlets and Jackson.
+
+The checks run in the normal server test suite, with no Spring context, database
+or production annotations. To run just these checks from the repository root:
+
+```sh
+./java/mvnw -B -f java/pom.xml -pl desktop-server -am test \
+  -Dtest=ArchitectureTest -Dsurefire.failIfNoSpecifiedTests=false
+```
+
+Imports follow the production artifact locations of representative classes,
+rather than treating all `app.petitesroues.model` packages as one module. This
+checks class directories locally and shared JARs in CI, and excludes fixture/test
+artifacts. Desktop command models can therefore retain their existing Jackson
+annotations without weakening the portable model rule. ArchUnit's default
+failure on empty rule selections remains enabled.
+
+These are static dependency checks, not proof of transaction correctness,
+absence of SQL string literals or indirect database access through arbitrary
+helpers. They do not require cycle-free feature packages or a particular logical
+module API. There are no violation baselines or ignored dependencies. The
+trial is independent of the Modulith and MCP experiments.
+
+Reference: [ArchUnit user guide](https://www.archunit.org/userguide/html/000_Index.html).
+
+### Java build
+
 From the repository root:
 
 ```sh
