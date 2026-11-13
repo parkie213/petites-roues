@@ -41,6 +41,17 @@ public final class PiperSynthesizer implements AutoCloseable {
 
   /**
    * Uses the selected installed filename, or the existing language default when selection is null.
+   *
+   * <p>Returns a complete WAV because the JNI call used here produces all PCM samples as a {@code
+   * short[]} before encoding begins. This keeps short subtitle and preview responses simple, but
+   * buffers the samples and encoded audio in memory. Wrapping the result in an input stream would
+   * not reduce that buffering or let playback start earlier.
+   *
+   * <p>Writing WAV encoding to a caller-owned output stream could avoid buffering the complete WAV,
+   * while still waiting for synthesis to finish. Delivering audio during synthesis would require a
+   * chunk-producing JNI API, an audio format/header strategy suitable for incremental delivery, and
+   * propagation of HTTP cancellation to synthesis. The service and HTTP response would also need to
+   * carry that streaming contract through to the caller.
    */
   public byte[] synthesize(String language, String selectedVoice, String text) throws IOException {
     var voice = voice(language, selectedVoice);
