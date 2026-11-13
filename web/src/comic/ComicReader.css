@@ -599,7 +599,7 @@ ul.comic-card-help {
   }
 }
 
-/* Let the source lead; colour explains a phrase only while it is explored. */
+/* The opened card shares phrase colours across source and translation. */
 .comic-bubble-popover {
   padding: 16px 18px 10px;
   border: 1px solid #ffffff20;
@@ -631,7 +631,13 @@ ul.comic-card-help {
   color: #bec5ce;
 }
 .comic-bubble-popover .comic-card-chunk {
-  text-decoration: none;
+  background: color-mix(in srgb, var(--phrase-color) 17%, transparent);
+  text-decoration: underline 3px
+    color-mix(in srgb, var(--phrase-color) 85%, transparent);
+  text-underline-offset: 4px;
+  border-radius: 3px;
+  -webkit-box-decoration-break: clone;
+  box-decoration-break: clone;
 }
 .comic-bubble-popover .comic-card-chunk[data-active],
 .comic-bubble-popover .comic-card-chunk:focus-visible {

@@ -230,3 +230,13 @@ test("a removed alignment falls back to the edited bubble without losing the que
   expect(message).not.toContain("I'm asking about the phrase");
   await screen.findByRole("status");
 });
+
+test("auto-listen skips foreign-script-only regions but manual listening remains available", () => {
+  vi.useFakeTimers();
+  voice.autoListen = true;
+  open({ cue: { id: "sfx", source: "ドドド", translation: "" } });
+  tick(300);
+  expect(voice.speak).not.toHaveBeenCalled();
+  fireEvent.click(phrase("Listen"));
+  expect(voice.speak).toHaveBeenCalledWith("ドドド");
+});

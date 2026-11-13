@@ -16,6 +16,7 @@ import {
 } from "../player/alignment.js";
 import { LearnerNote } from "../player/components/LearnerNote.jsx";
 import { useStudyLanguages } from "../player/StudyLanguages.jsx";
+import { hasSourceScript } from "./source-script.js";
 import { ListenButton } from "./ListenButton.jsx";
 import { useReadAloud } from "./ReadAloud.jsx";
 
@@ -66,7 +67,8 @@ export function ComicBubbleCard({ cue, document, onKeep, quiet = false }) {
     };
   }
   useEffect(() => {
-    if (quiet || !autoListen || !cue.source) return;
+    if (quiet || !autoListen || !hasSourceScript(cue.source, sourceLanguage))
+      return;
     const timer = setTimeout(() => speak(cue.source), AUTO_LISTEN_DELAY);
     return () => clearTimeout(timer);
     // Speaks once, when the card opens; later changes must not speak again.
