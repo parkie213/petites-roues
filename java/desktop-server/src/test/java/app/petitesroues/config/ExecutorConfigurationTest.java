@@ -16,7 +16,7 @@ import org.springframework.context.annotation.AnnotationConfigApplicationContext
 import org.springframework.core.task.SimpleAsyncTaskExecutor;
 import org.springframework.jdbc.datasource.SingleConnectionDataSource;
 
-class LibraryJobConfigurationTest {
+class ExecutorConfigurationTest {
   /** Real SQLite resource behind the named workflow dependencies, without starting HTTP. */
   private AnnotationConfigApplicationContext context() {
     var context = new AnnotationConfigApplicationContext();
@@ -35,7 +35,7 @@ class LibraryJobConfigurationTest {
         LibraryUpdateService.class,
         () -> new LibraryUpdateService(null),
         definition -> definition.setDependsOn("dataSource"));
-    context.register(LibraryJobConfiguration.class);
+    context.register(ExecutorConfiguration.class);
     context.refresh();
     return context;
   }
