@@ -1,7 +1,10 @@
 package app.petitesroues.speech;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.*;
 
+import io.github.jvoiceproject.piperjni.PiperJNI;
+import io.github.jvoiceproject.piperjni.PiperVoice;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
@@ -10,6 +13,41 @@ import org.junit.jupiter.api.io.TempDir;
 
 class PiperSynthesizerTest {
   @TempDir Path temp;
+
+  @Test
+  void reusesOneVoiceAndClosesItBeforeLoadingItsReplacement() throws Exception {
+    Path first = temp.resolve("fr_FR-a.onnx");
+    Path second = temp.resolve("fr_FR-b.onnx");
+    for (Path model : List.of(first, second)) {
+      Files.createFile(model);
+      Files.writeString(Path.of(model + ".json"), "{}");
+    }
+    var a = mock(PiperVoice.class);
+    var b = mock(PiperVoice.class);
+    for (var voice : List.of(a, b)) {
+      when(voice.getSampleRate()).thenReturn(22050);
+      when(voice.textToAudio(anyString())).thenReturn(new short[100]);
+    }
+    try (var jni = mockStatic(PiperJNI.class)) {
+      jni.when(() -> PiperJNI.loadVoice(first, Path.of(first + ".json"))).thenReturn(a);
+      jni.when(() -> PiperJNI.loadVoice(second, Path.of(second + ".json")))
+          .thenAnswer(
+              invocation -> {
+                verify(a).close();
+                return b;
+              });
+      try (var engine = new PiperSynthesizer(temp)) {
+        engine.synthesize("fr", "fr_FR-a.onnx", "bonjour");
+        engine.synthesize("fr", "fr_FR-a.onnx", "encore");
+        jni.verify(() -> PiperJNI.loadVoice(first, Path.of(first + ".json")), times(1));
+        verify(a, never()).close();
+        engine.synthesize("fr", "fr_FR-b.onnx", "salut");
+        verify(b, never()).close();
+      }
+      verify(a, times(1)).close();
+      verify(b, times(1)).close();
+    }
+  }
 
   @Test
   void choosesTheFirstMatchingModelWithALanguageBoundary() throws Exception {

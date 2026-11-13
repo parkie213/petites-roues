@@ -10,7 +10,6 @@ import java.nio.ByteOrder;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
@@ -20,13 +19,15 @@ import javax.sound.sampled.AudioInputStream;
 import javax.sound.sampled.AudioSystem;
 
 /**
- * Owns lazily loaded JNI voices, one per requested model. Piper handles synthesis locking and
- * native resource cleanup; this adapter selects models and encodes their PCM output as in-memory
- * WAV audio. Native libraries and models are not loaded until speech is requested.
+ * Owns at most one lazily loaded JNI voice and serializes speech requests. Piper handles native
+ * resource cleanup; this adapter selects models and encodes their PCM output as in-memory WAV
+ * audio. Native libraries and models are not loaded until speech is requested.
  */
 public final class PiperSynthesizer implements AutoCloseable {
   private final Path voices;
-  private final Map<String, PiperVoice> loaded = new HashMap<>();
+  private final Object synthesisLock = new Object();
+  private PiperVoice loaded;
+  private String loadedFilename;
   private boolean closed;
 
   /** Uses the model directory without loading native libraries or opening any models. */
@@ -41,6 +42,7 @@ public final class PiperSynthesizer implements AutoCloseable {
 
   /**
    * Uses the selected installed filename, or the existing language default when selection is null.
+   * Requests run one at a time; changing voices closes the previous model before loading another.
    *
    * <p>Returns a complete WAV because the JNI call used here produces all PCM samples as a {@code
    * short[]} before encoding begins. This keeps short subtitle and preview responses simple, but
@@ -54,18 +56,20 @@ public final class PiperSynthesizer implements AutoCloseable {
    * carry that streaming contract through to the caller.
    */
   public byte[] synthesize(String language, String selectedVoice, String text) throws IOException {
-    var voice = voice(language, selectedVoice);
-    int sampleRate = voice.getSampleRate();
-    short[] samples = voice.textToAudio(text);
-    var pcm = ByteBuffer.allocate(samples.length * Short.BYTES).order(ByteOrder.LITTLE_ENDIAN);
-    pcm.asShortBuffer().put(samples);
-    var format = new AudioFormat(sampleRate, 16, 1, true, false);
-    var wav = new ByteArrayOutputStream();
-    try (var audio =
-        new AudioInputStream(new ByteArrayInputStream(pcm.array()), format, samples.length)) {
-      AudioSystem.write(audio, AudioFileFormat.Type.WAVE, wav);
+    synchronized (synthesisLock) {
+      var voice = voice(language, selectedVoice);
+      int sampleRate = voice.getSampleRate();
+      short[] samples = voice.textToAudio(text);
+      var pcm = ByteBuffer.allocate(samples.length * Short.BYTES).order(ByteOrder.LITTLE_ENDIAN);
+      pcm.asShortBuffer().put(samples);
+      var format = new AudioFormat(sampleRate, 16, 1, true, false);
+      var wav = new ByteArrayOutputStream();
+      try (var audio =
+          new AudioInputStream(new ByteArrayInputStream(pcm.array()), format, samples.length)) {
+        AudioSystem.write(audio, AudioFileFormat.Type.WAVE, wav);
+      }
+      return wav.toByteArray();
     }
-    return wav.toByteArray();
   }
 
   private synchronized PiperVoice voice(String language, String selectedVoice) throws IOException {
@@ -78,14 +82,18 @@ public final class PiperSynthesizer implements AutoCloseable {
       throw new SpeechUnavailableException("Selected Piper voice is not installed: " + filename);
     Path model = voices.resolve(filename);
     String key = model.getFileName().toString();
-    var existing = loaded.get(key);
-    if (existing != null) return existing;
+    if (loaded != null && key.equals(loadedFilename)) return loaded;
+    if (loaded != null) {
+      loaded.close();
+      loaded = null;
+      loadedFilename = null;
+    }
     Path config = Path.of(model + ".json");
     try {
       PiperJNI.loadLibrary();
-      var voice = PiperJNI.loadVoice(model, config);
-      loaded.put(key, voice);
-      return voice;
+      loaded = PiperJNI.loadVoice(model, config);
+      loadedFilename = key;
+      return loaded;
     } catch (IOException | LinkageError failure) {
       throw new SpeechUnavailableException("Could not load Piper voice at " + model, failure);
     }
@@ -114,18 +122,19 @@ public final class PiperSynthesizer implements AutoCloseable {
   }
 
   /**
-   * Prevents new voice loads and closes all owned models. Piper stops active synthesis between
+   * Prevents new voice loads and closes the owned model. Piper stops active synthesis between
    * native chunks and waits for its native calls to return before freeing the model; it cannot
    * forcibly interrupt a stuck native call. Repeated close is harmless.
    */
   @Override
   public void close() {
-    List<PiperVoice> current;
+    PiperVoice current;
     synchronized (this) {
       closed = true;
-      current = List.copyOf(loaded.values());
-      loaded.clear();
+      current = loaded;
+      loaded = null;
+      loadedFilename = null;
     }
-    current.forEach(PiperVoice::close);
+    if (current != null) current.close();
   }
 }
