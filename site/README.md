@@ -8,6 +8,15 @@ Run `npm ci --prefix web`, then `npm run build:site --prefix web`. Preview with
 `npm run preview:site --prefix web` and open http://localhost:18876/.
 The build bundles only the original Le parapluie de Lulu document, its four CBZ page images and
 recorded French audio from `example/` and `site/demo-audio/`. Videos are not included yet.
+Demo notes and general quiz prompts reuse `example/documents-fr/notes/` and
+`example/documents-fr/quizzes/`. Two demo-only reading chapter scopes live in
+`example/demo/chapters.json`; the build reads these canonical sources into the canned API data. The original
+comic document, subtitles, images and speech recordings are unchanged.
+
+Notes and the general Quiz me page use the real Markdown renderer and prompt export controls.
+The reader’s chapter Quiz me prepares a selected chapter and quiz type using shared browser
+brief-formatting helpers, equivalent to the server’s chapter quiz response. Preparation is
+read-only and requires no chat API: copy or download the prompt, then use it in a chat.
 
 A service worker scoped to `/demo/` answers the app's ordinary API requests with the sample
 library, comic, page images and audio. Progress writes are persisted in browser Cache Storage

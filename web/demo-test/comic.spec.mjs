@@ -153,12 +153,10 @@ test("the actual library views and navigation stay inside the demo", async ({
   if (isMobile)
     await page.getByRole("button", { name: "Browse notes" }).click();
   await expect(
-    page.getByText(
-      "No notes yet. Add Markdown files to a repository’s notes/ folder.",
-      { exact: true },
-    ),
+    page.getByRole("link", { name: "Verbs followed by an infinitive" }),
   ).toBeVisible();
-  expect(await readJson(page, "/api/notes")).toEqual([]);
+  const notes = await readJson(page, "/api/notes");
+  expect(notes.map((note) => note.id)).toEqual(["verb-plus-infinitive"]);
   await page.reload();
   await expect(
     page.getByRole("link", { name: "Notes", exact: true }),

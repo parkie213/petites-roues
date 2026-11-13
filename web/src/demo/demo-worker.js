@@ -1,3 +1,5 @@
+import { chapterQuiz } from "../comic/chapter-quiz.js";
+
 /** Canned API for clients under /demo/ only. The real application UI and requests are unchanged. */
 const data = fetch(new URL("demo-data.json", self.location.href), {
   cache: "no-store",
@@ -21,7 +23,7 @@ async function progress() {
 }
 
 async function respond(request) {
-  const { document, recordings } = await data;
+  const { document, recordings, notes, quizzes } = await data;
   const url = new URL(request.url);
   const path = url.pathname;
   const api = `/api/titles/${encodeURIComponent(document.id)}`;
@@ -49,6 +51,13 @@ async function respond(request) {
       return new Response(null, { status: 204 });
     }
   }
+  if (path === comic + "/quiz" && request.method === "POST") {
+    try {
+      return json(chapterQuiz(document, await request.json()));
+    } catch (error) {
+      return json({ error: error.message }, 400);
+    }
+  }
   if (request.method !== "GET")
     return json({ error: "This action needs the desktop server." }, 403);
   if (path === comic) return json(document);
@@ -66,7 +75,8 @@ async function respond(request) {
   if (path === api + "/card")
     return asset(`pages/${encodeURIComponent(pages[0].id)}.jpg`);
   if (path === "/api/jobs/latest") return new Response(null, { status: 204 });
-  if (["/api/notes", "/api/quizzes"].includes(path)) return json([]);
+  if (path === "/api/notes") return json(notes);
+  if (path === "/api/quizzes") return json(quizzes);
   if (path === "/api/library/usage")
     return json({
       libraryBytes: document.comic.reference.sizeBytes,

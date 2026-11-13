@@ -3,7 +3,7 @@ name: Deploy website and comic demo
 on:
   push:
     branches: [main]
-    paths: ['site/**', 'web/**', 'example/documents-fr/comics/lulu/**', 'example/media-fr/comics/lulu/**', '.github/workflows/pages.yml']
+    paths: ['site/**', 'web/**', 'example/documents-fr/comics/lulu/**', 'example/media-fr/comics/lulu/**', 'example/demo/**', 'example/documents-fr/notes/**', 'example/documents-fr/quizzes/**', '.github/workflows/pages.yml']
   workflow_dispatch:
 
 permissions:
