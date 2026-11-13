@@ -1,5 +1,8 @@
 # Review API
 
+An optional [MCP trial](MCP-TRIAL.md) exposes pending-review discovery and batch
+claiming to agents. It delegates to these same services; completion remains REST.
+
 How player edits reach the document files. The application never writes `document.json` and
 never reads it to answer a request: it serves each title's accepted copy (the file as last
 imported, kept in SQLite) plus its pending edits. An agent (or a person) is the only writer, and
