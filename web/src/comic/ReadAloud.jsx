@@ -7,15 +7,9 @@ const ReadAloudContext = createContext(null);
  * Plays source-language text through the server's local voice. One utterance plays at a time:
  * asking for new text stops the current one, and asking for the text already playing stops it.
  * Audio is fetched for each request and released when it ends. `autoListen` is the reader's
- * preference for reading each bubble as its card opens. `audioUrl(text)` resolves prerecorded clips
- * instead of requesting the voice server; a missing clip reports an error without a request.
+ * preference for reading each bubble as its card opens.
  */
-export function ReadAloudProvider({
-  url,
-  autoListen = false,
-  audioUrl = null,
-  children,
-}) {
+export function ReadAloudProvider({ url, autoListen = false, children }) {
   const current = useRef(null);
   const [state, setState] = useState({ text: null, loading: false, error: "" });
 
@@ -36,11 +30,7 @@ export function ReadAloudProvider({
     current.current = playing;
     setState({ text, loading: true, error: "" });
     try {
-      const source = audioUrl
-        ? audioUrl(text)
-        : `${url}?text=${encodeURIComponent(text)}`;
-      if (!source) throw new Error("No recording is available for this text.");
-      const response = await fetch(source, {
+      const response = await fetch(`${url}?text=${encodeURIComponent(text)}`, {
         signal: playing.abort.signal,
       });
       if (!response.ok) throw await responseError(response);

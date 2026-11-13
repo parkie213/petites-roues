@@ -1,3 +1,4 @@
+import { appLocation, appHref } from "../shared/app-location.js";
 import { useEffect, useState } from "react";
 import { Container } from "@mantine/core";
 import { LibraryHeader } from "../library/LibraryHeader.jsx";
@@ -10,14 +11,14 @@ import { Notes } from "../library/Notes.jsx";
 import { Watch } from "../player/Watch.tsx";
 
 export function App() {
-  const [path, setPath] = useState(location.pathname);
+  const [path, setPath] = useState(appLocation().pathname);
   const [actionsTarget, setActionsTarget] = useState(null);
   useEffect(() => {
-    const update = () => setPath(location.pathname);
+    const update = () => setPath(appLocation().pathname);
     window.addEventListener("popstate", update);
     return () => window.removeEventListener("popstate", update);
   }, []);
-  const url = new URL(location.href);
+  const url = appLocation();
   const section =
     path === "/"
       ? "library"
@@ -65,7 +66,7 @@ export function App() {
   return (
     <main className="page">
       <h1>Page not found</h1>
-      <a href="/">Return to library</a>
+      <a href={appHref("/")}>Return to library</a>
     </main>
   );
 }

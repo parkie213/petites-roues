@@ -27,6 +27,10 @@ export default defineConfig([
   },
   js.configs.recommended,
   {
+    files: ["src/demo/demo-worker.js"],
+    languageOptions: { globals: globals.serviceworker },
+  },
+  {
     plugins: { "react-hooks": reactHooks },
     rules: {
       "react-hooks/rules-of-hooks": "error",

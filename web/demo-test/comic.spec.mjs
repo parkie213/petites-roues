@@ -1,23 +1,37 @@
 import { readFileSync } from "node:fs";
-import { test, expect } from "@playwright/test";
+import { test as base, expect } from "@playwright/test";
+import { expectWrite, readJson } from "../e2e/api.mjs";
+import { checkRequests } from "../e2e/requests.mjs";
 
-// This is browser-local persistence: there are no API writes or recordings in the static demo.
-test("the landing page opens a one-comic library and a readable, resumable comic", async ({
+const test = base.extend({
+  page: async ({ page }, use) => checkRequests(page, () => use(page)),
+});
+const api = "/api/titles/lulu-example-le-parapluie";
+const comic = api + "/comic";
+const reader =
+  "/demo/?route=" + encodeURIComponent("/reader/lulu-example-le-parapluie/");
+
+async function turn(page, pageId, action) {
+  const saved = await expectWrite(
+    page,
+    { method: "PUT", path: comic + "/progress", body: { pageId } },
+    action,
+  );
+  expect(saved.pageId).toBe(pageId);
+  expect((await readJson(page, comic + "/progress")).pageId).toBe(pageId);
+}
+async function open(page) {
+  await turn(page, "cover", () => page.goto(reader));
+  await expect(
+    page.getByRole("heading", { name: "Le parapluie de Lulu" }),
+  ).toBeVisible();
+}
+
+test("the real library and reader work with canned data and persisted progress", async ({
   page,
 }, info) => {
-  const failures = [];
-  page.on("pageerror", (error) => failures.push(error.message));
-  page.on("response", (response) => {
-    if (
-      new URL(response.url()).origin === "http://127.0.0.1:18876" &&
-      response.status() >= 400
-    )
-      failures.push(`${response.status()} ${response.url()}`);
-  });
-  page.on("request", (request) => {
-    if (new URL(request.url()).pathname.startsWith("/api/"))
-      failures.push(`Unexpected API request: ${request.url()}`);
-  });
+  const errors = [];
+  page.on("pageerror", (error) => errors.push(error.message));
   await page.goto("/");
   await expect(page.getByRole("link", { name: "GitHub" })).toHaveAttribute(
     "href",
@@ -25,92 +39,136 @@ test("the landing page opens a one-comic library and a readable, resumable comic
   );
   await page.getByRole("link", { name: "Demo", exact: true }).click();
   await expect(
-    page.getByRole("heading", { name: "Library", exact: true }),
+    page.getByRole("navigation", { name: "Main navigation" }),
   ).toBeVisible();
+  for (const name of [
+    "Add folder",
+    "Connect a phone",
+    "Read-aloud voices",
+    "Refresh library",
+  ])
+    await expect(
+      page.getByRole("button", { name, exact: true }),
+    ).toBeDisabled();
+  const library = await readJson(page, "/api/library");
+  expect(library.repositories).toHaveLength(1);
+  expect(library.repositories[0].entries.map((entry) => entry.id)).toEqual([
+    "lulu-example-le-parapluie",
+  ]);
+  await expect(page.locator(".poster-card")).toHaveCount(1);
+  await page
+    .getByRole("textbox", { name: "Search your library" })
+    .fill("no such comic");
+  await expect(page.locator(".poster-card")).toHaveCount(0);
+  await page.getByRole("textbox", { name: "Search your library" }).fill("Lulu");
+  await expect(page.locator(".poster-card")).toHaveCount(1);
+  await page.screenshot({ path: info.outputPath("library.png") });
+  await turn(page, "cover", () =>
+    page
+      .getByRole("link", { name: "Le parapluie de Lulu", exact: true })
+      .click(),
+  );
   await expect(
-    page.getByRole("region", { name: "Comics" }).getByRole("link"),
-  ).toHaveCount(1);
-  await page.getByRole("link", { name: /Le parapluie de Lulu/ }).click();
-  const image = page.getByRole("img", {
-    name: "Le parapluie de Lulu, page 1",
-    exact: true,
-  });
-  await expect(image).toBeVisible();
-  await expect
-    .poll(() => image.evaluate((img) => img.complete && img.naturalWidth > 0))
-    .toBe(true);
-  await expect(
-    page.getByRole("button", { name: "Previous page (←)", exact: true }),
+    page.getByRole("button", { name: "Edit mode", exact: true }),
   ).toBeDisabled();
-  await page.getByRole("button", { name: /^Next page/ }).click();
-  await expect(
-    page.getByRole("img", {
-      name: "Le parapluie de Lulu, page 2",
-      exact: true,
-    }),
-  ).toBeVisible();
+  await turn(page, "page-1", () =>
+    page.getByRole("button", { name: /^Next page/ }).click(),
+  );
   await page
     .getByRole("button", { name: "Bubble 1: Oh non, il pleut !" })
     .click();
-  await expect(
-    page.getByText("Oh no, it's raining!", { exact: false }),
-  ).toBeVisible();
   const source = page.getByRole("button", { name: "Oh non,", exact: true });
   const translation = page.getByRole("button", { name: "Oh no,", exact: true });
   await expect(translation).toBeVisible();
   expect(
-    await translation.evaluate(
-      (el) => el.ownerDocument.defaultView.getComputedStyle(el).backgroundColor,
-    ),
-  ).toBe(
-    await source.evaluate(
-      (el) => el.ownerDocument.defaultView.getComputedStyle(el).backgroundColor,
-    ),
-  );
+    await translation.evaluate((el) => getComputedStyle(el).backgroundColor),
+  ).toBe(await source.evaluate((el) => getComputedStyle(el).backgroundColor));
   await source.click();
   await expect(translation).toHaveAttribute("data-active", "true");
   await expect(page.getByText("Non = no.", { exact: true })).toBeVisible();
-  await expect(
-    page.getByText("Hover or click a phrase for its explanation.", {
-      exact: true,
-    }),
-  ).toBeHidden();
   await page.screenshot({ path: info.outputPath("reader.png") });
-  await expect
-    .poll(() =>
-      page.evaluate(() => JSON.parse(localStorage.getItem("demo:lulu:page"))),
-    )
-    .toBe(1);
-  await page.reload();
+  await turn(page, "page-1", () => page.reload());
   await expect(
     page.getByRole("img", {
       name: "Le parapluie de Lulu, page 2",
       exact: true,
     }),
   ).toBeVisible();
-  for (const number of [3, 4]) {
-    await page.getByRole("button", { name: /^Next page/ }).click();
-    const nextImage = page.getByRole("img", {
+  for (const [id, number] of [
+    ["page-2", 3],
+    ["page-3", 4],
+  ]) {
+    await turn(page, id, () =>
+      page.getByRole("button", { name: /^Next page/ }).click(),
+    );
+    const image = page.getByRole("img", {
       name: `Le parapluie de Lulu, page ${number}`,
       exact: true,
     });
     await expect
-      .poll(() =>
-        nextImage.evaluate((img) => img.complete && img.naturalWidth > 0),
-      )
+      .poll(() => image.evaluate((img) => img.complete && img.naturalWidth > 0))
       .toBe(true);
   }
   await expect(page.getByRole("button", { name: /^Next page/ })).toBeDisabled();
   await page.getByRole("link", { name: "Back to library" }).click();
   await expect(
-    page.getByRole("heading", { name: "Library", exact: true }),
+    page.getByRole("textbox", { name: "Search your library" }),
   ).toBeVisible();
-  await expect(page.getByText("4 pages · Continue on page 4")).toBeVisible();
-  await page.screenshot({ path: info.outputPath("library.png") });
-  expect(failures).toEqual([]);
+  await expect(
+    page.getByRole("progressbar", { name: "Progress", exact: true }),
+  ).toHaveAttribute("aria-valuenow", "100");
+  expect(errors).toEqual([]);
 });
 
-test("saved recordings play bubbles, pinned phrases, replay and listen-on-hover", async ({
+test("the actual library views and navigation stay inside the demo", async ({
+  page,
+  isMobile,
+}) => {
+  await page.goto("/demo/");
+  await page.getByText("Documents", { exact: true }).click();
+  await expect(page.getByRole("table")).toContainText("Le parapluie de Lulu");
+  await turn(page, "cover", () =>
+    page
+      .getByRole("link", { name: "Le parapluie de Lulu", exact: true })
+      .click(),
+  );
+  await page.getByRole("link", { name: "Back to library" }).click();
+  await expect(
+    page.getByRole("radio", { name: "Documents", exact: true }),
+  ).toBeChecked();
+  await page.getByText("Repositories", { exact: true }).click();
+  await page.getByRole("link", { name: /^Demo/ }).click();
+  await page.getByRole("button", { name: "Options for Demo" }).click();
+  await expect(
+    page.getByRole("menuitem", { name: "Refresh folder" }),
+  ).toBeDisabled();
+  await expect(
+    page.getByRole("menuitem", { name: "Remove from library…" }),
+  ).toBeDisabled();
+  await page.keyboard.press("Escape");
+  await page.getByRole("link", { name: "Notes", exact: true }).click();
+  await expect(
+    page.getByRole("link", { name: "Notes", exact: true }),
+  ).toHaveAttribute("aria-current", "page");
+  if (isMobile)
+    await page.getByRole("button", { name: "Browse notes" }).click();
+  await expect(
+    page.getByText(
+      "No notes yet. Add Markdown files to a repository’s notes/ folder.",
+      { exact: true },
+    ),
+  ).toBeVisible();
+  expect(await readJson(page, "/api/notes")).toEqual([]);
+  await page.reload();
+  await expect(
+    page.getByRole("link", { name: "Notes", exact: true }),
+  ).toHaveAttribute("aria-current", "page");
+  await page.getByRole("link", { name: "Library", exact: true }).click();
+  await expect(page.getByRole("button", { name: "Add folder" })).toBeDisabled();
+  expect(new URL(page.url()).pathname).toBe("/demo/");
+});
+
+test("the real speech API plays saved bubbles, phrases, R replay and listening mode", async ({
   page,
 }) => {
   await page.addInitScript(() => {
@@ -119,78 +177,82 @@ test("saved recordings play bubbles, pinned phrases, replay and listen-on-hover"
     HTMLMediaElement.prototype.play = function () {
       this.addEventListener(
         "playing",
-        () =>
-          window.demoPlayback.push({ playing: true, duration: this.duration }),
+        () => window.demoPlayback.push(this.duration),
         { once: true },
       );
       return play.call(this);
     };
   });
-  await page.goto("/demo/#read");
-  await page.getByRole("button", { name: /^Next page/ }).click();
+  await open(page);
+  await turn(page, "page-1", () =>
+    page.getByRole("button", { name: /^Next page/ }).click(),
+  );
   await page
     .getByRole("button", { name: "Bubble 1: Oh non, il pleut !" })
     .click();
-  const playClip = async (action, count) => {
-    const responsePromise = page.waitForResponse((response) =>
-      new URL(response.url()).pathname.startsWith("/demo/audio/"),
-    );
-    await action();
-    const response = await responsePromise;
-    expect(response.status()).toBeLessThan(400);
-    expect(await response.finished()).toBeNull();
-    expect((await response.body()).length).toBeGreaterThan(1000);
-    await expect
-      .poll(() => page.evaluate(() => window.demoPlayback.length))
-      .toBe(count);
-    expect(
-      await page.evaluate(() => window.demoPlayback.at(-1).duration),
-    ).toBeGreaterThan(0);
-    return response.url();
-  };
-  const bubble = await playClip(
-    () => page.getByRole("button", { name: "Listen", exact: true }).click(),
-    1,
-  );
-  await page.getByRole("button", { name: "Stop reading aloud" }).click();
-  await expect(
-    page.getByRole("button", { name: "Listen", exact: true }),
-  ).toHaveAttribute("aria-pressed", "false");
-  await page.getByRole("button", { name: "il pleut !", exact: true }).click();
-  const phrase = await playClip(
-    () => page.getByRole("button", { name: "Listen", exact: true }).click(),
-    2,
-  );
-  expect(phrase).not.toBe(bubble);
-  const { clips } = JSON.parse(
+  const recordings = JSON.parse(
     readFileSync(
       new URL("../../site/demo-audio/manifest.json", import.meta.url),
       "utf8",
     ),
   );
-  expect(new URL(bubble).pathname).toBe(
-    `/demo/audio/${clips["Oh non, il pleut !"]}`,
+  const playClip = async (text, action, count) => {
+    const responsePromise = page.waitForResponse((response) => {
+      const url = new URL(response.url());
+      return (
+        url.pathname === api + "/speech" &&
+        url.searchParams.get("text") === text
+      );
+    });
+    await action();
+    const response = await responsePromise;
+    expect(response.ok()).toBe(true);
+    expect(await response.finished()).toBeNull();
+    expect(await response.body()).toEqual(
+      readFileSync(
+        new URL(
+          `../../site/demo-audio/${recordings.clips[text]}`,
+          import.meta.url,
+        ),
+      ),
+    );
+    await expect
+      .poll(() => page.evaluate(() => window.demoPlayback.length))
+      .toBe(count);
+    expect(
+      await page.evaluate(() => window.demoPlayback.at(-1)),
+    ).toBeGreaterThan(0);
+  };
+  await playClip(
+    "Oh non, il pleut !",
+    () => page.getByRole("button", { name: "Listen", exact: true }).click(),
+    1,
   );
-  expect(new URL(phrase).pathname).toBe(`/demo/audio/${clips["il pleut !"]}`);
   await page.getByRole("button", { name: "Stop reading aloud" }).click();
-  const replay = await playClip(() => page.keyboard.press("r"), 3);
-  expect(replay).toBe(bubble);
+  await page.getByRole("button", { name: "il pleut !", exact: true }).click();
+  await playClip(
+    "il pleut !",
+    () => page.getByRole("button", { name: "Listen", exact: true }).click(),
+    2,
+  );
+  await page.getByRole("button", { name: "Stop reading aloud" }).click();
+  await playClip("Oh non, il pleut !", () => page.keyboard.press("r"), 3);
   await page.keyboard.press("r");
   await page
     .getByRole("button", { name: "Listen on hover", exact: true })
     .click();
-  // A fresh card mounts after the page turn, as it does when a learner opens another bubble.
-  await page.getByRole("button", { name: /^Next page/ }).click();
+  await turn(page, "page-2", () =>
+    page.getByRole("button", { name: /^Next page/ }).click(),
+  );
+  const document = await readJson(page, comic);
+  const line = document.comic.pages.find((p) => p.id === "page-2").boxes[0]
+    .lines[0];
   await playClip(
+    line.source,
     () => page.getByRole("button", { name: /^Bubble 1:/ }).click(),
     4,
   );
-  await expect
-    .poll(() =>
-      page.evaluate(() => JSON.parse(localStorage.getItem("demo:auto-listen"))),
-    )
-    .toBe(true);
-  await page.reload();
+  await turn(page, "page-2", () => page.reload());
   await expect(
     page.getByRole("button", { name: "Stop listening on hover" }),
   ).toHaveAttribute("aria-pressed", "true");

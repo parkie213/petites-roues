@@ -1,3 +1,4 @@
+import { appHref, appLocation } from "../shared/app-location.js";
 /** Builds and reads library URLs for links and browser history. */
 
 /** The library's views: posters of what can be watched or read, every study document, or folders. */
@@ -16,7 +17,9 @@ export interface Selection {
 
 /** The repositories view, at a folder of the repository [id]. */
 export const folderHref = (id: string, parts: readonly string[] = []) =>
-  "/?" + new URLSearchParams({ repository: id, folder: parts.join("/") });
+  appHref(
+    "/?" + new URLSearchParams({ repository: id, folder: parts.join("/") }),
+  );
 
 /** Posters view: optional repository filter, open series card and season. */
 export const postersHref = ({
@@ -28,15 +31,17 @@ export const postersHref = ({
   group?: string | null;
   season?: number | null;
 } = {}) =>
-  "/?" +
-  new URLSearchParams(
-    Object.entries({ view: "posters", repository, group, season })
-      .filter(([, value]) => value != null && value !== "")
-      .map(([key, value]) => [key, String(value)]),
+  appHref(
+    "/?" +
+      new URLSearchParams(
+        Object.entries({ view: "posters", repository, group, season })
+          .filter(([, value]) => value != null && value !== "")
+          .map(([key, value]) => [key, String(value)]),
+      ),
   );
 
 /** The list of every study document and what it links to. */
-export const documentsHref = () => "/?view=documents";
+export const documentsHref = () => appHref("/?view=documents");
 
 /** Where switching to [view] goes: its top level, with nothing chosen within it. */
 export const viewHref = (view: LibraryView) =>
@@ -44,11 +49,11 @@ export const viewHref = (view: LibraryView) =>
     ? postersHref()
     : view === "documents"
       ? documentsHref()
-      : "/";
+      : appHref("/");
 
 /** What the current URL shows; anything not naming posters or documents is the repositories view. */
 export function readSelection(): Selection {
-  const query = new URLSearchParams(location.search);
+  const query = new URLSearchParams(appLocation().search);
   const view = query.get("view");
   const season = Number(query.get("season"));
   return {

@@ -1,3 +1,4 @@
+import { appLocation, appHistory, appHref } from "../shared/app-location.js";
 import { useEffect, useState } from "react";
 import {
   Alert,
@@ -19,9 +20,9 @@ import "./Notes.css";
 
 function selectedKey(kind) {
   if (kind === "quizzes")
-    return new URLSearchParams(location.search).get("topic");
-  const parts = location.pathname
-    .split("/")
+    return new URLSearchParams(appLocation().search).get("topic");
+  const parts = appLocation()
+    .pathname.split("/")
     .filter(Boolean)
     .slice(1)
     .map(decodeURIComponent);
@@ -115,11 +116,11 @@ export function StudyPage({ kind }) {
                 {filtered.map((item) => (
                   <a
                     key={quizKey(item)}
-                    href={
+                    href={appHref(
                       quiz
                         ? `/quizzes?topic=${encodeURIComponent(quizKey(item))}`
-                        : notePath(item)
-                    }
+                        : notePath(item),
+                    )}
                     aria-current={current === item ? "page" : undefined}
                     onClick={(e) => {
                       if (
@@ -131,7 +132,7 @@ export function StudyPage({ kind }) {
                       )
                         return;
                       e.preventDefault();
-                      history.pushState(null, "", e.currentTarget.href);
+                      appHistory(e.currentTarget.href);
                       setSelected(quizKey(item));
                       setBrowse(false);
                     }}

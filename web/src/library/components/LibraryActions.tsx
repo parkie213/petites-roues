@@ -1,3 +1,4 @@
+import { isDemo } from "../../shared/app-location.js";
 import { ActionIcon, Button, Group } from "@mantine/core";
 import { Plus, RefreshCw, Smartphone, Volume2 } from "lucide-react";
 import { createPortal } from "react-dom";
@@ -33,6 +34,7 @@ export function LibraryActions({
         size="lg"
         aria-label="Read-aloud voices"
         title="Read-aloud voices"
+        disabled={isDemo}
         onClick={onVoices}
       >
         <Volume2 size={21} />
@@ -43,6 +45,7 @@ export function LibraryActions({
         size="lg"
         aria-label="Connect a phone"
         title="Connect a phone"
+        disabled={isDemo}
         onClick={onConnect}
       >
         <Smartphone size={21} />
@@ -55,6 +58,7 @@ export function LibraryActions({
           aria-label="Refresh library"
           title="Refresh library"
           loading={working}
+          disabled={isDemo}
           onClick={onRefresh}
         >
           <RefreshCw size={21} />
@@ -63,7 +67,7 @@ export function LibraryActions({
       <Button
         color="navy"
         leftSection={<Plus size={17} />}
-        disabled={working}
+        disabled={isDemo || working}
         onClick={onAdd}
       >
         Add folder

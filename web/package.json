@@ -9,7 +9,6 @@
   "scripts": {
     "dev": "node server.mjs --dev",
     "build": "vite build",
-    "build:demo": "vite build --config vite.demo.config.mjs",
     "start": "node server.mjs",
     "test": "vitest run",
     "e2e": "playwright test",

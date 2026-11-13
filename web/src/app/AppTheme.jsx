@@ -1,9 +1,10 @@
+import { appLocation } from "../shared/app-location.js";
 import { createTheme, MantineProvider } from "@mantine/core";
 import "@mantine/core/styles.layer.css";
 
 const libraryPage =
-  location.pathname === "/" ||
-  /^\/(notes|quizzes)(\/|$)/.test(location.pathname);
+  appLocation().pathname === "/" ||
+  /^\/(notes|quizzes)(\/|$)/.test(appLocation().pathname);
 
 const theme = createTheme({
   primaryColor: "coral",
