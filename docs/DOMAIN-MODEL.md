@@ -16,9 +16,9 @@ Two rules hold the boundary:
 
 - **Local state never enters a document.** Paths, progress, availability and queue history stay
   out of `document.json`, so a content repository can be shared and synced as-is.
-- **The app never writes documents.** The library only reads them to index their metadata, and
-  editing serves each document as the file plus its pending edits. Agents write the file, then
-  close the edits.
+- **The app never writes documents.** It reads a file only to import it, as the title's accepted
+  copy in SQLite, and serves that copy plus the title's pending edits. Agents write the file,
+  then complete the batch, which imports it and closes the edits.
 
 ## Study documents
 
@@ -95,8 +95,8 @@ Standalone desktop registrations are not repository-owned entries.
 ## Editing
 
 Every player or reader change is stored as a command, not as a new copy of the document. Pending
-commands are replayed over the file whenever the document is served, so the learner sees their
-change straight away while the file stays untouched. The HTTP side is specified in
+commands are replayed over the title's accepted copy (the file as last imported) whenever the
+document is served, so the learner sees their change straight away while the file stays untouched. The HTTP side is specified in
 [REVIEW-API.md](REVIEW-API.md).
 
 ![Editing model](diagrams/editing-model.svg)
@@ -109,8 +109,9 @@ change straight away while the file stays untouched. The HTTP side is specified 
 - Commands refer to documents' own IDs, never to local paths. What ties them to the machine is
   the queue row, which is keyed by the local title.
 - A **review batch** is an agent's claim on the oldest pending edits. It records the SHA-256 of
-  the file at claim time: once the file changes, the batch's edits stop replaying, so the
-  agent's write isn't applied twice.
+  the accepted copy at claim time and its edits keep replaying until the batch is completed.
+  Completion imports the agent's file as the new accepted copy and closes the edits in one
+  transaction, so they are never applied twice or lost.
 
 A queued edit moves through these states:
 
@@ -123,13 +124,14 @@ The library is this machine's index of what it can open, and what the learner ha
 ![Library model](diagrams/library-model.svg)
 
 - A **content repository** is a registered local folder. It may be a Git checkout, but the app
-  doesn't need Git. Add/Refresh discovers its `document.json` files and registers a **title**
-  for each one.
+  doesn't need Git. Add/Refresh discovers its `document.json` files, registers a **title**
+  for each one and imports the file as the title's accepted copy. A title with an open review
+  batch is skipped: its completion is its import.
 - A title has two identities. `id` is local: player URLs, progress and the review queue use it.
   `documentId` is the document's own ID, unique within its repository but not across
   repositories.
 - A title also caches document metadata (title, series, season, episode, volume,
-  reference duration, type), so browsing never opens JSON. Refresh rebuilds that cache from the files.
+  reference duration, type), so browsing never opens JSON. Import refreshes that cache from the file.
 - A registration survives a missing file (`missing`), so progress and reviews outlive a moved
   folder or an unplugged drive.
 - Media is indexed by Refresh (SQLite `media`: path, size, modification time, fingerprint,

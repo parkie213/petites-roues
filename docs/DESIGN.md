@@ -134,6 +134,7 @@ This simplicity will be achieved by maximising use of off the shelf components f
 
 The document repository used to be written by both the agent and the Java server, which needed
 rules about simultaneous editing and refreshing the player. Now only the agent writes it. The
-server queues player edits as commands and serves each document as the file plus those edits,
-and the agent writes them into the file in batches ([review API](REVIEW-API.md)). The cost is
+server queues player edits as commands and serves each document as an accepted copy (the file as
+last imported) plus those edits, and the agent writes them into the file in batches; completing
+each batch imports the file ([review API](REVIEW-API.md)). The cost is
 that unprocessed edits live only in SQLite until an agent runs.

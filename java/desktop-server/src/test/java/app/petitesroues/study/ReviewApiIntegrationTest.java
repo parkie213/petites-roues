@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 import app.petitesroues.documents.StudyDocumentCodec;
 import app.petitesroues.model.document.StudyDocument;
+import app.petitesroues.model.editing.UpdateCueTiming;
 import app.petitesroues.model.editing.VideoCueEdit;
 import app.petitesroues.support.HttpIntegrationTest;
 import java.nio.charset.StandardCharsets;
@@ -120,5 +121,57 @@ class ReviewApiIntegrationTest extends HttpIntegrationTest {
         .retrieve()
         .toBodilessEntity();
     assertArrayEquals(original, Files.readAllBytes(documentPath("review-requests")));
+  }
+
+  @Test
+  void importEndpointAcceptsTheFileReportsUnchangedAndRefusesAnOpenBatch() throws Exception {
+    var title = document("import-api");
+    registerTitle(title);
+    var file = documentPath("import-api");
+    String api = "/api/titles/import-api";
+    var codec = new StudyDocumentCodec();
+
+    assertEquals(
+        "unchanged",
+        http.post().uri(api + "/import").retrieve().body(JsonNode.class).get("result").asString());
+
+    var rewritten = title.withTitle("Rewritten on disk");
+    Files.write(file, codec.encode(rewritten).getBytes(StandardCharsets.UTF_8));
+    assertEquals(
+        title.title(),
+        http.get().uri(api).retrieve().body(StudyDocument.class).title(),
+        "a rewritten file is not served until it is imported");
+    var imported = http.post().uri(api + "/import").retrieve().toEntity(JsonNode.class);
+    assertEquals("no-store", imported.getHeaders().getCacheControl());
+    assertEquals("imported", imported.getBody().get("result").asString());
+    assertEquals(
+        "Rewritten on disk", http.get().uri(api).retrieve().body(StudyDocument.class).title());
+
+    var cue = rewritten.video().cues().get(0);
+    http.post()
+        .uri(api + "/timings")
+        .body(List.of(new UpdateCueTiming("stable-cue", cue.start() + .1, cue.end())))
+        .retrieve()
+        .toBodilessEntity();
+    long batch =
+        http.post()
+            .uri(api + "/review/batches")
+            .retrieve()
+            .body(JsonNode.class)
+            .get("batch")
+            .asLong();
+    Files.write(
+        file,
+        codec.encode(rewritten.withTitle("Written by the agent")).getBytes(StandardCharsets.UTF_8));
+    var refused =
+        assertThrows(
+            HttpClientErrorException.Conflict.class,
+            () -> http.post().uri(api + "/import").retrieve().toBodilessEntity());
+    assertTrue(refused.getResponseBodyAsString().contains("complete or discard batch " + batch));
+    var missing =
+        assertThrows(
+            HttpClientErrorException.NotFound.class,
+            () -> http.post().uri("/api/titles/nobody/import").retrieve().toBodilessEntity());
+    assertTrue(missing.getResponseBodyAsString().contains("nobody"));
   }
 }

@@ -14,8 +14,8 @@ import org.springframework.stereotype.Component;
 
 /**
  * Reads portable subtitle/notes JSON documents. The application never changes them: player edits
- * are queued and replayed, and agents or preparation scripts own the files. Snapshots bind the
- * decoded document to the hash of the exact bytes read; this class never writes files.
+ * are queued and replayed, and agents or preparation scripts own the files. Reads bind the decoded
+ * document to the hash of the exact bytes read; this class never writes files.
  */
 @Component
 public class DocumentStore {
@@ -41,20 +41,17 @@ public class DocumentStore {
     return problems;
   }
 
-  /** The decoded file and the SHA-256 of its exact bytes, read together. */
-  public record Snapshot(StudyDocument document, String sha256) {}
-
   /** The exact bytes of a document file with their decoded document and SHA-256. */
   public record Bytes(byte[] bytes, StudyDocument document, String sha256) {}
 
-  public Snapshot read(CatalogueEntry entry) throws IOException {
-    var read = readBytes(entry);
-    return new Snapshot(read.document(), read.sha256());
+  /** Decodes document bytes, for example an accepted copy, without touching the filesystem. */
+  public StudyDocument decode(byte[] bytes) {
+    return reader.decode(bytes);
   }
 
   /**
-   * Reads the title's file once and validates it as {@link #read} does, keeping the bytes so a
-   * caller can store exactly what was validated.
+   * Reads the title's file once and validates it, keeping the bytes so a caller can store exactly
+   * what was validated.
    */
   public Bytes readBytes(CatalogueEntry entry) throws IOException {
     byte[] bytes = Files.readAllBytes(entry.documentFile());

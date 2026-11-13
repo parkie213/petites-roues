@@ -13,7 +13,9 @@ Each segment belongs to the chunk whose own stretch of the timeline contains its
 drops the duplicates heard in the overlaps. Cues are added to the document as untranslated cues
 with IDs fixed per chunk. --chunks N stops after the first N chunks, as a sample to check; rerun
 without it to add the rest. Cues already written, and any notes on them, are left alone. A
-document that already has cues from elsewhere is refused.
+document that already has cues from elsewhere is refused. The title must be registered with no
+review batch open; the written document is imported into the running app so the cues can be
+played.
 """
 import argparse
 import base64
@@ -22,6 +24,7 @@ import math
 import subprocess
 from pathlib import Path
 
+import app
 from openrouter import cost, load, post, save
 from reference import check_audio_language
 
@@ -78,6 +81,8 @@ def main():
     parser.add_argument("--ignore-track-language", action="store_true",
                         help="transcribe a first audio track tagged with another language")
     args = parser.parse_args()
+    title = app.title_id(args.document)
+    app.require_no_open_batch(title)
 
     document = load(args.document)
     if "video" not in document:
@@ -129,6 +134,7 @@ def main():
         (args.run_dir / "transcript.srt").write_text("\n\n".join(
             f"{i}\n{stamp(c['start'])} --> {stamp(c['end'])}\n{c['line']['source']}"
             for i, c in enumerate(document["video"]["cues"], 1)) + "\n", encoding="utf-8")
+    app.import_title(title)  # also after a rerun that found the file already written
     missing = [k + 1 for k in range(count) if k not in written + done]
     print(f"Added {len(segments)} cues from {len(done)} chunks to {args.document}; "
           + (f"chunks still to do: {missing[0]}–{missing[-1]} of {count}" if missing else f"all {count} chunks done"))

@@ -40,6 +40,14 @@ entity "review_queue" as reviews {
   outcome : TEXT
 }
 
+entity "accepted_documents" as accepted {
+  * title_id : TEXT <<PK, FK>>
+  --
+  * source_sha256 : TEXT
+  * json : BLOB
+  * imported_at : TEXT
+}
+
 entity "playback_progress" as progress {
   * title_id : TEXT <<PK, FK>>
   --
@@ -49,6 +57,7 @@ entity "playback_progress" as progress {
 
 repositories ||--o{ titles
 titles ||--o{ reviews
+titles ||--o| accepted
 titles ||--o| progress
 
 @enduml

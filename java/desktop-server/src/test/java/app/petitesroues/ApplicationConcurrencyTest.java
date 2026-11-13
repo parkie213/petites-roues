@@ -10,7 +10,7 @@ import app.petitesroues.documents.StudyDocumentCodec;
 import app.petitesroues.library.persistence.CatalogueStore;
 import app.petitesroues.model.document.StudyDocument;
 import app.petitesroues.model.editing.UpdateCueTiming;
-import app.petitesroues.study.DocumentStore;
+import app.petitesroues.study.ReviewQueue;
 import com.zaxxer.hikari.HikariDataSource;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -54,7 +54,7 @@ class ApplicationConcurrencyTest {
   }
 
   @Autowired ObjectMapper mapper;
-  @MockitoSpyBean DocumentStore documents;
+  @MockitoSpyBean ReviewQueue queue;
   @LocalServerPort int port;
   @Autowired CatalogueStore catalogue;
 
@@ -124,7 +124,7 @@ class ApplicationConcurrencyTest {
     var read = new CountDownLatch(1);
     var resume = new CountDownLatch(1);
     var pauseOnce = new AtomicBoolean(true);
-    // Pause after a real read, exposing the read/write gap without mocking storage behaviour.
+    // Pause after a real queue read, exposing the read/write gap without mocking storage.
     doAnswer(
             call -> {
               Object result = call.callRealMethod();
@@ -134,7 +134,7 @@ class ApplicationConcurrencyTest {
               }
               return result;
             })
-        .when(documents)
+        .when(queue)
         .read(any());
     try (var threads = Executors.newFixedThreadPool(2)) {
       try {

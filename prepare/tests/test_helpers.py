@@ -66,6 +66,39 @@ class PreparationTests(unittest.TestCase):
             opener.return_value.open.return_value = Response(b'')
             self.assertIsNone(app.call('POST', '/complete', {}))
 
+    def test_open_batch_stops_a_rewrite_before_any_work(self):
+        pending = [{'titleId': 'a', 'title': 'A', 'pending': 2, 'openBatch': 7},
+                   {'titleId': 'b', 'title': 'B', 'pending': 1, 'openBatch': None}]
+        with patch.object(app, 'call', return_value=pending):
+            with self.assertRaisesRegex(SystemExit, 'batch 7 is open'):
+                app.require_no_open_batch('a')
+            app.require_no_open_batch('b')
+            app.require_no_open_batch('unlisted')
+
+    def test_import_reports_result_and_explains_a_conflict(self):
+        with patch.object(app, 'call', return_value={'result': 'imported'}) as call:
+            self.assertEqual(app.import_title('a'), 'imported')
+            call.assert_called_once_with('POST', '/api/titles/a/import')
+        refusal = SystemExit('POST /api/titles/a/import: HTTP 409 open batch')
+        with patch.object(app, 'call', side_effect=refusal):
+            with self.assertRaisesRegex(SystemExit, 'written but not imported.*HTTP 409 open batch'):
+                app.import_title('a')
+
+    def test_write_imports_before_review_requests_can_be_queued(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path, run = Path(directory) / 'document.json', Path(directory)
+            path.write_text(json.dumps({'video': {'cues': [{'line': {'id': 'c1', 'source': 'Salut'}}]}}))
+            order = []
+            with patch.object(app, 'call', side_effect=lambda m, p, b=None: order.append(p) or (
+                    [] if p == '/api/review/pending' else {'problems': [], 'result': 'imported'})):
+                batches.write(path, run, 't', {'c1': 'Hello'}, lambda line: True,
+                              lambda line, answer: line.update(translation=answer))
+            self.assertEqual(order, ['/api/review/pending', '/api/titles/t/validate', '/api/titles/t/import'])
+            self.assertEqual(json.loads(path.read_text())['video']['cues'][0]['line']['translation'], 'Hello')
+            with patch.object(app, 'call', return_value=[{'titleId': 't', 'openBatch': 3}]):
+                with self.assertRaises(SystemExit):
+                    batches.write(path, run, 't', {}, lambda line: True, lambda line, answer: None)
+
     def test_youtube_rejects_other_hosts_and_removes_playlist(self):
         self.assertEqual(youtube.video_url('https://youtu.be/abcdefghijk?t=1&list=abc'),
                          'https://www.youtube.com/watch?v=abcdefghijk')

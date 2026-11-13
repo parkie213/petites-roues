@@ -180,6 +180,8 @@ class ContentRepositoryRefreshIntegrationTest {
         new ReviewQueueService(
             catalogue,
             store,
+            new AcceptedDocumentStore(jdbc),
+            imports(new RepositoryContentService(repositories, catalogue)),
             queue,
             new TransactionTemplate(new DataSourceTransactionManager(source)));
     var library =

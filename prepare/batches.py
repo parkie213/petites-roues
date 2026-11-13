@@ -167,7 +167,9 @@ def run_all(run_dir, manifest, prompt, accept, workers):
 def write(document_path, run_dir, title, answers, unchanged, annotate):
     """Writes accepted ANSWERS into the document in place, skipping cues for which
     UNCHANGED(line) is false (edited since generation). Validates the whole document first
-    and keeps a copy in the run directory. Returns (applied ids, changed ids)."""
+    and keeps a copy in the run directory. Imports the written file so the app serves it before
+    review requests are queued against its cues. Returns (applied ids, changed ids)."""
+    app.require_no_open_batch(title)
     document = load(document_path)
     applied, changed = [], []
     for cue in cues_of(document):
@@ -186,6 +188,7 @@ def write(document_path, run_dir, title, answers, unchanged, annotate):
     temporary = document_path.with_name(document_path.name + ".tmp")
     save(temporary, document)
     temporary.replace(document_path)
+    app.import_title(title)
     return applied, changed
 
 

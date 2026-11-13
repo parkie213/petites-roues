@@ -1,5 +1,6 @@
 package app.petitesroues.web;
 
+import app.petitesroues.library.DocumentConflictException;
 import app.petitesroues.library.TitleExistsException;
 import app.petitesroues.speech.SpeechUnavailableException;
 import java.util.NoSuchElementException;
@@ -14,7 +15,7 @@ import tools.jackson.core.JacksonException;
 /** Keep the existing {error: message} API format, including Spring's request-binding errors. */
 @RestControllerAdvice
 public class ApiExceptionHandler extends ResponseEntityExceptionHandler {
-  @ExceptionHandler(TitleExistsException.class)
+  @ExceptionHandler({TitleExistsException.class, DocumentConflictException.class})
   public ResponseEntity<Object> titleExists(Exception exception) {
     return error(HttpStatus.CONFLICT, exception.getMessage(), new HttpHeaders());
   }
