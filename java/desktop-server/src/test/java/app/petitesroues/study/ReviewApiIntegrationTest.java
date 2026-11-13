@@ -1,6 +1,7 @@
 package app.petitesroues.study;
 
 import static app.petitesroues.support.DocumentFixtures.document;
+import static app.petitesroues.support.HttpClients.command;
 import static org.junit.jupiter.api.Assertions.*;
 
 import app.petitesroues.documents.StudyDocumentCodec;
@@ -37,7 +38,7 @@ class ReviewApiIntegrationTest extends HttpIntegrationTest {
             line.continuesPrevious(),
             cue.listeningCheck(),
             line.textCheck());
-    http.put().uri(api + "/cues/stable-cue").body(edit).retrieve().toBodilessEntity();
+    command(http, api, "edit-video-cue", "stable-cue", edit).retrieve().toBodilessEntity();
     assertArrayEquals(original, Files.readAllBytes(file));
     var served = http.get().uri(api).retrieve().body(StudyDocument.class);
     assertEquals("Bonsoir !", served.video().cues().get(0).line().source());
@@ -93,9 +94,11 @@ class ReviewApiIntegrationTest extends HttpIntegrationTest {
     assertThrows(
         HttpClientErrorException.class,
         () ->
-            http.post()
-                .uri(api + "/review/requests")
-                .body(
+            command(
+                    http,
+                    api,
+                    "review-requests",
+                    null,
                     List.of(
                         Map.of("cueId", "stable-cue", "text", "First pass"),
                         Map.of("cueId", "missing", "text", "First pass")))
@@ -104,12 +107,15 @@ class ReviewApiIntegrationTest extends HttpIntegrationTest {
     assertTrue(http.get().uri(api + "/review-queue").retrieve().body(JsonNode.class).isEmpty());
 
     var queued =
-        http.post()
-            .uri(api + "/review/requests")
-            .body(List.of(Map.of("cueId", "stable-cue", "text", "First-pass notes from luna")))
+        command(
+                http,
+                api,
+                "review-requests",
+                null,
+                List.of(Map.of("cueId", "stable-cue", "text", "First-pass notes from luna")))
             .retrieve()
             .body(JsonNode.class);
-    assertEquals(1, queued.get("queued").asInt());
+    assertEquals(1, http.get().uri(api + "/review-queue").retrieve().body(JsonNode.class).size());
     var batch = http.post().uri(api + "/review/batches").retrieve().body(JsonNode.class);
     var change = batch.get("changes").get(0);
     assertEquals("review-request", change.get("kind").asString());

@@ -72,3 +72,28 @@ describe("write recordings", () => {
     );
   });
 });
+
+it("command recordings retain the exact operation and expected state while templating only the retry nonce", () => {
+  const body = {
+    requestId: "first-request",
+    expectedVersion: "state-1",
+    commands: [{ type: "delete-video-cue", cueId: "cue-1" }],
+  };
+  const entry = recordWrite(
+    answer("POST /api/titles/example/commands", { id: "example" }),
+    body,
+  );
+  expect(matchesWrite(entry, { ...body, requestId: "another-request" })).toBe(
+    true,
+  );
+  expect(matchesWrite(entry, { ...body, expectedVersion: "state-2" })).toBe(
+    false,
+  );
+  expect(
+    matchesWrite(entry, {
+      ...body,
+      commands: [{ type: "delete-video-cue", cueId: "cue-2" }],
+    }),
+  ).toBe(false);
+  expect(matchesWrite(entry, { ...body, requestId: "" })).toBe(false);
+});

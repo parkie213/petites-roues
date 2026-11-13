@@ -2,6 +2,7 @@ package app.petitesroues;
 
 import static app.petitesroues.support.DocumentFixtures.document;
 import static app.petitesroues.support.HttpClients.client;
+import static app.petitesroues.support.HttpClients.command;
 import static org.junit.jupiter.api.Assertions.*;
 
 import app.petitesroues.documents.StudyDocumentCodec;
@@ -133,9 +134,11 @@ class ApplicationSmokeTest extends HttpIntegrationTest {
     registerTitle(document("edit-command"));
     String api = "/api/titles/edit-command";
     var edited =
-        http.put()
-            .uri(api + "/cues/stable-cue")
-            .body(
+        command(
+                http,
+                api,
+                "edit-video-cue",
+                "stable-cue",
                 Map.of(
                     "source",
                     "Salut !",
@@ -156,9 +159,7 @@ class ApplicationSmokeTest extends HttpIntegrationTest {
     assertFalse(cue.line().alignment() != null);
     assertEquals(
         400,
-        http.put()
-            .uri(api + "/cues/stable-cue")
-            .body(Map.of("source", "Missing timing"))
+        command(http, api, "edit-video-cue", "stable-cue", Map.of("source", "Missing timing"))
             .<Integer>exchange((request, response) -> response.getStatusCode().value())
             .intValue());
     assertEquals(edited, http.get().uri(api).retrieve().body(StudyDocument.class));

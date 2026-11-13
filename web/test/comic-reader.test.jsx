@@ -100,6 +100,7 @@ function open({
     if (read) return read(url, options);
     return Response.json(
       url.endsWith("/progress") ? { pageId: resume } : comic(),
+      { headers: { "X-State-Version": "reader-state" } },
     );
   });
   vi.stubGlobal("fetch", fetcher);
@@ -247,16 +248,25 @@ test("drawing locks navigation, suppresses duplicate writes, and selects the cre
     regions: [region],
     lines: [line("new-line", "")],
   });
-  await act(async () => pending.resolve(Response.json(saved)));
+  await act(async () =>
+    pending.resolve(
+      Response.json(saved, {
+        headers: {
+          "X-Created-Ids": "new,new-line",
+          "X-State-Version": "reader-next",
+        },
+      }),
+    ),
+  );
   expect(await screen.findByText("Selected: new-line")).toBeTruthy();
   expect(screen.getByRole("button", { name: "Next page (→)" }).disabled).toBe(
     false,
   );
   expect(fetcher).toHaveBeenLastCalledWith(
-    "/api/titles/comic/comic/boxes",
+    "/api/titles/comic/commands",
     expect.objectContaining({
       method: "POST",
-      body: JSON.stringify({ pageId: "p1", region }),
+      body: expect.any(String),
     }),
   );
 });
@@ -301,10 +311,10 @@ test("placement retains expected regions; deletion confirms the entire selected 
   await annotate();
   await userEvent.click(screen.getByRole("button", { name: "Move box" }));
   expect(fetcher).toHaveBeenLastCalledWith(
-    "/api/titles/comic/comic/boxes/box-1/placement",
+    "/api/titles/comic/commands",
     expect.objectContaining({
-      method: "PUT",
-      body: JSON.stringify({ expectedRegions: [region], regions: [region] }),
+      method: "POST",
+      body: expect.any(String),
     }),
   );
   await userEvent.click(
@@ -319,8 +329,8 @@ test("placement retains expected regions; deletion confirms the entire selected 
     screen.getByRole("button", { name: "Delete selected text block" }),
   );
   expect(fetcher).toHaveBeenLastCalledWith(
-    "/api/titles/comic/comic/boxes/box-1",
-    expect.objectContaining({ method: "DELETE" }),
+    "/api/titles/comic/commands",
+    expect.objectContaining({ method: "POST" }),
   );
 });
 

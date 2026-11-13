@@ -33,9 +33,16 @@ test("edit mode saves a transcription correction and restores it after reload", 
   const saved = await expectWrite(
     page,
     {
-      method: "PUT",
-      path: api + "/lines/" + original.id,
-      body: { expectedSource: original.source, source },
+      method: "POST",
+      path: api.replace(/\/comic$/, "") + "/commands",
+      body: (body) =>
+        body.commands?.some(
+          (command) =>
+            command.type === "edit-comic-text" &&
+            command.lineId === original.id &&
+            command.edit.expectedSource === original.source &&
+            command.edit.source === source,
+        ),
     },
     () => panel.getByRole("button", { name: "Save text", exact: true }).click(),
   );

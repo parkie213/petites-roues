@@ -75,49 +75,62 @@ function fakeApi(lines) {
       const method = options.method ?? "GET";
       const body = options.body ? JSON.parse(options.body) : undefined;
       requests.push({ method, url, body });
-      const path = url.slice(API.length);
-      const id = decodeURIComponent(path.split("/")[2] ?? "");
-      if (path === "/timings") {
-        for (const time of body)
-          cues = cues.map((cue) =>
-            cue.id === time.id
-              ? { ...cue, start: time.start, end: time.end }
-              : cue,
-          );
-      } else if (method === "POST" && path === "/cues") {
-        cues = [...cues, { ...body, id: `new-${++added}` }].sort(
-          (a, b) => a.start - b.start,
-        );
-      } else if (path.endsWith("/split")) {
-        cues = cues.flatMap((cue) =>
-          cue.id === id
-            ? [
-                { ...cue, id: `${id}-1`, end: body.at, source: body.first },
-                { ...cue, id: `${id}-2`, start: body.at, source: body.second },
-              ]
-            : [cue],
-        );
-      } else if (path.endsWith("/comment")) {
-        // A comment changes nothing a test reads.
-      } else if (method === "DELETE") {
-        cues = cues.filter((cue) => cue.id !== id);
-      } else if (method === "PUT") {
-        cues = cues.map((cue) =>
-          cue.id === id
-            ? {
-                ...cue,
-                source: body.source,
-                translation: body.translation,
-                start: body.start,
-                end: body.end,
-              }
-            : cue,
-        );
+      if (method !== "GET") {
+        expect(url).toBe(API + "/commands");
+        expect(method).toBe("POST");
+        expect(body.requestId).toBeTruthy();
+        expect(body.expectedVersion).toBeTruthy();
+        for (const command of body.commands) {
+          const id = command.cueId;
+          if (command.type === "timing") {
+            for (const time of command.edits)
+              cues = cues.map((cue) =>
+                cue.id === time.id ? { ...cue, ...time } : cue,
+              );
+          } else if (command.type === "add-video-cue") {
+            cues = [...cues, { ...command.edit, id: `new-${++added}` }].sort(
+              (a, b) => a.start - b.start,
+            );
+          } else if (command.type === "split-video-cue") {
+            const split = command.split;
+            cues = cues.flatMap((cue) =>
+              cue.id === id
+                ? [
+                    {
+                      ...cue,
+                      id: `${id}-1`,
+                      end: split.at,
+                      source: split.first,
+                    },
+                    {
+                      ...cue,
+                      id: `${id}-2`,
+                      start: split.at,
+                      source: split.second,
+                    },
+                  ]
+                : [cue],
+            );
+          } else if (command.type === "delete-video-cue")
+            cues = cues.filter((cue) => cue.id !== id);
+          else if (command.type === "edit-video-cue")
+            cues = cues.map((cue) =>
+              cue.id === id ? { ...cue, ...command.edit } : cue,
+            );
+        }
       }
-      return Response.json(document());
+      return Response.json(document(), {
+        headers: { "X-State-Version": "edit-state" },
+      });
     }),
   );
-  return { requests, edits: () => requests.filter((r) => r.method !== "GET") };
+  return {
+    requests,
+    edits: () =>
+      requests
+        .filter((r) => r.method !== "GET")
+        .flatMap((r) => r.body.commands),
+  };
 }
 
 const lines = [
@@ -203,17 +216,19 @@ test("saving text and a comment queues both, and the editor stays on the line", 
   await userEvent.click(panel.save());
 
   await waitFor(() => expect(panel.comment().value).toBe(""));
-  expect(api.edits().map((r) => `${r.method} ${r.url}`)).toEqual([
-    `PUT ${API}/cues/b`,
-    `POST ${API}/cues/b/comment`,
+  expect(api.edits()).toMatchObject([
+    {
+      type: "edit-video-cue",
+      cueId: "b",
+      edit: {
+        source: "Bonjour tout le monde.",
+        translation: "Hi everyone.",
+        start: 3,
+        end: 6,
+      },
+    },
+    { type: "comment", cueId: "b", text: "Check the greeting" },
   ]);
-  expect(api.edits()[0].body).toMatchObject({
-    source: "Bonjour tout le monde.",
-    translation: "Hi everyone.",
-    start: 3,
-    end: 6,
-  });
-  expect(api.edits()[1].body).toEqual({ text: "Check the greeting" });
   expect(panel.translation().value).toBe("Hi everyone.");
   expect(panel.save().disabled).toBe(true);
   expect(onClose).not.toHaveBeenCalled();
@@ -224,8 +239,8 @@ test("a comment alone is saved without changing the line", async () => {
   await userEvent.type(panel.comment(), "Is this right?");
   await userEvent.click(panel.save());
   await waitFor(() => expect(panel.comment().value).toBe(""));
-  expect(api.edits().map((r) => `${r.method} ${r.url}`)).toEqual([
-    `POST ${API}/cues/b/comment`,
+  expect(api.edits()).toEqual([
+    { type: "comment", cueId: "b", text: "Is this right?" },
   ]);
 });
 
@@ -285,9 +300,8 @@ test("adding at the playhead creates a line there, then edits it", async () => {
   await screen.findByRole("heading", { name: /Edit subtitle/ });
   expect(api.edits()).toEqual([
     {
-      method: "POST",
-      url: `${API}/cues`,
-      body: expect.objectContaining({
+      type: "add-video-cue",
+      edit: expect.objectContaining({
         source: "Et voilà.",
         start: 6.5,
         end: 8,
@@ -317,9 +331,9 @@ test("splitting at the text cursor and the playhead edits the first part", async
   await waitFor(() => expect(panel.french().value).toBe("Bonjour"));
   expect(api.edits()).toEqual([
     {
-      method: "POST",
-      url: `${API}/cues/b/split`,
-      body: {
+      type: "split-video-cue",
+      cueId: "b",
+      split: {
         at: 4.5,
         first: "Bonjour",
         second: "tout le monde.",
@@ -355,9 +369,7 @@ test("deleting asks first, then edits the line after", async () => {
   await userEvent.click(screen.getByRole("button", { name: "Delete" }));
   await userEvent.click(screen.getByRole("button", { name: "Confirm delete" }));
   await waitFor(() => expect(panel.french().value).toBe("Au revoir."));
-  expect(api.edits()).toEqual([
-    { method: "DELETE", url: `${API}/cues/b`, body: undefined },
-  ]);
+  expect(api.edits()).toEqual([{ type: "delete-video-cue", cueId: "b" }]);
   expect(video.currentTime).toBe(8);
 });
 

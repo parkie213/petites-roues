@@ -2,6 +2,7 @@ package app.petitesroues;
 
 import static app.petitesroues.support.DocumentFixtures.document;
 import static app.petitesroues.support.HttpClients.client;
+import static app.petitesroues.support.HttpClients.command;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
@@ -175,10 +176,12 @@ class ApplicationConcurrencyTest {
   }
 
   private void edit(String id, String cue, double start, double end) {
-    http()
-        .post()
-        .uri("/api/titles/" + id + "/timings")
-        .body(List.of(new UpdateCueTiming(cue, start, end)))
+    command(
+            http(),
+            "/api/titles/" + id,
+            "timing",
+            null,
+            List.of(new UpdateCueTiming(cue, start, end)))
         .retrieve()
         .toBodilessEntity();
   }

@@ -1,5 +1,6 @@
 package app.petitesroues.comic;
 
+import static app.petitesroues.support.HttpClients.command;
 import static app.petitesroues.support.SpecFixtures.*;
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -153,9 +154,7 @@ class ComicIntegrationTest extends HttpIntegrationTest {
     assertEquals(0, jdbc.queryForObject("SELECT count(*) FROM playback_progress", Integer.class));
     assertEquals(
         400,
-        http.post()
-            .uri(api + "/timings")
-            .body(List.of())
+        command(http, api, "timing", null, List.of())
             .<Integer>exchange((req, res) -> res.getStatusCode().value())
             .intValue());
     assertEquals(

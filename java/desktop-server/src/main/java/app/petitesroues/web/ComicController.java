@@ -4,9 +4,6 @@ import app.petitesroues.comic.ComicService;
 import app.petitesroues.comic.ReadingProgressService;
 import app.petitesroues.library.LibraryUpdateService;
 import app.petitesroues.model.document.StudyDocument;
-import app.petitesroues.model.editing.ComicBoxCreate;
-import app.petitesroues.model.editing.ComicBoxUpdate;
-import app.petitesroues.model.editing.ComicTextEdit;
 import app.petitesroues.model.progress.ReadingProgress;
 import java.io.IOException;
 import java.time.Duration;
@@ -69,39 +66,6 @@ public class ComicController {
         .contentType(
             MediaTypeFactory.getMediaType(image.name()).orElse(MediaType.APPLICATION_OCTET_STREAM))
         .body(image.bytes());
-  }
-
-  /**
-   * Saves a text correction to one line, in whichever box holds it, without accepting geometry or
-   * annotations from the text editor.
-   */
-  @PutMapping("/titles/{id}/comic/lines/{lineId}")
-  public StudyDocument edit(
-      @PathVariable String id, @PathVariable String lineId, @RequestBody ComicTextEdit edit)
-      throws IOException {
-    return updates.editComicText(id, lineId, edit);
-  }
-
-  /** Adds one drawn box with one line; ids and reading order are assigned server-side. */
-  @PostMapping("/titles/{id}/comic/boxes")
-  public StudyDocument create(@PathVariable String id, @RequestBody ComicBoxCreate create)
-      throws IOException {
-    return updates.createComicBox(id, create);
-  }
-
-  /** Replaces one box's regions and optional order; its lines stay as they are. */
-  @PutMapping("/titles/{id}/comic/boxes/{boxId}/placement")
-  public StudyDocument updatePlacement(
-      @PathVariable String id, @PathVariable String boxId, @RequestBody ComicBoxUpdate update)
-      throws IOException {
-    return updates.placeComicBox(id, boxId, update);
-  }
-
-  /** Removes one box, with all its lines, from the document. */
-  @DeleteMapping("/titles/{id}/comic/boxes/{boxId}")
-  public StudyDocument delete(@PathVariable String id, @PathVariable String boxId)
-      throws IOException {
-    return updates.deleteComicBox(id, boxId);
   }
 
   @GetMapping("/titles/{id}/comic/progress")

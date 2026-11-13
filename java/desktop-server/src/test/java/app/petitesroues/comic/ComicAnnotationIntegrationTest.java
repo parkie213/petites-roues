@@ -1,5 +1,6 @@
 package app.petitesroues.comic;
 
+import static app.petitesroues.support.HttpClients.command;
 import static app.petitesroues.support.SpecFixtures.*;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.springframework.http.HttpStatus.*;
@@ -54,9 +55,11 @@ class ComicAnnotationIntegrationTest extends HttpIntegrationTest {
   void createsBubbleWithServerAssignedIdAndNextOrder() throws Exception {
     String api = register();
     var result =
-        http.post()
-            .uri(api + "/comic/boxes")
-            .body(
+        command(
+                http,
+                api,
+                "create-comic-box",
+                null,
                 Map.of(
                     "pageId", "page-002",
                     "source", "MERCI.",
@@ -80,9 +83,11 @@ class ComicAnnotationIntegrationTest extends HttpIntegrationTest {
   void savesBoxWithoutTextAndAddsTranscriptionLater() throws Exception {
     String api = register();
     var result =
-        http.post()
-            .uri(api + "/comic/boxes")
-            .body(
+        command(
+                http,
+                api,
+                "create-comic-box",
+                null,
                 Map.of(
                     "pageId",
                     "page-002",
@@ -97,9 +102,12 @@ class ComicAnnotationIntegrationTest extends HttpIntegrationTest {
     var queued = http.get().uri(api + "/review-queue").retrieve().body(JsonNode.class);
     assertTrue(queued.toString().contains(box.lines().getFirst().id()));
     var transcribed =
-        http.put()
-            .uri(api + "/comic/lines/" + box.lines().getFirst().id())
-            .body(Map.of("expectedSource", "", "source", "BONJOUR !"))
+        command(
+                http,
+                api,
+                "edit-comic-text",
+                box.lines().getFirst().id(),
+                Map.of("expectedSource", "", "source", "BONJOUR !"))
             .retrieve()
             .body(StudyDocument.class);
     var transcribedBox = transcribed.comic().boxes().get(1);
@@ -114,9 +122,11 @@ class ComicAnnotationIntegrationTest extends HttpIntegrationTest {
         assertThrows(
             RestClientResponseException.class,
             () ->
-                http.post()
-                    .uri(api + "/comic/boxes")
-                    .body(
+                command(
+                        http,
+                        api,
+                        "create-comic-box",
+                        null,
                         Map.of(
                             "pageId", "page-999",
                             "source", "X",
@@ -128,9 +138,11 @@ class ComicAnnotationIntegrationTest extends HttpIntegrationTest {
         assertThrows(
             RestClientResponseException.class,
             () ->
-                http.post()
-                    .uri(api + "/comic/boxes")
-                    .body(
+                command(
+                        http,
+                        api,
+                        "create-comic-box",
+                        null,
                         Map.of(
                             "pageId", "page-001",
                             "source", "X",
@@ -144,9 +156,11 @@ class ComicAnnotationIntegrationTest extends HttpIntegrationTest {
   void movesRegionPreservingTextAndRejectsStaleExpectations() throws Exception {
     String api = register();
     var moved =
-        http.put()
-            .uri(api + "/comic/boxes/box-page-001-bubble-01/placement")
-            .body(
+        command(
+                http,
+                api,
+                "place-comic-box",
+                "box-page-001-bubble-01",
                 Map.of(
                     "expectedRegions", List.of(Map.of("x", .1, "y", .2, "width", .3, "height", .4)),
                     "regions", List.of(Map.of("x", .15, "y", .25, "width", .3, "height", .4))))
@@ -159,9 +173,11 @@ class ComicAnnotationIntegrationTest extends HttpIntegrationTest {
         assertThrows(
             RestClientResponseException.class,
             () ->
-                http.put()
-                    .uri(api + "/comic/boxes/box-page-001-bubble-01/placement")
-                    .body(
+                command(
+                        http,
+                        api,
+                        "place-comic-box",
+                        "box-page-001-bubble-01",
                         Map.of(
                             "expectedRegions",
                                 List.of(Map.of("x", .1, "y", .2, "width", .3, "height", .4)),
@@ -176,14 +192,14 @@ class ComicAnnotationIntegrationTest extends HttpIntegrationTest {
   void deletesBubbleAndKeepsOthers() throws Exception {
     String api = register();
     var result =
-        http.delete()
-            .uri(api + "/comic/boxes/box-page-001-bubble-01")
+        command(http, api, "delete-comic-box", "box-page-001-bubble-01", null)
             .retrieve()
             .body(StudyDocument.class);
     assertEquals(0, result.comic().boxes().size());
     assertThrows(
         RestClientResponseException.class,
-        () -> http.delete().uri(api + "/comic/boxes/missing").retrieve().toBodilessEntity());
+        () ->
+            command(http, api, "delete-comic-box", "missing", null).retrieve().toBodilessEntity());
   }
 
   @Test
@@ -196,9 +212,11 @@ class ComicAnnotationIntegrationTest extends HttpIntegrationTest {
             newBubble(Line.of("c", "C"), region));
     var placement = Map.of("x", .1, "y", .1, "width", .2, "height", .2);
     var reordered =
-        http.put()
-            .uri(api + "/comic/boxes/box-c/placement")
-            .body(
+        command(
+                http,
+                api,
+                "place-comic-box",
+                "box-c",
                 Map.of(
                     "expectedRegions",
                     List.of(placement),
@@ -215,9 +233,11 @@ class ComicAnnotationIntegrationTest extends HttpIntegrationTest {
         assertThrows(
             RestClientResponseException.class,
             () ->
-                http.put()
-                    .uri(api + "/comic/boxes/box-c/placement")
-                    .body(
+                command(
+                        http,
+                        api,
+                        "place-comic-box",
+                        "box-c",
                         Map.of(
                             "expectedRegions",
                             List.of(placement),
@@ -240,9 +260,12 @@ class ComicAnnotationIntegrationTest extends HttpIntegrationTest {
                 box,
                 List.of(Line.of("intro-1", "Une phrase."), Line.of("intro-2", "Une autre."))));
     var edited =
-        http.put()
-            .uri(api + "/comic/lines/intro-2")
-            .body(Map.of("expectedSource", "Une autre.", "source", "Une seconde."))
+        command(
+                http,
+                api,
+                "edit-comic-text",
+                "intro-2",
+                Map.of("expectedSource", "Une autre.", "source", "Une seconde."))
             .retrieve()
             .body(StudyDocument.class);
     var block = edited.comic().boxes().get(1);
@@ -250,9 +273,11 @@ class ComicAnnotationIntegrationTest extends HttpIntegrationTest {
         List.of("Une phrase.", "Une seconde."), block.lines().stream().map(Line::source).toList());
 
     var moved =
-        http.put()
-            .uri(api + "/comic/boxes/intro/placement")
-            .body(
+        command(
+                http,
+                api,
+                "place-comic-box",
+                "intro",
                 Map.of(
                     "expectedRegions", List.of(Map.of("x", .1, "y", .6, "width", .8, "height", .3)),
                     "regions", List.of(Map.of("x", .2, "y", .6, "width", .7, "height", .3))))
@@ -266,10 +291,13 @@ class ComicAnnotationIntegrationTest extends HttpIntegrationTest {
     var byLine =
         assertThrows(
             RestClientResponseException.class,
-            () -> http.delete().uri(api + "/comic/boxes/intro-1").retrieve().toBodilessEntity());
+            () ->
+                command(http, api, "delete-comic-box", "intro-1", null)
+                    .retrieve()
+                    .toBodilessEntity());
     assertEquals(NOT_FOUND.value(), byLine.getStatusCode().value());
     var deleted =
-        http.delete().uri(api + "/comic/boxes/intro").retrieve().body(StudyDocument.class);
+        command(http, api, "delete-comic-box", "intro", null).retrieve().body(StudyDocument.class);
     assertEquals(
         List.of("box-page-001-bubble-01"),
         deleted.comic().boxes().stream().map(ComicBox::id).toList());

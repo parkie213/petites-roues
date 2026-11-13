@@ -55,7 +55,12 @@ public class ReviewQueueService {
       long batch, String baseSha256, List<CueChange> changes, StudyDocument document) {}
 
   public Effective effective(CatalogueEntry title) throws IOException {
-    return replay(title, documents.read(title), queue.read(title), change -> true);
+    return effective(title, documents.read(title));
+  }
+
+  /** Replays database state over bytes already captured outside the caller's transaction. */
+  Effective effective(CatalogueEntry title, DocumentStore.Snapshot snapshot) {
+    return replay(title, snapshot, queue.read(title), change -> true);
   }
 
   public StudyDocument document(CatalogueEntry title) throws IOException {

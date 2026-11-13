@@ -13,7 +13,7 @@ from pathlib import Path
 URL = os.environ.get("PETITES_ROUES_URL", "http://localhost:8877").rstrip("/")
 
 
-def call(method, path, body=None):
+def call(method, path, body=None, *, with_headers=False):
     data = None if body is None else json.dumps(body, ensure_ascii=False).encode()
     request = urllib.request.Request(URL + path, data=data, method=method,
                                      headers={"Content-Type": "application/json"})
@@ -24,7 +24,8 @@ def call(method, path, body=None):
                   else urllib.request.build_opener())
         with opener.open(request, timeout=120) as response:
             raw = response.read()
-            return json.loads(raw) if raw.strip() else None
+            value = json.loads(raw) if raw.strip() else None
+            return (value, response.headers) if with_headers else value
     except urllib.error.HTTPError as error:
         raise SystemExit(f"{method} {path}: HTTP {error.code} {error.read().decode(errors='replace')}")
     except urllib.error.URLError as error:
@@ -49,4 +50,13 @@ def problems(title, document):
 
 def request_review(title, requests):
     """Queue [{"cueId", "text"}] for the reviewing agent. Returns how many were queued."""
-    return call("POST", f"/api/titles/{title}/review/requests", requests)["queued"] if requests else 0
+    if not requests:
+        return 0
+    import uuid
+    _, headers = call("GET", f"/api/titles/{title}", with_headers=True)
+    version = headers["X-State-Version"]
+    call("POST", f"/api/titles/{title}/commands", {
+        "requestId": str(uuid.uuid4()), "expectedVersion": version,
+        "commands": [{"type": "review-request", **request} for request in requests],
+    })
+    return len(requests)

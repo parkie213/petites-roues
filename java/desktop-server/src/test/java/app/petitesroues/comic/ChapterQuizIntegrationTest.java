@@ -1,5 +1,6 @@
 package app.petitesroues.comic;
 
+import static app.petitesroues.support.HttpClients.command;
 import static org.junit.jupiter.api.Assertions.*;
 
 import app.petitesroues.model.document.*;
@@ -33,9 +34,12 @@ class ChapterQuizIntegrationTest extends HttpIntegrationTest {
                 null, null, null, List.of(page), List.of(new ComicChapter(1, "First", "page"))));
     registerTitle(document);
     var original = Files.readString(documentPath("comic"));
-    http.put()
-        .uri("/api/titles/comic/comic/lines/bubble")
-        .body(Map.of("expectedSource", "Salut", "source", "Bonjour"))
+    command(
+            http,
+            "/api/titles/comic",
+            "edit-comic-text",
+            "bubble",
+            Map.of("expectedSource", "Salut", "source", "Bonjour"))
         .retrieve()
         .toBodilessEntity();
     var result =

@@ -1,5 +1,6 @@
 package app.petitesroues.comic;
 
+import static app.petitesroues.support.HttpClients.command;
 import static app.petitesroues.support.SpecFixtures.*;
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -55,9 +56,12 @@ class ComicTextEditIntegrationTest extends HttpIntegrationTest {
         .toBodilessEntity();
     String api = "/api/titles/comic";
     var result =
-        http.put()
-            .uri(api + "/comic/lines/bubble")
-            .body(Map.of("expectedSource", "Salut !", "source", "Bonjour !"))
+        command(
+                http,
+                api,
+                "edit-comic-text",
+                "bubble",
+                Map.of("expectedSource", "Salut !", "source", "Bonjour !"))
             .retrieve()
             .body(StudyDocument.class);
     var edited = result.comic().boxes().get(0);
@@ -89,28 +93,40 @@ class ComicTextEditIntegrationTest extends HttpIntegrationTest {
     assertEquals("bubble", queue.get(0).path("cueIds").get(0).asText());
     assertEquals(
         400,
-        http.put()
-            .uri(api + "/comic/lines/bubble")
-            .body(Map.of("expectedSource", "Salut !", "source", "Stale edit"))
+        command(
+                http,
+                api,
+                "edit-comic-text",
+                "bubble",
+                Map.of("expectedSource", "Salut !", "source", "Stale edit"))
             .<Integer>exchange((req, res) -> res.getStatusCode().value())
             .intValue());
     assertEquals(
         404,
-        http.put()
-            .uri(api + "/comic/lines/missing")
-            .body(Map.of("expectedSource", "x", "source", "y"))
+        command(
+                http,
+                api,
+                "edit-comic-text",
+                "missing",
+                Map.of("expectedSource", "x", "source", "y"))
             .<Integer>exchange((req, res) -> res.getStatusCode().value())
             .intValue());
     assertEquals(
         400,
-        http.put()
-            .uri(api + "/comic/lines/bubble")
-            .body(Map.of("expectedSource", "Bonjour !", "source", " "))
+        command(
+                http,
+                api,
+                "edit-comic-text",
+                "bubble",
+                Map.of("expectedSource", "Bonjour !", "source", " "))
             .<Integer>exchange((req, res) -> res.getStatusCode().value())
             .intValue());
-    http.put()
-        .uri(api + "/comic/lines/bubble")
-        .body(Map.of("expectedSource", "Bonjour !", "source", "Bonjour !"))
+    command(
+            http,
+            api,
+            "edit-comic-text",
+            "bubble",
+            Map.of("expectedSource", "Bonjour !", "source", "Bonjour !"))
         .retrieve()
         .toBodilessEntity();
     assertEquals(1, http.get().uri(api + "/review-queue").retrieve().body(JsonNode.class).size());
@@ -119,9 +135,7 @@ class ComicTextEditIntegrationTest extends HttpIntegrationTest {
     var unchanged = http.get().uri(api).retrieve().body(StudyDocument.class);
     assertEquals(
         unchanged,
-        http.post()
-            .uri(api + "/cues/other/comment")
-            .body(Map.of("text", "Merci → Thank you?"))
+        command(http, api, "comment", "other", Map.of("text", "Merci → Thank you?"))
             .retrieve()
             .body(StudyDocument.class));
     var comments = http.get().uri(api + "/review-queue").retrieve().body(JsonNode.class);

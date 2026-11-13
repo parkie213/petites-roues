@@ -1,6 +1,6 @@
 import { useRef, useState } from "react";
 import type { Dispatch, SetStateAction } from "react";
-import { request } from "../shared/api.ts";
+import { sendCommands } from "../shared/api.ts";
 import type {
   ComicBoxView,
   ComicLineView,
@@ -29,11 +29,8 @@ export function useComicAnnotations(
   const [savingBox, setSavingBox] = useState(false);
   const boxWrite = useRef(false);
   const [annotateError, setAnnotateError] = useState("");
-  function annotateRequest(path: string, options: RequestInit) {
-    return request<ComicView>(api + path, {
-      headers: { "Content-Type": "application/json" },
-      ...options,
-    })
+  function annotateRequest(command: unknown) {
+    return sendCommands<ComicView & { createdIds?: string[] }>(api, [command])
       .then((saved) => {
         setDocument(saved);
         setAnnotateError("");
@@ -53,17 +50,10 @@ export function useComicAnnotations(
     boxWrite.current = true;
     setSavingBox(true);
     setDraftRegion({ region, pageId });
-    const previousIds = new Set((document?.boxes || []).map((box) => box.id));
-    annotateRequest("/boxes", {
-      method: "POST",
-      body: JSON.stringify({
-        pageId,
-        region,
-      }),
-    })
+    annotateRequest({ type: "create-comic-box", create: { pageId, region } })
       .then((saved) => {
-        const created = (saved.boxes || []).find(
-          (box) => !previousIds.has(box.id),
+        const created = (saved.boxes || []).find((box) =>
+          saved.createdIds?.includes(box.id),
         );
         if (created) setSelectedId(created.lines[0].id);
         setDraftRegion(null);
@@ -76,9 +66,10 @@ export function useComicAnnotations(
   }
 
   function savePlacement(box: ComicBoxView, regions: ComicRegion[]) {
-    annotateRequest(`/boxes/${encodeURIComponent(box.id)}/placement`, {
-      method: "PUT",
-      body: JSON.stringify({ expectedRegions: box.regions, regions }),
+    annotateRequest({
+      type: "place-comic-box",
+      boxId: box.id,
+      update: { expectedRegions: box.regions, regions },
     }).catch(() => {});
   }
 
@@ -97,9 +88,7 @@ export function useComicAnnotations(
       )
     )
       return;
-    annotateRequest(`/boxes/${encodeURIComponent(selectedBox.id)}`, {
-      method: "DELETE",
-    })
+    annotateRequest({ type: "delete-comic-box", boxId: selectedBox.id })
       .then(() => setSelectedId(null))
       .catch(() => {});
   }

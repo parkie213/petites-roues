@@ -27,13 +27,19 @@ async function retime(page, action, id, end) {
     page,
     {
       method: "POST",
-      path: title + "/timings",
-      body: (edits) =>
-        edits.some((edit) => edit.id === id && Math.abs(edit.end - end) < 0.03),
+      path: title + "/commands",
+      body: (body) =>
+        body.commands?.some(
+          (command) =>
+            command.type === "timing" &&
+            command.edits.some(
+              (edit) => edit.id === id && Math.abs(edit.end - end) < 0.03,
+            ),
+        ),
     },
     action,
   );
-  expect(saved).toMatchObject({ ok: true, lines: 9 });
+  expect(saved.video.cues).toHaveLength(9);
   return (await readJson(page, title)).video.cues;
 }
 
@@ -144,9 +150,15 @@ test("moving a line's end moves the next line's start with it, and the editor st
   const updated = await expectWrite(
     page,
     {
-      method: "PUT",
-      path: title + "/cues/" + original[1].line.id,
-      body: { translation },
+      method: "POST",
+      path: title + "/commands",
+      body: (body) =>
+        body.commands?.some(
+          (command) =>
+            command.type === "edit-video-cue" &&
+            command.cueId === original[1].line.id &&
+            command.edit.translation === translation,
+        ),
     },
     () => editor.getByRole("button", { name: "Save changes" }).click(),
   );

@@ -19,7 +19,14 @@ export async function request<T = unknown>(
 ): Promise<T> {
   const response = await fetch(url, options);
   if (!response.ok) throw await responseError(response);
-  return playerDocument(await response.json()) as T;
+  const version = response.headers?.get?.("X-State-Version");
+  const title = url.match(/^(\/api\/titles\/[^/?]+)/)?.[1];
+  if (version && title) versions.set(title, version);
+  const value = playerDocument(await response.json());
+  const created = response.headers?.get?.("X-Created-Ids");
+  if (created && value && typeof value === "object")
+    Object.assign(value, { createdIds: created.split(",") });
+  return value as T;
 }
 
 /** An Error from a failed API response, carrying its HTTP status. */
@@ -137,4 +144,41 @@ export async function chooseOnComputer(
     body: JSON.stringify({ kind }),
   });
   return path;
+}
+
+/** Opaque versions and unsuccessful logical requests stay together for safe in-session retries. */
+const versions = new Map<string, string>();
+const pendingCommands = new Map<
+  string,
+  { requestId: string; expectedVersion: string; commands: unknown[] }
+>();
+
+/** Sends typed domain commands atomically. A failed transport retry reuses its original identity. */
+export async function sendCommands<T>(
+  api: string,
+  commands: unknown[],
+): Promise<T> {
+  const title = api.replace(/\/comic$/, "");
+  const key = title + JSON.stringify(commands);
+  let body = pendingCommands.get(key);
+  if (!body) {
+    if (!versions.has(title)) await request(title);
+    const expectedVersion = versions.get(title);
+    if (!expectedVersion) throw Error("Reload this document before editing");
+    body = { requestId: crypto.randomUUID(), expectedVersion, commands };
+    pendingCommands.set(key, body);
+  }
+  try {
+    const result = await request<T>(title + "/commands", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    pendingCommands.delete(key);
+    return result;
+  } catch (failure) {
+    const status = (failure as ResponseError).status;
+    if (status && status < 500) pendingCommands.delete(key);
+    throw failure;
+  }
 }

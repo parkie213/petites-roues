@@ -40,7 +40,7 @@ All are under `/api` and return `Cache-Control: no-store`. Title IDs are local c
 | `POST /titles/{id}/review/batches?limit=50` | Claim the oldest pending edits, or return the open batch; `204` when nothing is pending |
 | `POST /titles/{id}/review/batches/{batch}/complete` | Record outcomes and close the batch |
 | `POST /titles/{id}/review-queue/discard` | Body: the displayed pending sequences. Drops those edits, reverting them in the player |
-| `POST /titles/{id}/review/requests` | Body: `[{"cueId":"cue-0001","text":"what to check"}]`. Queues review requests, all or none; returns `{"queued":n}` |
+| `POST /titles/{id}/commands` | Queues typed `review-request` commands, all or none; see [COMMAND-API.md](COMMAND-API.md) |
 | `POST /titles/{id}/validate` | Body: a candidate `document.json`. Returns `{"problems":[...]}`, each prefixed with its cue ID where it has one; empty means the file would load. Writes nothing |
 
 A queue row has `sequence`, `timestamp`, `kind` (timing, suggestion, comment, review-request,

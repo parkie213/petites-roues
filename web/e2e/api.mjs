@@ -111,6 +111,7 @@ const fileVersion =
  */
 function idStandIns() {
   const ids = new Map();
+  const versions = new Map();
   return (text) =>
     text
       .replace(randomId, (id) => {
@@ -121,7 +122,15 @@ function idStandIns() {
           );
         return ids.get(id);
       })
-      .replace(fileVersion, "/$1/recorded");
+      .replace(fileVersion, "/$1/recorded")
+      .replace(
+        /("(?:expectedVersion|x-state-version)"\s*:\s*")([a-f0-9]{64})/g,
+        (_, prefix, version) => {
+          if (!versions.has(version))
+            versions.set(version, `state-version-${versions.size + 1}`);
+          return prefix + versions.get(version);
+        },
+      );
 }
 
 /** [body] answering a request for [range] (`bytes=start-end`), as the real server would. */
@@ -146,6 +155,14 @@ function ranged(range, body, type) {
 async function save(request, response) {
   const type = response.headers()["content-type"] || "";
   const entry = { request: key(request), status: response.status(), type };
+  const headers = response.headers();
+  if (headers["x-state-version"])
+    entry.headers = { "x-state-version": headers["x-state-version"] };
+  if (headers["x-created-ids"])
+    entry.headers = {
+      ...entry.headers,
+      "x-created-ids": headers["x-created-ids"],
+    };
   const body = await response.body();
   const text = () => portable(body.toString());
   if (type.includes("json")) {
@@ -347,9 +364,9 @@ async function replay(page, file, run) {
     // A redirect is followed here: the browser doesn't route a media element's redirected request.
     while (entry.location && queues.has(`GET ${entry.location}`))
       entry = next(`GET ${entry.location}`);
-    const headers = { "content-type": entry.type };
+    const headers = { "content-type": entry.type, ...entry.headers };
     if ("json" in entry)
-      return route.fulfill({ status: entry.status, json: entry.json });
+      return route.fulfill({ status: entry.status, headers, json: entry.json });
     if ("text" in entry)
       return route.fulfill({ status: entry.status, headers, body: entry.text });
     if (entry.blob)
