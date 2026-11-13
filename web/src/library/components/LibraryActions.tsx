@@ -1,9 +1,9 @@
 import { ActionIcon, Button, Group } from "@mantine/core";
-import { Plus, RefreshCw, Smartphone } from "lucide-react";
+import { Plus, RefreshCw, Smartphone, Volume2 } from "lucide-react";
 import { createPortal } from "react-dom";
 
 /**
- * The library's actions, placed in the page header at [target]: connect a phone, refresh every
+ * The library's actions, placed in the page header at [target]: choose read-aloud voices, connect a phone, refresh every
  * folder (once there is one), and add a folder. Nothing shows until the header provides a place.
  */
 export function LibraryActions({
@@ -11,6 +11,7 @@ export function LibraryActions({
   canRefresh,
   working,
   onConnect,
+  onVoices,
   onRefresh,
   onAdd,
 }: {
@@ -19,12 +20,23 @@ export function LibraryActions({
   /** An action is under way: Refresh shows it, and Add waits. */
   working: boolean;
   onConnect: () => void;
+  onVoices: () => void;
   onRefresh: () => void;
   onAdd: () => void;
 }) {
   if (!target) return null;
   return createPortal(
     <Group gap="sm" className="library-actions">
+      <ActionIcon
+        variant="subtle"
+        color="navy"
+        size="lg"
+        aria-label="Read-aloud voices"
+        title="Read-aloud voices"
+        onClick={onVoices}
+      >
+        <Volume2 size={21} />
+      </ActionIcon>
       <ActionIcon
         variant="subtle"
         color="navy"

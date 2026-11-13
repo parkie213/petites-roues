@@ -16,7 +16,8 @@ class PiperNativeTest {
     Path voices = Path.of(System.getProperty("petitesroues.test.voices"));
     var engine = new PiperSynthesizer(voices);
     try (engine) {
-      assertAudio(engine.synthesize("fr", "Bonjour ! Comment allez-vous ?"));
+      String selected = engine.installedVoices().get("fr").getFirst();
+      assertAudio(engine.synthesize("fr", selected, "Bonjour ! Comment allez-vous ?"));
       assertAudio(engine.synthesize("fr", "Il a dit : « Ça va ? »\nOui, très bien."));
     }
     assertThrows(IllegalStateException.class, () -> engine.synthesize("fr", "encore"));

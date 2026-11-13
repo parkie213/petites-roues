@@ -1,5 +1,6 @@
 import { Group, Loader, Stack, Text } from "@mantine/core";
 import { useEffect, useState } from "react";
+import { SpeechVoices } from "./SpeechVoices.tsx";
 import { ConnectPhone } from "./ConnectPhone.jsx";
 import { Documents } from "./Documents.jsx";
 import { LibraryBrowser } from "./LibraryBrowser.tsx";
@@ -33,6 +34,7 @@ export function Library({ actionsTarget }: { actionsTarget?: Element | null }) {
   const { data, working } = library;
   const [filters, setFilters] = useState<PosterFilters>(NO_FILTERS);
   const [language, setLanguage] = useState(storedLanguage);
+  const [voicesOpened, setVoicesOpened] = useState(false);
   const [connecting, setConnecting] = useState(false);
 
   const hasFolders = (data?.repos.length ?? 0) > 0;
@@ -47,12 +49,17 @@ export function Library({ actionsTarget }: { actionsTarget?: Element | null }) {
 
   return (
     <>
+      <SpeechVoices
+        opened={voicesOpened}
+        onClose={() => setVoicesOpened(false)}
+      />
       <ConnectPhone opened={connecting} onClose={() => setConnecting(false)} />
       <Stack gap="xl" mt="lg">
         <LibraryActions
           target={actionsTarget}
           canRefresh={hasFolders}
           working={working}
+          onVoices={() => setVoicesOpened(true)}
           onConnect={() => setConnecting(true)}
           onRefresh={library.refreshLibrary}
           onAdd={library.addFolder}

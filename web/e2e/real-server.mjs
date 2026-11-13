@@ -1,6 +1,6 @@
 import { spawn } from "node:child_process";
 import { createWriteStream } from "node:fs";
-import { mkdtemp, readdir, rm } from "node:fs/promises";
+import { mkdtemp, readdir, rm, mkdir, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 
@@ -76,6 +76,12 @@ export async function forget(requests) {
     new Set(
       requests.flatMap((request) => pattern.exec(request)?.slice(1) ?? []),
     );
+  for (const language of changed(/^PUT \/api\/speech\/voices\/([^/]+)$/))
+    await fetch(`${api}/api/speech/voices/${language}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ voice: null }),
+    });
   await forgetProgress();
   for (const title of changed(
     /^(?:PUT|POST|DELETE) \/api\/titles\/([^/]+)\/(?:cues|timings|comic\/(?:lines|boxes))\b/,
@@ -92,6 +98,12 @@ export async function forget(requests) {
 
 export default async function startRealServer() {
   const folder = await mkdtemp(path.join(os.tmpdir(), "petites-roues-e2e-"));
+  // Listing/preferences need model/configuration pairs, not native synthesis or downloaded models.
+  const voices = path.join(folder, "voices");
+  await mkdir(voices);
+  for (const voice of ["fr_FR-a.onnx", "fr_FR-b.onnx"])
+    for (const suffix of ["", ".json"])
+      await writeFile(path.join(voices, voice + suffix), suffix ? "{}" : "");
   const log = createWriteStream(path.join(folder, "server.log"));
   const server = spawn(
     "java",
@@ -99,6 +111,7 @@ export default async function startRealServer() {
       "-jar",
       await jar(),
       `--server.port=${API_PORT}`,
+      `--petitesroues.speech.voices=${voices}`,
       `--spring.datasource.url=jdbc:sqlite:${path.join(folder, "library.sqlite")}`,
     ],
     { cwd: folder, stdio: ["ignore", "pipe", "pipe"] },

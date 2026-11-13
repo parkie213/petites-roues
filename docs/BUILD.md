@@ -167,9 +167,13 @@ bash setup/speech.sh
 
 The script reuses existing files. For other languages, put an `.onnx` model and its
 matching `.onnx.json` configuration in `~/.local/share/piper/voices`, or set
-`--petitesroues.speech.voices=…`. The first model by file name whose name starts
-with the source language followed by `_` or `-` is selected (for example,
-`fr_FR-siwis-medium.onnx` for `fr`). Missing voices do not prevent application startup;
+`--petitesroues.speech.voices=…`. Open **Read-aloud voices** from the library header to choose an installed voice for
+each source language. Preferences are saved in SQLite on this desktop. **Automatic**
+uses the first complete model/configuration pair by filename whose name starts with
+the source language followed by `_` or `-` (for example, `fr_FR-siwis-medium.onnx`
+for `fr`). Regional source tags share their primary-language preference. A missing
+selected model reports unavailable rather than switching voices silently. Reopen the
+dialog after adding model files; downloading and deleting models remain manual. Missing voices do not prevent application startup;
 the Listen button reports that reading aloud is unavailable.
 
 Spring owns the loaded voices and closes them at shutdown. Piper handles concurrent
