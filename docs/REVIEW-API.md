@@ -35,11 +35,11 @@ All are under `/api` and return `Cache-Control: no-store`. Title IDs are local c
 | Request | Purpose |
 | --- | --- |
 | `GET /review/pending` | Titles with pending rows, oldest work first, and any open batch |
-| `GET /titles/{id}/review-queue` | Pending rows with their `state` and `command` |
-| `GET /titles/{id}/review-history` | Completed rows and their outcomes |
+| `GET /titles/{id}/review?status=pending` | Pending rows with their `state` and `command` |
+| `GET /titles/{id}/review?status=completed` | Completed rows and their outcomes |
 | `POST /titles/{id}/review/batches?limit=50` | Claim the oldest pending edits, or return the open batch; `204` when nothing is pending |
 | `POST /titles/{id}/review/batches/{batch}/complete` | Record outcomes and close the batch |
-| `POST /titles/{id}/review-queue/discard` | Body: the displayed pending sequences. Drops those edits, reverting them in the player |
+| `POST /titles/{id}/review/discard` | Body: the displayed pending sequences. Drops those edits, reverting them in the player |
 | `POST /titles/{id}/commands` | Queues typed `review-request` commands, all or none; see [COMMAND-API.md](COMMAND-API.md) |
 | `POST /titles/{id}/validate` | Body: a candidate `document.json`. Returns `{"problems":[...]}`, each prefixed with its cue ID where it has one; empty means the file would load. Writes nothing |
 
@@ -64,3 +64,8 @@ Completion body: `{"outcome":"applied","outcomes":{"12":"not_adopted"}}`. `outco
 `already_correct`, `not_adopted` and `reviewed`.
 
 The agent procedure is [agents/workflows/review-content.md](../agents/workflows/review-content.md).
+
+The pending/history listings share one resource with an explicit status filter.
+Omitting status means pending; any other status returns 400. The former changes,
+review-queue and review-history read URLs are retired. Claim, publication/completion
+and discard remain separate operations with their own preconditions.

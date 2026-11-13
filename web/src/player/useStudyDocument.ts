@@ -33,7 +33,7 @@ export function useStudyDocument({
       .catch((e: Error) => {
         if (e.name !== "AbortError") setError(e.message);
       });
-    request<unknown[]>(api + "/review-queue", { signal: controller.signal })
+    request<unknown[]>(api + "/review", { signal: controller.signal })
       .then(setChanges)
       .catch((e: Error) => {
         if (e.name !== "AbortError")

@@ -90,7 +90,7 @@ class ComicTextEditIntegrationTest extends HttpIntegrationTest {
             .lines()
             .getFirst()
             .source());
-    var queue = http.get().uri(api + "/review-queue").retrieve().body(JsonNode.class);
+    var queue = http.get().uri(api + "/review").retrieve().body(JsonNode.class);
     assertEquals(1, queue.size());
     assertEquals("bubble", queue.get(0).path("cueIds").get(0).asText());
     assertEquals(
@@ -131,7 +131,7 @@ class ComicTextEditIntegrationTest extends HttpIntegrationTest {
             Map.of("expectedSource", "Bonjour !", "source", "Bonjour !"))
         .retrieve()
         .toBodilessEntity();
-    assertEquals(1, http.get().uri(api + "/review-queue").retrieve().body(JsonNode.class).size());
+    assertEquals(1, http.get().uri(api + "/review").retrieve().body(JsonNode.class).size());
 
     // A comment on a bubble is queued for review and leaves the comic unchanged.
     var unchanged = http.get().uri(api).retrieve().body(StudyDocument.class);
@@ -140,7 +140,7 @@ class ComicTextEditIntegrationTest extends HttpIntegrationTest {
         command(http, api, "comment", "other", Map.of("text", "Merci → Thank you?"))
             .retrieve()
             .body(StudyDocument.class));
-    var comments = http.get().uri(api + "/review-queue").retrieve().body(JsonNode.class);
+    var comments = http.get().uri(api + "/review").retrieve().body(JsonNode.class);
     assertEquals("comment", comments.get(1).get("kind").asString());
     assertEquals("Merci → Thank you?", comments.get(1).get("suggestion").asString());
   }

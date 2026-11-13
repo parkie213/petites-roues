@@ -4323,18 +4323,18 @@
     }
   },
   {
-    "request": "GET /api/titles/peppa-pig-example-s01e01/review-queue",
+    "request": "GET /api/titles/peppa-pig-example-s01e01/review",
     "status": 200,
     "type": "application/json",
     "json": []
   },
   {
-    "request": "GET /api/titles/peppa-pig-example-s01e01/review-queue",
+    "request": "GET /api/titles/peppa-pig-example-s01e01/review",
     "status": 200,
     "type": "application/json",
     "json": [
       {
-        "sequence": 2,
+        "sequence": 1,
         "timestamp": "2026-01-01T00:00:00Z",
         "kind": "timing",
         "cueIds": [
@@ -4363,7 +4363,7 @@
         }
       },
       {
-        "sequence": 3,
+        "sequence": 2,
         "timestamp": "2026-01-01T00:00:00Z",
         "kind": "timing",
         "cueIds": [
@@ -4392,7 +4392,7 @@
         }
       },
       {
-        "sequence": 4,
+        "sequence": 3,
         "timestamp": "2026-01-01T00:00:00Z",
         "kind": "edit",
         "cueIds": [

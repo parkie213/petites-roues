@@ -77,7 +77,7 @@ class ComicAnnotationIntegrationTest extends HttpIntegrationTest {
     assertNotEquals(created.id(), line.id());
     assertEquals(List.of(created), page.boxes());
     assertEquals("MERCI.", line.source());
-    var queued = http.get().uri(api + "/review-queue").retrieve().body(JsonNode.class);
+    var queued = http.get().uri(api + "/review").retrieve().body(JsonNode.class);
     assertTrue(queued.toString().contains("annotate"));
   }
 
@@ -101,7 +101,7 @@ class ComicAnnotationIntegrationTest extends HttpIntegrationTest {
     assertEquals("", box.lines().getFirst().source());
     var loaded = http.get().uri(api).retrieve().body(StudyDocument.class);
     assertEquals(box, loaded.comic().boxes().get(1));
-    var queued = http.get().uri(api + "/review-queue").retrieve().body(JsonNode.class);
+    var queued = http.get().uri(api + "/review").retrieve().body(JsonNode.class);
     assertTrue(queued.toString().contains(box.lines().getFirst().id()));
     var transcribed =
         command(

@@ -95,7 +95,7 @@ export async function forget(requests) {
   for (const title of changed(
     /^(?:PUT|POST|DELETE) \/api\/titles\/([^/]+)\/(?:commands)\b/,
   )) {
-    const queue = `${api}/api/titles/${title}/review-queue`;
+    const queue = `${api}/api/titles/${title}/review`;
     const rows = await (await fetch(queue)).json();
     await fetch(`${queue}/discard`, {
       method: "POST",

@@ -40,19 +40,21 @@ public class ReviewController {
     return ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(review.pendingTitles());
   }
 
-  /**
-   * GET pending queue rows for a title as {@link CueChange}s, in sequence order, each with its
-   * replay {@code state}: pending, conflict, written or review.
-   */
-  @GetMapping({"/titles/{id}/review-queue", "/titles/{id}/changes"})
-  public ResponseEntity<List<CueChange>> pending(@PathVariable String id) throws IOException {
-    return ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(review.pending(id));
-  }
-
-  /** Completed rows and their decisions. */
-  @GetMapping("/titles/{id}/review-history")
-  public ResponseEntity<List<CueChange>> history(@PathVariable String id) {
-    return ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(review.history(id));
+  /** Pending replay state or completed decisions, selected explicitly without aliases. */
+  @GetMapping("/titles/{id}/review")
+  public ResponseEntity<List<CueChange>> review(
+      @PathVariable String id, @RequestParam(defaultValue = "pending") String status)
+      throws IOException {
+    synchronized (updates) {
+      var rows =
+          switch (status) {
+            case "pending" -> review.pending(id);
+            case "completed" -> review.history(id);
+            default ->
+                throw new IllegalArgumentException("Review status must be pending or completed");
+          };
+      return ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(rows);
+    }
   }
 
   /**
@@ -88,7 +90,7 @@ public class ReviewController {
   }
 
   /** POST the displayed pending sequences to discard those edits, reverting them in the player. */
-  @PostMapping("/titles/{id}/review-queue/discard")
+  @PostMapping("/titles/{id}/review/discard")
   public void discard(@PathVariable String id, @RequestBody List<Long> expected) {
     synchronized (updates) {
       review.discard(id, expected);
