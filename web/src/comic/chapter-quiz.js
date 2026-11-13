@@ -27,18 +27,16 @@ export function chapterQuiz(document, { chapterPageId, rules, type }) {
       : pages.length;
   if (start < 0 || end <= start) throw new Error("Invalid chapter page range.");
   const name = chapterName(chapter);
-  const items = pages
-    .slice(start, end)
-    .flatMap((page, offset) =>
-      (page.boxes ?? []).flatMap((box) =>
-        box.lines
-          .filter((line) => line.source?.trim())
-          .map((cue) => ({
-            cue,
-            group: `Page ${page.label || start + offset + 1}`,
-          })),
-      ),
-    );
+  const items = pages.slice(start, end).flatMap((page, offset) =>
+    (page.boxes ?? []).flatMap((box) =>
+      box.lines
+        .filter((line) => line.source?.trim())
+        .map((cue) => ({
+          cue,
+          group: `Page ${page.label || start + offset + 1}`,
+        })),
+    ),
+  );
   return {
     text: briefMarkdown({
       rules,
