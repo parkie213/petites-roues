@@ -202,6 +202,69 @@ and [workspace conventions](../AGENTS.md).
 
 ## Verification
 
+### Spring Modulith trial
+
+The server has test-only Modulith 2.0.8 dependencies (the Boot 4.0 line). They add
+no application annotations, runtime components or dependencies to the shared
+Android modules. `ModulithArchitectureTest` inspects compiled production classes
+without starting Spring, opening SQLite or reading content. Fixture classes under
+`app.petitesroues.support` are excluded because fixture JARs otherwise appear as
+an application module.
+
+Run the trial alone from the repository root:
+
+```sh
+./java/mvnw -B -f java/pom.xml -pl desktop-server -am test \
+  -Dtest=ModulithArchitectureTest -Dsurefire.failIfNoSpecifiedTests=false
+```
+
+It writes the discovered module inventory and unfiltered verification findings to
+`java/desktop-server/target/modulith-trial/{modules,violations}.txt`, and the module
+diagram to `java/desktop-server/target/spring-modulith-docs/components.puml`.
+The server CI job uploads these as the `modulith-trial` artifact.
+
+Four dependency budgets are enforced in the normal test suite: document JSON may
+depend on model; speech on library, model and settings; media and settings on no
+other application module. These guard outbound module dependencies, not every
+type-level API or framework dependency. Framework-free portable modules retain
+their existing Maven dependency boundaries.
+
+The complete Modulith verification is a separate, opt-in test:
+
+```sh
+./java/mvnw -B -f java/pom.xml -pl desktop-server -am test \
+  -Dtest=ModulithArchitectureTest -Dsurefire.failIfNoSpecifiedTests=false \
+  -Dmodulith.verify=true
+```
+
+**The full gate currently fails.** A passing normal build means the four budgets
+hold and reports were generated; it does not mean the application conforms to
+Modulith's default architecture. No violations are baselined or filtered out of
+the report. Default discovery groups immediate packages under `app.petitesroues`
+across Maven JARs, so it is a different model from the Maven reactor:
+
+- `library` includes both portable utilities and desktop application services.
+  Cycles with comic, playback and study include real reciprocal responsibilities,
+  such as library progress aggregation versus progress services consulting titles.
+- All `model.*` packages become one module, whose subpackages are considered
+  internal by default. Calls to intentionally public domain types are therefore
+  reported as non-exposed access. Model types across JARs also depend on library,
+  media and sync types, creating additional package-level cycles.
+- `config` and `web` are discovered as modules alongside domain responsibilities.
+  They are composition/transport packages rather than independent domain features.
+
+The trial demonstrates useful dependency visibility and small enforceable
+guardrails. Before adopting full verification or module-scoped Spring tests,
+decide logical module ownership and intentional APIs. Named interfaces or custom
+detection may fit better than package moves; marking everything open would hide
+the API question and still would not resolve cycles. No production restructuring
+is part of this experiment.
+
+References: [Modulith fundamentals](https://docs.spring.io/spring-modulith/reference/fundamentals.html),
+[structure verification](https://docs.spring.io/spring-modulith/reference/verification.html).
+
+### Java build
+
 From the repository root:
 
 ```sh
