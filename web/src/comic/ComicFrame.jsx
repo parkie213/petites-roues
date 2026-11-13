@@ -108,14 +108,19 @@ export function ToolbarToggle({ label, pressed, onClick, icon, disabled }) {
  * The reader's top bar: back to the library and the title, then `middle` (e.g. a chapter
  * picker) and the caller's tools on the right.
  */
-export function ComicToolbar({ title, middle, children }) {
+export function ComicToolbar({
+  title,
+  middle,
+  children,
+  backHref = libraryReturnPath(),
+}) {
   return (
     <header className="comic-toolbar">
       <div className="comic-toolbar-title">
         <Tooltip label="Library" withArrow>
           <ActionIcon
             component="a"
-            href={libraryReturnPath()}
+            href={backHref}
             variant="subtle"
             size="lg"
             aria-label="Back to library"

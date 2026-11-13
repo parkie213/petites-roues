@@ -14,6 +14,8 @@ interface ComicPageViewProps {
   document: ComicPageManifest;
   pages: ComicPageManifest["pages"];
   api: string;
+  /** Optional static asset resolver; otherwise pages are served from the comic API. */
+  pageImageUrl?: (pageId: string) => string;
   zoom: string;
   scale: number;
   boxes: ComicBoxView[];
@@ -37,6 +39,7 @@ export function ComicPageView({
   document,
   pages,
   api,
+  pageImageUrl,
   zoom,
   scale,
   boxes,
@@ -80,7 +83,10 @@ export function ComicPageView({
           <ComicPage
             key={page.id}
             pageId={page.id}
-            imageUrl={`${api}/pages/${encodeURIComponent(page.id)}`}
+            imageUrl={
+              pageImageUrl?.(page.id) ??
+              `${api}/pages/${encodeURIComponent(page.id)}`
+            }
             imageLabel={`${document.title}, page ${document.pages.indexOf(page) + 1}`}
             viewport={{ width: area.width / pages.length, height: area.height }}
             zoom={zoom}

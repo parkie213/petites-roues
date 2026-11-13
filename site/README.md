@@ -1,12 +1,16 @@
 # petites roues website
 
-A minimal parking page: the wheel logo, the name in Manrope, and a link to the public repository. The logo gently wobbles into balance once; reduced-motion preferences disable animation.
+The landing page links to GitHub and a static comic demo at `demo/`. The demo reuses the app's
+comic page viewer, navigation, translation popovers and phrase explanations. Its only title is
+the original Le parapluie de Lulu sample in `example/`; videos are not included yet.
 
-Open `index.html` directly to preview. No build step or JavaScript is needed. Manrope loads from Google Fonts, with Arial as a fallback.
+Run `npm ci --prefix web`, then `python3 site/build.py`. Preview with
+`python3 -m http.server 18876 --directory site/dist` and open http://localhost:18876/.
+The build bundles the document and extracts its four page images from the example CBZ.
+There is no API server, service worker, production content or API recording in the demo.
+Reading progress and view preferences stay in browser storage. Editing and local speech tools
+are omitted. Hash navigation supports direct reader links and refresh on static hosting.
 
-The public domain is [petitesroues.app](https://petitesroues.app/). The
-[Pages workflow](../.github/workflows/pages.yml) deploys this folder from `main`.
-Configure the custom domain in the repository's GitHub Pages settings and point
-its DNS to GitHub Pages; these settings are managed outside this repository.
-The canonical URL and sharing metadata in `index.html` use the public domain.
-The desktop application and its API continue to run on local addresses.
+The public domain is [petitesroues.app](https://petitesroues.app/).
+The [Pages workflow](../.github/workflows/pages.yml) builds and deploys `site/dist` from `main`.
+Custom domain and DNS settings remain managed outside this repository.

@@ -54,7 +54,7 @@ export default defineConfig([
     },
   },
   {
-    files: ["*.mjs", "test/**/*.mjs", "e2e/**/*.mjs"],
+    files: ["*.mjs", "test/**/*.mjs", "e2e/**/*.mjs", "demo-test/**/*.mjs"],
     languageOptions: { globals: globals.node },
   },
   {

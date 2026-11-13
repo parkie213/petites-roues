@@ -7,7 +7,8 @@ import { useReadAloud } from "./ReadAloud.jsx";
  * plays stops it. A failure turns the icon red and its tooltip explains why.
  */
 export function ListenButton({ text }) {
-  const { text: playing, loading, error, speak } = useReadAloud();
+  const { text: playing, loading, error, speak, enabled } = useReadAloud();
+  if (enabled === false) return null;
   const active = playing === text;
   const label = error || (active ? "Stop (R)" : "Listen (R)");
   return (

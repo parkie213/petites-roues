@@ -7,9 +7,15 @@ const ReadAloudContext = createContext(null);
  * Plays source-language text through the server's local voice. One utterance plays at a time:
  * asking for new text stops the current one, and asking for the text already playing stops it.
  * Audio is fetched for each request and released when it ends. `autoListen` is the reader's
- * preference for reading each bubble as its card opens.
+ * preference for reading each bubble as its card opens. With `enabled=false`, speech controls
+ * are hidden and requests are ignored, for static readers without a voice server.
  */
-export function ReadAloudProvider({ url, autoListen = false, children }) {
+export function ReadAloudProvider({
+  url,
+  autoListen = false,
+  enabled = true,
+  children,
+}) {
   const current = useRef(null);
   const [state, setState] = useState({ text: null, loading: false, error: "" });
 
@@ -25,7 +31,7 @@ export function ReadAloudProvider({ url, autoListen = false, children }) {
   async function speak(text) {
     const repeat = current.current?.text === text;
     stop();
-    if (repeat || !text?.trim()) return;
+    if (!enabled || repeat || !text?.trim()) return;
     const playing = { text, abort: new AbortController() };
     current.current = playing;
     setState({ text, loading: true, error: "" });
@@ -49,7 +55,9 @@ export function ReadAloudProvider({ url, autoListen = false, children }) {
 
   useEffect(() => stop, []);
   return (
-    <ReadAloudContext.Provider value={{ ...state, speak, stop, autoListen }}>
+    <ReadAloudContext.Provider
+      value={{ ...state, speak, stop, autoListen, enabled }}
+    >
       {children}
     </ReadAloudContext.Provider>
   );

@@ -38,3 +38,6 @@
 
 # Maven build output.
 **/target/
+
+# Built GitHub Pages website and demo
+/site/dist/

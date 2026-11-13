@@ -1,0 +1,90 @@
+.demo-library {
+  min-height: 100svh;
+  background: #f7f4ed;
+  color: #142d4e;
+  padding: 28px max(24px, calc((100vw - 1160px) / 2));
+  font-family: Manrope, sans-serif;
+}
+.demo-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  padding-bottom: 52px;
+}
+.demo-library a {
+  color: inherit;
+}
+.demo-brand {
+  font-size: 23px;
+  font-weight: 600;
+  text-decoration: none;
+}
+.demo-header > a:last-child {
+  font-size: 14px;
+}
+.demo-library h1 {
+  font-size: 32px;
+  margin: 0 0 12px;
+}
+.demo-library p {
+  max-width: 620px;
+  line-height: 1.7;
+  color: #596573;
+}
+.demo-library h2 {
+  font-size: 20px;
+  margin: 36px 0 20px;
+}
+.demo-library h2 span {
+  display: inline-block;
+  margin-left: 12px;
+  font-size: 13px;
+  font-weight: 400;
+  color: #596573;
+}
+.demo-comic {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: min(240px, 100%);
+  text-decoration: none;
+  border-radius: 8px;
+}
+.demo-comic img {
+  width: 100%;
+  height: auto;
+  aspect-ratio: 2 / 3;
+  object-fit: cover;
+  border-radius: 8px;
+  box-shadow: 0 5px 20px #142d4e22;
+  transition: transform 0.15s;
+}
+.demo-comic:hover img {
+  transform: translateY(-3px);
+}
+.demo-comic strong {
+  margin-top: 8px;
+  font-size: 16px;
+}
+.demo-comic span,
+.demo-caption {
+  font-size: 13px;
+}
+.demo-caption {
+  margin-top: 40px;
+}
+.demo-reader-hint {
+  padding: 8px 18px;
+  font-size: 12px;
+  color: var(--dim);
+  border-bottom: 1px solid var(--bd);
+}
+.demo-reader .comic-reading-area {
+  min-height: 0;
+}
+@media (prefers-reduced-motion: reduce) {
+  .demo-comic img {
+    transition: none;
+  }
+}
