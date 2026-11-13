@@ -59,7 +59,6 @@ public class ProcessRunner {
         throw new IOException(
             "Could not read output from " + command.getFirst(), failure.getCause());
       } finally {
-        if (process.isAlive()) process.destroyForcibly();
         output.cancel(true);
         errors.cancel(true);
       }
