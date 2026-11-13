@@ -4,6 +4,7 @@ import static org.awaitility.Awaitility.await;
 import static org.junit.jupiter.api.Assertions.*;
 
 import app.petitesroues.library.LibraryJobService;
+import app.petitesroues.library.LibraryUpdateMonitor;
 import app.petitesroues.library.LibraryUpdateService;
 import java.time.Duration;
 import java.util.concurrent.CountDownLatch;
@@ -30,10 +31,11 @@ class ExecutorConfigurationTest {
         Object.class,
         Object::new,
         definition -> definition.setDependsOn("dataSource"));
+    context.registerBean(LibraryUpdateMonitor.class, LibraryUpdateMonitor::new);
     context.registerBean(
         "libraryUpdateService",
         LibraryUpdateService.class,
-        () -> new LibraryUpdateService(null),
+        () -> new LibraryUpdateService(context.getBean(LibraryUpdateMonitor.class), null),
         definition -> definition.setDependsOn("dataSource"));
     context.register(ExecutorConfiguration.class);
     context.refresh();

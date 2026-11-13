@@ -19,8 +19,9 @@ import org.springframework.stereotype.Service;
 /**
  * Accepts player and reader edits by queueing them; it never writes document files. Each edit is
  * applied to the served document (file plus earlier queued edits) to validate it, then stored with
- * any identities it introduces. Edits that change nothing are not queued. Callers use {@link
- * LibraryUpdateService} so queueing is serialized with repository replacement.
+ * any identities it introduces. Edits that change nothing are not queued. Queueing is serialized
+ * with review-queue operations and repository replacement through the shared monitor that {@link
+ * LibraryUpdateService} holds.
  */
 @Service
 public class DocumentEditingService {

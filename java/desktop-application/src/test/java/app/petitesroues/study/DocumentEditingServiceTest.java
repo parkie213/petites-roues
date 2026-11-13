@@ -10,6 +10,7 @@ import static org.mockito.Mockito.*;
 import app.petitesroues.documents.StudyDocumentCodec;
 import app.petitesroues.documents.StudyDocumentJson;
 import app.petitesroues.documents.StudyDocumentReader;
+import app.petitesroues.library.LibraryUpdateMonitor;
 import app.petitesroues.library.persistence.CatalogueStore;
 import app.petitesroues.model.document.Line;
 import app.petitesroues.model.document.PhraseAlignment;
@@ -59,6 +60,7 @@ class DocumentEditingServiceTest {
     log = spy(new ReviewQueue(jdbc, mapper));
     served =
         new ReviewQueueService(
+            new LibraryUpdateMonitor(),
             titles,
             new DocumentStore(new StudyDocumentReader(codec)),
             log,

@@ -14,70 +14,93 @@ import java.util.List;
 import org.springframework.stereotype.Service;
 
 /**
- * Entry point for player and reader edits. Synchronized methods share this service's monitor, so
- * each edit is validated against the served document and queued before the next edit, review
- * completion or repository replacement reads it. Edits are queued, never written to files.
+ * Entry point for player and reader edits. Each edit runs while holding the shared {@link
+ * LibraryUpdateMonitor}, so it is validated against the served document and queued before the next
+ * edit, review-queue operation or repository replacement reads that state. Edits are queued, never
+ * written to files.
  */
 @Service
 public class LibraryUpdateService {
+  private final LibraryUpdateMonitor monitor;
   private final DocumentEditingService editing;
 
-  public LibraryUpdateService(DocumentEditingService editing) {
+  public LibraryUpdateService(LibraryUpdateMonitor monitor, DocumentEditingService editing) {
+    this.monitor = monitor;
     this.editing = editing;
   }
 
-  public synchronized int saveCueTiming(String id, List<UpdateCueTiming> edits) throws IOException {
-    return editing.saveCueTiming(id, edits);
+  public int saveCueTiming(String id, List<UpdateCueTiming> edits) throws IOException {
+    synchronized (monitor) {
+      return editing.saveCueTiming(id, edits);
+    }
   }
 
-  public synchronized StudyDocument suggestCorrection(String id, String cueId, String suggestion)
+  public StudyDocument suggestCorrection(String id, String cueId, String suggestion)
       throws IOException {
-    return editing.suggestCorrection(id, cueId, suggestion);
+    synchronized (monitor) {
+      return editing.suggestCorrection(id, cueId, suggestion);
+    }
   }
 
-  public synchronized StudyDocument comment(String id, String cueId, String text)
+  public StudyDocument comment(String id, String cueId, String text) throws IOException {
+    synchronized (monitor) {
+      return editing.comment(id, cueId, text);
+    }
+  }
+
+  public StudyDocument editCue(String titleId, String cueId, VideoCueEdit cue) throws IOException {
+    synchronized (monitor) {
+      return editing.editCue(titleId, cueId, cue);
+    }
+  }
+
+  public StudyDocument addCue(String titleId, VideoCueEdit cue) throws IOException {
+    synchronized (monitor) {
+      return editing.addCue(titleId, cue);
+    }
+  }
+
+  public StudyDocument splitCue(String titleId, String cueId, SplitCue split) throws IOException {
+    synchronized (monitor) {
+      return editing.splitCue(titleId, cueId, split);
+    }
+  }
+
+  public StudyDocument mergeCues(String titleId, MergeCues merge) throws IOException {
+    synchronized (monitor) {
+      return editing.mergeCues(titleId, merge);
+    }
+  }
+
+  public StudyDocument deleteCue(String titleId, String cueId) throws IOException {
+    synchronized (monitor) {
+      return editing.deleteCue(titleId, cueId);
+    }
+  }
+
+  public StudyDocument editComicText(String id, String lineId, ComicTextEdit edit)
       throws IOException {
-    return editing.comment(id, cueId, text);
+    synchronized (monitor) {
+      return editing.editComicText(id, lineId, edit);
+    }
   }
 
-  public synchronized StudyDocument editCue(String titleId, String cueId, VideoCueEdit cue)
+  public StudyDocument createComicBox(String id, ComicBoxCreate create) throws IOException {
+    synchronized (monitor) {
+      return editing.createComicBox(id, create);
+    }
+  }
+
+  public StudyDocument placeComicBox(String id, String boxId, ComicBoxUpdate update)
       throws IOException {
-    return editing.editCue(titleId, cueId, cue);
+    synchronized (monitor) {
+      return editing.placeComicBox(id, boxId, update);
+    }
   }
 
-  public synchronized StudyDocument addCue(String titleId, VideoCueEdit cue) throws IOException {
-    return editing.addCue(titleId, cue);
-  }
-
-  public synchronized StudyDocument splitCue(String titleId, String cueId, SplitCue split)
-      throws IOException {
-    return editing.splitCue(titleId, cueId, split);
-  }
-
-  public synchronized StudyDocument mergeCues(String titleId, MergeCues merge) throws IOException {
-    return editing.mergeCues(titleId, merge);
-  }
-
-  public synchronized StudyDocument deleteCue(String titleId, String cueId) throws IOException {
-    return editing.deleteCue(titleId, cueId);
-  }
-
-  public synchronized StudyDocument editComicText(String id, String lineId, ComicTextEdit edit)
-      throws IOException {
-    return editing.editComicText(id, lineId, edit);
-  }
-
-  public synchronized StudyDocument createComicBox(String id, ComicBoxCreate create)
-      throws IOException {
-    return editing.createComicBox(id, create);
-  }
-
-  public synchronized StudyDocument placeComicBox(String id, String boxId, ComicBoxUpdate update)
-      throws IOException {
-    return editing.placeComicBox(id, boxId, update);
-  }
-
-  public synchronized StudyDocument deleteComicBox(String id, String boxId) throws IOException {
-    return editing.deleteComicBox(id, boxId);
+  public StudyDocument deleteComicBox(String id, String boxId) throws IOException {
+    synchronized (monitor) {
+      return editing.deleteComicBox(id, boxId);
+    }
   }
 }

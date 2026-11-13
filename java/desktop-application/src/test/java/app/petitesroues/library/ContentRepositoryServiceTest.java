@@ -61,7 +61,15 @@ class ContentRepositoryServiceTest {
   void setup() throws IOException {
     service =
         new ContentRepositoryService(
-            repositories, scanner, reader, transactions, registration, queue, media, probe);
+            new LibraryUpdateMonitor(),
+            repositories,
+            scanner,
+            reader,
+            transactions,
+            registration,
+            queue,
+            media,
+            probe);
     lenient().when(reader.isStudyDocument(any(Path.class))).thenReturn(true);
   }
 

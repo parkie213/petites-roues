@@ -49,9 +49,9 @@ import org.springframework.transaction.support.TransactionTemplate;
  * Missing titles retain their catalogue entries and pending reviews until the repository is
  * removed.
  *
- * <p>Ordinary browsing reads the SQLite index; media is probed only by Add and Refresh. Application
- * callers hold {@link LibraryUpdateService}'s monitor while adding, refreshing or removing a
- * repository to coordinate these operations with document edits.
+ * <p>Ordinary browsing reads the SQLite index; media is probed only by Add and Refresh. Add,
+ * Refresh and Remove run while holding the shared {@link LibraryUpdateMonitor} — discovery included
+ * — so they cannot interleave with a player edit or a review-queue operation.
  */
 @Service
 public class ContentRepositoryService {
@@ -76,8 +76,10 @@ public class ContentRepositoryService {
   private final ReviewQueue queue;
   private final MediaStore media;
   private final MediaProbe probe;
+  private final LibraryUpdateMonitor monitor;
 
   public ContentRepositoryService(
+      LibraryUpdateMonitor monitor,
       ContentRepositoryStore repositories,
       ContentRepositoryScanner scanner,
       StudyDocumentReader reader,
@@ -86,6 +88,7 @@ public class ContentRepositoryService {
       ReviewQueue queue,
       MediaStore media,
       MediaProbe probe) {
+    this.monitor = monitor;
     this.repositories = repositories;
     this.scanner = scanner;
     this.reader = reader;
@@ -122,22 +125,24 @@ public class ContentRepositoryService {
       throw new IllegalArgumentException("Choose a repository directory");
     if (!Files.isDirectory(Path.of(request.localPath())))
       throw new IllegalArgumentException("Repository directory not found");
-    Path root = Path.of(request.localPath()).toRealPath();
-    if (list().stream().anyMatch(r -> Path.of(r.localPath()).equals(root)))
-      throw new IllegalArgumentException("This repository is already registered");
-    String id = UUID.randomUUID().toString();
-    String name =
-        request.name() == null || request.name().isBlank()
-            ? root.getFileName().toString()
-            : request.name().strip();
-    var discovered = discover(root, name, List.of(), progress);
-    progress.report(new LibraryProgress(name, "saving", 0, 0, null));
-    transactions.executeWithoutResult(
-        status -> {
-          repositories.insert(id, name, root.toString());
-          updateIndex(id, discovered);
-        });
-    return repositories.find(id);
+    synchronized (monitor) {
+      Path root = Path.of(request.localPath()).toRealPath();
+      if (list().stream().anyMatch(r -> Path.of(r.localPath()).equals(root)))
+        throw new IllegalArgumentException("This repository is already registered");
+      String id = UUID.randomUUID().toString();
+      String name =
+          request.name() == null || request.name().isBlank()
+              ? root.getFileName().toString()
+              : request.name().strip();
+      var discovered = discover(root, name, List.of(), progress);
+      progress.report(new LibraryProgress(name, "saving", 0, 0, null));
+      transactions.executeWithoutResult(
+          status -> {
+            repositories.insert(id, name, root.toString());
+            updateIndex(id, discovered);
+          });
+      return repositories.find(id);
+    }
   }
 
   /**
@@ -157,13 +162,15 @@ public class ContentRepositoryService {
   /** {@link #refresh(String)}, reporting progress as it scans, probes and reads. */
   public ContentRepository refresh(String id, LibraryProgress.Listener progress)
       throws IOException {
-    var repository = repositories.find(id);
-    var discovered =
-        discover(
-            Path.of(repository.localPath()), repository.name(), media.inRepository(id), progress);
-    progress.report(new LibraryProgress(repository.name(), "saving", 0, 0, null));
-    transactions.executeWithoutResult(status -> updateIndex(id, discovered));
-    return repositories.find(id);
+    synchronized (monitor) {
+      var repository = repositories.find(id);
+      var discovered =
+          discover(
+              Path.of(repository.localPath()), repository.name(), media.inRepository(id), progress);
+      progress.report(new LibraryProgress(repository.name(), "saving", 0, 0, null));
+      transactions.executeWithoutResult(status -> updateIndex(id, discovered));
+      return repositories.find(id);
+    }
   }
 
   /**
@@ -308,16 +315,18 @@ public class ContentRepositoryService {
    * @throws NoSuchElementException if the repository ID is unknown
    */
   public void remove(String id) {
-    repositories.find(id);
-    transactions.executeWithoutResult(
-        status -> {
-          int unwritten = queue.unwrittenEdits(id);
-          if (unwritten > 0)
-            throw new IllegalArgumentException(
-                unwritten
-                    + " player edits are not yet in the document files. Have an agent process"
-                    + " the review queue, or discard the edits, before removing this repository.");
-          repositories.delete(id);
-        });
+    synchronized (monitor) {
+      repositories.find(id);
+      transactions.executeWithoutResult(
+          status -> {
+            int unwritten = queue.unwrittenEdits(id);
+            if (unwritten > 0)
+              throw new IllegalArgumentException(
+                  unwritten
+                      + " player edits are not yet in the document files. Have an agent process"
+                      + " the review queue, or discard the edits, before removing this repository.");
+            repositories.delete(id);
+          });
+    }
   }
 }

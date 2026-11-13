@@ -89,6 +89,7 @@ class ContentRepositoryRefreshIntegrationTest {
 
   private ContentRepositoryService service(RepositoryContentService registration) {
     return new ContentRepositoryService(
+        new LibraryUpdateMonitor(),
         repositories,
         scanner,
         reader,
@@ -160,6 +161,7 @@ class ContentRepositoryRefreshIntegrationTest {
     var store = new DocumentStore(reader);
     var served =
         new ReviewQueueService(
+            new LibraryUpdateMonitor(),
             catalogue,
             store,
             queue,
