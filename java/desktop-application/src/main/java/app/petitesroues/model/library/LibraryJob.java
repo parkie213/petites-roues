@@ -1,6 +1,7 @@
 package app.petitesroues.model.library;
 
 import app.petitesroues.library.progress.LibraryProgress;
+import java.util.List;
 
 /**
  * A snapshot of an Add or Refresh running in the background, as the library shows it.
@@ -12,7 +13,12 @@ import app.petitesroues.library.progress.LibraryProgress;
  * @param error why it failed, for the person to read; null unless failed
  */
 public record LibraryJob(
-    String id, String kind, String state, LibraryProgress progress, String error) {
+    String id,
+    String kind,
+    String state,
+    LibraryProgress progress,
+    String error,
+    List<RepositoryOutcome> outcomes) {
 
   /** Whether the job has finished, successfully or not. */
   public boolean finished() {

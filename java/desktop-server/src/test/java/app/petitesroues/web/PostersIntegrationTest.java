@@ -1,5 +1,6 @@
 package app.petitesroues.web;
 
+import static app.petitesroues.support.HttpClients.discover;
 import static app.petitesroues.support.SpecFixtures.newPage;
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -58,11 +59,8 @@ class PostersIntegrationTest extends HttpIntegrationTest {
   }
 
   private String add(Path folder) {
-    return http.post()
-        .uri("/api/repositories")
-        .body(Map.of("localPath", folder.toString()))
-        .retrieve()
-        .body(ContentRepository.class)
+    return discover(
+            http, "add", null, Map.of("localPath", folder.toString()), ContentRepository.class)
         .id();
   }
 

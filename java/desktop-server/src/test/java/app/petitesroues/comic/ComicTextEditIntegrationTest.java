@@ -1,6 +1,7 @@
 package app.petitesroues.comic;
 
 import static app.petitesroues.support.HttpClients.command;
+import static app.petitesroues.support.HttpClients.discover;
 import static app.petitesroues.support.SpecFixtures.*;
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -49,11 +50,12 @@ class ComicTextEditIntegrationTest extends HttpIntegrationTest {
     Files.write(
         folder.resolve("document.json"),
         new StudyDocumentCodec().encode(doc).getBytes(StandardCharsets.UTF_8));
-    http.post()
-        .uri("/api/repositories")
-        .body(Map.of("localPath", folder.toString()))
-        .retrieve()
-        .toBodilessEntity();
+    discover(
+        http,
+        "add",
+        null,
+        Map.of("localPath", folder.toString()),
+        app.petitesroues.model.library.ContentRepository.class);
     String api = "/api/titles/comic";
     var result =
         command(

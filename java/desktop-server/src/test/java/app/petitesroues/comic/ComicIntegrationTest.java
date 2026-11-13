@@ -1,6 +1,7 @@
 package app.petitesroues.comic;
 
 import static app.petitesroues.support.HttpClients.command;
+import static app.petitesroues.support.HttpClients.discover;
 import static app.petitesroues.support.SpecFixtures.*;
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -62,11 +63,12 @@ class ComicIntegrationTest extends HttpIntegrationTest {
                                 MediaFingerprint.of(folder.resolve("book.cbz")), null))))
             .getBytes(StandardCharsets.UTF_8));
     var repository =
-        http.post()
-            .uri("/api/repositories")
-            .body(Map.of("localPath", root.resolve("comics").toString()))
-            .retrieve()
-            .body(JsonNode.class);
+        discover(
+            http,
+            "add",
+            null,
+            Map.of("localPath", root.resolve("comics").toString()),
+            JsonNode.class);
     var catalogue = http.get().uri("/api/library").retrieve().body(Library.class);
     var title = catalogue.repositories().getFirst().entries().getFirst();
     assertEquals("comic", title.type());
@@ -107,10 +109,12 @@ class ComicIntegrationTest extends HttpIntegrationTest {
             .<Integer>exchange((req, res) -> res.getStatusCode().value())
             .intValue());
     http.put().uri(api + "/progress").body(Map.of("pageId", "story")).retrieve().toBodilessEntity();
-    http.post()
-        .uri("/api/repositories/" + repository.path("id").asText() + "/refresh")
-        .retrieve()
-        .toBodilessEntity();
+    discover(
+        http,
+        "refresh",
+        repository.path("id").asText(),
+        null,
+        app.petitesroues.model.library.ContentRepository.class);
     assertEquals(
         "story",
         http.get().uri(api + "/progress").retrieve().body(JsonNode.class).path("pageId").asText());

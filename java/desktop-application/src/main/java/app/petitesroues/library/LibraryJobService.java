@@ -2,11 +2,15 @@ package app.petitesroues.library;
 
 import app.petitesroues.library.progress.LibraryProgress;
 import app.petitesroues.model.library.LibraryJob;
+import app.petitesroues.model.library.RepositoryOutcome;
+import app.petitesroues.study.StateConflictException;
+import java.util.List;
 import java.util.NoSuchElementException;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.Executor;
 import java.util.concurrent.FutureTask;
+import java.util.stream.Collectors;
 
 /**
  * Runs one Add or Refresh at a time and retains its latest progress for polling and page reloads.
@@ -20,7 +24,7 @@ public class LibraryJobService {
   /** Repository work reports domain progress; it does not manage scheduling or transport. */
   @FunctionalInterface
   public interface Work {
-    void run(LibraryProgress.Listener progress) throws Exception;
+    List<RepositoryOutcome> run(LibraryProgress.Listener progress) throws Exception;
   }
 
   private final LibraryUpdateService updates;
@@ -33,9 +37,14 @@ public class LibraryJobService {
   }
 
   /** Starts work, or returns the current job when one is already running. */
-  public synchronized LibraryJob start(String kind, Work work) {
-    if (latest != null && !latest.task.isDone()) return latest.snapshot();
-    var job = new Job(kind, work);
+  public synchronized LibraryJob start(String kind, Object command, Work work) {
+    if (latest != null && !latest.task.isDone()) {
+      if (!latest.command.equals(command))
+        throw new StateConflictException(
+            "Another library operation is running; wait for it to finish");
+      return latest.snapshot();
+    }
+    var job = new Job(kind, command, work);
     executor.execute(job.task);
     latest = job;
     return job.snapshot();
@@ -57,18 +66,20 @@ public class LibraryJobService {
   private final class Job {
     final String id = UUID.randomUUID().toString();
     final String kind;
-    final FutureTask<Void> task;
+    final FutureTask<List<RepositoryOutcome>> task;
+    final Object command;
     volatile LibraryProgress progress;
 
-    Job(String kind, Work work) {
+    Job(String kind, Object command, Work work) {
       this.kind = kind;
+      this.command = command;
       task =
           new FutureTask<>(
               () -> {
                 try {
                   synchronized (updates) {
                     if (Thread.currentThread().isInterrupted()) throw new InterruptedException();
-                    work.run(next -> progress = next);
+                    return List.copyOf(work.run(next -> progress = next));
                   }
                 } catch (InterruptedException interrupted) {
                   Thread.currentThread().interrupt();
@@ -79,15 +90,30 @@ public class LibraryJobService {
                     LOG.log(System.Logger.Level.ERROR, "Library job failed", failure);
                   throw failure;
                 }
-                return null;
               });
     }
 
     LibraryJob snapshot() {
       return switch (task.state()) {
-        case RUNNING -> new LibraryJob(id, kind, "running", progress, null);
-        case SUCCESS -> new LibraryJob(id, kind, "succeeded", progress, null);
-        case CANCELLED -> new LibraryJob(id, kind, "failed", progress, "Server is shutting down");
+        case RUNNING -> new LibraryJob(id, kind, "running", progress, null, List.of());
+        case SUCCESS -> {
+          var outcomes = task.resultNow();
+          var failures =
+              outcomes.stream().filter(result -> "failed".equals(result.state())).toList();
+          yield new LibraryJob(
+              id,
+              kind,
+              failures.isEmpty() ? "succeeded" : "failed",
+              progress,
+              failures.isEmpty()
+                  ? null
+                  : failures.stream()
+                      .map(RepositoryOutcome::error)
+                      .collect(Collectors.joining("; ")),
+              outcomes);
+        }
+        case CANCELLED ->
+            new LibraryJob(id, kind, "failed", progress, "Server is shutting down", List.of());
         case FAILED -> {
           var failure = task.exceptionNow();
           String message =
@@ -97,7 +123,7 @@ public class LibraryJobService {
                           || failure instanceof NoSuchElementException
                       ? failure.getMessage()
                       : "Something went wrong; the server log has the details";
-          yield new LibraryJob(id, kind, "failed", progress, message);
+          yield new LibraryJob(id, kind, "failed", progress, message, List.of());
         }
       };
     }

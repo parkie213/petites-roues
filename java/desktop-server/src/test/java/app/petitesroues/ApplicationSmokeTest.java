@@ -3,6 +3,7 @@ package app.petitesroues;
 import static app.petitesroues.support.DocumentFixtures.document;
 import static app.petitesroues.support.HttpClients.client;
 import static app.petitesroues.support.HttpClients.command;
+import static app.petitesroues.support.HttpClients.discover;
 import static org.junit.jupiter.api.Assertions.*;
 
 import app.petitesroues.documents.StudyDocumentCodec;
@@ -29,11 +30,12 @@ class ApplicationSmokeTest extends HttpIntegrationTest {
   void registerMediaThenDocumentsLinkByFingerprintAndResumePlayback() throws Exception {
     Path media = Files.createDirectories(root.resolve("media/series"));
     Path video = Files.copy(root.resolve("video.mp4"), media.resolve("Episode 1.mp4"));
-    http.post()
-        .uri("/api/repositories")
-        .body(Map.of("localPath", root.resolve("media").toString()))
-        .retrieve()
-        .toBodilessEntity();
+    discover(
+        http,
+        "add",
+        null,
+        Map.of("localPath", root.resolve("media").toString()),
+        app.petitesroues.model.library.ContentRepository.class);
     var unmatched = http.get().uri("/api/library").retrieve().body(Library.class);
     var mediaFolder = unmatched.repositories().getFirst();
     assertTrue(mediaFolder.entries().isEmpty());
@@ -50,11 +52,7 @@ class ApplicationSmokeTest extends HttpIntegrationTest {
         new StudyDocumentCodec().encode(title).getBytes(StandardCharsets.UTF_8));
 
     var registered =
-        http.post()
-            .uri("/api/repositories")
-            .body(Map.of("localPath", repository.toString()))
-            .retrieve()
-            .body(JsonNode.class);
+        discover(http, "add", null, Map.of("localPath", repository.toString()), JsonNode.class);
 
     // Each folder lists what it holds: the documents folder its title, the media folder its video,
     // which now names that title and no longer warns.

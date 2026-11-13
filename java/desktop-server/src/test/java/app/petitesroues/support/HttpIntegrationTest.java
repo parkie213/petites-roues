@@ -1,6 +1,7 @@
 package app.petitesroues.support;
 
 import static app.petitesroues.support.HttpClients.client;
+import static app.petitesroues.support.HttpClients.discover;
 
 import app.petitesroues.documents.StudyDocumentCodec;
 import app.petitesroues.media.MediaFingerprint;
@@ -99,16 +100,19 @@ public abstract class HttpIntegrationTest {
       String repositoryId =
           jdbc.queryForObject(
               "SELECT repository_id FROM titles WHERE id=?", String.class, title.id());
-      http.post()
-          .uri("/api/repositories/" + repositoryId + "/refresh")
-          .retrieve()
-          .toBodilessEntity();
+      discover(
+          http,
+          "refresh",
+          repositoryId,
+          null,
+          app.petitesroues.model.library.ContentRepository.class);
     } else {
-      http.post()
-          .uri("/api/repositories")
-          .body(Map.of("localPath", folder.toString()))
-          .retrieve()
-          .toBodilessEntity();
+      discover(
+          http,
+          "add",
+          null,
+          Map.of("localPath", folder.toString()),
+          app.petitesroues.model.library.ContentRepository.class);
     }
   }
 }

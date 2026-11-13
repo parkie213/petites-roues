@@ -1,5 +1,6 @@
 package app.petitesroues.web;
 
+import static app.petitesroues.support.HttpClients.discover;
 import static app.petitesroues.support.SpecFixtures.newPage;
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -49,11 +50,8 @@ class MediaLinkIntegrationTest extends HttpIntegrationTest {
   }
 
   private String add(Path folder) {
-    return http.post()
-        .uri("/api/repositories")
-        .body(Map.of("localPath", folder.toString()))
-        .retrieve()
-        .body(ContentRepository.class)
+    return discover(
+            http, "add", null, Map.of("localPath", folder.toString()), ContentRepository.class)
         .id();
   }
 
@@ -97,7 +95,7 @@ class MediaLinkIntegrationTest extends HttpIntegrationTest {
   }
 
   private void refresh() {
-    http.post().uri("/api/repositories/refresh").retrieve().toBodilessEntity();
+    discover(http, "refresh", null, null, app.petitesroues.model.library.ContentRepository.class);
   }
 
   @Test

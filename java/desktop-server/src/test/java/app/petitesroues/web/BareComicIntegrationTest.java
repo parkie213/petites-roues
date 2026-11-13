@@ -1,5 +1,6 @@
 package app.petitesroues.web;
 
+import static app.petitesroues.support.HttpClients.discover;
 import static org.junit.jupiter.api.Assertions.*;
 
 import app.petitesroues.media.MediaFingerprint;
@@ -27,11 +28,12 @@ class BareComicIntegrationTest extends HttpIntegrationTest {
         zip.closeEntry();
       }
     }
-    http.post()
-        .uri("/api/repositories")
-        .body(Map.of("localPath", root.resolve("media").toString()))
-        .retrieve()
-        .toBodilessEntity();
+    discover(
+        http,
+        "add",
+        null,
+        Map.of("localPath", root.resolve("media").toString()),
+        app.petitesroues.model.library.ContentRepository.class);
     String base = "/api/media/" + MediaFingerprint.of(cbz) + "/pages";
 
     List<String> pages =

@@ -135,13 +135,27 @@ export default async function startRealServer() {
   try {
     await waitForServer(server);
     for (const localPath of folders) {
-      const response = await fetch(`${api}/repositories`, {
+      const response = await fetch(`${api}/jobs`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ localPath }),
+        body: JSON.stringify({ kind: "add", localPath }),
       });
       if (!response.ok)
         throw Error(`Adding ${localPath} failed: ${await response.text()}`);
+      const started = await response.json();
+      let job = started;
+      const deadline = Date.now() + 30000;
+      while (job.state === "running" && Date.now() < deadline) {
+        await new Promise((resolve) => setTimeout(resolve, 50));
+        job = await (
+          await fetch(`${api}/jobs/${encodeURIComponent(started.id)}`)
+        ).json();
+      }
+      if (job.state !== "succeeded")
+        throw Error(job.error || "Add job did not finish");
+      const saved = await (await fetch(`${api}/repositories`)).json();
+      if (!saved.some((repository) => repository.localPath === localPath))
+        throw Error("Add was not persisted");
     }
   } catch (error) {
     server.kill();
