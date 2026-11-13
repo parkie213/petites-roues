@@ -58,6 +58,16 @@ jobs:
         run: bash setup/speech.sh
       - name: Verify the server against the built library
         run: ./java/mvnw -B -f java/pom.xml -pl desktop-test-fixtures,desktop-application,desktop-server verify -Dpetitesroues.test.voices="$HOME/.local/share/piper/voices"
+      - name: Upload Modulith trial reports
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: modulith-trial
+          path: |
+            java/desktop-server/target/modulith-trial/
+            java/desktop-server/target/spring-modulith-docs/
+          if-no-files-found: warn
+          retention-days: 7
       - name: Install frontend dependencies
         run: npm ci
         working-directory: web
