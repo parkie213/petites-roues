@@ -7,6 +7,7 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import org.springframework.context.annotation.Profile;
 import org.springframework.core.annotation.Order;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Component;
@@ -22,6 +23,7 @@ import tools.jackson.databind.json.JsonMapper;
  */
 @Component
 @Order(2)
+@Profile("!security")
 public class PhoneRequestFilter extends OncePerRequestFilter {
   /** The request attribute holding the authenticated {@code PairedPhone}. */
   public static final String PHONE = "petitesroues.phone";
@@ -34,7 +36,8 @@ public class PhoneRequestFilter extends OncePerRequestFilter {
     this.mapper = mapper;
   }
 
-  static boolean isPhonePath(HttpServletRequest request) {
+  /** Whether a request addresses the phone namespace, independently of its arrival port. */
+  public static boolean isPhonePath(HttpServletRequest request) {
     String path = request.getRequestURI().substring(request.getContextPath().length());
     return path.equals(PhoneRoutes.PREFIX) || path.startsWith(PhoneRoutes.PREFIX + "/");
   }

@@ -137,6 +137,10 @@ zero-position progress bar; the shared numeric fraction for zero is zero.
 
 ## Desktop application and server
 
+An optional [Spring Security phone trial](../docs/SPRING-SECURITY-TRIAL.md) compares
+framework authentication/authorization with the existing phone filter using the
+`security` profile. Default startup retains the existing filters.
+
 `desktop-application` owns use cases and their supporting implementations. It uses
 Spring services, JDBC and transactions, but has no HTTP or servlet dependency.
 Services coordinate workflows and transactions; stores contain SQL and row mapping;
