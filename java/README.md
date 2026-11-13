@@ -195,3 +195,32 @@ From the repository root:
 
 Media integration tests require FFmpeg. CI builds shared artifacts before desktop
 and Android consumers; see [the workflow](../.github/workflows/ci.yml).
+
+### Runtime logging
+
+The desktop server uses Spring Boot's default Logback configuration. Application
+`System.Logger` calls use the JDK's `java.util.logging` backend; Boot installs
+`SLF4JBridgeHandler`, routing those calls through SLF4J to Logback. In the normal
+`java -jar` launch, Boot writes these messages to standard output. No log file is
+configured by this repository. Use terminal output (or the launching process's
+captured stdout); set `logging.file.name=/absolute/path/server.log` if a retained
+file is needed. No custom Logback XML or additional logging provider is required.
+Outside Boot, application-only tests use the JDK console handler on standard error.
+
+Failure markers use stable operation names: `catalogue.migrate`, `review.complete`
+and `review.replay`. Migration failures include the exception type and Flyway
+error code, then propagate the original failure so startup stops. Flyway's own
+startup diagnostics retain the migration version, script and validation details.
+Review completion failures include the local title ID and batch ID; replay
+conflicts also include the queue sequence. A null batch means an unclaimed edit.
+Use those identifiers with the review queue/history API to inspect the work.
+Main currently publishes reviewed content through agent file writes and batch
+completion; there is no separate application publication endpoint.
+
+These markers deliberately exclude documents, commands, learner notes, SQL,
+exception messages and nested exceptions: parsing and edit errors may embed
+source text. Pass identifiers and fixed reason codes when extending them, never
+serialize request bodies or document models into logs. Boot/Flyway still own their
+normal startup exception reporting; these markers do not sanitize third-party
+logs. `LoggingIntegrationTest` verifies the real Boot stdout route, failure
+propagation, conflict identifiers and omission of private command/exception text.

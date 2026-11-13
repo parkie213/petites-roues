@@ -25,6 +25,8 @@ import org.springframework.transaction.support.TransactionTemplate;
  */
 @Service
 public class ReviewQueueService {
+  private static final System.Logger LOG = System.getLogger(ReviewQueueService.class.getName());
+
   private static final Set<String> OUTCOMES =
       Set.of("applied", "already_correct", "not_adopted", "reviewed");
 
@@ -129,6 +131,21 @@ public class ReviewQueueService {
    * requests change nothing by themselves, so they never require a file change.
    */
   public void complete(String id, long batchId, ReviewCompletion request) throws IOException {
+    try {
+      completeBatch(id, batchId, request);
+    } catch (IOException | RuntimeException failure) {
+      // Exception messages can contain source text or decoded document fragments.
+      LOG.log(
+          System.Logger.Level.WARNING,
+          "operation=review.complete title={0} batch={1} failure={2}",
+          id,
+          Long.toString(batchId),
+          failure.getClass().getName());
+      throw failure;
+    }
+  }
+
+  private void completeBatch(String id, long batchId, ReviewCompletion request) throws IOException {
     String fallback = request == null || request.outcome() == null ? "applied" : request.outcome();
     var overrides =
         request == null || request.outcomes() == null ? Map.<Long, String>of() : request.outcomes();
@@ -203,6 +220,13 @@ public class ReviewQueueService {
             document = DocumentEdits.apply(document, row.command());
           } catch (IllegalArgumentException | NoSuchElementException noLongerApplies) {
             state = "conflict";
+            LOG.log(
+                System.Logger.Level.WARNING,
+                "operation=review.replay title={0} batch={1} sequence={2} failure={3}",
+                title.id(),
+                String.valueOf(row.batch()),
+                Long.toString(row.sequence()),
+                noLongerApplies.getClass().getName());
           }
         }
       }
