@@ -41,7 +41,11 @@ production code for Java 17 for Android; tests use Java 25.
 identities and located Markdown entries, plus the library rules shared with Android: one walk of a
 registered folder through a small `ContentTree` interface (java.nio on the desktop, the
 Storage Access Framework on Android), what counts as a document, video or comic, where
-posters are, and the v1 media fingerprint. Like the document modules it has no Spring and targets
+posters are, and the v1 media fingerprint. Its `CbzArchiveReader` owns CBZ entry validation,
+image ordering and bounded decompression through Commons Compress. Both platforms supply seekable
+channels; desktop opens filesystem paths and Android opens URI file descriptors and decodes the
+returned image bytes. The reader owns its channel, including cleanup on failed opening.
+Like the document modules it has no Spring and targets
 Java 17, and the Android app uses its jar.
 `java/sync` is how the phone and the desktop talk: the wire records (`app.petitesroues.sync.model`),
 the phone listener's routes, the QR pairing code reader, certificate pinning (`CertificatePins`)
