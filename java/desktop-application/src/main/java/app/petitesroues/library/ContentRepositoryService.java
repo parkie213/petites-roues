@@ -12,6 +12,7 @@ import app.petitesroues.media.MediaProbe;
 import app.petitesroues.model.document.StudyDocument;
 import app.petitesroues.model.library.ContentRepository;
 import app.petitesroues.model.library.IndexedMedia;
+import app.petitesroues.study.DocumentStore;
 import app.petitesroues.study.ReviewQueue;
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -63,17 +64,24 @@ public class ContentRepositoryService {
 
   private final ContentRepositoryStore repositories;
 
-  /** A discovered document path whose contents passed preflight validation. */
-  private record DiscoveredDocument(Path documentPath) {}
+  /** A discovered document: its path and the one read of it, which passed preflight validation. */
+  private record DiscoveredDocument(Path documentPath, DocumentStore.Bytes read) {}
 
-  /** A folder's validated documents and probed media, ready to index in one transaction. */
-  private record Discovered(List<DiscoveredDocument> documents, List<IndexedMedia> media) {}
+  /**
+   * A folder's validated documents and probed media, ready to index in one transaction. {@code
+   * acceptedHashes} are the accepted copies' hashes (by document ID) from before discovery began.
+   */
+  private record Discovered(
+      List<DiscoveredDocument> documents,
+      List<IndexedMedia> media,
+      Map<String, String> acceptedHashes) {}
 
   private final ContentRepositoryScanner scanner;
   private final StudyDocumentReader reader;
   private final TransactionTemplate transactions;
   private final RepositoryContentService registration;
   private final ReviewQueue queue;
+  private final DocumentImportService imports;
   private final MediaStore media;
   private final MediaProbe probe;
 
@@ -84,6 +92,7 @@ public class ContentRepositoryService {
       TransactionTemplate transactions,
       RepositoryContentService registration,
       ReviewQueue queue,
+      DocumentImportService imports,
       MediaStore media,
       MediaProbe probe) {
     this.repositories = repositories;
@@ -92,6 +101,7 @@ public class ContentRepositoryService {
     this.transactions = transactions;
     this.registration = registration;
     this.queue = queue;
+    this.imports = imports;
     this.media = media;
     this.probe = probe;
   }
@@ -130,7 +140,7 @@ public class ContentRepositoryService {
         request.name() == null || request.name().isBlank()
             ? root.getFileName().toString()
             : request.name().strip();
-    var discovered = discover(root, name, List.of(), progress);
+    var discovered = discover(id, root, name, List.of(), progress);
     progress.report(new LibraryProgress(name, "saving", 0, 0, null));
     transactions.executeWithoutResult(
         status -> {
@@ -160,7 +170,11 @@ public class ContentRepositoryService {
     var repository = repositories.find(id);
     var discovered =
         discover(
-            Path.of(repository.localPath()), repository.name(), media.inRepository(id), progress);
+            id,
+            Path.of(repository.localPath()),
+            repository.name(),
+            media.inRepository(id),
+            progress);
     progress.report(new LibraryProgress(repository.name(), "saving", 0, 0, null));
     transactions.executeWithoutResult(status -> updateIndex(id, discovered));
     return repositories.find(id);
@@ -192,11 +206,17 @@ public class ContentRepositoryService {
   /**
    * Walks the folder, reads its study documents and probes its media before any index transaction
    * starts. Media whose size and modification time match its previous index row keeps that row's
-   * probe; anything else is probed now.
+   * probe; anything else is probed now. The accepted hashes are noted first, so the index
+   * transaction can tell whether an accepted copy changed meanwhile.
    */
   private Discovered discover(
-      Path root, String folder, List<IndexedMedia> previous, LibraryProgress.Listener progress)
+      String repositoryId,
+      Path root,
+      String folder,
+      List<IndexedMedia> previous,
+      LibraryProgress.Listener progress)
       throws IOException {
+    Map<String, String> acceptedHashes = imports.acceptedHashes(repositoryId);
     progress.report(new LibraryProgress(folder, "scanning", 0, 0, null));
     var found = scanner.scan(root);
     int count = 0, total = found.media().size();
@@ -245,10 +265,13 @@ public class ContentRepositoryService {
             folder,
             found.documents().stream().map(ContentScanner.Found::handle).toList(),
             progress),
-        probed);
+        probed,
+        acceptedHashes);
   }
 
-  /** Reads the files that claim to be study documents and rejects duplicate IDs. */
+  /**
+   * Reads each file once, validates those claiming to be study documents, rejects duplicate IDs.
+   */
   private List<DiscoveredDocument> readDocuments(
       Path root, String folder, List<Path> candidates, LibraryProgress.Listener progress)
       throws IOException {
@@ -263,17 +286,20 @@ public class ContentRepositoryService {
               count++,
               candidates.size(),
               root.relativize(file).toString().replace('\\', '/')));
-      if (!reader.isStudyDocument(file)) continue;
+      byte[] bytes = Files.readAllBytes(file);
+      if (!reader.isStudyDocument(bytes)) continue;
       StudyDocument document;
       try {
-        document = reader.read(file);
+        document = reader.decode(bytes);
       } catch (RuntimeException failure) {
         throw new IllegalArgumentException(
             "Invalid document at " + root.relativize(file) + ": " + failure.getMessage(), failure);
       }
       if (!ids.add(document.id()))
         throw new IllegalArgumentException("Duplicate title ID in repository: " + document.id());
-      documents.add(new DiscoveredDocument(file));
+      documents.add(
+          new DiscoveredDocument(
+              file, new DocumentStore.Bytes(bytes, document, DocumentStore.sha256(bytes))));
     }
     return documents;
   }
@@ -281,17 +307,22 @@ public class ContentRepositoryService {
   /**
    * Reconciles a complete discovery result inside the caller's transaction. Existing titles start
    * as missing; each discovered title is registered and marked present, and the folder's media
-   * index is replaced. Registration assigns or retains each local entry ID and rereads the document
-   * through {@link RepositoryContentService}. Checked read failures are wrapped so the enclosing
-   * transaction rolls back.
+   * index is replaced. Registration assigns or retains each local entry ID from the document
+   * already read, through {@link RepositoryContentService}, and each title's accepted copy is saved
+   * by {@link DocumentImportService#accept}. No file is read here; checked failures are wrapped so
+   * the enclosing transaction rolls back.
    */
   private void updateIndex(String repositoryId, Discovered discovered) {
     repositories.markTitlesMissing(repositoryId);
     for (var item : discovered.documents()) {
       try {
-        registration.register(
-            new RepositoryContentService.Registration(item.documentPath().toString(), true),
-            repositoryId);
+        var read = item.read();
+        var entry =
+            registration.register(
+                new RepositoryContentService.Registration(item.documentPath().toString(), true),
+                read.document(),
+                repositoryId);
+        imports.accept(entry, discovered.acceptedHashes().get(read.document().id()), read);
       } catch (IOException failure) {
         throw new UncheckedIOException(failure);
       }

@@ -40,17 +40,19 @@ import org.springframework.transaction.support.TransactionTemplate;
 @ExtendWith(MockitoExtension.class)
 class ContentRepositoryServiceTest {
   static final String ID = "repository";
-  final Path root = Path.of("repository-content").toAbsolutePath();
-  final Path first = root.resolve("a/document.json");
-  final Path second = root.resolve("b/document.json");
-  final ContentRepository repository =
-      new ContentRepository(ID, "Repository", root.toString(), "old", 1, 0);
+  static final byte[] FIRST = "first".getBytes();
+  static final byte[] SECOND = "second".getBytes();
+  @TempDir Path root;
+  Path first;
+  Path second;
+  ContentRepository repository;
   @Mock ContentRepositoryStore repositories;
   @Mock CatalogueStore catalogue;
   @Mock ContentRepositoryScanner scanner;
   @Mock StudyDocumentReader reader;
   @Mock RepositoryContentService registration;
   @Mock ReviewQueue queue;
+  @Mock DocumentImportService imports;
   @Mock MediaStore media;
   @Mock MediaProbe probe;
   @Mock TransactionTemplate transactions;
@@ -59,10 +61,22 @@ class ContentRepositoryServiceTest {
 
   @BeforeEach
   void setup() throws IOException {
+    first = Files.write(Files.createDirectories(root.resolve("a")).resolve("document.json"), FIRST);
+    second =
+        Files.write(Files.createDirectories(root.resolve("b")).resolve("document.json"), SECOND);
+    repository = new ContentRepository(ID, "Repository", root.toString(), "old", 1, 0);
     service =
         new ContentRepositoryService(
-            repositories, scanner, reader, transactions, registration, queue, media, probe);
-    lenient().when(reader.isStudyDocument(any(Path.class))).thenReturn(true);
+            repositories,
+            scanner,
+            reader,
+            transactions,
+            registration,
+            queue,
+            imports,
+            media,
+            probe);
+    lenient().when(reader.isStudyDocument(any(byte[].class))).thenReturn(true);
   }
 
   private static ContentScanner.Discovery<Path> found(Path... documents) {
@@ -82,7 +96,7 @@ class ContentRepositoryServiceTest {
   private void oneDocument() throws IOException {
     knownRepository();
     when(scanner.scan(root)).thenReturn(found(first));
-    when(reader.read(first)).thenReturn(document("title"));
+    when(reader.decode(FIRST)).thenReturn(document("title"));
   }
 
   private void executeTransaction() {
@@ -100,8 +114,8 @@ class ContentRepositoryServiceTest {
   void duplicateIdsAreRejectedBeforeStartingATransaction() throws Exception {
     knownRepository();
     when(scanner.scan(root)).thenReturn(found(first, second));
-    when(reader.read(first)).thenReturn(document("title"));
-    when(reader.read(second)).thenReturn(document("title"));
+    when(reader.decode(FIRST)).thenReturn(document("title"));
+    when(reader.decode(SECOND)).thenReturn(document("title"));
     var failure = assertThrows(IllegalArgumentException.class, () -> service.refresh(ID));
     assertTrue(failure.getMessage().contains("Duplicate title ID"));
     verifyNoInteractions(transactions, registration, catalogue);
@@ -113,7 +127,7 @@ class ContentRepositoryServiceTest {
     knownRepository();
     when(scanner.scan(root)).thenReturn(found(first));
     var cause = new IllegalArgumentException("Unsupported document format");
-    when(reader.read(first)).thenThrow(cause);
+    when(reader.decode(FIRST)).thenThrow(cause);
     var failure = assertThrows(IllegalArgumentException.class, () -> service.refresh(ID));
     assertTrue(failure.getMessage().contains(root.relativize(first).toString()));
     assertSame(cause, failure.getCause());
@@ -124,9 +138,8 @@ class ContentRepositoryServiceTest {
   void readFailurePropagatesWithoutStartingATransaction() throws Exception {
     knownRepository();
     when(scanner.scan(root)).thenReturn(found(first));
-    var failure = new IOException("Unreadable document");
-    when(reader.read(first)).thenThrow(failure);
-    assertSame(failure, assertThrows(IOException.class, () -> service.refresh(ID)));
+    Files.delete(first);
+    assertThrows(IOException.class, () -> service.refresh(ID));
     verifyNoInteractions(transactions, registration, catalogue);
   }
 
@@ -159,7 +172,7 @@ class ContentRepositoryServiceTest {
   void ownedAndNewTitlesCanBeRegisteredWithTheirReferenceMetadata() throws Exception {
     knownRepository();
     executeTransaction();
-    when(reader.read(first)).thenReturn(document("title"));
+    when(reader.decode(FIRST)).thenReturn(document("title"));
     when(scanner.scan(root)).thenReturn(found(first, second));
     var base = document("new-title");
     var video = base.video();
@@ -173,13 +186,13 @@ class ContentRepositoryServiceTest {
             null,
             null,
             new VideoDocument(null, null, new VideoReference(null, null, 120.0), video.cues()));
-    when(reader.read(second)).thenReturn(added);
+    when(reader.decode(SECOND)).thenReturn(added);
     when(registration.register(
-            new RepositoryContentService.Registration(first.toString(), true), ID))
+            eq(new RepositoryContentService.Registration(first.toString(), true)), any(), eq(ID)))
         .thenReturn(
             new CatalogueEntry("local-title", "Title", null, null, null, null, first.toString()));
     when(registration.register(
-            new RepositoryContentService.Registration(second.toString(), true), ID))
+            eq(new RepositoryContentService.Registration(second.toString(), true)), any(), eq(ID)))
         .thenReturn(
             new CatalogueEntry(
                 "local-new-title", "New title", null, null, null, null, second.toString()));
@@ -187,9 +200,11 @@ class ContentRepositoryServiceTest {
     assertSame(repository, service.refresh(ID));
 
     verify(registration)
-        .register(new RepositoryContentService.Registration(first.toString(), true), ID);
+        .register(
+            eq(new RepositoryContentService.Registration(first.toString(), true)), any(), eq(ID));
     verify(registration)
-        .register(new RepositoryContentService.Registration(second.toString(), true), ID);
+        .register(
+            eq(new RepositoryContentService.Registration(second.toString(), true)), any(), eq(ID));
     verify(repositories).recordRefresh(eq(ID), anyString());
   }
 
@@ -198,9 +213,9 @@ class ContentRepositoryServiceTest {
     knownRepository();
     executeTransaction();
     when(scanner.scan(root)).thenReturn(found(first));
-    when(reader.isStudyDocument(first)).thenReturn(false);
+    when(reader.isStudyDocument(FIRST)).thenReturn(false);
     service.refresh(ID);
-    verify(reader, never()).read(any());
+    verify(reader, never()).decode(any());
     verifyNoInteractions(registration);
     verify(media).replace(ID, List.of());
   }

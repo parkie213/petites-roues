@@ -44,14 +44,30 @@ public class DocumentStore {
   /** The decoded file and the SHA-256 of its exact bytes, read together. */
   public record Snapshot(StudyDocument document, String sha256) {}
 
+  /** The exact bytes of a document file with their decoded document and SHA-256. */
+  public record Bytes(byte[] bytes, StudyDocument document, String sha256) {}
+
   public Snapshot read(CatalogueEntry entry) throws IOException {
+    var read = readBytes(entry);
+    return new Snapshot(read.document(), read.sha256());
+  }
+
+  /**
+   * Reads the title's file once and validates it as {@link #read} does, keeping the bytes so a
+   * caller can store exactly what was validated.
+   */
+  public Bytes readBytes(CatalogueEntry entry) throws IOException {
     byte[] bytes = Files.readAllBytes(entry.documentFile());
     StudyDocument document = reader.decode(bytes);
     if (!entry.documentId().equals(document.id()))
       throw new IOException("Document ID differs from library index: " + entry.id());
+    return new Bytes(bytes, document, sha256(bytes));
+  }
+
+  /** Lower-case hex SHA-256 of {@code bytes}. */
+  public static String sha256(byte[] bytes) {
     try {
-      return new Snapshot(
-          document, HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(bytes)));
+      return HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(bytes));
     } catch (NoSuchAlgorithmException impossible) {
       throw new IllegalStateException(impossible);
     }

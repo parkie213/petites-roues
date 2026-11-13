@@ -1,6 +1,5 @@
 package app.petitesroues.library;
 
-import app.petitesroues.documents.StudyDocumentReader;
 import app.petitesroues.library.persistence.CatalogueStore;
 import app.petitesroues.library.persistence.ContentRepositoryStore;
 import app.petitesroues.model.document.StudyDocument;
@@ -18,7 +17,7 @@ import org.springframework.transaction.annotation.Transactional;
  * Indexes one existing study document (a JSON file of any name) in this computer's SQLite catalogue
  * so the application can load and edit it by its stable title ID.
  *
- * <p>Registration reads and validates the study document, then inserts or updates its display
+ * <p>Registration takes the already-validated study document, then inserts or updates its display
  * metadata and document location. The document remains the source of truth for subtitles and
  * learner notes; registration does not rewrite or copy it. Its reference fingerprint is stored so
  * that indexed media can be matched to it; media itself is indexed by Refresh.
@@ -33,13 +32,10 @@ import org.springframework.transaction.annotation.Transactional;
 public class RepositoryContentService {
   private final ContentRepositoryStore repositories;
   private final CatalogueStore repository;
-  private final StudyDocumentReader reader;
 
-  public RepositoryContentService(
-      ContentRepositoryStore repositories, CatalogueStore repository, StudyDocumentReader reader) {
+  public RepositoryContentService(ContentRepositoryStore repositories, CatalogueStore repository) {
     this.repositories = repositories;
     this.repository = repository;
-    this.reader = reader;
   }
 
   /**
@@ -51,21 +47,44 @@ public class RepositoryContentService {
    */
   public record Registration(String documentPath, boolean replace) {}
 
-  /** Indexes a discovered document relative to its owning repository within Add/Refresh. */
+  /**
+   * Indexes a discovered document relative to its owning repository within Add/Refresh. {@code
+   * document} is the already-decoded content of the file at {@code request.documentPath()}; the
+   * file's contents are not read again.
+   */
   @Transactional
-  public synchronized CatalogueEntry register(Registration request, String repositoryId)
-      throws IOException {
-    return index(request, repositoryId);
+  public synchronized CatalogueEntry register(
+      Registration request, StudyDocument document, String repositoryId) throws IOException {
+    return index(request, document, repositoryId);
   }
 
-  private CatalogueEntry index(Registration request, String repositoryId) throws IOException {
+  /**
+   * Updates an indexed title's display and reference metadata from its newly accepted document,
+   * keeping its identity, location and missing flag. The caller owns the transaction.
+   */
+  public CatalogueEntry updateMetadata(CatalogueEntry entry, StudyDocument document) {
+    var location = entry.location();
+    var updated =
+        entryFor(
+            entry.id(),
+            entry.documentPath(),
+            location.repositoryId(),
+            location.repositoryName(),
+            location.repositoryPath(),
+            location.missing(),
+            document);
+    repository.saveTitle(updated);
+    return updated;
+  }
+
+  private CatalogueEntry index(Registration request, StudyDocument document, String repositoryId)
+      throws IOException {
     if (request == null || request.documentPath() == null)
       throw new IllegalArgumentException("Document path is required");
     Path file = Path.of(request.documentPath());
     if (!file.isAbsolute()) throw new IllegalArgumentException("Document path must be absolute");
     if (!Files.isRegularFile(file)) throw new IllegalArgumentException("Missing file: " + file);
     file = file.toRealPath();
-    StudyDocument document = reader.read(file);
     CatalogueEntry previous = repository.findDocument(repositoryId, document.id()).orElse(null);
     if (previous != null && !request.replace()) throw new TitleExistsException();
     // One physical file must not acquire independent edit histories through overlapping roots.
@@ -85,31 +104,50 @@ public class RepositoryContentService {
     if (!file.startsWith(root))
       throw new IllegalArgumentException("Document is outside its owning repository");
     String storedPath = root.relativize(file).toString().replace('\\', '/');
-    var metadata = DocumentMetadata.from(document);
-    var location =
-        new CatalogueLocation(
+    var entry =
+        entryFor(
+            entryId,
+            storedPath,
             repositoryId,
             owningRepository.name(),
             root.toString(),
             false,
+            document);
+    repository.saveTitle(entry);
+    return entry;
+  }
+
+  /** The title row for {@code document}: its metadata at the given identity and location. */
+  private static CatalogueEntry entryFor(
+      String entryId,
+      String storedPath,
+      String repositoryId,
+      String repositoryName,
+      String repositoryPath,
+      boolean missing,
+      StudyDocument document) {
+    var metadata = DocumentMetadata.from(document);
+    var location =
+        new CatalogueLocation(
+            repositoryId,
+            repositoryName,
+            repositoryPath,
+            missing,
             metadata.durationSeconds(),
             metadata.kind().id(),
             metadata.referenceFingerprint());
-    var entry =
-        new CatalogueEntry(
-            entryId,
-            metadata.documentId(),
-            metadata.title(),
-            metadata.series(),
-            metadata.season(),
-            metadata.episode(),
-            metadata.volume(),
-            metadata.shelf(),
-            metadata.sourceLanguage(),
-            metadata.sourceUrl(),
-            storedPath,
-            location);
-    repository.saveTitle(entry);
-    return entry;
+    return new CatalogueEntry(
+        entryId,
+        metadata.documentId(),
+        metadata.title(),
+        metadata.series(),
+        metadata.season(),
+        metadata.episode(),
+        metadata.volume(),
+        metadata.shelf(),
+        metadata.sourceLanguage(),
+        metadata.sourceUrl(),
+        storedPath,
+        location);
   }
 }
