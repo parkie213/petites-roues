@@ -811,7 +811,7 @@
     "status": 200,
     "type": "application/json",
     "json": {
-      "libraryBytes": 2379292,
+      "libraryBytes": 2379514,
       "disks": [
         {
           "repositories": [

@@ -153,12 +153,10 @@ test("the actual library views and navigation stay inside the demo", async ({
   if (isMobile)
     await page.getByRole("button", { name: "Browse notes" }).click();
   await expect(
-    page.getByText(
-      "No notes yet. Add Markdown files to a repository’s notes/ folder.",
-      { exact: true },
-    ),
+    page.getByRole("link", { name: "Verbs followed by an infinitive" }),
   ).toBeVisible();
-  expect(await readJson(page, "/api/notes")).toEqual([]);
+  const notes = await readJson(page, "/api/notes");
+  expect(notes.map((note) => note.id)).toEqual(["verb-plus-infinitive"]);
   await page.reload();
   await expect(
     page.getByRole("link", { name: "Notes", exact: true }),
@@ -256,4 +254,115 @@ test("the real speech API plays saved bubbles, phrases, R replay and listening m
   await expect(
     page.getByRole("button", { name: "Stop listening on hover" }),
   ).toHaveAttribute("aria-pressed", "true");
+});
+
+test("example notes render and the general quiz exports a complete prompt", async ({
+  page,
+}, info) => {
+  await page.goto(
+    "/demo/?route=" + encodeURIComponent("/notes/demo/verb-plus-infinitive"),
+  );
+  await expect(
+    page.getByRole("heading", { name: "Only the first verb is conjugated" }),
+  ).toBeVisible();
+  await expect(page.getByRole("table")).toContainText("I love jumping");
+  await page.reload();
+  await expect(
+    page.getByRole("heading", { name: "Only the first verb is conjugated" }),
+  ).toBeVisible();
+  await page.screenshot({ path: info.outputPath("example-notes.png") });
+  await page.getByRole("link", { name: "Quiz me", exact: true }).click();
+  await expect(
+    page.getByRole("article").getByRole("heading", {
+      name: "Verbs followed by an infinitive",
+      exact: true,
+    }),
+  ).toBeVisible();
+  await expect(page.getByRole("article")).toContainText("Traps to look for");
+  const downloaded = page.waitForEvent("download");
+  await page.getByRole("button", { name: "Download .md", exact: true }).click();
+  const file = await downloaded;
+  expect(file.suggestedFilename()).toBe(
+    "quiz-verbs-followed-by-an-infinitive.md",
+  );
+  const prompt = readFileSync(await file.path(), "utf8");
+  expect(prompt).toContain(
+    "The learner is studying French and wants explanations in English.",
+  );
+  expect(prompt).toContain("## Quiz rules");
+  expect(prompt).toContain("j'essaie de comprendre");
+  expect(prompt).toContain("wait for the attempt");
+  expect(prompt).not.toContain("Oh non, il pleut !");
+  const quizzes = await readJson(page, "/api/quizzes");
+  expect(quizzes.map((quiz) => quiz.id)).toEqual(["verb-plus-infinitive"]);
+  await page.screenshot({ path: info.outputPath("example-general-quiz.png") });
+});
+
+test("chapter quiz exports only the chosen chapter and respects the selected quiz type", async ({
+  page,
+}, info) => {
+  await open(page);
+  const prepare = (chapterPageId, label, action) =>
+    expectWrite(
+      page,
+      {
+        method: "POST",
+        path: comic + "/quiz",
+        body: (body) =>
+          body.chapterPageId === chapterPageId &&
+          body.rules.includes("# Subtitle quiz agent") &&
+          body.type.label === label &&
+          body.type.instructions.length > 20,
+      },
+      action,
+    );
+  // This POST prepares text without mutating the document or saving a review command.
+  const before = await readJson(page, comic);
+  expect(before).toEqual(
+    JSON.parse(
+      readFileSync(
+        new URL(
+          "../../example/documents-fr/comics/lulu/le-parapluie-de-lulu/document.json",
+          import.meta.url,
+        ),
+        "utf8",
+      ),
+    ),
+  );
+  const first = await prepare("page-1", "Translate into French", () =>
+    page.getByRole("button", { name: "Quiz me", exact: true }).click(),
+  );
+  expect(first.text).toContain("Oh non, il pleut ! → Oh no, it's raining!");
+  expect(first.text).not.toContain("Ne t'en fais pas, j'adore la pluie !");
+  expect(first.fileName).toBe("quiz-le-parapluie-de-lulu-chapter-1.md");
+  const dialog = page.getByRole("dialog", { name: "Quiz me", exact: true });
+  await expect(
+    dialog.getByRole("button", { name: "Download", exact: true }),
+  ).toBeEnabled();
+  const second = await prepare("page-2", "Translate into French", async () => {
+    await dialog
+      .getByRole("combobox", { name: "Chapter", exact: true })
+      .click();
+    await dialog
+      .getByRole("option", { name: "2 · On partage !", exact: true })
+      .click();
+  });
+  expect(second.text).toContain("Ne t'en fais pas, j'adore la pluie !");
+  expect(second.text).toContain("Tiens, prends cette feuille.");
+  expect(second.text).not.toContain("Oh non, il pleut !");
+  const vocabulary = await prepare("page-2", "Vocabulary", () =>
+    dialog.getByText("Vocabulary", { exact: true }).click(),
+  );
+  expect(vocabulary.text).toContain("## Quiz type: Vocabulary");
+  expect(vocabulary.text).toContain("ask what it means");
+  expect(vocabulary.text).not.toContain("Non` = no.");
+  const downloaded = page.waitForEvent("download");
+  await dialog.getByRole("button", { name: "Download", exact: true }).click();
+  const file = await downloaded;
+  expect(file.suggestedFilename()).toBe(
+    "quiz-le-parapluie-de-lulu-chapter-2.md",
+  );
+  expect(readFileSync(await file.path(), "utf8")).toBe(vocabulary.text);
+  expect(await readJson(page, comic)).toEqual(before);
+  await page.screenshot({ path: info.outputPath("chapter-quiz.png") });
 });

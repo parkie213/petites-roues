@@ -1,3 +1,4 @@
+import { isDemo } from "../shared/app-location.js";
 import { useEffect, useRef, useState } from "react";
 import { request } from "../shared/api.ts";
 
@@ -24,15 +25,18 @@ export function useComicProgress(api: string) {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ pageId }),
-          keepalive: true,
+          // The demo saves through its worker; Firefox sends keepalive requests to the network instead.
+          keepalive: !isDemo,
         }),
       )
       .then(() => {
         if (active.current) setSaveError("");
       })
-      .catch(() => {
+      .catch((failure: Error) => {
         if (active.current)
-          setSaveError("Your reading position could not be saved.");
+          setSaveError(
+            `Your reading position could not be saved. ${failure.message}`,
+          );
       });
   }
 

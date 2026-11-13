@@ -410,7 +410,7 @@
     "status": 200,
     "type": "application/json",
     "json": {
-      "libraryBytes": 2379292,
+      "libraryBytes": 2379514,
       "disks": [
         {
           "repositories": [
@@ -1030,7 +1030,18 @@
             ]
           }
         ],
-        "chapters": []
+        "chapters": [
+          {
+            "number": 1,
+            "title": "Sans parapluie",
+            "pageId": "page-1"
+          },
+          {
+            "number": 2,
+            "title": "On partage !",
+            "pageId": "page-2"
+          }
+        ]
       }
     }
   },

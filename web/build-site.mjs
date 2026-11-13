@@ -1,6 +1,6 @@
 /** Packages the normal app build, original sample comic and saved voice clips for GitHub Pages. */
 import { createHash } from "node:crypto";
-import { cp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
+import { cp, mkdir, readFile, readdir, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { unzipSync } from "fflate";
@@ -21,6 +21,43 @@ const document = JSON.parse(
     "utf8",
   ),
 );
+// Read chapter scopes from the same comic document served by the desktop app.
+let previous = -1;
+for (const chapter of document.comic.chapters) {
+  const index = document.comic.pages.findIndex(
+    (page) => page.id === chapter.pageId,
+  );
+  if (!chapter.title?.trim() || index <= previous)
+    throw new Error(
+      "Comic chapters must have titles and start on distinct pages in reading order.",
+    );
+  previous = index;
+}
+async function markdownPages(kind) {
+  const files = (await readdir(path.join(root, "example/documents-fr", kind)))
+    .filter((file) => file.endsWith(".md"))
+    .sort();
+  return Promise.all(
+    files.map(async (file) => {
+      const text = await readFile(
+        path.join(root, "example/documents-fr", kind, file),
+        "utf8",
+      );
+      const id = file.slice(0, -3);
+      return {
+        repository: "demo",
+        repositoryName: "Demo",
+        id,
+        title: text.match(/^# (.+)$/m)?.[1] ?? id,
+        text,
+      };
+    }),
+  );
+}
+const [notes, quizzes] = await Promise.all([
+  markdownPages("notes"),
+  markdownPages("quizzes"),
+]);
 const recordings = JSON.parse(
   await readFile(path.join(audio, "manifest.json"), "utf8"),
 );
@@ -87,13 +124,24 @@ for (const page of document.comic.pages) {
 await mkdir(path.join(demo, "audio"));
 for (const [name, bytes] of clips)
   await writeFile(path.join(demo, "audio", name), bytes);
-const data = JSON.stringify({ document, recordings });
+const data = JSON.stringify({ document, recordings, notes, quizzes });
 await writeFile(path.join(demo, "demo-data.json"), data);
 const version = createHash("sha256").update(data).digest("hex");
-const worker = await readFile(
-  path.join(web, "src/demo/demo-worker.js"),
-  "utf8",
-);
+// Bundle the demo responder and its shared quiz helpers as a classic service worker.
+await build({
+  configFile: false,
+  build: {
+    outDir: demo,
+    emptyOutDir: false,
+    lib: {
+      entry: path.join(web, "src/demo/demo-worker.js"),
+      name: "DemoApi",
+      formats: ["iife"],
+      fileName: () => "demo-worker.js",
+    },
+  },
+});
+const worker = await readFile(path.join(demo, "demo-worker.js"), "utf8");
 await writeFile(
   path.join(demo, "demo-worker.js"),
   worker + `\n// Demo data version: ${version}\n`,

@@ -6,6 +6,18 @@
   "notesLanguage": "en",
   "comic": {
     "readingDirection": "ltr",
+    "chapters": [
+      {
+        "number": 1,
+        "title": "Sans parapluie",
+        "pageId": "page-1"
+      },
+      {
+        "number": 2,
+        "title": "On partage !",
+        "pageId": "page-2"
+      }
+    ],
     "reference": {
       "fingerprint": "v1:7de12dfdfe43bebb28a4907886ff180444276491db4897898162a138bc060199",
       "sizeBytes": 591580
