@@ -20,6 +20,8 @@ import java.util.HexFormat;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import tools.jackson.core.JacksonException;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
@@ -30,7 +32,7 @@ import tools.jackson.databind.ObjectMapper;
  * No models are downloaded at startup. Existing complete installations are never overwritten.
  */
 public final class VoiceCatalogueService {
-  private static final System.Logger LOG = System.getLogger(VoiceCatalogueService.class.getName());
+  private static final Logger LOG = LoggerFactory.getLogger(VoiceCatalogueService.class);
   private final Path directory;
   private final HttpClient http;
   private final ObjectMapper json;
@@ -179,7 +181,7 @@ public final class VoiceCatalogueService {
         try {
           saveCatalogue(next, nextFetched);
         } catch (IOException failure) {
-          LOG.log(System.Logger.Level.WARNING, "Could not save voice catalogue", failure);
+          LOG.warn("Could not save voice catalogue", failure);
           saveWarning = "Catalogue fetched, but could not save it for offline use.";
         }
         cached = next;
@@ -190,10 +192,7 @@ public final class VoiceCatalogueService {
         if (cached == null)
           throw new IOException(
               "Could not fetch voice catalogue: " + failure.getMessage(), failure);
-        LOG.log(
-            System.Logger.Level.WARNING,
-            "Could not refresh voice catalogue; retaining previous copy",
-            failure);
+        LOG.warn("Could not refresh voice catalogue; retaining previous copy", failure);
         warning = "Could not refresh the catalogue. Showing the last available copy.";
         retryAfter = Instant.now().plus(Duration.ofMinutes(1));
       }
@@ -226,7 +225,7 @@ public final class VoiceCatalogueService {
       cached = voices;
       fetched = savedAt;
     } catch (IOException | RuntimeException failure) {
-      LOG.log(System.Logger.Level.WARNING, "Ignoring invalid saved voice catalogue", failure);
+      LOG.warn("Ignoring invalid saved voice catalogue", failure);
     }
   }
 

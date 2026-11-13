@@ -195,3 +195,13 @@ From the repository root:
 
 Media integration tests require FFmpeg. CI builds shared artifacts before desktop
 and Android consumers; see [the workflow](../.github/workflows/ci.yml).
+
+### Logging
+
+Application and server code use SLF4J (`LoggerFactory.getLogger(Owner.class)`).
+`desktop-application` declares `slf4j-api` directly; the executable server supplies
+Logback through Spring Boot's default logging starter. Keep backend configuration
+in the executable module. Use parameterized `{}` messages and pass exceptions as
+the final argument when a stack trace is needed; avoid logging document bodies,
+learner notes or credentials. Boot's default output is the console; configure
+`logging.file.name` when a retained log file is required.
