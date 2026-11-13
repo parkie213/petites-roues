@@ -200,8 +200,9 @@ and model downloads require their respective providers. Model deletion remains
 manual. Missing voices do not prevent application startup;
 the Listen button reports that reading aloud is unavailable.
 
-Spring owns the loaded voices and closes them at shutdown. Piper handles concurrent
-calls and native resource cleanup. Audio is encoded as WAV in memory, with no audio
+Spring owns one lazily loaded voice and closes it at shutdown. Speech requests run
+one at a time; switching voices closes the previous model before loading another.
+Piper handles native resource cleanup. Audio is encoded as WAV in memory, with no audio
 files or child processes. Native libraries and eSpeak data are extracted by the JNI
 library into the JVM temporary directory. Native calls cannot be forcibly interrupted;
 a native crash would affect the server process.
