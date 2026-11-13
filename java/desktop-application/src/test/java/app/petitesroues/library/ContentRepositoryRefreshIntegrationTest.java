@@ -10,6 +10,7 @@ import app.petitesroues.documents.StudyDocumentCodec;
 import app.petitesroues.documents.StudyDocumentJson;
 import app.petitesroues.documents.StudyDocumentReader;
 import app.petitesroues.library.discovery.ContentRepositoryScanner;
+import app.petitesroues.library.persistence.AcceptedDocumentStore;
 import app.petitesroues.library.persistence.CatalogueStore;
 import app.petitesroues.library.persistence.ContentRepositoryStore;
 import app.petitesroues.library.persistence.MediaLinkStore;
@@ -79,7 +80,21 @@ class ContentRepositoryRefreshIntegrationTest {
     repositories = new ContentRepositoryStore(jdbc);
     scanner = new ContentRepositoryScanner();
     reader = new StudyDocumentReader(new StudyDocumentCodec());
-    service = service(new RepositoryContentService(repositories, catalogue, reader));
+    service = service(new RepositoryContentService(repositories, catalogue));
+  }
+
+  private TransactionTemplate transactions() {
+    return new TransactionTemplate(new DataSourceTransactionManager(source));
+  }
+
+  private DocumentImportService imports(RepositoryContentService registration) {
+    return new DocumentImportService(
+        catalogue,
+        new DocumentStore(reader),
+        new AcceptedDocumentStore(jdbc),
+        new ReviewQueue(jdbc, mapper),
+        registration,
+        transactions());
   }
 
   @AfterEach
@@ -92,9 +107,10 @@ class ContentRepositoryRefreshIntegrationTest {
         repositories,
         scanner,
         reader,
-        new TransactionTemplate(new DataSourceTransactionManager(source)),
+        transactions(),
         registration,
         new ReviewQueue(jdbc, mapper),
+        imports(registration),
         new MediaStore(jdbc),
         new MediaProbe(
             new Ffmpeg(mapper, new ProcessRunner(processExecutor, Duration.ofSeconds(30)))));
@@ -116,6 +132,8 @@ class ContentRepositoryRefreshIntegrationTest {
         jdbc.queryForList("SELECT * FROM titles ORDER BY id"),
         jdbc.queryForList("SELECT * FROM repositories ORDER BY id"),
         jdbc.queryForList("SELECT * FROM review_queue ORDER BY sequence"),
+        jdbc.queryForList(
+            "SELECT title_id,source_sha256,imported_at FROM accepted_documents ORDER BY title_id"),
         jdbc.queryForList("SELECT * FROM playback_progress ORDER BY title_id"));
   }
 
@@ -309,19 +327,23 @@ class ContentRepositoryRefreshIntegrationTest {
     var changed = document("existing").withTitle("Must roll back");
     write("a", changed);
     Path second = write("b", document("new-title"));
-    var registration = spy(new RepositoryContentService(repositories, catalogue, reader));
+    var registration = spy(new RepositoryContentService(repositories, catalogue));
     doThrow(new IOException("Second registration failed"))
         .when(registration)
         .register(
-            new RepositoryContentService.Registration(second.toString(), true), repository.id());
+            eq(new RepositoryContentService.Registration(second.toString(), true)),
+            any(),
+            eq(repository.id()));
     var failing = service(registration);
 
     assertThrows(UncheckedIOException.class, () -> failing.refresh(repository.id()));
     verify(registration)
         .register(
-            new RepositoryContentService.Registration(
-                root.resolve("a/document.json").toString(), true),
-            repository.id());
+            eq(
+                new RepositoryContentService.Registration(
+                    root.resolve("a/document.json").toString(), true)),
+            any(),
+            eq(repository.id()));
     assertEquals(before, snapshot());
   }
 

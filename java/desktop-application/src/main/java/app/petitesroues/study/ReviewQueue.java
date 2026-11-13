@@ -87,6 +87,15 @@ public class ReviewQueue {
         .findFirst();
   }
 
+  /** Whether the title has a claimed review batch that is not yet completed. */
+  public boolean hasOpenBatch(String titleId) {
+    return !jdbc.queryForList(
+            "SELECT id FROM review_batches WHERE title_id=? AND completed_at IS NULL",
+            Long.class,
+            titleId)
+        .isEmpty();
+  }
+
   public Optional<Batch> openBatch(CatalogueEntry title) {
     return jdbc
         .query(
