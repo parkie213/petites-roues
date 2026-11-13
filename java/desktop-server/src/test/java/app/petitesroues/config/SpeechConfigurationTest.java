@@ -10,6 +10,8 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 import org.springframework.core.env.MapPropertySource;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 
 class SpeechConfigurationTest {
   @TempDir Path temp;
@@ -23,6 +25,7 @@ class SpeechConfigurationTest {
           .addFirst(
               new MapPropertySource(
                   "speech-test", Map.of("petitesroues.speech.voices", temp.toString())));
+      context.registerBean(ObjectMapper.class, () -> JsonMapper.builder().build());
       context.register(SpeechConfiguration.class);
       context.refresh();
       var synthesizer = context.getBean(PiperSynthesizer.class);

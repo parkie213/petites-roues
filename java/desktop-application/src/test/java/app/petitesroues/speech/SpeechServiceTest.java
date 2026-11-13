@@ -33,6 +33,19 @@ class SpeechServiceTest {
   }
 
   @Test
+  void previewUsesTheSameLanguageAndTextRulesWithoutReadingADocumentOrSavingAChoice()
+      throws Exception {
+    var library = mock(LibraryService.class);
+    var engine = mock(PiperSynthesizer.class);
+    var settings = mock(SettingsStore.class);
+    var service = new SpeechService(library, engine, settings);
+    service.preview("fr-FR", "fr_FR-test.onnx", " BONJOUR ");
+    verify(engine).synthesize("fr", "fr_FR-test.onnx", "bonjour");
+    verifyNoInteractions(library, settings);
+    assertThrows(IllegalArgumentException.class, () -> service.preview("fr", null, " "));
+  }
+
+  @Test
   void speaksAllCapsLetteringInLowerCaseButKeepsMixedCase() {
     var french = Locale.forLanguageTag("fr");
     assertEquals(

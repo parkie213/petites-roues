@@ -39,13 +39,24 @@ public class SpeechService {
    *     unavailable
    */
   public byte[] speak(String titleId, String text) throws IOException {
+    String spoken = spokenText(text);
+    var language = Locale.forLanguageTag(library.document(titleId).sourceLanguage());
+    return synthesizer.synthesize(
+        language.getLanguage(), selected(language.getLanguage()), speakable(spoken, language));
+  }
+
+  /** Previews a specific installed voice without changing preferences or requiring a document. */
+  public byte[] preview(String language, String voice, String text) throws IOException {
+    var locale = Locale.forLanguageTag(language);
+    return synthesizer.synthesize(locale.getLanguage(), voice, speakable(spokenText(text), locale));
+  }
+
+  private String spokenText(String text) {
     String spoken = text == null ? "" : text.strip();
     if (spoken.isEmpty()) throw new IllegalArgumentException("There is no text to read aloud");
     if (spoken.length() > MAX_TEXT_LENGTH)
       throw new IllegalArgumentException("Text is too long to read aloud");
-    var language = Locale.forLanguageTag(library.document(titleId).sourceLanguage());
-    return synthesizer.synthesize(
-        language.getLanguage(), selected(language.getLanguage()), speakable(spoken, language));
+    return spoken;
   }
 
   /** Lists installed languages and preferences without opening models or loading native code. */

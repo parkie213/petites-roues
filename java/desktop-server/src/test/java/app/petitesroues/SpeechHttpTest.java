@@ -34,6 +34,17 @@ class SpeechHttpTest extends HttpIntegrationTest {
       assertEquals(22050, audio.getFormat().getSampleRate());
       assertTrue(audio.getFrameLength() > 2205);
     }
+    var before = http.get().uri("/api/speech/voices").retrieve().body(String.class);
+    var preview =
+        http.get()
+            .uri("/api/speech/voices/fr/preview?text=Bonjour")
+            .retrieve()
+            .toEntity(byte[].class);
+    assertEquals("audio/wav", preview.getHeaders().getContentType().toString());
+    try (var audio = AudioSystem.getAudioInputStream(new ByteArrayInputStream(preview.getBody()))) {
+      assertTrue(audio.getFrameLength() > 2205);
+    }
+    assertEquals(before, http.get().uri("/api/speech/voices").retrieve().body(String.class));
     assertEquals(
         400,
         http.get()
