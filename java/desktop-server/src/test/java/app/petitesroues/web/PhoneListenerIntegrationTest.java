@@ -3,8 +3,6 @@ package app.petitesroues.web;
 import static org.junit.jupiter.api.Assertions.*;
 
 import app.petitesroues.config.PhoneListener;
-import app.petitesroues.model.sync.Desktop;
-import app.petitesroues.model.sync.PairingCode;
 import app.petitesroues.phone.PhoneCertificateService;
 import app.petitesroues.phone.PhonePairingService;
 import app.petitesroues.support.HttpClients;
@@ -12,6 +10,8 @@ import app.petitesroues.support.HttpIntegrationTest;
 import app.petitesroues.sync.DesktopClient;
 import app.petitesroues.sync.DesktopException;
 import app.petitesroues.sync.PairingCodeReader;
+import app.petitesroues.sync.model.Desktop;
+import app.petitesroues.sync.model.PairingCode;
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.util.List;

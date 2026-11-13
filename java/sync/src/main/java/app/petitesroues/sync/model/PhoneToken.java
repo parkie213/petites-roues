@@ -1,4 +1,4 @@
-package app.petitesroues.model.sync;
+package app.petitesroues.sync.model;
 
 /**
  * What a phone receives when it pairs.

@@ -1,7 +1,7 @@
 package app.petitesroues.sync;
 
-import app.petitesroues.model.sync.Desktop;
-import app.petitesroues.model.sync.DesktopTitle;
+import app.petitesroues.sync.model.Desktop;
+import app.petitesroues.sync.model.DesktopTitle;
 import java.io.IOException;
 import java.util.concurrent.CancellationException;
 

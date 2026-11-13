@@ -19,14 +19,14 @@ import app.petitesroues.android.Settings
 import app.petitesroues.android.library.AppFolder
 import app.petitesroues.android.library.Folders
 import app.petitesroues.android.library.LibraryUsage
-import app.petitesroues.model.sync.Desktop
-import app.petitesroues.model.sync.DesktopTitle
 import app.petitesroues.sync.DesktopClient
 import app.petitesroues.sync.DesktopException
 import app.petitesroues.sync.SyncStatus
 import app.petitesroues.sync.TitleDownloader
 import app.petitesroues.sync.TransferFolder
 import app.petitesroues.sync.TransferPlan
+import app.petitesroues.sync.model.Desktop
+import app.petitesroues.sync.model.DesktopTitle
 import dagger.hilt.android.AndroidEntryPoint
 import dagger.hilt.android.qualifiers.ApplicationContext
 import java.io.IOException

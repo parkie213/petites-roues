@@ -43,7 +43,7 @@ registered folder through a small `ContentTree` interface (java.nio on the deskt
 Storage Access Framework on Android), what counts as a document, video or comic, where
 posters are, and the v1 media fingerprint. Like the document modules it has no Spring and targets
 Java 17, and the Android app uses its jar.
-`java/sync` is how the phone and the desktop talk: the wire records (`app.petitesroues.model.sync`),
+`java/sync` is how the phone and the desktop talk: the wire records (`app.petitesroues.sync.model`),
 the phone listener's routes, the QR pairing code reader, certificate pinning (`CertificatePins`)
 and the phone's `DesktopClient`, on `HttpURLConnection` because `java.net.http` is missing on
 Android. The server answers with the

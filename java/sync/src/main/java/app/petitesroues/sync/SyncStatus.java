@@ -1,7 +1,7 @@
 package app.petitesroues.sync;
 
-import app.petitesroues.model.sync.DesktopTitle;
-import app.petitesroues.model.sync.TitleFile;
+import app.petitesroues.sync.model.DesktopTitle;
+import app.petitesroues.sync.model.TitleFile;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;

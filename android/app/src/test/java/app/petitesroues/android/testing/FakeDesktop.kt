@@ -1,12 +1,12 @@
 package app.petitesroues.android.testing
 
-import app.petitesroues.model.sync.Desktop
-import app.petitesroues.model.sync.DesktopTitle
-import app.petitesroues.model.sync.Hello
-import app.petitesroues.model.sync.PairingCode
-import app.petitesroues.model.sync.TitleFile
 import app.petitesroues.sync.DesktopClient
 import app.petitesroues.sync.DesktopException
+import app.petitesroues.sync.model.Desktop
+import app.petitesroues.sync.model.DesktopTitle
+import app.petitesroues.sync.model.Hello
+import app.petitesroues.sync.model.PairingCode
+import app.petitesroues.sync.model.TitleFile
 
 /**
  * A paired desktop answering in memory, in place of the network: it pairs with any well-formed

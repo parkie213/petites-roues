@@ -1,4 +1,4 @@
-package app.petitesroues.model.sync;
+package app.petitesroues.sync.model;
 
 /**
  * The desktop's answer to a paired phone's connection test.

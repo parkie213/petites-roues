@@ -8,9 +8,9 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import app.petitesroues.android.Settings
 import app.petitesroues.android.di.IoDispatcher
-import app.petitesroues.model.sync.Desktop
 import app.petitesroues.sync.DesktopClient
 import app.petitesroues.sync.PairingCodeReader
+import app.petitesroues.sync.model.Desktop
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
