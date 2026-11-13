@@ -10,6 +10,7 @@ import {
   Stack,
   Text,
   TextInput,
+  Tabs,
 } from "@mantine/core";
 import { request } from "../shared/api.ts";
 
@@ -43,7 +44,7 @@ export function SpeechVoices({
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
   const [catalogue, setCatalogue] = useState<CatalogueVoice[] | null>(null);
-  const [browsing, setBrowsing] = useState(false);
+  const [tab, setTab] = useState<string | null>("installed");
   const [catalogueLoading, setCatalogueLoading] = useState(false);
   const [language, setLanguage] = useState("");
   const [search, setSearch] = useState("");
@@ -98,14 +99,13 @@ export function SpeechVoices({
     }
   }
 
-  async function browse() {
-    setBrowsing(true);
+  async function browse(refresh = false) {
     setCatalogueLoading(true);
     setError("");
     try {
       setCatalogue(
         await request<CatalogueVoice[]>(
-          `/api/speech/voices/catalogue${browsing ? "?refresh=true" : ""}`,
+          `/api/speech/voices/catalogue${refresh ? "?refresh=true" : ""}`,
         ),
       );
     } catch (failure) {
@@ -170,7 +170,7 @@ export function SpeechVoices({
         if (!busy) {
           player.current?.pause();
           setAudio(null);
-          setBrowsing(false);
+          setTab("installed");
           onClose();
         }
       }}
@@ -182,8 +182,8 @@ export function SpeechVoices({
     >
       <Stack>
         <Text size="sm" c="dimmed">
-          Choose a voice for each source language. Choices are saved on this
-          desktop.
+          Choose an installed voice, or find a new voice and listen before
+          downloading.
         </Text>
         {error && (
           <Text role="alert" c="red">
@@ -192,12 +192,6 @@ export function SpeechVoices({
         )}
         {!languages && !error && (
           <Loader size="sm" aria-label="Loading voices" />
-        )}
-        {languages?.length === 0 && (
-          <Text>
-            No voices installed. Browse voices below to hear samples and install
-            one.
-          </Text>
         )}
         {audio && <Text size="sm">{audio}</Text>}
         <audio
@@ -211,177 +205,247 @@ export function SpeechVoices({
             )
           }
         />
-        {!!languages?.length && (
-          <TextInput
-            label="Text for installed voice previews"
-            placeholder="Enter a sentence in the voice’s language"
-            value={previewText}
-            onChange={(event) => setPreviewText(event.currentTarget.value)}
-            maxLength={1000}
-          />
-        )}
-        {languages?.map(({ language, selectedVoice, voices }) => (
-          <Group key={language} align="end" grow>
-            <NativeSelect
-              key={language}
-              label={names.of(language) || language}
-              value={selectedVoice || ""}
-              disabled={busy}
-              error={
-                selectedVoice && !voices.includes(selectedVoice)
-                  ? "The selected voice is no longer installed."
-                  : undefined
-              }
-              data={[
-                { value: "", label: `Automatic (${voices[0]})` },
-                ...(selectedVoice && !voices.includes(selectedVoice)
-                  ? [
-                      {
-                        value: selectedVoice,
-                        label: `${selectedVoice} (unavailable)`,
-                      },
-                    ]
-                  : []),
-                ...voices.map((voice) => ({ value: voice, label: voice })),
-              ]}
-              onChange={(event) => {
-                void select(language, event.currentTarget.value);
-              }}
-            />
-            <Button
-              variant="light"
-              disabled={
-                busy ||
-                !previewText.trim() ||
-                !!(selectedVoice && !voices.includes(selectedVoice))
-              }
-              onClick={() =>
-                play(
-                  `/api/speech/voices/${language}/preview?text=${encodeURIComponent(previewText)}${selectedVoice ? `&voice=${encodeURIComponent(selectedVoice)}` : ""}`,
-                  `Preview: ${selectedVoice || voices[0]}`,
-                )
-              }
-            >
-              Preview {names.of(language) || language}
-            </Button>
-          </Group>
-        ))}
-        <Button
-          variant="light"
-          onClick={() => {
-            void browse();
+        <Tabs
+          value={tab}
+          color="navy"
+          keepMounted={false}
+          onChange={(value) => {
+            setTab(value);
+            if (value === "find" && !catalogueLoading) void browse();
           }}
-          loading={catalogueLoading}
-          disabled={busy}
         >
-          {browsing ? "Refresh voice catalogue" : "Browse voices"}
-        </Button>
-        {browsing && catalogue && (
-          <Stack>
-            <Text size="sm" c="dimmed">
-              Compare Piper’s prerecorded samples before downloading. Samples
-              use the first speaker; model cards describe each voice and its
-              license.
-            </Text>
-            <NativeSelect
-              label="Catalogue language"
-              value={language}
-              onChange={(event) => setLanguage(event.currentTarget.value)}
-              data={[
-                { value: "", label: "All languages" },
-                ...catalogueLanguages.map((tag) => ({
-                  value: tag,
-                  label: names.of(tag) || tag,
-                })),
-              ]}
-            />
-            <TextInput
-              label="Search voices"
-              placeholder="Name, region or quality"
-              value={search}
-              onChange={(event) => setSearch(event.currentTarget.value)}
-            />
-            {visible?.length === 0 && <Text>No matching voices.</Text>}
-            {visible?.map((voice) => (
-              <Stack
-                component="section"
-                aria-label={`${voice.name} ${voice.region} ${voice.quality}`}
-                key={voice.id}
-                gap="xs"
-                p="sm"
-                style={{
-                  borderBottom: "1px solid var(--mantine-color-gray-3)",
-                }}
-              >
-                <Group justify="space-between">
-                  <Text fw={600}>
-                    {voice.name} · {voice.region} · {voice.quality}
-                  </Text>
-                  {voice.installed && <Badge>Installed</Badge>}
-                </Group>
-                <Text size="sm" c="dimmed">
-                  {(voice.sizeBytes / 1024 / 1024).toFixed(1)} MB ·{" "}
-                  {voice.speakers}{" "}
-                  {voice.speakers === 1 ? "speaker" : "speakers"} ·{" "}
-                  <Anchor
-                    href={voice.modelCard}
-                    target="_blank"
-                    rel="noreferrer"
-                  >
-                    Model card & license
-                  </Anchor>
+          <Tabs.List mb="md">
+            <Tabs.Tab value="installed" disabled={busy}>
+              Installed
+            </Tabs.Tab>
+            <Tabs.Tab value="find" disabled={busy}>
+              Find voices
+            </Tabs.Tab>
+          </Tabs.List>
+          <Tabs.Panel value="installed">
+            <Stack>
+              {languages?.length === 0 && (
+                <Text>
+                  No voices installed. Open Find voices to hear samples and
+                  install one.
                 </Text>
-                <Group>
+              )}
+              {!!languages?.length && (
+                <TextInput
+                  label="Text for installed voice previews"
+                  placeholder="Enter a sentence in the voice’s language"
+                  value={previewText}
+                  onChange={(event) =>
+                    setPreviewText(event.currentTarget.value)
+                  }
+                  maxLength={1000}
+                />
+              )}
+              {languages?.map(({ language, selectedVoice, voices }) => (
+                <Group key={language} align="end" grow>
+                  <NativeSelect
+                    key={language}
+                    label={names.of(language) || language}
+                    value={selectedVoice || ""}
+                    disabled={busy}
+                    error={
+                      selectedVoice && !voices.includes(selectedVoice)
+                        ? "The selected voice is no longer installed."
+                        : undefined
+                    }
+                    data={[
+                      { value: "", label: `Automatic (${voices[0]})` },
+                      ...(selectedVoice && !voices.includes(selectedVoice)
+                        ? [
+                            {
+                              value: selectedVoice,
+                              label: `${selectedVoice} (unavailable)`,
+                            },
+                          ]
+                        : []),
+                      ...voices.map((voice) => ({
+                        value: voice,
+                        label: voice,
+                      })),
+                    ]}
+                    onChange={(event) => {
+                      void select(language, event.currentTarget.value);
+                    }}
+                  />
                   <Button
-                    size="xs"
+                    color="navy"
                     variant="light"
+                    disabled={
+                      busy ||
+                      !previewText.trim() ||
+                      !!(selectedVoice && !voices.includes(selectedVoice))
+                    }
                     onClick={() =>
                       play(
-                        `/api/speech/voices/catalogue/${voice.id}/sample`,
-                        `Sample: ${voice.name} · ${voice.region} · ${voice.quality}`,
+                        `/api/speech/voices/${language}/preview?text=${encodeURIComponent(previewText)}${selectedVoice ? `&voice=${encodeURIComponent(selectedVoice)}` : ""}`,
+                        `Preview: ${selectedVoice || voices[0]}`,
                       )
                     }
                   >
-                    Listen to {voice.name}
+                    Preview {names.of(language) || language}
                   </Button>
-                  {voice.installed && (
-                    <Button
-                      size="xs"
-                      variant="light"
-                      disabled={busy || !previewText.trim()}
-                      onClick={() =>
-                        play(
-                          `/api/speech/voices/${voice.language}/preview?text=${encodeURIComponent(previewText)}&voice=${encodeURIComponent(voice.id + ".onnx")}`,
-                          `Preview: ${voice.name} · ${voice.region} · ${voice.quality}`,
-                        )
+                </Group>
+              ))}
+            </Stack>
+          </Tabs.Panel>
+          <Tabs.Panel value="find">
+            <Stack>
+              <Text size="sm" c="dimmed">
+                Listen to samples, then install a voice to use it on this
+                desktop.
+              </Text>
+              {catalogueLoading && (
+                <Loader size="sm" aria-label="Loading catalogue" />
+              )}
+              <Group justify="space-between">
+                <Text size="xs" c="dimmed">
+                  {catalogue
+                    ? `${visible?.length || 0} ${visible?.length === 1 ? "voice" : "voices"}`
+                    : "Piper voice catalogue"}
+                </Text>
+                <Button
+                  variant="subtle"
+                  color="gray"
+                  size="compact-xs"
+                  onClick={() => {
+                    void browse(true);
+                  }}
+                  loading={catalogueLoading}
+                  disabled={busy}
+                >
+                  Refresh
+                </Button>
+              </Group>
+              {catalogue && (
+                <Stack>
+                  <Text size="sm" c="dimmed">
+                    Samples use the first speaker. Each model card describes the
+                    voice and its license.
+                  </Text>
+                  <NativeSelect
+                    label="Catalogue language"
+                    value={language}
+                    onChange={(event) => setLanguage(event.currentTarget.value)}
+                    data={[
+                      { value: "", label: "All languages" },
+                      ...catalogueLanguages.map((tag) => ({
+                        value: tag,
+                        label: names.of(tag) || tag,
+                      })),
+                    ]}
+                  />
+                  <TextInput
+                    label="Search voices"
+                    placeholder="Name, region or quality"
+                    value={search}
+                    onChange={(event) => setSearch(event.currentTarget.value)}
+                  />
+                  {catalogue.some((voice) => voice.installed) && (
+                    <TextInput
+                      label="Text for installed voice previews"
+                      placeholder="Enter a sentence in the voice’s language"
+                      value={previewText}
+                      onChange={(event) =>
+                        setPreviewText(event.currentTarget.value)
                       }
-                    >
-                      Preview {voice.name}
-                    </Button>
+                      maxLength={1000}
+                    />
                   )}
-                  {!voice.installed && (
-                    <Button
-                      size="xs"
-                      loading={installing === voice.id}
-                      disabled={busy}
-                      onClick={() => {
-                        void install(voice.id);
+                  {visible?.length === 0 && <Text>No matching voices.</Text>}
+                  {visible?.map((voice) => (
+                    <Stack
+                      component="section"
+                      aria-label={`${voice.name} ${voice.region} ${voice.quality}`}
+                      key={voice.id}
+                      gap="xs"
+                      p="sm"
+                      style={{
+                        borderBottom: "1px solid var(--mantine-color-gray-3)",
                       }}
                     >
-                      Install {voice.name}
-                    </Button>
+                      <Group justify="space-between">
+                        <Text fw={600}>
+                          {voice.name} · {voice.region} · {voice.quality}
+                        </Text>
+                        {voice.installed && (
+                          <Badge color="navy">Installed</Badge>
+                        )}
+                      </Group>
+                      <Text size="sm" c="dimmed">
+                        {(voice.sizeBytes / 1024 / 1024).toFixed(1)} MB ·{" "}
+                        {voice.speakers}{" "}
+                        {voice.speakers === 1 ? "speaker" : "speakers"} ·{" "}
+                        <Anchor
+                          color="navy"
+                          href={voice.modelCard}
+                          target="_blank"
+                          rel="noreferrer"
+                        >
+                          Model card & license
+                        </Anchor>
+                      </Text>
+                      <Group>
+                        <Button
+                          color="navy"
+                          size="xs"
+                          variant="light"
+                          onClick={() =>
+                            play(
+                              `/api/speech/voices/catalogue/${voice.id}/sample`,
+                              `Sample: ${voice.name} · ${voice.region} · ${voice.quality}`,
+                            )
+                          }
+                        >
+                          Listen to {voice.name}
+                        </Button>
+                        {voice.installed && (
+                          <Button
+                            color="navy"
+                            size="xs"
+                            variant="light"
+                            disabled={busy || !previewText.trim()}
+                            onClick={() =>
+                              play(
+                                `/api/speech/voices/${voice.language}/preview?text=${encodeURIComponent(previewText)}&voice=${encodeURIComponent(voice.id + ".onnx")}`,
+                                `Preview: ${voice.name} · ${voice.region} · ${voice.quality}`,
+                              )
+                            }
+                          >
+                            Preview {voice.name}
+                          </Button>
+                        )}
+                        {!voice.installed && (
+                          <Button
+                            color="navy"
+                            size="xs"
+                            loading={installing === voice.id}
+                            disabled={busy}
+                            onClick={() => {
+                              void install(voice.id);
+                            }}
+                          >
+                            Install {voice.name}
+                          </Button>
+                        )}
+                      </Group>
+                    </Stack>
+                  ))}
+                  {installing && (
+                    <Text role="status">
+                      Downloading and checking the voice… Keep this dialog open
+                      until it finishes.
+                    </Text>
                   )}
-                </Group>
-              </Stack>
-            ))}
-            {installing && (
-              <Text role="status">
-                Downloading and checking the voice… Keep this dialog open until
-                it finishes.
-              </Text>
-            )}
-          </Stack>
-        )}
+                </Stack>
+              )}
+            </Stack>
+          </Tabs.Panel>
+        </Tabs>
       </Stack>
     </Modal>
   );

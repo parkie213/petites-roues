@@ -175,7 +175,7 @@ for `fr`). Regional source tags share their primary-language preference. A missi
 selected model reports unavailable rather than switching voices silently. Reopen the
 dialog after adding model files manually.
 
-**Browse voices** loads the [Piper catalogue](https://huggingface.co/rhasspy/piper-voices)
+The **Find voices** tab loads the [Piper catalogue](https://huggingface.co/rhasspy/piper-voices)
 on demand. Filter by language or search by name, region or quality, then **Listen**
 to an upstream sample before installing. Samples use speaker zero for multi-speaker
 models; speaker selection is not yet exposed. Each entry links its model card and
@@ -188,7 +188,7 @@ Enter a sentence in **Text for installed voice previews** and use **Preview** on
 installed catalogue entry to compare the same text through local synthesis without
 changing your saved choice. The button beside the selector previews its current choice. Playback stops when the dialog closes. Installed selection and previews
 work offline; the catalogue and prerecorded samples need internet access. Catalogue
-metadata is cached in memory for an hour; **Refresh voice catalogue** bypasses that
+metadata is cached in memory for an hour; **Refresh** bypasses that
 cache. Model deletion remains manual. Missing voices do not prevent application startup;
 the Listen button reports that reading aloud is unavailable.
 

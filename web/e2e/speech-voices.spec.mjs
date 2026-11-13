@@ -54,9 +54,7 @@ test("Browse, compare, install and preview a voice without losing the choice", a
 }) => {
   await page.goto("/");
   await page.getByRole("button", { name: "Read-aloud voices" }).click();
-  await page
-    .getByRole("button", { name: "Browse voices", exact: true })
-    .click();
+  await page.getByRole("tab", { name: "Find voices", exact: true }).click();
   await expect(page.getByLabel("Catalogue language")).toHaveValue("fr");
   const voice = page.getByRole("region", { name: "comparison fr-FR medium" });
   await expect(voice).toBeVisible();
@@ -101,6 +99,7 @@ test("Browse, compare, install and preview a voice without losing the choice", a
   expect(
     (await readJson(page, "/api/speech/voices"))[0].selectedVoice,
   ).toBeNull();
+  await page.getByRole("tab", { name: "Installed", exact: true }).click();
   const saved = await expectWrite(
     page,
     {
