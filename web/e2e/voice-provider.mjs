@@ -54,8 +54,16 @@ export async function startVoiceProvider(folder) {
     },
   });
   files.set(prefix + "speaker_0.mp3", sample);
+  let offline = false;
   const server = createServer((request, response) => {
     const name = new URL(request.url, "http://provider").pathname.slice(1);
+    if (name === "outage" || name === "restore") {
+      offline = name === "outage";
+      response.writeHead(204).end();
+      return;
+    }
+    if (name === "voices.json" && offline)
+      return response.writeHead(503).end("Provider unavailable");
     if (name === "voices.json") {
       response
         .writeHead(200, { "Content-Type": "application/json" })

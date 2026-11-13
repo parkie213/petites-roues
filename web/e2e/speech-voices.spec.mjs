@@ -1,4 +1,11 @@
-import { test, expect, expectWrite, readJson, looksLike } from "./api.mjs";
+import {
+  test,
+  expect,
+  expectWrite,
+  readJson,
+  looksLike,
+  RECORD,
+} from "./api.mjs";
 
 test("Installed voices can be selected per language and restored after reload", async ({
   page,
@@ -56,6 +63,7 @@ test("Browse, compare, install and preview a voice without losing the choice", a
   await page.getByRole("button", { name: "Read-aloud voices" }).click();
   await page.getByRole("tab", { name: "Find voices", exact: true }).click();
   await expect(page.getByLabel("Catalogue language")).toHaveValue("fr");
+  await expect(page.getByText(/^Catalogue fetched /)).toBeVisible();
   const voice = page.getByRole("region", { name: "comparison fr-FR medium" });
   await expect(voice).toBeVisible();
   await expect(
@@ -118,4 +126,41 @@ test("Browse, compare, install and preview a voice without losing the choice", a
   await expect(page.getByLabel("French", { exact: true })).toHaveValue(
     "fr_FR-comparison-medium.onnx",
   );
+});
+
+test("Catalogue freshness stays visible when the provider is unavailable", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: "Read-aloud voices" }).click();
+  await page.getByRole("tab", { name: "Find voices", exact: true }).click();
+  const first = await readJson(page, "/api/speech/voices/catalogue");
+  expect(first.voices.length).toBeGreaterThan(0);
+  await expect(page.getByText(/^Catalogue fetched /)).toBeVisible();
+  if (RECORD) await fetch("http://127.0.0.1:18879/outage", { method: "POST" });
+  try {
+    await page.getByRole("button", { name: "Refresh", exact: true }).click();
+    await expect(
+      page.getByText(
+        "Could not refresh the catalogue. Showing the last available copy.",
+      ),
+    ).toBeVisible();
+    const saved = await readJson(page, "/api/speech/voices/catalogue");
+    expect(saved.voices).toEqual(first.voices);
+    expect(saved.fetchedAt).toBe(first.fetchedAt);
+    expect(saved.warning).toBeTruthy();
+    await looksLike(page, "catalogue-offline");
+  } finally {
+    if (RECORD)
+      await fetch("http://127.0.0.1:18879/restore", { method: "POST" });
+  }
+  await page.getByRole("button", { name: "Refresh", exact: true }).click();
+  await expect(
+    page.getByText(
+      "Could not refresh the catalogue. Showing the last available copy.",
+    ),
+  ).not.toBeVisible();
+  expect(
+    (await readJson(page, "/api/speech/voices/catalogue")).warning,
+  ).toBeNull();
 });

@@ -490,19 +490,24 @@
     "request": "GET /api/speech/voices/catalogue",
     "status": 200,
     "type": "application/json",
-    "json": [
-      {
-        "id": "fr_FR-comparison-medium",
-        "name": "comparison",
-        "language": "fr",
-        "region": "fr-FR",
-        "quality": "medium",
-        "speakers": 1,
-        "sizeBytes": 62914560,
-        "modelCard": "http://127.0.0.1:18879/fr/fr_FR/comparison/medium/MODEL_CARD",
-        "installed": false
-      }
-    ]
+    "json": {
+      "voices": [
+        {
+          "id": "fr_FR-comparison-medium",
+          "name": "comparison",
+          "language": "fr",
+          "region": "fr-FR",
+          "quality": "medium",
+          "speakers": 1,
+          "sizeBytes": 62914560,
+          "modelCard": "http://127.0.0.1:18879/fr/fr_FR/comparison/medium/MODEL_CARD",
+          "installed": false
+        }
+      ],
+      "fetchedAt": "2026-01-01T00:00:00Z",
+      "stale": false,
+      "warning": null
+    }
   },
   {
     "request": "GET /api/speech/voices/catalogue/fr_FR-comparison-medium/sample",

@@ -152,12 +152,13 @@ async function save(request, response) {
     const answer = { ...entry, json: JSON.parse(text()) };
     if (
       request.method() === "GET" &&
+      response.status() === 200 &&
       new URL(request.url()).pathname === "/api/speech/voices/catalogue"
     ) {
       // The separately installed Siwis fixture can differ by upstream revision. Only catalogue
       // display sizes are approximate; document/media sizes retain their exact domain values.
       const megabyte = 1024 * 1024;
-      answer.json = answer.json.map((voice) => ({
+      answer.json.voices = answer.json.voices.map((voice) => ({
         ...voice,
         sizeBytes: Math.round(voice.sizeBytes / megabyte) * megabyte,
       }));

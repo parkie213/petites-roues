@@ -30,6 +30,12 @@ interface CatalogueVoice {
   modelCard: string;
   installed: boolean;
 }
+interface VoiceCatalogue {
+  voices: CatalogueVoice[];
+  fetchedAt: string;
+  stale: boolean;
+  warning: string | null;
+}
 const names = new Intl.DisplayNames([navigator.language], { type: "language" });
 
 /** Lists installed voices and saves source-language choices through Java into SQLite. */
@@ -43,7 +49,7 @@ export function SpeechVoices({
   const [languages, setLanguages] = useState<VoiceLanguage[] | null>(null);
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
-  const [catalogue, setCatalogue] = useState<CatalogueVoice[] | null>(null);
+  const [catalogue, setCatalogue] = useState<VoiceCatalogue | null>(null);
   const [tab, setTab] = useState<string | null>("installed");
   const [catalogueLoading, setCatalogueLoading] = useState(false);
   const [language, setLanguage] = useState("");
@@ -104,7 +110,7 @@ export function SpeechVoices({
     setError("");
     try {
       setCatalogue(
-        await request<CatalogueVoice[]>(
+        await request<VoiceCatalogue>(
           `/api/speech/voices/catalogue${refresh ? "?refresh=true" : ""}`,
         ),
       );
@@ -125,11 +131,15 @@ export function SpeechVoices({
           { method: "POST" },
         ),
       );
-      setCatalogue(
-        (current) =>
-          current?.map((voice) =>
-            voice.id === id ? { ...voice, installed: true } : voice,
-          ) || null,
+      setCatalogue((current) =>
+        current
+          ? {
+              ...current,
+              voices: current.voices.map((voice) =>
+                voice.id === id ? { ...voice, installed: true } : voice,
+              ),
+            }
+          : null,
       );
     } catch (failure) {
       setError((failure as Error).message);
@@ -153,9 +163,9 @@ export function SpeechVoices({
   }
 
   const catalogueLanguages = [
-    ...new Set(catalogue?.map((voice) => voice.language)),
+    ...new Set(catalogue?.voices.map((voice) => voice.language)),
   ].sort();
-  const visible = catalogue?.filter(
+  const visible = catalogue?.voices.filter(
     (voice) =>
       (!language || voice.language === language) &&
       `${voice.name} ${voice.region} ${voice.quality}`
@@ -327,6 +337,19 @@ export function SpeechVoices({
                     Samples use the first speaker. Each model card describes the
                     voice and its license.
                   </Text>
+                  <Text size="xs" c="dimmed" title={catalogue.fetchedAt}>
+                    Catalogue fetched{" "}
+                    {new Date(catalogue.fetchedAt).toLocaleString(undefined, {
+                      dateStyle: "medium",
+                      timeStyle: "short",
+                    })}
+                    {catalogue.stale ? " · Over an hour old" : ""}
+                  </Text>
+                  {catalogue.warning && (
+                    <Text role="status" size="sm" c="orange.8">
+                      {catalogue.warning}
+                    </Text>
+                  )}
                   <NativeSelect
                     label="Catalogue language"
                     value={language}
@@ -345,7 +368,7 @@ export function SpeechVoices({
                     value={search}
                     onChange={(event) => setSearch(event.currentTarget.value)}
                   />
-                  {catalogue.some((voice) => voice.installed) && (
+                  {catalogue.voices.some((voice) => voice.installed) && (
                     <TextInput
                       label="Text for installed voice previews"
                       placeholder="Enter a sentence in the voice’s language"

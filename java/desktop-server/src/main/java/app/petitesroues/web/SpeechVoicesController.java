@@ -1,6 +1,6 @@
 package app.petitesroues.web;
 
-import app.petitesroues.model.speech.CatalogueVoice;
+import app.petitesroues.model.speech.VoiceCatalogue;
 import app.petitesroues.model.speech.VoiceLanguage;
 import app.petitesroues.speech.SpeechService;
 import app.petitesroues.speech.VoiceCatalogueService;
@@ -39,9 +39,9 @@ public class SpeechVoicesController {
   }
 
   @GetMapping("/catalogue")
-  public List<CatalogueVoice> catalogue(@RequestParam(defaultValue = "false") boolean refresh)
+  public VoiceCatalogue catalogue(@RequestParam(defaultValue = "false") boolean refresh)
       throws IOException, InterruptedException {
-    return catalogue.voices(refresh);
+    return catalogue.catalogue(refresh);
   }
 
   /** Installation does not change the saved voice preference. */

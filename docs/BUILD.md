@@ -186,10 +186,18 @@ Download failures can be retried. Installation does not save a voice preference.
 
 Enter a sentence in **Text for installed voice previews** and use **Preview** on an
 installed catalogue entry to compare the same text through local synthesis without
-changing your saved choice. The button beside the selector previews its current choice. Playback stops when the dialog closes. Installed selection and previews
-work offline; the catalogue and prerecorded samples need internet access. Catalogue
-metadata is cached in memory for an hour; **Refresh** bypasses that
-cache. Model deletion remains manual. Missing voices do not prevent application startup;
+changing your saved choice. The button beside the selector previews its current
+choice. Playback stops when the dialog closes. Installed selection and previews
+work offline. Fetching newer metadata and prerecorded samples needs internet access. Catalogue
+metadata is cached in memory for an hour and saved as `catalogue-cache.json` in the
+configured voices directory. **Refresh** bypasses the freshness check. The dialog
+shows the last successful fetch time and any refresh failure. On an outage, an
+existing copy remains usable, including after restarting the server; failures never
+advance its fetch time or replace it with incomplete/invalid JSON. Failed automatic
+refreshes wait a minute before retrying; explicit Refresh retries immediately.
+A first fetch still needs internet access when no saved copy exists. Online samples
+and model downloads require their respective providers. Model deletion remains
+manual. Missing voices do not prevent application startup;
 the Listen button reports that reading aloud is unavailable.
 
 Spring owns the loaded voices and closes them at shutdown. Piper handles concurrent

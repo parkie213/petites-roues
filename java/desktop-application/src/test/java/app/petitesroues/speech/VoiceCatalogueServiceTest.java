@@ -11,6 +11,8 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.MessageDigest;
+import java.time.Duration;
+import java.time.Instant;
 import java.util.HexFormat;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -19,6 +21,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import tools.jackson.databind.json.JsonMapper;
+import tools.jackson.databind.node.ObjectNode;
 
 class VoiceCatalogueServiceTest {
   @TempDir Path directory;
@@ -29,6 +32,9 @@ class VoiceCatalogueServiceTest {
   private static final String ID = "fr_FR-test-medium";
   private static final String FOLDER = "fr/fr_FR/test/medium/";
   private String catalogue;
+  private int catalogueStatus = 200;
+  private int catalogueRequests;
+  private URI root;
 
   @BeforeEach
   void provider() throws Exception {
@@ -73,13 +79,18 @@ class VoiceCatalogueServiceTest {
               path.equals("voices.json")
                   ? catalogue.getBytes(StandardCharsets.UTF_8)
                   : files.get(path);
-          exchange.sendResponseHeaders(body == null ? 404 : 200, body == null ? -1 : body.length);
+          int status = body == null ? 404 : 200;
+          if (path.equals("voices.json")) {
+            catalogueRequests++;
+            status = catalogueStatus;
+          }
+          exchange.sendResponseHeaders(status, body == null ? -1 : body.length);
           if (body != null) exchange.getResponseBody().write(body);
           exchange.close();
         });
     server.start();
     http = HttpClient.newHttpClient();
-    URI root = URI.create("http://127.0.0.1:" + server.getAddress().getPort() + "/");
+    root = URI.create("http://127.0.0.1:" + server.getAddress().getPort() + "/");
     service =
         new VoiceCatalogueService(
             directory, http, JsonMapper.builder().build(), root.resolve("voices.json"), root, root);
@@ -106,7 +117,7 @@ class VoiceCatalogueServiceTest {
     files.clear();
     service.install(ID);
     try (var installed = Files.list(directory)) {
-      assertEquals(3, installed.count());
+      assertEquals(4, installed.count());
     }
   }
 
@@ -116,7 +127,7 @@ class VoiceCatalogueServiceTest {
     var failure = assertThrows(IOException.class, () -> service.install(ID));
     assertTrue(failure.getMessage().contains("checksum"));
     try (var installed = Files.list(directory)) {
-      assertEquals(0, installed.count());
+      assertEquals(1, installed.count());
     }
     files.put(FOLDER + ID + ".onnx", original);
     service.install(ID);
@@ -128,7 +139,69 @@ class VoiceCatalogueServiceTest {
     assertEquals(1, service.voices().size());
     catalogue = "{}";
     assertEquals(1, service.voices().size());
-    assertTrue(service.voices(true).isEmpty());
+    assertTrue(service.catalogue(true).voices().isEmpty());
+  }
+
+  private VoiceCatalogueService restarted() {
+    return new VoiceCatalogueService(
+        directory, http, JsonMapper.builder().build(), root.resolve("voices.json"), root, root);
+  }
+
+  @Test
+  void failedRefreshRetainsDataTimestampAndSavedCopyAcrossRestart() throws Exception {
+    var first = service.catalogue(false);
+    byte[] saved = Files.readAllBytes(directory.resolve("catalogue-cache.json"));
+    catalogueStatus = 503;
+    var fallback = service.catalogue(true);
+    assertEquals(first.voices(), fallback.voices());
+    assertEquals(first.fetchedAt(), fallback.fetchedAt());
+    assertNotNull(fallback.warning());
+    assertArrayEquals(saved, Files.readAllBytes(directory.resolve("catalogue-cache.json")));
+    var restored = restarted().catalogue(false);
+    assertEquals(first.voices(), restored.voices());
+    assertEquals(first.fetchedAt(), restored.fetchedAt());
+    assertEquals(2, catalogueRequests, "Fresh saved copy needs no network request after restart");
+  }
+
+  @Test
+  void expiredSavedCopyRemainsUsableDuringOutageWithoutRepeatedAutomaticRetries() throws Exception {
+    service.voices();
+    Path file = directory.resolve("catalogue-cache.json");
+    var mapper = JsonMapper.builder().build();
+    var saved = (ObjectNode) mapper.readTree(Files.readAllBytes(file));
+    Instant old = Instant.now().minus(Duration.ofHours(2));
+    saved.put("fetchedAt", old.toString());
+    Files.write(file, mapper.writeValueAsBytes(saved));
+    catalogueStatus = 503;
+    service = restarted();
+    var fallback = service.catalogue(false);
+    assertEquals(old, fallback.fetchedAt());
+    assertTrue(fallback.stale());
+    assertNotNull(fallback.warning());
+    assertEquals(ID, fallback.voices().getFirst().id());
+    service.sample(ID);
+    service.voices();
+    assertEquals(2, catalogueRequests, "Reuse stale metadata briefly between failed refreshes");
+  }
+
+  @Test
+  void malformedProviderResponseCannotReplaceTheLastGoodCatalogue() throws Exception {
+    var first = service.catalogue(false);
+    catalogue = "{broken";
+    var fallback = service.catalogue(true);
+    assertEquals(first.voices(), fallback.voices());
+    assertEquals(first.fetchedAt(), fallback.fetchedAt());
+    assertNotNull(fallback.warning());
+    assertEquals(first.voices(), restarted().voices());
+  }
+
+  @Test
+  void corruptSavedCopyIsReplacedFromProviderButColdOutageReportsFailure() throws Exception {
+    Files.writeString(directory.resolve("catalogue-cache.json"), "broken");
+    assertEquals(ID, service.voices().getFirst().id());
+    Files.delete(directory.resolve("catalogue-cache.json"));
+    catalogueStatus = 503;
+    assertThrows(IOException.class, () -> restarted().catalogue(false));
   }
 
   @Test
@@ -145,7 +218,7 @@ class VoiceCatalogueServiceTest {
     assertThrows(IOException.class, () -> service.install(ID));
     assertFalse(service.voices().getFirst().installed());
     try (var installed = Files.list(directory)) {
-      assertEquals(0, installed.count());
+      assertEquals(1, installed.count());
     }
   }
 }
