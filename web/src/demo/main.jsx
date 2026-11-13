@@ -6,9 +6,12 @@ import {
   ComicStage,
   ComicToolbar,
   ViewTools,
+  ToolbarToggle,
   useComicView,
 } from "../comic/ComicFrame.jsx";
-import { ReadAloudProvider } from "../comic/ReadAloud.jsx";
+import { Headphones } from "lucide-react";
+import recordings from "../../../site/demo-audio/manifest.json";
+import { ReadAloudKey, ReadAloudProvider } from "../comic/ReadAloud.jsx";
 import { StudyLanguagesProvider } from "../player/StudyLanguages.jsx";
 import { playerDocument } from "../shared/api.ts";
 import { useStoredState } from "../shared/storage.ts";
@@ -21,6 +24,8 @@ import "../app/global.css";
 import "./demo.css";
 
 const document = playerDocument(source);
+const audioUrl = (text) =>
+  recordings.clips[text] ? `./audio/${recordings.clips[text]}` : null;
 const imageUrl = (id) => `./pages/${encodeURIComponent(id)}.jpg`;
 
 /** A static, read-only library and the app's shared comic reader, with browser-local progress. */
@@ -34,6 +39,7 @@ function Demo() {
       ? storedPage
       : 0;
   const [selectedId, setSelectedId] = useState(null);
+  const [autoListen, setAutoListen] = useStoredState("demo:auto-listen", false);
   const view = useComicView({
     count: reading ? document.pages.length : 0,
     index,
@@ -92,11 +98,20 @@ function Demo() {
   const boxes = document.boxes.filter((box) =>
     pages.some((page) => page.id === box.pageId),
   );
+  const lines = boxes.flatMap((box) => box.lines);
+  const selected = lines.find((line) => line.id === selectedId) ?? lines[0];
   return (
     <StudyLanguagesProvider document={document}>
-      <ReadAloudProvider enabled={false}>
+      <ReadAloudProvider audioUrl={audioUrl} autoListen={autoListen}>
+        <ReadAloudKey text={selected?.source} />
         <main className="comic-reader demo-reader">
           <ComicToolbar title={document.title} backHref="#library">
+            <ToolbarToggle
+              label={autoListen ? "Stop listening on hover" : "Listen on hover"}
+              pressed={autoListen}
+              onClick={() => setAutoListen((value) => !value)}
+              icon={<Headphones size={18} />}
+            />
             <ViewTools view={view} />
           </ComicToolbar>
           <div className="demo-reader-hint">

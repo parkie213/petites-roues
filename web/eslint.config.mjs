@@ -59,7 +59,7 @@ export default defineConfig([
   },
   {
     // Tests that render components run in jsdom, a simulated browser inside Node.
-    files: ["test/**/*.jsx"],
+    files: ["test/**/*.jsx", "demo-test/**/*.mjs"],
     languageOptions: {
       globals: { ...globals.browser, ...globals.node },
       parserOptions: { ecmaFeatures: { jsx: true } },

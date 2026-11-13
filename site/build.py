@@ -6,6 +6,8 @@ import shutil
 import subprocess
 import zipfile
 
+from demo_audio import AUDIO, spoken_texts
+
 ROOT = Path(__file__).resolve().parents[1]
 OUTPUT = ROOT / "site/dist"
 if OUTPUT.exists():
@@ -20,4 +22,14 @@ pages.mkdir()
 with zipfile.ZipFile(ROOT / "example/media-fr/comics/lulu/le-parapluie-de-lulu.cbz") as archive:
     for page in document["comic"]["pages"]:
         (pages / (page["id"] + ".jpg")).write_bytes(archive.read(page["entry"]))
+manifest = json.loads((AUDIO / "manifest.json").read_text())
+if manifest["sourceLanguage"] != document["sourceLanguage"]:
+    raise SystemExit("Demo recordings have the wrong source language; regenerate them.")
+audio = OUTPUT / "demo/audio"
+audio.mkdir()
+for text in spoken_texts(document):
+    name = manifest["clips"].get(text)
+    if not name or Path(name).name != name or not (AUDIO / name).is_file():
+        raise SystemExit(f"Missing demo recording for {text!r}; run site/demo_audio.py.")
+    shutil.copyfile(AUDIO / name, audio / name)
 print(f"Built {OUTPUT}")

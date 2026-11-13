@@ -7,13 +7,13 @@ const ReadAloudContext = createContext(null);
  * Plays source-language text through the server's local voice. One utterance plays at a time:
  * asking for new text stops the current one, and asking for the text already playing stops it.
  * Audio is fetched for each request and released when it ends. `autoListen` is the reader's
- * preference for reading each bubble as its card opens. With `enabled=false`, speech controls
- * are hidden and requests are ignored, for static readers without a voice server.
+ * preference for reading each bubble as its card opens. `audioUrl(text)` resolves prerecorded clips
+ * instead of requesting the voice server; a missing clip reports an error without a request.
  */
 export function ReadAloudProvider({
   url,
   autoListen = false,
-  enabled = true,
+  audioUrl = null,
   children,
 }) {
   const current = useRef(null);
@@ -31,12 +31,16 @@ export function ReadAloudProvider({
   async function speak(text) {
     const repeat = current.current?.text === text;
     stop();
-    if (!enabled || repeat || !text?.trim()) return;
+    if (repeat || !text?.trim()) return;
     const playing = { text, abort: new AbortController() };
     current.current = playing;
     setState({ text, loading: true, error: "" });
     try {
-      const response = await fetch(`${url}?text=${encodeURIComponent(text)}`, {
+      const source = audioUrl
+        ? audioUrl(text)
+        : `${url}?text=${encodeURIComponent(text)}`;
+      if (!source) throw new Error("No recording is available for this text.");
+      const response = await fetch(source, {
         signal: playing.abort.signal,
       });
       if (!response.ok) throw await responseError(response);
@@ -55,9 +59,7 @@ export function ReadAloudProvider({
 
   useEffect(() => stop, []);
   return (
-    <ReadAloudContext.Provider
-      value={{ ...state, speak, stop, autoListen, enabled }}
-    >
+    <ReadAloudContext.Provider value={{ ...state, speak, stop, autoListen }}>
       {children}
     </ReadAloudContext.Provider>
   );
