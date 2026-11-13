@@ -7,9 +7,7 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
-import org.springframework.core.annotation.Order;
 import org.springframework.http.MediaType;
-import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 import tools.jackson.databind.json.JsonMapper;
 
@@ -17,11 +15,8 @@ import tools.jackson.databind.json.JsonMapper;
  * Admits only paired phones to {@code /phone/**}: every request but {@code POST /phone/pair} needs
  * {@code Authorization: Bearer <token>} for a phone that is still paired, else 401 with the API's
  * {@code {"error": message}} body, which the phone shows. The paired phone is left in the request
- * attribute {@link #PHONE}. Runs after {@link LocalRequestFilter}, which keeps these routes to the
- * phone listener.
+ * attribute {@link #PHONE}. Installed only in the isolated phone servlet context.
  */
-@Component
-@Order(2)
 public class PhoneRequestFilter extends OncePerRequestFilter {
   /** The request attribute holding the authenticated {@code PairedPhone}. */
   public static final String PHONE = "petitesroues.phone";
