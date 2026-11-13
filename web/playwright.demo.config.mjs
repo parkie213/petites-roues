@@ -13,6 +13,12 @@ export default defineConfig({
   projects: [
     { name: "desktop", use: { ...devices["Desktop Chrome"] } },
     {
+      // Regression coverage for Firefox demo saves and restoration.
+      name: "firefox",
+      grep: /the real library and reader work/,
+      use: { ...devices["Desktop Firefox"], launchOptions: {} },
+    },
+    {
       name: "mobile",
       use: { ...devices["iPhone 13"], defaultBrowserType: "chromium" },
     },

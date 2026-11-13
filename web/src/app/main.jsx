@@ -15,13 +15,15 @@ if (isDemo) {
     "./demo-worker.js",
     { scope: "./", updateViaCache: "none" },
   );
-  await navigator.serviceWorker.ready;
+  const ready = await navigator.serviceWorker.ready;
   if (!navigator.serviceWorker.controller)
-    await new Promise((resolve) =>
+    await new Promise((resolve) => {
       navigator.serviceWorker.addEventListener("controllerchange", resolve, {
         once: true,
-      }),
-    );
+      });
+      // Firefox may leave a new navigation uncontrolled by an existing registration.
+      ready.active.postMessage({ type: "demo:claim-client" });
+    });
   registration.update().catch(() => {});
 }
 

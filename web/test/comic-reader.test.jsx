@@ -177,7 +177,7 @@ test("serializes progress writes and can retry after failure", async () => {
   await waitFor(() => expect(calls).toBe(2));
   await waitFor(() =>
     expect(
-      screen.queryByText("Your reading position could not be saved."),
+      screen.queryByText(/^Your reading position could not be saved\./),
     ).toBeNull(),
   );
   expect(
@@ -199,13 +199,15 @@ test("shows progress failures with a retry for the displayed page", async () => 
     await screen.findByRole("button", { name: "Image loaded" }),
   );
   expect(
-    await screen.findByText("Your reading position could not be saved."),
+    await screen.findByText(
+      "Your reading position could not be saved. Offline",
+    ),
   ).toBeTruthy();
   fails = false;
   await userEvent.click(screen.getByRole("button", { name: "Retry saving" }));
   await waitFor(() =>
     expect(
-      screen.queryByText("Your reading position could not be saved."),
+      screen.queryByText(/^Your reading position could not be saved\./),
     ).toBeNull(),
   );
 });

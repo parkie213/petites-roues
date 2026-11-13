@@ -16,6 +16,12 @@ self.addEventListener("activate", (event) =>
   event.waitUntil(self.clients.claim()),
 );
 
+// Claim requests are only sent by pages inside this worker’s existing /demo/ scope.
+self.addEventListener("message", (event) => {
+  if (event.data?.type === "demo:claim-client")
+    event.waitUntil(self.clients.claim());
+});
+
 async function progress() {
   const cache = await caches.open(PROGRESS_CACHE);
   const saved = await cache.match(progressKey);
