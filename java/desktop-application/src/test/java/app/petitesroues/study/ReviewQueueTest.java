@@ -7,7 +7,12 @@ import static org.junit.jupiter.api.Assertions.*;
 import app.petitesroues.documents.StudyDocumentCodec;
 import app.petitesroues.documents.StudyDocumentJson;
 import app.petitesroues.documents.StudyDocumentReader;
+import app.petitesroues.library.DocumentConflictException;
+import app.petitesroues.library.DocumentImportService;
+import app.petitesroues.library.RepositoryContentService;
+import app.petitesroues.library.persistence.AcceptedDocumentStore;
 import app.petitesroues.library.persistence.CatalogueStore;
+import app.petitesroues.library.persistence.ContentRepositoryStore;
 import app.petitesroues.model.document.StudyDocument;
 import app.petitesroues.model.editing.DocumentEdit;
 import app.petitesroues.model.library.CatalogueEntry;
@@ -35,6 +40,8 @@ class ReviewQueueTest {
   JdbcTemplate jdbc;
   ReviewQueue queue;
   ReviewQueueService service;
+  DocumentImportService imports;
+  AcceptedDocumentStore accepted;
   CatalogueEntry title;
   StudyDocumentCodec codec;
   final DocumentEdit delete = new DocumentEdit.DeleteVideoCue("stable-cue");
@@ -46,14 +53,21 @@ class ReviewQueueTest {
     source = new SingleConnectionDataSource("jdbc:sqlite::memory:", true);
     jdbc = new JdbcTemplate(source);
     DatabaseFixtures.migrate(source);
-    title = register("example");
     queue = new ReviewQueue(jdbc, mapper);
-    service =
-        new ReviewQueueService(
-            new CatalogueStore(jdbc),
-            new DocumentStore(new StudyDocumentReader(codec)),
+    var catalogue = new CatalogueStore(jdbc);
+    var store = new DocumentStore(new StudyDocumentReader(codec));
+    accepted = new AcceptedDocumentStore(jdbc);
+    var transactions = new TransactionTemplate(new DataSourceTransactionManager(source));
+    imports =
+        new DocumentImportService(
+            catalogue,
+            store,
+            accepted,
             queue,
-            new TransactionTemplate(new DataSourceTransactionManager(source)));
+            new RepositoryContentService(new ContentRepositoryStore(jdbc), catalogue),
+            transactions);
+    service = new ReviewQueueService(catalogue, store, accepted, imports, queue, transactions);
+    title = register("example");
     queue.append(title, delete);
   }
 
@@ -66,6 +80,7 @@ class ReviewQueueTest {
     var entry = catalogueEntry(jdbc, id, root);
     new CatalogueStore(jdbc).saveTitle(entry);
     write(entry, document(id));
+    imports.importFile(entry.id());
     return entry;
   }
 
@@ -139,9 +154,9 @@ class ReviewQueueTest {
   @Test
   void failedCompletionRollsBackEarlierDecisionsInTheSameBatch() throws Exception {
     queue.append(title, new DocumentEdit.Suggestion("stable-cue", "Bonsoir ?"));
-    var before = queue.read(title);
+    var before = accepted.findHash(title.id()).orElseThrow();
     long batch = claimAndWrite();
-    long last = before.getLast().sequence();
+    long last = queue.read(title).getLast().sequence();
     jdbc.execute(
         "CREATE TRIGGER fail_completion BEFORE UPDATE OF reviewed_at ON review_queue "
             + "WHEN NEW.sequence="
@@ -153,12 +168,44 @@ class ReviewQueueTest {
     assertEquals(2, queue.read(title).size());
     assertTrue(queue.history(title).isEmpty());
     assertTrue(queue.openBatch(title).isPresent());
+    assertEquals(before, accepted.findHash(title.id()).orElseThrow(), "accepted copy unchanged");
+  }
+
+  @Test
+  void aTitleWithoutAnAcceptedCopyCannotBeServed() {
+    jdbc.update("DELETE FROM accepted_documents WHERE title_id=?", title.id());
+    var failure = assertThrows(DocumentConflictException.class, () -> service.document(title));
+    assertTrue(failure.getMessage().contains("Refresh"));
+  }
+
+  @Test
+  void completingWithAnUnchangedFileIsRefusedUnlessEveryEditIsNotAdopted() throws Exception {
+    long batch = service.claim(title.id(), 50).orElseThrow().batch();
+    var failure =
+        assertThrows(
+            IllegalArgumentException.class,
+            () -> service.complete(title.id(), batch, new ReviewCompletion("applied", null)));
+    assertTrue(failure.getMessage().contains("unchanged since this batch was claimed"));
+    assertTrue(queue.openBatch(title).isPresent());
+    service.complete(title.id(), batch, new ReviewCompletion("not_adopted", null));
+    assertTrue(queue.openBatch(title).isEmpty());
+  }
+
+  @Test
+  void importingATitleWithAnOpenBatchIsRefusedAndNamesTheBatch() throws Exception {
+    long batch = service.claim(title.id(), 50).orElseThrow().batch();
+    write(title, document("example").withTitle("Changed"));
+    var failure =
+        assertThrows(DocumentConflictException.class, () -> service.importFile(title.id()));
+    assertTrue(failure.getMessage().contains("batch " + batch));
+    service.complete(title.id(), batch, new ReviewCompletion("applied", null));
+    assertEquals(DocumentImportService.Result.UNCHANGED, service.importFile(title.id()));
   }
 
   @Test
   void pendingTitlesListWorkAndOpenBatches() throws Exception {
     assertEquals(
-        List.of(new ReviewQueue.PendingTitle(title.id(), "Title", 1, null)),
+        List.of(new ReviewQueue.PendingTitle(title.id(), "A generic title", 1, null)),
         service.pendingTitles());
     long batch = service.claim(title.id(), 50).orElseThrow().batch();
     assertEquals(batch, service.pendingTitles().getFirst().openBatch());

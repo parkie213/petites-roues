@@ -20,7 +20,8 @@ Up to two repair requests resend only the cues that failed.
 Rerunning the same command resumes.
 
 Then updates DOC in place for every accepted cue whose source and translation still match
-what was sent, and queues each one for a breakdown review. --no-write keeps the answers in the run
+what was sent, imports the file into the app, and queues each one for a breakdown review.
+Refuses to run while the title has an open review batch. --no-write keeps the answers in the run
 directory only, for comparing prompts or models (see phrase_report.py).
 """
 import argparse
@@ -145,6 +146,8 @@ def main():
     parser.add_argument("--model", default=MODEL)
     args = parser.parse_args()
     title = app.title_id(args.document)
+    if not args.no_write:
+        app.require_no_open_batch(title)
 
     if not (args.run_dir / "manifest.json").exists():
         raw = args.document.read_bytes()

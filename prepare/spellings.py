@@ -17,7 +17,9 @@ with the cues they are in, so the variants can be added; it changes nothing.
 Variants are replaced as whole words, case-sensitively, longest first, in cue source text. Each
 change is printed. Cues that already have a translation, notes or phrase links are skipped and
 listed, because changing their source would leave the annotation describing other words. Running
-it again changes nothing new, so add variants as later chunks reveal them and rerun.
+it again changes nothing new, so add variants as later chunks reveal them and rerun. A changed
+document is imported into the running app, which needs the title registered and no review batch
+open on it.
 """
 import argparse
 import re
@@ -25,6 +27,7 @@ from collections import defaultdict
 from difflib import SequenceMatcher
 from pathlib import Path
 
+import app
 from batches import cues_of
 from openrouter import load, save
 
@@ -110,9 +113,12 @@ def main():
     if skipped:
         print(f"Skipped {len(skipped)} annotated cues; correct them in the player: {', '.join(skipped)}")
     if changed and not args.dry_run:
+        title = app.title_id(args.document)
+        app.require_no_open_batch(title)
         temporary = args.document.with_name(args.document.name + ".tmp")
         save(temporary, document)
         temporary.replace(args.document)
+        app.import_title(title)
     print(f"{'Would change' if args.dry_run else 'Changed'} {changed} cues in {args.document}")
 
 

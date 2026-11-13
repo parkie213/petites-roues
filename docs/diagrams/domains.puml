@@ -19,8 +19,8 @@ package "Local — this machine only\n(SQLite and files beside documents)" as lo
   rectangle "Progress\n<i>resume positions</i>" as Progress
 }
 
-Library --> Documents : indexes (read only)
-Editing --> Documents : replays pending edits\nover the file when served
+Library --> Documents : imports (read only)
+Editing --> Documents : replays pending edits\nover the accepted copy when served
 Agent --> Documents : the only writer
 Agent --> Editing : claims and completes\nreview batches
 Learner --> Editing : edits, comments

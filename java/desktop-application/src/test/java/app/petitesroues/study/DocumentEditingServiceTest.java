@@ -10,7 +10,12 @@ import static org.mockito.Mockito.*;
 import app.petitesroues.documents.StudyDocumentCodec;
 import app.petitesroues.documents.StudyDocumentJson;
 import app.petitesroues.documents.StudyDocumentReader;
+import app.petitesroues.library.DocumentConflictException;
+import app.petitesroues.library.DocumentImportService;
+import app.petitesroues.library.RepositoryContentService;
+import app.petitesroues.library.persistence.AcceptedDocumentStore;
 import app.petitesroues.library.persistence.CatalogueStore;
+import app.petitesroues.library.persistence.ContentRepositoryStore;
 import app.petitesroues.model.document.Line;
 import app.petitesroues.model.document.PhraseAlignment;
 import app.petitesroues.model.document.StudyDocument;
@@ -36,11 +41,15 @@ import org.springframework.jdbc.datasource.DataSourceTransactionManager;
 import org.springframework.jdbc.datasource.SingleConnectionDataSource;
 import org.springframework.transaction.support.TransactionTemplate;
 
-/** Player edits are queued and replayed over the file; agents write them through batches. */
+/**
+ * Player edits are queued and replayed over the accepted copy; agents write them through batches.
+ */
 class DocumentEditingServiceTest {
   @TempDir Path root;
   DocumentEditingService editing;
   ReviewQueueService served;
+  DocumentImportService imports;
+  JdbcTemplate jdbc;
   CatalogueEntry entry;
   ReviewQueue log;
   StudyDocumentCodec codec;
@@ -51,25 +60,37 @@ class DocumentEditingServiceTest {
     codec = new StudyDocumentCodec();
     var source = new SingleConnectionDataSource("jdbc:sqlite:" + root.resolve("db.sqlite"), true);
     DatabaseFixtures.migrate(source);
-    var jdbc = new JdbcTemplate(source);
+    jdbc = new JdbcTemplate(source);
     entry = catalogueEntry(jdbc, "example", root);
     var titles = new CatalogueStore(jdbc);
     titles.saveTitle(entry);
-    write(document(entry.id()));
     log = spy(new ReviewQueue(jdbc, mapper));
-    served =
-        new ReviewQueueService(
+    var store = new DocumentStore(new StudyDocumentReader(codec));
+    var accepted = new AcceptedDocumentStore(jdbc);
+    var transactions = new TransactionTemplate(new DataSourceTransactionManager(source));
+    imports =
+        new DocumentImportService(
             titles,
-            new DocumentStore(new StudyDocumentReader(codec)),
+            store,
+            accepted,
             log,
-            new TransactionTemplate(new DataSourceTransactionManager(source)));
+            new RepositoryContentService(new ContentRepositoryStore(jdbc), titles),
+            transactions);
+    served = new ReviewQueueService(titles, store, accepted, imports, log, transactions);
+    write(document(entry.id()));
     editing = new DocumentEditingService(titles, served, log);
   }
 
-  /** Writes the file as an agent or preparation script would. */
-  private void write(StudyDocument document) throws Exception {
+  /** Writes the file as an agent or preparation script would, without the app noticing. */
+  private void writeFile(StudyDocument document) throws Exception {
     Files.createDirectories(entry.documentFile().getParent());
     Files.write(entry.documentFile(), codec.encode(document).getBytes(StandardCharsets.UTF_8));
+  }
+
+  /** Writes the file and imports it, as Refresh or the import endpoint would. */
+  private void write(StudyDocument document) throws Exception {
+    writeFile(document);
+    imports.importFile(entry.id());
   }
 
   private StudyDocument readVideo() throws Exception {
@@ -371,7 +392,7 @@ class DocumentEditingServiceTest {
   }
 
   @Test
-  void batchEditsStopReplayingOnceTheAgentWritesTheFile() throws Exception {
+  void batchEditsKeepReplayingUntilCompletionImportsTheAgentsFile() throws Exception {
     var cue = readVideo().video().cues().get(0).withLine(s -> s.withSource("Bonsoir !"));
     editing.editCue(entry.id(), "stable-cue", edit(cue));
     var batch = served.claim(entry.id(), 50).orElseThrow();
@@ -383,12 +404,12 @@ class DocumentEditingServiceTest {
             .document()
             .withVideo(
                 v -> v.withCue(0, c -> c.withLine(st -> st.withTranslation("Good evening!"))));
-    write(agent);
+    writeFile(agent);
 
-    var saved = readVideo().video().cues().get(0).line();
-    assertEquals("Bonsoir !", saved.source());
-    assertEquals("Good evening!", saved.translation());
-    assertEquals("written", history().getFirst().state());
+    var before = readVideo().video().cues().get(0).line();
+    assertEquals("Bonsoir !", before.source());
+    assertEquals("Hello!", before.translation(), "the unimported file is not served");
+    assertEquals("pending", history().getFirst().state());
     served.complete(entry.id(), batch.batch(), new ReviewCompletion(null, null));
     assertTrue(history().isEmpty());
     assertEquals("applied", served.history(entry.id()).getFirst().outcome());
@@ -396,20 +417,120 @@ class DocumentEditingServiceTest {
   }
 
   @Test
-  void editsAfterTheClaimReplayOverTheAgentsFile() throws Exception {
+  void aFileRewrittenOnDiskIsNotServedUntilItIsImported() throws Exception {
+    var original = readVideo();
+    writeFile(original.withTitle("Rewritten"));
+    assertEquals(original, readVideo());
+    assertEquals(DocumentImportService.Result.IMPORTED, imports.importFile(entry.id()));
+    assertEquals("Rewritten", readVideo().title());
+  }
+
+  @Test
+  void editsAfterTheClaimStayPendingOverTheCompletedFile() throws Exception {
     editing.saveCueTiming(entry.id(), List.of(new UpdateCueTiming("stable-cue", .2, .8)));
     var batch = served.claim(entry.id(), 50).orElseThrow();
     editing.suggestCorrection(entry.id(), "stable-cue", "Bonne nuit ?");
-    assertFalse(batch.document().video().cues().get(0).listeningCheck() != null);
-    assertEquals(batch, served.claim(entry.id(), 50).orElseThrow());
-
-    write(batch.document());
-    served.complete(entry.id(), batch.batch(), null);
+    var agent =
+        batch
+            .document()
+            .withVideo(v -> v.withCue(0, c -> c.withLine(s -> s.withNotes(List.of("N")))));
+    writeFile(agent);
+    served.complete(entry.id(), batch.batch(), new ReviewCompletion("applied", null));
 
     var saved = readVideo().video().cues().get(0);
+    assertEquals(List.of("N"), saved.line().notes());
     assertEquals(.2, saved.start());
     assertTrue(saved.listeningCheck().contains("Bonne nuit ?"));
-    assertEquals(List.of("suggestion"), history().stream().map(CueChange::kind).toList());
+    assertEquals(List.of("pending"), history().stream().map(CueChange::state).toList());
+    assertEquals(
+        List.of("timing"), served.history(entry.id()).stream().map(CueChange::kind).toList());
+    assertEquals("applied", served.history(entry.id()).getFirst().outcome());
+  }
+
+  @Test
+  void aLaterEditThatNoLongerAppliesToTheNewCopyBecomesAConflict() throws Exception {
+    editing.saveCueTiming(entry.id(), List.of(new UpdateCueTiming("stable-cue", .2, .8)));
+    var batch = served.claim(entry.id(), 50).orElseThrow();
+    editing.deleteCue(entry.id(), "stable-cue");
+    writeFile(
+        batch.document().withVideo(v -> v.withCue(0, c -> c.withLine(s -> s.withId("renamed")))));
+    served.complete(entry.id(), batch.batch(), null);
+
+    assertEquals(List.of("conflict"), history().stream().map(CueChange::state).toList());
+    assertEquals("renamed", readVideo().video().cues().get(0).line().id());
+  }
+
+  @Test
+  void aReadDuringCompletionSeesTheDocumentWhollyBeforeOrAfter() throws Exception {
+    editing.saveCueTiming(entry.id(), List.of(new UpdateCueTiming("stable-cue", .2, .8)));
+    var batch = served.claim(entry.id(), 50).orElseThrow();
+    var before = readVideo();
+    var agent =
+        batch
+            .document()
+            .withVideo(v -> v.withCue(0, c -> c.withLine(s -> s.withNotes(List.of("N")))));
+    writeFile(agent);
+    // The accepted copy is saved by the time the batch rows close; read from a second connection.
+    var reader = new SingleConnectionDataSource("jdbc:sqlite:" + root.resolve("db.sqlite"), true);
+    var other = new JdbcTemplate(reader);
+    var titles = new CatalogueStore(other);
+    var readerService =
+        new ReviewQueueService(
+            titles,
+            new DocumentStore(new StudyDocumentReader(codec)),
+            new AcceptedDocumentStore(other),
+            imports,
+            new ReviewQueue(other, StudyDocumentJson.newMapper()),
+            new TransactionTemplate(new DataSourceTransactionManager(reader)));
+    var seen = new ArrayList<StudyDocument>();
+    doAnswer(
+            call -> {
+              seen.add(readerService.document(entry));
+              return call.callRealMethod();
+            })
+        .when(log)
+        .complete(any(), anyLong(), any(), any());
+
+    served.complete(entry.id(), batch.batch(), null);
+    seen.add(readerService.document(entry));
+    reader.destroy();
+
+    assertEquals(before, seen.get(0));
+    assertEquals(readVideo(), seen.get(1));
+    assertNotEquals(seen.get(0), seen.get(1));
+  }
+
+  @Test
+  void completionIsRetryableWhenTheFileIsStillTheAcceptedCopyAndRefusedOtherwise()
+      throws Exception {
+    editing.saveCueTiming(entry.id(), List.of(new UpdateCueTiming("stable-cue", .2, .8)));
+    var batch = served.claim(entry.id(), 50).orElseThrow();
+    writeFile(batch.document().withTitle("Agent"));
+    served.complete(entry.id(), batch.batch(), null);
+    served.complete(entry.id(), batch.batch(), null);
+    assertEquals(1, served.history(entry.id()).size());
+
+    writeFile(batch.document().withTitle("Another file"));
+    assertThrows(
+        java.util.NoSuchElementException.class,
+        () -> served.complete(entry.id(), batch.batch(), null));
+  }
+
+  @Test
+  void completionFailsWithAConflictWhenTheAcceptedCopyMovedSinceTheClaim() throws Exception {
+    editing.saveCueTiming(entry.id(), List.of(new UpdateCueTiming("stable-cue", .2, .8)));
+    var batch = served.claim(entry.id(), 50).orElseThrow();
+    var accepted = new AcceptedDocumentStore(jdbc);
+    var other =
+        codec.encode(batch.document().withTitle("Elsewhere")).getBytes(StandardCharsets.UTF_8);
+    accepted.save(entry.id(), other, DocumentStore.sha256(other), "now");
+    writeFile(batch.document().withTitle("Agent"));
+
+    assertThrows(
+        DocumentConflictException.class, () -> served.complete(entry.id(), batch.batch(), null));
+    assertEquals(1, history().size());
+    assertEquals(batch.batch(), log.openBatch(entry).orElseThrow().id());
+    assertArrayEquals(other, accepted.find(entry.id()).orElseThrow().json());
   }
 
   @Test
@@ -437,6 +558,8 @@ class DocumentEditingServiceTest {
         entry.id(), batch.batch(), new ReviewCompletion(null, Map.of(sequence, "not_adopted")));
     assertTrue(history().isEmpty());
     assertEquals(0.1, readVideo().video().cues().get(0).start());
+    served.complete(entry.id(), batch.batch(), null); // a retry with the accepted file succeeds
+    writeFile(readVideo().withTitle("Different"));
     assertThrows(
         java.util.NoSuchElementException.class,
         () -> served.complete(entry.id(), batch.batch(), null));

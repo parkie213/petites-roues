@@ -8,6 +8,7 @@ import app.petitesroues.study.ReviewQueue;
 import app.petitesroues.study.ReviewQueueService;
 import java.io.IOException;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import org.springframework.http.CacheControl;
 import org.springframework.http.ResponseEntity;
@@ -44,7 +45,7 @@ public class ReviewController {
 
   /**
    * GET pending queue rows for a title as {@link CueChange}s, in sequence order, each with its
-   * replay {@code state}: pending, conflict, written or review.
+   * replay {@code state}: pending, conflict or review.
    */
   @GetMapping({"/titles/{id}/review-queue", "/titles/{id}/changes"})
   public ResponseEntity<List<CueChange>> pending(@PathVariable String id) throws IOException {
@@ -90,7 +91,8 @@ public class ReviewController {
    * POST {@code {"outcome":"applied","outcomes":{"12":"not_adopted"}}} after the batch's edits are
    * written and checkpointed. Outcomes are applied (default), already_correct, not_adopted and
    * reviewed. Rejected while document.json is unchanged since the claim, unless every edit is
-   * not_adopted.
+   * not_adopted. Completing imports the file as the title's accepted copy together with closing the
+   * batch; repeating it for a closed batch succeeds while the file is still the accepted copy.
    */
   @PostMapping("/titles/{id}/review/batches/{batch}/complete")
   public void complete(
@@ -100,6 +102,22 @@ public class ReviewController {
       throws IOException {
     synchronized (updates) {
       review.complete(id, batch, completion);
+    }
+  }
+
+  /**
+   * POST (no body) to import the title's registered {@code document.json} as its accepted copy.
+   * Returns {@code {"result":"imported"}} or {@code {"result":"unchanged"}}; 409 while the title
+   * has an open batch (completing it imports the file) or if the accepted copy changed meanwhile.
+   */
+  @PostMapping("/titles/{id}/import")
+  public ResponseEntity<Map<String, String>> importFile(@PathVariable String id)
+      throws IOException {
+    synchronized (updates) {
+      var result = review.importFile(id);
+      return ResponseEntity.ok()
+          .cacheControl(CacheControl.noStore())
+          .body(Map.of("result", result.name().toLowerCase(Locale.ROOT)));
     }
   }
 

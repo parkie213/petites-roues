@@ -241,8 +241,10 @@ Those names are for display only; linking is by fingerprint alone. Series names 
 case and spacing, across folders, so a video awaiting its document sits in its series beside the
 episodes that have one. Copies of the same volume or episode share one card.
 
-Add/Refresh indexes documents, media and folder hierarchy. Refresh after adding, moving or
-changing documents or media; reopening the player reloads document contents. Removing a folder
+Add/Refresh indexes documents, media and folder hierarchy and imports each document as the
+title's accepted copy. Refresh after adding, moving or changing documents or media; a changed
+file is not served until imported (a title with an open review batch is imported by completing
+the batch). Removing a folder
 unregisters local state without deleting its files.
 
 Copying a document transfers its material. Video stays local unless you copy it;
@@ -428,8 +430,8 @@ in fit-page, fit-width and custom zoom modes. Highlights and the study panel can
 are rejected. Changed text resets verification, clears translation/notes/alignment and queues the
 edit. IDs, the box and the other lines are preserved.
 Unchanged text queues nothing. The editor blocks page/bubble changes until Save or Cancel.
-Like every player edit, it is served over the file until an agent writes it there through the
-[review API](REVIEW-API.md), with the annotations.
+Like every player edit, it is served over the accepted copy until an agent writes it into the
+file and imports it through the [review API](REVIEW-API.md), with the annotations.
 
 In Annotate mode, dragging on the page immediately saves a box through
 `POST /api/titles/{id}/comic/boxes` with `pageId`, `region` and optional `source`; the server

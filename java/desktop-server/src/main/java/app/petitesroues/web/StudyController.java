@@ -22,9 +22,10 @@ import org.springframework.web.bind.annotation.*;
  * Times are seconds from the start of the video; start must be nonnegative and end must be greater
  * than start. Address cues by their stable IDs, never their list positions.
  *
- * <p>Edits are queued, never written to the document file: GET returns the file with pending edits
- * replayed, and agents write them into the file through review batches ({@link ReviewController}).
- * A subtitle correction does not confirm the spoken source text or resolve a listening check.
+ * <p>Edits are queued, never written to the document file: GET returns the accepted copy with
+ * pending edits replayed, and agents write them into the file through review batches ({@link
+ * ReviewController}). A subtitle correction does not confirm the spoken source text or resolve a
+ * listening check.
  *
  * <p>Successful calls return 200. VideoCue mutations return the whole updated {@link
  * StudyDocument}, allowing the player to replace its cue list after additions, splits or sorting.

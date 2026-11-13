@@ -74,7 +74,10 @@ public class DocumentImportService {
    *     read, including a document ID that differs from the index
    */
   public Result importFile(String titleId) throws IOException {
-    CatalogueEntry entry = catalogue.find(titleId).orElseThrow(NoSuchElementException::new);
+    CatalogueEntry entry =
+        catalogue
+            .find(titleId)
+            .orElseThrow(() -> new NoSuchElementException("Unknown title: " + titleId));
     Optional<String> expected = accepted.findHash(titleId);
     var read = documents.readBytes(entry);
     if (expected.filter(read.sha256()::equals).isPresent()) return Result.UNCHANGED;
@@ -97,6 +100,23 @@ public class DocumentImportService {
     if (current.filter(read.sha256()::equals).isPresent()) return Result.UNCHANGED;
     if (queue.hasOpenBatch(entry.id())) return Result.SKIPPED_OPEN_BATCH;
     accepted.save(entry.id(), read.bytes(), read.sha256(), Instant.now().toString());
+    return Result.IMPORTED;
+  }
+
+  /**
+   * The import that completes a review batch, inside the caller's transaction: saves {@code read}
+   * as the accepted copy and updates the title's metadata, even though the title has its open
+   * batch. {@code batchBaseHash} is the accepted hash the batch was claimed against; if the copy
+   * has moved the result is {@link Result#CONFLICT}. {@link Result#UNCHANGED} when the file already
+   * is the accepted copy. Performs no file access.
+   */
+  public Result acceptCompletedBatch(
+      CatalogueEntry entry, String batchBaseHash, DocumentStore.Bytes read) {
+    Optional<String> current = accepted.findHash(entry.id());
+    if (!current.filter(batchBaseHash::equals).isPresent()) return Result.CONFLICT;
+    if (current.filter(read.sha256()::equals).isPresent()) return Result.UNCHANGED;
+    accepted.save(entry.id(), read.bytes(), read.sha256(), Instant.now().toString());
+    registration.updateMetadata(entry, read.document());
     return Result.IMPORTED;
   }
 

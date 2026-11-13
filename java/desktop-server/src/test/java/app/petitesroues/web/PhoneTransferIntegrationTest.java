@@ -199,7 +199,8 @@ class PhoneTransferIntegrationTest extends HttpIntegrationTest {
     var again = TransferPlan.of(client.titles(desktop), folder);
     assertEquals(List.of(), again.steps(), "nothing is fetched again while nothing changed");
 
-    // The desktop's document changes (a review lands): only it is offered and fetched again.
+    // The desktop's document changes (a review lands, then is imported): only it is offered and
+    // fetched again.
     Path document = docs.resolve("comics/demon/t01/document.json");
     var codec = new StudyDocumentCodec();
     var edited = codec.decode(Files.readAllBytes(document));
@@ -210,6 +211,7 @@ class PhoneTransferIntegrationTest extends HttpIntegrationTest {
                 body ->
                     body.withReference(new ComicReference(body.reference().fingerprint(), 42L)))),
         StandardCharsets.UTF_8);
+    http.post().uri("/api/repositories/refresh").retrieve().toBodilessEntity(); // imports it
     var update = TransferPlan.of(client.titles(desktop), folder);
     assertEquals(
         List.of(TitleFile.DOCUMENT),

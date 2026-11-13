@@ -1,17 +1,19 @@
 # Process the review queue and checkpoint content
 
 Use when asked to process a title's review queue. Read [translation-notes.md](../guides/translation-notes.md)
-first. The app never writes document files. It queues player edits and serves each document as the
-file plus those edits. Preparation scripts queue their first-pass output here too, as review
+first. The app never writes document files. It queues player edits and serves each title's accepted copy (the file
+as last imported) plus those edits; a file changes what it serves only when imported. Preparation scripts queue their first-pass output here too, as review
 requests. You are the only writer: take the edits in batches, write them into the
-file with their annotations, commit and push, then complete the batch. The API is described in
+file with their annotations, commit and push, then complete the batch, which imports the file. The API is described in
 [docs/REVIEW-API.md](../../docs/REVIEW-API.md).
 
 1. `GET /api/review/pending` lists titles with work. For a title, `POST
    /api/titles/{id}/review/batches` claims the oldest pending edits (`?limit=` to change the
    default of 50). If a batch is already open, you get that batch back. The response has `changes`
    (each with `kind`, `cueIds`, `suggestion`, `state` and the `command` the player sent) and
-   `document`, the file plus exactly those edits.
+   `document`, the accepted copy plus exactly those edits. When a title's pending edits are all
+   timing changes, claim with a higher `?limit=` so they land in one commit, write the batch's
+   `document` as given and complete with `applied`; they need no annotation work.
 2. Find the registered `document.json` (the repository root plus the title's document path in
    the library). Write the batch's `document` to it as the starting point, pretty-printed with
    two-space indentation like the existing file, so the Git diff shows only real changes.
@@ -36,13 +38,17 @@ file with their annotations, commit and push, then complete the batch. The API i
    that an edit cleared, against the exact source and translation.
 4. Before writing, `POST /api/titles/{id}/validate` with the candidate document: it returns
    `{"problems":[...]}`, every structural problem with its cue ID, and writes nothing. Fix them
-   all, then write the file and GET `/api/titles/{id}` to confirm it loads.
+   all, then write the file. GET `/api/titles/{id}` still shows the accepted copy, not the file:
+   validation is the check that it loads.
 5. Inspect the content repository's Git diff, then commit and push to the existing upstream.
    If Git fails, leave the batch open and report it; don't regenerate saved work.
 6. `POST /api/titles/{id}/review/batches/{batch}/complete` with
    `{"outcome":"applied","outcomes":{"12":"not_adopted"}}`. `outcome` covers every edit not listed;
-   outcomes are `applied`, `already_correct`, `not_adopted` and `reviewed`. The server rejects
+   outcomes are `applied`, `already_correct`, `not_adopted` and `reviewed`. Completion imports the
+   file as the new accepted copy and closes the batch in one transaction. The server rejects
    completion while the file is unchanged since the claim, unless every edit is `not_adopted`.
+   If completion fails (for example a 409), nothing changed: the file is simply ahead of the app.
+   Fix the cause and send the same completion again. Repeating one that already succeeded is safe.
 7. Claim again until the response is `204`. Report retained listening checks and anything left
    open. Never edit SQLite queue rows directly.
 
@@ -69,7 +75,8 @@ differently from neighbouring cues, a word that makes no sense in the scene. For
 The queue only shows lines with requests, so check the whole comic once its breakdown review is
 done: `python3 prepare/split_block.py --document DOC --find` lists long lines holding several
 sentences. A printed block (a recap, a character profile, an author's note) is one line per
-sentence; split each with `--line LINE_ID`, then validate, commit and push as for a batch.
+sentence; split each with `--line LINE_ID` outside a batch (it refuses while one is open), then
+validate, commit and push as for a batch, and `POST /api/titles/{id}/import` the title.
 Splitting before notes are written saves moving them.
 
 ## Checks

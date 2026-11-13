@@ -17,9 +17,8 @@ import java.util.List;
  * @param outcome decision recorded on completion, or {@code null} while pending
  * @param batch claiming review batch, or {@code null} while unclaimed
  * @param state for pending rows: {@code pending} (replayed), {@code conflict} (no longer applies to
- *     the file, so not replayed), {@code written} (its batch's file has since been rewritten, so it
- *     is not replayed) or {@code review} (queued before edits were replayed; already in the file);
- *     {@code null} for completed rows
+ *     the accepted copy, so not replayed) or {@code review} (queued before edits were replayed;
+ *     already in the document); {@code null} for completed rows
  * @param command the edit itself; {@code null} for {@code review} rows
  */
 public record CueChange(

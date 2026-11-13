@@ -1,7 +1,8 @@
 """Calls to the running Petites roues app, which owns validation and the review queue.
 
-The app never writes document files, so these calls only check candidates and queue work for
-the reviewing agent. Set PETITES_ROUES_URL if the app is not at http://localhost:8877.
+The app never writes document files and serves an accepted copy of each, so a file a script has
+written is unknown to the app until `import_title`. These calls check candidates, import files
+and queue work for the reviewing agent. Set PETITES_ROUES_URL if the app is not at http://localhost:8877.
 """
 import json
 import os
@@ -50,3 +51,22 @@ def problems(title, document):
 def request_review(title, requests):
     """Queue [{"cueId", "text"}] for the reviewing agent. Returns how many were queued."""
     return call("POST", f"/api/titles/{title}/review/requests", requests)["queued"] if requests else 0
+
+
+def require_no_open_batch(title):
+    """Stop before rewriting a title's document while a review batch is open on it: that batch's
+    completion is the title's import, and a rewrite now would collide with the agent's file."""
+    for pending in call("GET", "/api/review/pending"):
+        if pending["titleId"] == title and pending.get("openBatch") is not None:
+            raise SystemExit(f"Review batch {pending['openBatch']} is open on this title; "
+                             "complete it before rewriting the document")
+
+
+def import_title(title):
+    """Make the app serve the title's registered file just written. Returns "imported" or
+    "unchanged"; stops with the server's message when the title has an open batch or its
+    accepted copy changed meanwhile, and the same command can then be rerun."""
+    try:
+        return call("POST", f"/api/titles/{title}/import")["result"]
+    except SystemExit as error:
+        raise SystemExit(f"The file is written but not imported: {error}")

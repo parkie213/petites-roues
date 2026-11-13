@@ -17,7 +17,8 @@ reminder to place it, when it quotes none.
 holds more than one sentence. A speech balloon of two short sentences can stay whole; split
 printed text blocks such as a recap or character profile.
 
-Writes the document in place; the app's validator checks it on the next load or review.
+Writes the document in place and refuses while the title has an open review batch. The app does
+not see the change until the file is validated, committed and imported (see the review workflow).
 """
 import argparse
 import copy
@@ -26,6 +27,7 @@ import re
 import uuid
 from pathlib import Path
 
+import app
 from languages import chunk_separator
 
 SENTENCE_END = re.compile(r"[.!?…。！？][»”\"’)」』）]*$")
@@ -169,6 +171,7 @@ def main():
                       chunk_separator(document["translationLanguage"]))
     if len(sentences) < 2:
         raise SystemExit("The line is a single sentence; nothing to split.")
+    app.require_no_open_batch(app.title_id(args.document))
     box["lines"][index : index + 1] = sentences
     args.document.write_text(
         json.dumps(document, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"

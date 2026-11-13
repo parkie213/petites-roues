@@ -76,7 +76,8 @@ example/
 
 Each study document records its media's fingerprint (`video.reference` or `comic.reference`), so the two find each
 other wherever they live. Notes and quizzes are read from `notes/` and `quizzes/` at the top of
-a registered folder. After adding or changing files, click **Refresh library**.
+a registered folder. After adding or changing files, click **Refresh library**: the app serves each document as last
+imported, and Refresh imports the changes.
 
 <img src="../images/getting-started/03-example-added-to-library.png" alt="The example added to the library" style="max-width: 100%; height: auto;">
 

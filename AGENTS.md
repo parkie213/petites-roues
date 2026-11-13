@@ -53,11 +53,13 @@ Keep canonical annotation sources and generated/live outputs synchronized. Check
 ## Live annotation reviews
 
 The app never writes document files. Player and reader edits are queued in SQLite and replayed
-over `document.json` when it is served; agents are the only writers. To review, first read
+over the title's accepted copy of `document.json` (held in SQLite) when it is served; agents are
+the only writers, and a written file reaches the app only when imported. To review, first read
 [the translation notes guide](agents/guides/translation-notes.md), then follow
 [agents/workflows/review-content.md](agents/workflows/review-content.md): claim a batch, write its
 document into the registered file with the corresponding translations, notes, checks and
-alignments, commit and push to the existing content upstream, then complete the batch. Never edit
+alignments, commit and push to the existing content upstream, then complete the batch, which imports the
+file. Scripts that rewrite a document import it themselves. Never edit
 queue rows directly. Retain unresolved listening checks; a subtitle correction is not audio
 verification. Routine reviews require no exports or backups.
 

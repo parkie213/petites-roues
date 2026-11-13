@@ -6,7 +6,8 @@
 Reads the CBZ given by --media, else the one beside the document. Pages that already have boxes
 are left alone. Several pages go into each request; every request and response is saved per
 batch in the run directory, and rerunning the same command resumes, skipping answered batches.
-Adds one box per text region to the document in place.
+Adds one box per text region to the document in place and imports it into the running app,
+which must have the title registered and no review batch open on it.
 
 The model also flags pages that open a chapter and copies any table of contents. Once the run
 directory holds answers for every page, the chapters are written to `comic.chapters`, but only
@@ -20,6 +21,7 @@ import uuid
 import zipfile
 from pathlib import Path
 
+import app
 from openrouter import chat_json, cost, load, save
 
 MODEL = "openai/gpt-6.1-terra"
@@ -115,6 +117,8 @@ def main():
     parser.add_argument("--batch", type=int, default=3, help="pages per request")
     parser.add_argument("--model", default=MODEL)
     args = parser.parse_args()
+    title = app.title_id(args.document)
+    app.require_no_open_batch(title)
 
     books = [args.media] if args.media else list(args.document.parent.glob("*.cbz"))
     if len(books) != 1:
@@ -176,7 +180,8 @@ def main():
     temporary = args.document.with_name(args.document.name + ".tmp")
     save(temporary, document)
     temporary.replace(args.document)
-    print(f"Added {added} boxes; this run cost USD {total}; updated {args.document}")
+    app.import_title(title)
+    print(f"Added {added} boxes; this run cost USD {total}; updated and imported {args.document}")
     print(chapters)
     for line in skipped:
         print("Skipped", line)

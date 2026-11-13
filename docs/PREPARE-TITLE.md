@@ -35,7 +35,10 @@ library only) and `OPENROUTER_API_KEY` in the environment or a literal assignmen
 `~/.config/openrouter/env`, and print the reported cost. The environment takes precedence;
 if it contains an expired key, update or unset it before using the config file.
 `translate.py`, `phrases.py` and `notes.py` also need the app running, because they validate
-through the app and queue their output for review (set `PETITES_ROUES_URL` if the app is not
+through the app, import the file they write and queue their output for review. So do
+`transcribe.py`, `comic_text.py` and, when it changes the file, `spellings.py`, which import their
+result. All of them need the title registered, and refuse to run while it has an open review
+batch (set `PETITES_ROUES_URL` if the app is not
 on `http://localhost:8877`).
 The app and `transcribe.py` need FFmpeg, and [yt-dlp](https://github.com/yt-dlp/yt-dlp#installation)
 if you download videos. Use media you have permission to use.
@@ -52,7 +55,7 @@ breakdown review → notes → notes review**. Always check a sample before runn
 - **Machine output is a draft.** Notes are a first pass and go to the review queue; doubts about
   what was said or printed are recorded there as `listeningCheck` or `textCheck`.
 - **The app is the validator.** `POST /api/titles/{id}/validate` checks a candidate document
-  and lists every structural problem; Add/Refresh and GET reject invalid files. A rejection
+  and lists every structural problem; Add/Refresh and import reject invalid files. A rejection
   means fixing the document, not the app. Structural validity says nothing about teaching
   quality: that is the review's job.
 - Keep originals: the source video/CBZ, any original subtitles and the raw run output.
@@ -100,7 +103,8 @@ Languages default to French source with English translation and notes (`--source
   A different file has a different fingerprint, so start the document from the remuxed file, or
   record it with `prepare/reference.py`.
 
-Then **Refresh** the documents folder in the library. Add other metadata such as `season`,
+Then **Refresh** the documents folder in the library; the app does not know a new file until it
+is imported. Add other metadata such as `season`,
 `episode` and `sourceUrl` by hand if you want it (see
 [the document format](DOCUMENT-FORMAT.md#metadata-and-review-fields)). For a document that
 already exists, record its media with `prepare/reference.py --document path/to/document.json --media FILE`.
@@ -275,10 +279,12 @@ context, using [the teaching guide](../agents/guides/translation-notes.md) as th
 Each cue in an answer is checked with the app's validator and kept as soon as it passes; up to
 two repair requests resend only the cues that failed. Rerunning the same command resumes. When
 it finishes, a script validates the whole document, updates it in place (skipping any cue that
-changed while it ran), keeps a copy in the run directory and queues every cue it wrote as a review
-request, with any cue it could not do and why. The player never writes document files, so you
-don't need to coordinate with it: pending player edits keep showing on top. Don't run a script
-while an agent has a review batch open on the title. `--no-write` keeps the answers in the run
+changed while it ran), keeps a copy in the run directory, imports the file into the app and queues
+every cue it wrote as a review request, with any cue it could not do and why. The player never
+writes document files, so you don't need to coordinate with it: pending player edits keep showing
+on top. A script stops before any model request if an agent has a review batch open on the title.
+If an import is refused after the file is written, rerun the same command once the batch is
+completed: the file is ahead of the app, and the rerun imports it. `--no-write` keeps the answers in the run
 directory only, and `--cues FILE` (a list of cue IDs) limits a run to a sample.
 
 For a new title, take the transcribed sample through all three stages and their reviews before
@@ -349,7 +355,8 @@ python3 prepare/split_block.py --document content/my-comic/document.json --line 
 ```
 
 `--find` lists lines of 150 or more characters (`--min-length`) holding several sentences.
-Split the printed blocks; a speech balloon of a few short sentences can stay whole.
+Split the printed blocks; a speech balloon of a few short sentences can stay whole. The script
+only writes the file: validate it, commit and push, then `POST /api/titles/{id}/import` the title.
 
 ### Notes
 
@@ -388,5 +395,5 @@ Each review checks only what its stage produced:
 Review a new title's sample through all three stages before running the rest, so systematic
 mistakes are fixed in the guide, not cue by cue. When a review keeps finding the same mistake,
 add it to the guide's *Traps* section so the next first pass avoids it. Edits you make in the
-player are queued and shown on top of the file until the agent writes them in
+player are queued and shown on top of the accepted copy until the agent writes them in
 ([review API](REVIEW-API.md)). Keep listening checks separate from translation review.
