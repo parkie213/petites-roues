@@ -6,9 +6,11 @@ import static org.junit.jupiter.api.Assertions.*;
 
 import app.petitesroues.model.document.ComicDocument;
 import app.petitesroues.model.document.StudyDocument;
+import com.fasterxml.jackson.annotation.JsonCreator;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Arrays;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -185,5 +187,19 @@ class StudyDocumentReaderTest {
             "not JSON at all",
             ""))
       assertFalse(reader.isStudyDocument(Files.writeString(folder.resolve("other.json"), other)));
+  }
+
+  /**
+   * Android's runtime does not report records as records, so Jackson cannot find a private wire
+   * record's constructor unless it is named. The JVM reads records natively and would not notice.
+   */
+  @Test
+  void theWireRootNamesItsConstructorForRuntimesWithoutRecordSupport() throws Exception {
+    var wire = Class.forName(StudyDocumentJson.class.getName() + "$WireDocument");
+    var creators =
+        Arrays.stream(wire.getDeclaredConstructors())
+            .filter(c -> c.isAnnotationPresent(JsonCreator.class))
+            .count();
+    assertEquals(1, creators);
   }
 }

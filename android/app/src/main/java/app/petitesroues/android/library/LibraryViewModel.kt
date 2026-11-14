@@ -140,6 +140,7 @@ constructor(
           "Refreshed ${trees.size} folders in ${(System.nanoTime() - started) / 1_000_000} ms",
         )
         settings.libraryBytes = refreshed.bytes
+        for (problem in refreshed.problems) Log.w("Library", "${problem.path}: ${problem.message}")
         _state.update { it.copy(problems = refreshed.problems) }
         reload()
       } catch (failure: CancellationException) {

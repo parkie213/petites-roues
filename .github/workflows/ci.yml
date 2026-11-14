@@ -164,3 +164,118 @@ jobs:
           name: screenshot-diffs
           path: android/app/build/outputs/roborazzi
           if-no-files-found: ignore
+
+  # The instrumented tests, on a real Android runtime. ART does not report records as records, so
+  # the shared reader could not build its private wire record and every phone document failed to
+  # decode: JVM and Robolectric tests run on the JVM, which cannot see this class of bug.
+  android-device:
+    needs: library
+    runs-on: ubuntu-26.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version-file: .java-version
+          cache: gradle
+          cache-dependency-path: |
+            android/**/*.gradle.kts
+            android/gradle/libs.versions.toml
+            android/gradle/wrapper/gradle-wrapper.properties
+      - uses: actions/download-artifact@v8
+        with:
+          name: library
+          path: ~/.m2/repository/app/petitesroues
+      # The emulator needs hardware acceleration, which the runner offers through KVM.
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - name: Cache the emulator snapshot
+        id: avd-cache
+        uses: actions/cache@v6
+        with:
+          path: |
+            ~/.android/avd/*
+            ~/.android/adb*
+          key: avd-api-34-x86_64-default
+      # With no snapshot cached, boot once and save it, so later runs start from it.
+      - name: Create the emulator snapshot
+        if: steps.avd-cache.outputs.cache-hit != 'true'
+        uses: reactivecircus/android-emulator-runner@v2.38.0
+        with:
+          api-level: 34
+          target: default
+          arch: x86_64
+          force-avd-creation: false
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+          disable-animations: false
+          script: echo "Generated the emulator snapshot"
+      - name: Run the instrumented tests on the emulator
+        uses: reactivecircus/android-emulator-runner@v2.38.0
+        with:
+          api-level: 34
+          target: default
+          arch: x86_64
+          force-avd-creation: false
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+          disable-animations: true
+          working-directory: android
+          # The cached snapshot can hold an earlier run's build, signed with another runner's debug
+          # key. Gradle then fails the install yet still exits 0, so remove it first.
+          script: |
+            adb uninstall app.petitesroues.android || true
+            adb uninstall app.petitesroues.android.test || true
+            ./gradlew --no-daemon -PprebuiltLibrary :app:connectedDebugAndroidTest
+      - name: Keep the instrumentation reports
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: instrumentation-reports
+          path: |
+            android/app/build/reports/androidTests
+            android/app/build/outputs/androidTest-results
+          if-no-files-found: warn
+      # A green Gradle run is not proof that tests ran, so count them from the result XML.
+      - name: Check the instrumented tests actually ran
+        if: always()
+        env:
+          # The number of @Test methods under android/app/src/androidTest.
+          # Raise it when device tests are added.
+          MIN_DEVICE_TESTS: 7
+          REQUIRED_CLASSES: DocumentReaderDeviceTest ProgressStoreTest
+        run: |
+          python3 - <<'PY'
+          import collections, glob, os, sys
+          import xml.etree.ElementTree as ET
+
+          results = "android/app/build/outputs/androidTest-results/connected"
+          files = glob.glob(results + "/**/TEST-*.xml", recursive=True)
+          # Per class: [tests, failures, skipped]; failures include errors.
+          classes = collections.defaultdict(lambda: [0, 0, 0])
+          for path in files:
+              for case in ET.parse(path).iter("testcase"):
+                  counts = classes[case.get("classname").rsplit(".", 1)[-1]]
+                  counts[0] += 1
+                  counts[1] += case.find("failure") is not None or case.find("error") is not None
+                  counts[2] += case.find("skipped") is not None
+
+          print(f"{len(files)} result file(s) under {results}")
+          for name, (tests, failures, skipped) in sorted(classes.items()):
+              print(f"{name}: {tests} tests, {failures} failures, {skipped} skipped")
+          total = sum(counts[0] for counts in classes.values())
+          print(f"total: {total} tests")
+
+          problems = []
+          minimum = int(os.environ["MIN_DEVICE_TESTS"])
+          if total < minimum:
+              problems.append(f"only {total} tests ran, expected at least {minimum}")
+          for name in os.environ["REQUIRED_CLASSES"].split():
+              if name not in classes:
+                  problems.append(f"{name} did not run")
+          for problem in problems:
+              print(f"::error::{problem}")
+          sys.exit(1 if problems else 0)
+          PY

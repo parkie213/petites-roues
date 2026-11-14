@@ -4,6 +4,8 @@ import androidx.room.Room
 import androidx.room.testing.MigrationTestHelper
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
+import app.petitesroues.model.progress.PlaybackPosition
+import app.petitesroues.model.progress.ReadingPosition
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
@@ -34,7 +36,7 @@ class ProgressStoreTest {
 
   @Test
   fun theLastSaveWinsAndReadsSeeEarlierSaves() = runBlocking {
-    for (second in 1..50) store.savePosition("robots", second.toDouble(), second / 100.0)
+    for (second in 1..50) store.savePosition("robots", PlaybackPosition(second.toDouble()), 100.0)
     val saved = store.find("robots")!!
     assertEquals(50.0, saved.positionSeconds!!, 0.0)
     assertEquals(0.5, saved.fraction!!, 0.0)
@@ -42,8 +44,12 @@ class ProgressStoreTest {
 
   @Test
   fun comicPagesAndClearing() = runBlocking {
-    store.savePage("naruto-t01", "page-012", 0.25)
-    store.savePosition("robots", 30.0, null)
+    store.savePage(
+      "naruto-t01",
+      ReadingPosition("page-012"),
+      listOf("page-012", "page-013", "page-014", "page-015"),
+    )
+    store.savePosition("robots", PlaybackPosition(30.0), null)
     assertEquals(setOf("naruto-t01", "robots"), store.all().keys)
     assertEquals("page-012", store.find("naruto-t01")!!.pageId)
     store.clear("naruto-t01")
