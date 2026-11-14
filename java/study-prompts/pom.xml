@@ -19,20 +19,6 @@
     <maven.compiler.testRelease>${java.version}</maven.compiler.testRelease>
   </properties>
 
-  <build>
-    <resources>
-      <!-- The quiz rules and types are owned once under agents/ and packaged for every caller. -->
-      <resource>
-        <directory>../../agents/workflows</directory>
-        <targetPath>app/petitesroues/quiz</targetPath>
-        <includes>
-          <include>subtitle-quiz.md</include>
-          <include>quiz-types.md</include>
-        </includes>
-      </resource>
-    </resources>
-  </build>
-
   <dependencies>
     <dependency>
       <groupId>app.petitesroues</groupId>
@@ -49,4 +35,18 @@
       <scope>test</scope>
     </dependency>
   </dependencies>
+
+  <build>
+    <resources>
+      <!-- The quiz rules and types are owned once under agents/ and packaged for every caller. -->
+      <resource>
+        <targetPath>app/petitesroues/quiz</targetPath>
+        <directory>../../agents/workflows</directory>
+        <includes>
+          <include>subtitle-quiz.md</include>
+          <include>quiz-types.md</include>
+        </includes>
+      </resource>
+    </resources>
+  </build>
 </project>
