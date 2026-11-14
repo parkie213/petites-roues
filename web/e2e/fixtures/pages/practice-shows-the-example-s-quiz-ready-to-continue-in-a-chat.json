@@ -572,10 +572,10 @@
   {
     "request": "GET /api/titles/demonstration-courte-example-fr/frame-card",
     "status": 302,
-    "location": "/api/titles/demonstration-courte-example-fr/frame-card/3bbc6a83962dd1d10baf"
+    "location": "/api/titles/demonstration-courte-example-fr/frame-card/recorded"
   },
   {
-    "request": "GET /api/titles/demonstration-courte-example-fr/frame-card/3bbc6a83962dd1d10baf",
+    "request": "GET /api/titles/demonstration-courte-example-fr/frame-card/recorded",
     "status": 200,
     "type": "image/jpeg",
     "blob": "7103fb8a90804628.jpg"
