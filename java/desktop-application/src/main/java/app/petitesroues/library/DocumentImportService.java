@@ -1,73 +1,42 @@
 package app.petitesroues.library;
 
-import app.petitesroues.library.persistence.AcceptedDocumentStore;
+import app.petitesroues.library.AcceptedDocuments.Result;
 import app.petitesroues.library.persistence.CatalogueStore;
 import app.petitesroues.model.library.CatalogueEntry;
 import app.petitesroues.study.DocumentStore;
-import app.petitesroues.study.ReviewQueue;
-import app.petitesroues.study.ServedDocuments;
 import java.io.IOException;
-import java.time.Instant;
-import java.util.List;
-import java.util.Map;
 import java.util.NoSuchElementException;
-import java.util.Objects;
 import java.util.Optional;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.support.TransactionTemplate;
 
 /**
- * Keeps each title's accepted copy (see {@link AcceptedDocumentStore}) in step with its registered
- * document file. A file enters the accepted copy only through this service, by an explicit import,
- * by Add/Refresh (through {@link #accept}) or by the startup backfill.
+ * The explicit import of one title's registered file as its accepted copy. The other ways a file
+ * becomes an accepted copy, Add/Refresh and review completion, save through {@link
+ * AcceptedDocuments} inside their own transactions.
  *
  * <p>The file is read, hashed and validated once, outside any transaction. The transaction that
- * follows does only SQL: it confirms the accepted hash is still the one the read started from, so a
- * concurrent change makes the import a {@link Result#CONFLICT} that changes nothing, then stores
- * the bytes with their hash, which is the copy's revision, and rebuilds the served copy, replaying
- * the title's pending edits over the new bytes. A title with an open review batch is never
- * imported; its batch completion owns that import.
+ * follows does only SQL, through {@link AcceptedDocuments}: it confirms the accepted hash is still
+ * the one the read started from, so a concurrent change makes the import a {@link Result#CONFLICT}
+ * that changes nothing, then stores the bytes with their hash, which is the copy's revision,
+ * rebuilds the served copy and updates the title's metadata. A title with an open review batch is
+ * never imported; its batch completion owns that import.
  */
 @Service
 public class DocumentImportService {
-  private static final Logger log = LoggerFactory.getLogger(DocumentImportService.class);
-
-  /** What an import did to the title's accepted copy. */
-  public enum Result {
-    /** The copy now holds the file's bytes, and the title's metadata follows the document. */
-    IMPORTED,
-    /** The accepted copy already has the file's hash; nothing changed. */
-    UNCHANGED,
-    /** The title has an open review batch; nothing changed. */
-    SKIPPED_OPEN_BATCH,
-    /** The accepted copy changed while the file was being read; nothing changed. */
-    CONFLICT
-  }
-
   private final CatalogueStore catalogue;
   private final DocumentStore documents;
-  private final AcceptedDocumentStore accepted;
-  private final ReviewQueue queue;
-  private final ServedDocuments served;
-  private final RepositoryContentService registration;
+  private final AcceptedDocuments acceptedDocuments;
   private final TransactionTemplate transactions;
 
   public DocumentImportService(
       CatalogueStore catalogue,
       DocumentStore documents,
-      AcceptedDocumentStore accepted,
-      ReviewQueue queue,
-      ServedDocuments served,
-      RepositoryContentService registration,
+      AcceptedDocuments acceptedDocuments,
       TransactionTemplate transactions) {
     this.catalogue = catalogue;
     this.documents = documents;
-    this.accepted = accepted;
-    this.queue = queue;
-    this.served = served;
-    this.registration = registration;
+    this.acceptedDocuments = acceptedDocuments;
     this.transactions = transactions;
   }
 
@@ -83,73 +52,10 @@ public class DocumentImportService {
         catalogue
             .find(titleId)
             .orElseThrow(() -> new NoSuchElementException("Unknown title: " + titleId));
-    Optional<String> expected = accepted.findHash(titleId);
+    Optional<String> expected = acceptedDocuments.hash(titleId);
     var read = documents.readBytes(entry);
     if (expected.filter(read.sha256()::equals).isPresent()) return Result.UNCHANGED;
     return transactions.execute(
-        status -> {
-          Result result = accept(entry, expected.orElse(null), read);
-          if (result == Result.IMPORTED) registration.updateMetadata(entry, read.document());
-          return result;
-        });
-  }
-
-  /**
-   * Saves {@code read} as the title's accepted copy inside the caller's transaction, unless the
-   * accepted hash is no longer {@code expectedHash} (null for none), already equals the file's, or
-   * the title has an open review batch. An imported copy is followed by a rebuild of the served
-   * copy. Performs no file access.
-   */
-  Result accept(CatalogueEntry entry, String expectedHash, DocumentStore.Bytes read) {
-    Optional<String> current = accepted.findHash(entry.id());
-    if (!Objects.equals(current.orElse(null), expectedHash)) return Result.CONFLICT;
-    if (current.filter(read.sha256()::equals).isPresent()) return Result.UNCHANGED;
-    if (queue.hasOpenBatch(entry.id())) return Result.SKIPPED_OPEN_BATCH;
-    accepted.save(entry.id(), read.bytes(), read.sha256(), Instant.now().toString());
-    served.rebuild(entry);
-    return Result.IMPORTED;
-  }
-
-  /**
-   * The import that completes a review batch, inside the caller's transaction: saves {@code read}
-   * as the accepted copy and updates the title's metadata, even though the title has its open
-   * batch. {@code batchBaseHash} is the accepted hash the batch was claimed against; if the copy
-   * has moved the result is {@link Result#CONFLICT}. {@link Result#UNCHANGED} when the file already
-   * is the accepted copy. Performs no file access. Does not rebuild the served copy: the completion
-   * does, after closing the batch's rows.
-   */
-  public Result acceptCompletedBatch(
-      CatalogueEntry entry, String batchBaseHash, DocumentStore.Bytes read) {
-    Optional<String> current = accepted.findHash(entry.id());
-    if (!current.filter(batchBaseHash::equals).isPresent()) return Result.CONFLICT;
-    if (current.filter(read.sha256()::equals).isPresent()) return Result.UNCHANGED;
-    accepted.save(entry.id(), read.bytes(), read.sha256(), Instant.now().toString());
-    registration.updateMetadata(entry, read.document());
-    return Result.IMPORTED;
-  }
-
-  /** Accepted hashes of a repository's titles by document ID, for Refresh's conflict check. */
-  Map<String, String> acceptedHashes(String repositoryId) {
-    return accepted.hashesByDocumentId(repositoryId);
-  }
-
-  /**
-   * Imports every title that has no accepted copy. A title whose file is missing or invalid is
-   * logged and left without one; it does not stop the others. Safe to repeat: titles already
-   * imported are not selected again.
-   *
-   * @return how many titles gained an accepted copy
-   */
-  public int backfill() {
-    int imported = 0;
-    List<String> titles = accepted.titlesWithoutCopy();
-    for (String titleId : titles) {
-      try {
-        if (importFile(titleId) == Result.IMPORTED) imported++;
-      } catch (IOException | RuntimeException failure) {
-        log.warn("Cannot accept the document of title {}: {}", titleId, failure.toString());
-      }
-    }
-    return imported;
+        status -> acceptedDocuments.saveAndRegister(entry, expected.orElse(null), read));
   }
 }

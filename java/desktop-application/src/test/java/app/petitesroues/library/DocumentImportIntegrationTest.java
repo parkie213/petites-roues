@@ -4,7 +4,7 @@ import static app.petitesroues.support.DocumentFixtures.document;
 import static org.junit.jupiter.api.Assertions.*;
 
 import app.petitesroues.documents.StudyDocumentCodec;
-import app.petitesroues.library.DocumentImportService.Result;
+import app.petitesroues.library.AcceptedDocuments.Result;
 import app.petitesroues.library.persistence.AcceptedDocumentStore;
 import app.petitesroues.library.persistence.CatalogueStore;
 import app.petitesroues.library.persistence.ContentRepositoryStore;
@@ -21,7 +21,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.springframework.jdbc.core.JdbcTemplate;
 
-/** Accepted copies kept by Add, Refresh, import and backfill, against real files and SQLite. */
+/** Accepted copies kept by Add, Refresh, import and removal, against real files and SQLite. */
 class DocumentImportIntegrationTest {
   @TempDir Path root;
   StudyTestServices services;
@@ -172,23 +172,14 @@ class DocumentImportIntegrationTest {
   }
 
   @Test
-  void backfillFillsMissingCopiesToleratesBadFilesAndIsRepeatable() throws Exception {
-    Path one = write("a", document("one"));
-    Path gone = write("b", document("gone"));
-    write("c", document("bad"));
-    add();
+  void refreshGivesATitleWithoutAnAcceptedCopyItsCopy() throws Exception {
+    Path file = write("a", document("one"));
+    String repository = add();
     jdbc.update("DELETE FROM accepted_documents");
-    Files.delete(gone);
-    Files.writeString(root.resolve("c/document.json"), "{ not json");
+    assertTrue(accepted.find("one").isEmpty());
 
-    assertEquals(1, imports.backfill());
-    assertAcceptedEqualsFile("one", one);
-    assertTrue(accepted.find("gone").isEmpty());
-    assertTrue(accepted.find("bad").isEmpty());
+    service.refresh(repository);
 
-    assertEquals(0, imports.backfill(), "titles already accepted are left alone");
-    Files.writeString(root.resolve("c/document.json"), codec.encode(document("bad")));
-    assertEquals(1, imports.backfill(), "a repaired file is picked up on the next start");
-    assertEquals(0, imports.backfill());
+    assertAcceptedEqualsFile("one", file);
   }
 }

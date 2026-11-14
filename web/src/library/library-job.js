@@ -3,7 +3,7 @@ import { request, responseError } from "../shared/api.ts";
 const plural = (n, word) => `${n} ${word}${n === 1 ? "" : "s"}`;
 
 /**
- * What a running Add or Refresh is doing, in words: a label, the file being worked on, and how far
+ * What a running Add, Refresh or Reset is doing, in words: a label, the file being worked on, and how far
  * through its phase it is (0–100), or null when the phase has no count.
  */
 export function describeJob(job) {
@@ -37,11 +37,13 @@ export function describeJob(job) {
 /** What to tell the person once a job has finished well. */
 export function jobSucceeded(job, body) {
   if (job.kind === "add") return "Folder added.";
+  if (job.kind === "reset") return "Library reset and rebuilt.";
   return body?.repositoryId ? "Folder refreshed." : "Library refreshed.";
 }
 
 /**
- * Starts an Add ({kind: "add", localPath}) or Refresh ({kind: "refresh", repositoryId?}); returns
+ * Starts an Add ({kind: "add", localPath}), Refresh ({kind: "refresh", repositoryId?}) or Reset
+ * ({kind: "reset"}); returns
  * the job, which is the one already running if there is one.
  */
 export function startJob(body) {
