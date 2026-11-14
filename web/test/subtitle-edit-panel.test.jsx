@@ -372,33 +372,79 @@ test("deleting the only line left closes the editor", async () => {
   await waitFor(() => expect(onClose).toHaveBeenCalledOnce());
 });
 
-test("a preview plays the line and pauses at its end", async () => {
+test("the boundary buttons play each side of the chosen end and pause at its end", async () => {
   open();
-  await userEvent.click(screen.getByRole("button", { name: "Preview line" }));
-  expect(video.currentTime).toBe(3);
-  expect(video.play).toHaveBeenCalled();
-  expect(onPreview).toHaveBeenLastCalledWith(true);
+  const plays = [
+    ["All of A", 3, 6],
+    ["Last 1 s of A", 5, 6],
+    ["First 1 s of B", 8, 9],
+    ["All of B", 8, 10],
+  ];
+  for (const [name, from, to] of plays) {
+    await userEvent.click(screen.getByRole("button", { name }));
+    expect(video.currentTime).toBe(from);
+    expect(video.play).toHaveBeenCalled();
+    expect(onPreview).toHaveBeenLastCalledWith(true);
 
-  // The panel watches each frame for the preview's end.
-  act(() => {
-    video.currentTime = 6.2;
-  });
-  await waitFor(() => expect(onPreview).toHaveBeenLastCalledWith(false));
-  expect(video.paused).toBe(true);
-  expect(video.currentTime).toBeCloseTo(5.999, 3);
+    // The panel watches each frame for the preview's end.
+    act(() => {
+      video.currentTime = to + 0.2;
+    });
+    await waitFor(() => expect(onPreview).toHaveBeenLastCalledWith(false));
+    expect(video.paused).toBe(true);
+    expect(video.currentTime).toBeCloseTo(to - 0.001, 3);
+  }
 });
 
-test("the timing keys nudge the chosen end and set it to the playhead", async () => {
+test("the start pairs the line with the previous one, and a side with no neighbour is disabled", async () => {
+  open("b");
+  await userEvent.click(screen.getByRole("button", { name: "start time" }));
+  await userEvent.click(screen.getByRole("button", { name: "All of A" }));
+  expect(video.currentTime).toBe(1);
+  await userEvent.click(screen.getByRole("button", { name: "Next line" }));
+  await userEvent.click(screen.getByRole("button", { name: "end time" }));
+  expect(screen.getByRole("button", { name: "All of B" }).disabled).toBe(true);
+  expect(screen.getByRole("button", { name: "First 1 s of B" }).disabled).toBe(
+    true,
+  );
+  expect(screen.getAllByText("No next line").length).toBeGreaterThan(0);
+  expect(screen.getByRole("button", { name: "All of A" }).disabled).toBe(false);
+});
+
+test("[ and ] step between lines keeping the chosen end, and play the line unless turned off", async () => {
+  const panel = open("b");
+  await userEvent.click(screen.getByRole("button", { name: "start time" }));
+  await userEvent.keyboard("]");
+  await waitFor(() => expect(panel.french().value).toBe("Au revoir."));
+  expect(
+    screen
+      .getByRole("button", { name: "start time" })
+      .getAttribute("aria-pressed"),
+  ).toBe("true");
+  expect(video.currentTime).toBe(8);
+  expect(video.play).toHaveBeenCalledOnce();
+  expect(onPreview).toHaveBeenLastCalledWith(true);
+
+  // Typing a bracket in the text goes into the text.
+  await userEvent.type(panel.translation(), "[[");
+  expect(panel.french().value).toBe("Au revoir.");
+
+  await userEvent.click(screen.getByRole("checkbox", { name: /Play on step/ }));
+  await userEvent.click(screen.getByRole("button", { name: "start time" }));
+  await userEvent.keyboard("[[");
+  await waitFor(() =>
+    expect(panel.french().value).toBe("Bonjour tout le monde."),
+  );
+  expect(video.currentTime).toBe(3);
+  expect(video.play).toHaveBeenCalledOnce();
+});
+
+test("the timing keys nudge the chosen end", async () => {
   open();
   const end = screen.getByRole("button", { name: "end time" });
   await userEvent.click(end);
   await userEvent.keyboard("{Shift>}{ArrowRight}{/Shift}");
   expect(end.textContent).toBe("0:06.100");
-  video.currentTime = 5.25;
-  await userEvent.keyboard("[[");
-  expect(screen.getByRole("button", { name: "start time" }).textContent).toBe(
-    "0:05.250",
-  );
 });
 
 test("splitting with the cursor at an end says where to put it", async () => {

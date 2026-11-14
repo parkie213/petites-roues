@@ -22,6 +22,49 @@ export function editSeconds(text: string) {
     .reduce((total, part) => total * 60 + Number(part), 0);
 }
 
+/** A stretch of the video to play, in seconds. */
+export interface Range {
+  from: number;
+  to: number;
+}
+
+/** How much of each phrase's edge the boundary previews play, in seconds. */
+export const BOUNDARY_PEEK = 1;
+
+/**
+ * The four stretches that help place the boundary between phrase [a] and the one after it, [b]:
+ * all of each, the end of [a] and the start of [b] (a short phrase plays whole). Each is the
+ * phrase's own time, so a gap or an overlap between them changes nothing. A missing phrase, as
+ * at the first or last line, gives null for its two stretches.
+ */
+export function boundaryRanges(a: Times | null, b: Times | null) {
+  return {
+    allA: a && { from: a.start, to: a.end },
+    lastA: a && { from: Math.max(a.start, a.end - BOUNDARY_PEEK), to: a.end },
+    firstB: b && {
+      from: b.start,
+      to: Math.min(b.end, b.start + BOUNDARY_PEEK),
+    },
+    allB: b && { from: b.start, to: b.end },
+  };
+}
+
+/**
+ * The phrases meeting at the [picked] end of the line at [index] in [lines]: its end meets the
+ * next line's start, its start the previous line's end. Either side is null at the first or last
+ * line.
+ */
+export function boundaryPair<T>(
+  lines: readonly T[],
+  index: number,
+  picked: "start" | "end",
+): { a: T | null; b: T | null } {
+  const at = (i: number) => (index >= 0 ? (lines[i] ?? null) : null);
+  return picked === "end"
+    ? { a: at(index), b: at(index + 1) }
+    : { a: at(index - 1), b: at(index) };
+}
+
 /** Where to split a line: the two texts and the time between them. */
 export interface Split {
   at: number;

@@ -40,6 +40,8 @@ async function retime(page, action, id, end) {
 test("moving a line's end moves the next line's start with it, and the editor steps through lines", async ({
   page,
 }) => {
+  // Each side of the boundary plays in real time, as does the line stepped onto.
+  test.setTimeout(90_000);
   await page.goto("/");
   await page.getByRole("link", { name: "Peppa Pig" }).click();
   await page
@@ -118,7 +120,10 @@ test("moving a line's end moves the next line's start with it, and the editor st
   const end = await endTime.textContent();
   await expect(editor.getByText("Timing saved")).toBeVisible();
 
-  // The arrows beside the editor's title step through the lines.
+  // The arrows beside the editor's title step through the lines. They play the line they land
+  // on unless "Play on step" is off, which is tried last, so a line playing does not move the
+  // timeline the drags above are placed in.
+  await editor.getByRole("checkbox", { name: /Play on step/ }).uncheck();
   await seek(
     page,
     () => editor.getByRole("button", { name: "Next line" }).click(),
@@ -176,7 +181,9 @@ test("moving a line's end moves the next line's start with it, and the editor st
     .toBeGreaterThan(8.4);
   const paused = await seek(page, () => page.keyboard.press("Space"));
   expect(paused.positionSeconds).toBeGreaterThan(8.4);
-  await expect(toolbar.getByRole("button", { name: "Play" })).toBeVisible();
+  await expect(toolbar.getByRole("button", { name: "Play" })).toBeVisible({
+    timeout: 15000,
+  });
   // Finish at a deliberate position; the pause save itself depends on elapsed playback time.
   await seek(
     page,
@@ -194,9 +201,72 @@ test("moving a line's end moves the next line's start with it, and the editor st
   await page.reload();
   await expect(page.getByText("0:07 / 1:02")).toBeVisible();
   await page.keyboard.press("e");
-  await expect(
-    page
-      .getByRole("complementary", { name: "Subtitle editor" })
-      .getByLabel("Translation"),
-  ).toHaveValue(translation);
+  const reopened = page.getByRole("complementary", { name: "Subtitle editor" });
+  await expect(reopened.getByLabel("Translation")).toHaveValue(translation);
+
+  // The second line's end meets the third line's start. Each side plays from the phrase's own
+  // times and pauses where its range ends.
+  const [, a, b] = persisted;
+  const boundary = reopened.getByRole("group", { name: "Boundary" });
+  await expect(boundary).toContainText(a.line.source);
+  await expect(boundary).toContainText(b.line.source);
+  await expect(boundary).toContainText(`0:07.020 → ${end}`);
+  const video = page.locator("video");
+  // Each play starts at its range's start and pauses where it ends, saving that spot. The start
+  // is read from the video's own "play" event: seeking to a spot the app already saved (the
+  // restored position, or where the last play ended) writes nothing, so it is no proof. The
+  // ends differ from one play to the next, so each leaves a save to wait for.
+  await video.evaluate((element) => {
+    globalThis.playedFrom = [];
+    element.addEventListener("play", () =>
+      globalThis.playedFrom.push(element.currentTime),
+    );
+  });
+  const plays = [
+    ["All of A", a.start, a.end],
+    ["First 1 s of B", b.start, b.start + 1],
+    ["Last 1 s of A", a.end - 1, a.end],
+    ["All of B", b.start, b.end],
+  ];
+  for (const [index, [name, from, to]] of plays.entries()) {
+    const stopped = await seek(
+      page,
+      () => boundary.getByRole("button", { name }).click(),
+      to - 0.001,
+    );
+    expect(stopped.positionSeconds).toBeCloseTo(to, 1);
+    await expect(toolbar.getByRole("button", { name: "Play" })).toBeVisible({
+      timeout: 15000,
+    });
+    const playedFrom = await page.evaluate(() => globalThis.playedFrom);
+    expect(playedFrom).toHaveLength(index + 1);
+    expect(playedFrom[index]).toBeCloseTo(from, 1);
+    expect(await video.evaluate((element) => element.currentTime)).toBeCloseTo(
+      to,
+      1,
+    );
+  }
+
+  // Stepping with [ and ] keeps the chosen end and, by default, plays the line it lands on.
+  await seek(page, () => page.keyboard.press("]"), b.start);
+  await expect(reopened.getByLabel("French")).toHaveValue(b.line.source);
+  await expect(toolbar.getByRole("button", { name: "Pause" })).toBeVisible();
+  await expect(toolbar.getByRole("button", { name: "Play" })).toBeVisible({
+    timeout: 15000,
+  });
+  expect(await video.evaluate((element) => element.currentTime)).toBeCloseTo(
+    b.end,
+    1,
+  );
+  await expect(boundary).toContainText("A · this line");
+  await reopened.getByRole("checkbox", { name: /Play on step/ }).uncheck();
+  await seek(page, () => page.keyboard.press("["), a.start);
+  await expect(reopened.getByLabel("French")).toHaveValue(a.line.source);
+  await expect(toolbar.getByRole("button", { name: "Play" })).toBeVisible({
+    timeout: 15000,
+  });
+  expect(await video.evaluate((element) => element.currentTime)).toBeCloseTo(
+    a.start,
+    1,
+  );
 });

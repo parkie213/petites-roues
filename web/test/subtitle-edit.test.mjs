@@ -2,6 +2,8 @@ import { test } from "vitest";
 import assert from "node:assert/strict";
 import {
   blankLine,
+  boundaryPair,
+  boundaryRanges,
   editClock,
   editSeconds,
   lineAfter,
@@ -157,4 +159,50 @@ test("after a split the first part is edited, and after a delete the line that f
   // The last line's place is empty, so the one before it.
   assert.equal(lineAfter("delete", lines, lines[2], lines.slice(0, 2)).id, "b");
   assert.equal(lineAfter("delete", [lines[0]], lines[0], []), null);
+});
+
+test("boundary ranges play each phrase whole and the second either side of the boundary", () => {
+  const a = { start: 2.5, end: 6.92 };
+  const b = { start: 6.92, end: 11 };
+  assert.deepEqual(boundaryRanges(a, b), {
+    allA: { from: 2.5, to: 6.92 },
+    lastA: { from: 5.92, to: 6.92 },
+    firstB: { from: 6.92, to: 7.92 },
+    allB: { from: 6.92, to: 11 },
+  });
+});
+test("boundary ranges of a phrase under a second play all of it", () => {
+  const ranges = boundaryRanges(
+    { start: 4, end: 4.4 },
+    { start: 4.4, end: 4.9 },
+  );
+  assert.deepEqual(ranges.lastA, { from: 4, to: 4.4 });
+  assert.deepEqual(ranges.firstB, { from: 4.4, to: 4.9 });
+});
+test("boundary ranges keep a gap or an overlap as each phrase's own time", () => {
+  const gap = boundaryRanges({ start: 1, end: 5 }, { start: 8, end: 12 });
+  assert.deepEqual(gap.lastA, { from: 4, to: 5 });
+  assert.deepEqual(gap.firstB, { from: 8, to: 9 });
+  const overlap = boundaryRanges({ start: 1, end: 6 }, { start: 5, end: 9 });
+  assert.deepEqual(overlap.lastA, { from: 5, to: 6 });
+  assert.deepEqual(overlap.firstB, { from: 5, to: 6 });
+  assert.deepEqual(overlap.allB, { from: 5, to: 9 });
+});
+test("boundary ranges are null on the side with no neighbour", () => {
+  const first = boundaryRanges(null, { start: 0, end: 3 });
+  assert.equal(first.allA, null);
+  assert.equal(first.lastA, null);
+  assert.deepEqual(first.allB, { from: 0, to: 3 });
+  const last = boundaryRanges({ start: 0, end: 3 }, null);
+  assert.equal(last.firstB, null);
+  assert.equal(last.allB, null);
+  assert.deepEqual(last.allA, { from: 0, to: 3 });
+});
+test("the picked end pairs the line with the next, the start with the previous", () => {
+  const lines = ["x", "y", "z"];
+  assert.deepEqual(boundaryPair(lines, 1, "end"), { a: "y", b: "z" });
+  assert.deepEqual(boundaryPair(lines, 1, "start"), { a: "x", b: "y" });
+  assert.deepEqual(boundaryPair(lines, 2, "end"), { a: "z", b: null });
+  assert.deepEqual(boundaryPair(lines, 0, "start"), { a: null, b: "x" });
+  assert.deepEqual(boundaryPair(lines, -1, "end"), { a: null, b: null });
 });

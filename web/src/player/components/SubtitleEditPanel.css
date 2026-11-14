@@ -191,3 +191,24 @@
     font-size: 16px;
   }
 }
+.subtitle-edit-boundary {
+  margin-top: 10px;
+}
+.subtitle-edit-sides {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-top: 6px;
+}
+.subtitle-edit-side {
+  min-width: 0;
+  padding: 8px;
+  border: 1px solid #ffffff1a;
+  border-radius: 6px;
+}
+.subtitle-edit-side .mantine-Group-root {
+  flex-wrap: wrap;
+}
+.subtitle-edit-clocks {
+  font-variant-numeric: tabular-nums;
+}

@@ -9,6 +9,7 @@ import { changed, dirty, lineEditor, openLine } from "../lineEditor.ts";
 import type { EditMode } from "../lineEditor.ts";
 import {
   blankLine,
+  boundaryPair,
   lineAfter,
   linePayload,
   neighbourTimings,
@@ -96,6 +97,7 @@ export function SubtitleEditPanel({
   // Where the text cursor is in the source text, for splitting there.
   const cursor = useRef(0);
   const previews = useLinePreview(video, onPreview);
+  const [playOnStep, setPlayOnStep] = useState(true);
   const adding = mode === "add";
   const valid =
     times.end > times.start &&
@@ -164,6 +166,28 @@ export function SubtitleEditPanel({
     if (unsaved) apply("save", line.id);
     else load(line, cues);
   }
+  /** Goes to the line [by] away, and plays it if "Play on step" is on. */
+  function step(by: -1 | 1) {
+    const line = lines[selected + by];
+    if (busy || !line?.id) return;
+    switchTo(selected + by, line.start);
+    if (playOnStep && line.end > line.start)
+      previews.preview(line.start, line.end, seek, play);
+  }
+  /** [ and ] step to the previous and next line, except while typing text. */
+  function stepKey(event: KeyboardEvent) {
+    if (event.key !== "[" && event.key !== "]") return false;
+    if (
+      (event.target as HTMLElement).closest?.(
+        "textarea, input:not([type=checkbox])",
+      )
+    )
+      return false;
+    event.preventDefault();
+    event.stopPropagation();
+    step(event.key === "[" ? -1 : 1);
+    return true;
+  }
   /** Moves the line's times as a timeline drag or nudge asks, unless a neighbour would vanish. */
   function retime(next: Times, nextLink: Link) {
     try {
@@ -200,8 +224,8 @@ export function SubtitleEditPanel({
   }
   const playhead = () => video.current?.currentTime ?? 0;
   /**
-   * Timeline and timing keys: arrows nudge the picked end (Shift: 100 ms), [ and ] set the start
-   * or end to the playhead. Other keys go on to the player, so Space plays and pauses.
+   * Timeline and timing keys: arrows nudge the picked end (Shift: 100 ms), [ and ] step to the
+   * previous and next line. Other keys go on to the player, so Space plays and pauses.
    */
   function timingKey(event: KeyboardEvent) {
     const step = event.shiftKey ? 0.1 : 0.01;
@@ -212,11 +236,7 @@ export function SubtitleEditPanel({
         picked,
         times[picked] + (event.key === "ArrowLeft" ? -step : step),
       );
-    } else if (event.key === "[" || event.key === "]") {
-      event.preventDefault();
-      event.stopPropagation();
-      setBoundary(event.key === "[" ? "start" : "end", playhead());
-    }
+    } else stepKey(event);
   }
   /**
    * Saves, splits or deletes the line, then goes on editing it, or with [nextId] that line.
@@ -326,6 +346,7 @@ export function SubtitleEditPanel({
         className="subtitle-edit-panel"
         aria-label="Subtitle editor"
         onKeyDown={(event) => {
+          if (stepKey(event)) return;
           event.stopPropagation();
           if (event.key === "Escape") {
             event.preventDefault();
@@ -343,7 +364,7 @@ export function SubtitleEditPanel({
           busy={busy}
           previous={startOf(selected - 1)}
           next={startOf(selected + 1)}
-          onStep={(step, start) => switchTo(selected + step, start)}
+          onStep={step}
           onClose={close}
         />
         <div className="subtitle-edit-scroll">
@@ -405,6 +426,9 @@ export function SubtitleEditPanel({
               valid={valid}
               splittable={mode === "edit"}
               sourceName={sourceName}
+              {...boundaryPair(lines, selected, picked)}
+              playOnStep={playOnStep}
+              onPlayOnStep={setPlayOnStep}
               onPick={(boundary) => dispatch({ type: "pick", boundary })}
               onSetToPlayhead={(boundary) => setBoundary(boundary, playhead())}
               onKeyDown={timingKey}
