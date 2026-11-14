@@ -65,3 +65,39 @@ test("the library flags what needs attention, and can show only that", async ({
     page.getByRole("link", { name: "Lulu", exact: true }),
   ).toBeHidden();
 });
+
+test("shelf tabs list the shelves and show only the chosen shelf's cards", async ({
+  page,
+}) => {
+  await page.goto("/");
+
+  const tabs = page.getByRole("tablist", { name: "Shelves" });
+  await expect(tabs.getByRole("tab")).toHaveText([
+    "All2",
+    "Comics1",
+    "Series1",
+  ]);
+  await expect(tabs.getByRole("tab", { name: /^All/ })).toHaveAttribute(
+    "aria-selected",
+    "true",
+  );
+
+  await tabs.getByRole("tab", { name: /^Series/ }).click();
+  await expect(page.getByRole("link", { name: "Peppa Pig" })).toBeVisible();
+  await expect(
+    page.getByRole("link", { name: "Lulu", exact: true }),
+  ).toBeHidden();
+  await expect(page.getByRole("heading", { name: "Comics" })).toBeHidden();
+
+  await tabs.getByRole("tab", { name: /^Comics/ }).click();
+  await expect(
+    page.getByRole("link", { name: "Lulu", exact: true }),
+  ).toBeVisible();
+  await expect(page.getByRole("link", { name: "Peppa Pig" })).toBeHidden();
+
+  await tabs.getByRole("tab", { name: /^All/ }).click();
+  await expect(page.getByRole("link", { name: "Peppa Pig" })).toBeVisible();
+  await expect(
+    page.getByRole("link", { name: "Lulu", exact: true }),
+  ).toBeVisible();
+});

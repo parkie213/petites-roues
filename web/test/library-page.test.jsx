@@ -122,7 +122,7 @@ test("switching views is remembered and Back returns to the last one", async () 
   await waitFor(() => expect(view("Posters").checked).toBe(true));
 });
 
-test("searching and the media filter narrow the posters", async () => {
+test("searching narrows the posters", async () => {
   fakeApi();
   openAt("/?view=posters");
   await screen.findByRole("link", { name: "Peppa Pig" });
@@ -137,10 +137,74 @@ test("searching and the media filter narrow the posters", async () => {
   await userEvent.clear(
     screen.getByRole("textbox", { name: "Search your library" }),
   );
-  const media = screen.getByRole("group", { name: "Media type" });
-  await userEvent.click(within(media).getByRole("button", { name: "Films" }));
+});
+
+test("the shelf tabs list every shelf with its count and narrow the posters", async () => {
+  fakeApi();
+  openAt("/?view=posters");
+  await screen.findByRole("link", { name: "Peppa Pig" });
+
+  const tabs = screen.getByRole("tablist", { name: "Shelves" });
+  expect(
+    within(tabs)
+      .getAllByRole("tab")
+      .map((tab) => tab.textContent),
+  ).toEqual(["All2", "Comics1", "Series1"]);
+  expect(
+    within(tabs)
+      .getByRole("tab", { name: /All/ })
+      .getAttribute("aria-selected"),
+  ).toBe("true");
+
+  await userEvent.click(within(tabs).getByRole("tab", { name: /Series/ }));
   expect(screen.queryByRole("link", { name: "Lulu", exact: true })).toBeNull();
   expect(screen.getByRole("link", { name: "Peppa Pig" })).toBeTruthy();
+
+  // Search still applies within the tab.
+  await userEvent.type(
+    screen.getByRole("textbox", { name: "Search your library" }),
+    "lulu",
+  );
+  expect(screen.queryByRole("link", { name: "Peppa Pig" })).toBeNull();
+  expect(screen.getByText("No titles match these filters.")).toBeTruthy();
+});
+
+test("a chosen shelf that vanishes from the posters falls back to All", async () => {
+  const library = answer("GET /api/library");
+  const [first] = library.repositories.find((r) => r.entries.length).entries;
+  library.repositories[0].entries.push({
+    ...first,
+    id: "german",
+    sourceLanguage: "de",
+  });
+  fakeApi({ library });
+  const original = fetch;
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(async (url, options) => {
+      const target = new URL(url, "http://localhost");
+      if (
+        target.pathname === "/api/library/posters" &&
+        target.searchParams.get("language") === "de"
+      ) {
+        const posters = answer("GET /api/library/posters");
+        return Response.json({ ...posters, shelves: posters.shelves.slice(1) });
+      }
+      return original(url, options);
+    }),
+  );
+  openAt("/?view=posters");
+  await userEvent.click(await screen.findByRole("tab", { name: /Comics/ }));
+  expect(screen.queryByRole("link", { name: "Peppa Pig" })).toBeNull();
+
+  const languages = screen.getByRole("group", { name: "Language" });
+  await userEvent.click(within(languages).getByText("Deutsch"));
+
+  expect(await screen.findByRole("link", { name: "Peppa Pig" })).toBeTruthy();
+  expect(screen.queryByRole("tab", { name: /Comics/ })).toBeNull();
+  expect(
+    screen.getByRole("tab", { name: /All/ }).getAttribute("aria-selected"),
+  ).toBe("true");
 });
 
 test("with several languages, the one chosen narrows the posters and is remembered", async () => {

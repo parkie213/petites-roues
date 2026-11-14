@@ -240,6 +240,8 @@ or episode folder, and `s01e02` or a leading number (`083-bienenalarm.mp4`) give
 Those names are for display only; linking is by fingerprint alone. Series names match ignoring
 case and spacing, across folders, so a video awaiting its document sits in its series beside the
 episodes that have one. Copies of the same volume or episode share one card.
+Tabs above the posters, on the desktop and as chips on Android, list All and then every shelf with
+its card count, and narrow the cards to one shelf; search and the warnings filter apply within it.
 
 Add/Refresh indexes documents, media and folder hierarchy and imports each document as the
 title's accepted copy. Refresh after adding, moving or changing documents or media; a changed
