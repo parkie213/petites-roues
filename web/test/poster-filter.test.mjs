@@ -14,18 +14,17 @@ const shelves = [
   },
   { key: "films", groups: [{ name: "Robots", type: "video", slots: [ready] }] },
 ];
-test("search, type and attention filters combine without losing series volumes", () => {
+test("search, shelf and attention filters combine without losing series volumes", () => {
   const result = filterShelves(shelves, {
     search: " ASTÉRIX ",
-    mediaFilter: "comic",
+    shelf: "comics",
     attentionOnly: true,
   });
   assert.equal(result.length, 1);
   assert.equal(result[0].groups[0].slots.length, 2);
   assert.equal(shelves.length, 2);
   assert.equal(
-    filterShelves(shelves, { mediaFilter: "video", attentionOnly: true })
-      .length,
+    filterShelves(shelves, { shelf: "films", attentionOnly: true }).length,
     0,
   );
 });
@@ -33,4 +32,12 @@ test("search finds volume labels and clearing filters restores every shelf", () 
   assert.equal(filterShelves(shelves, { search: "tome 2" }).length, 1);
   assert.equal(filterShelves(shelves).length, 2);
   assert.equal(filterShelves(shelves, { search: "missing title" }).length, 0);
+});
+test("a shelf key narrows to that shelf; null keeps every shelf", () => {
+  assert.deepEqual(
+    filterShelves(shelves, { shelf: "films" }).map((s) => s.key),
+    ["films"],
+  );
+  assert.equal(filterShelves(shelves, { shelf: null }).length, 2);
+  assert.equal(filterShelves(shelves, { shelf: "gone" }).length, 0);
 });

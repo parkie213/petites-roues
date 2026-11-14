@@ -11,6 +11,7 @@ import {
   type FollowPoster,
 } from "./components/PosterSeries.tsx";
 import { usePosterShelves } from "./usePosterShelves.ts";
+import { ShelfTabs } from "./components/ShelfTabs.tsx";
 import { filterShelves } from "./poster-filter.ts";
 import "./Posters.css";
 
@@ -21,7 +22,8 @@ interface PostersProps {
   go: (href: string) => void;
   onChanged: LinkActions["onChanged"];
   search: string;
-  mediaFilter: PosterFilters["media"];
+  shelf: PosterFilters["shelf"];
+  onShelf: (shelf: PosterFilters["shelf"]) => void;
   attentionOnly: boolean;
 }
 
@@ -29,7 +31,8 @@ interface PostersProps {
  * Plex-like browsing of what can be watched or read: titles with their media and media awaiting a
  * study document; documents whose media was not found are listed in the Documents view. The
  * server groups them into shelves and cards (GET /api/library/posters, the rules shared with the
- * Android app), narrowed to the chosen folder chip and [language]; this only renders them. They are
+ * Android app), narrowed to the chosen folder chip and [language]; this only renders them, with a tab per shelf
+ * (and All) that narrows to [shelf], a shelf key chosen through [onShelf]. They are
  * fetched again whenever [data], the loaded library, changes. [onChanged] reloads the library after
  * a card action, receiving the error when the action failed. Media without a study document can be
  * linked to one by hand from its card.
@@ -41,7 +44,8 @@ export function Posters({
   go,
   onChanged,
   search,
-  mediaFilter,
+  shelf,
+  onShelf,
   attentionOnly,
 }: PostersProps) {
   const { posters, error } = usePosterShelves(
@@ -67,9 +71,13 @@ export function Posters({
   const filter = folders.some((repo) => repo.id === selection.repository)
     ? selection.repository
     : null;
+  // A chosen shelf that is no longer there (after a refresh) shows All.
+  const chosenShelf = posters.shelves.some((item) => item.key === shelf)
+    ? shelf
+    : null;
   const result = filterShelves(posters.shelves, {
     search,
-    mediaFilter,
+    shelf: chosenShelf,
     attentionOnly,
   });
   // Cards name their language only when the posters show more than one.
@@ -115,6 +123,13 @@ export function Posters({
             ))}
           </Group>
         </Chip.Group>
+      )}
+      {!open && posters.shelves.length > 0 && (
+        <ShelfTabs
+          shelves={posters.shelves}
+          value={chosenShelf}
+          onChange={onShelf}
+        />
       )}
       {open ? (
         <SeriesView

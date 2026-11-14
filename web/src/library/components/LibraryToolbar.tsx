@@ -3,29 +3,24 @@ import { Search } from "lucide-react";
 import { documentsHref, type LibraryView } from "../navigation.ts";
 import type { librarySummary } from "../summary.ts";
 
-/** How the posters are narrowed: by words in their titles, by kind of media, and to warnings. */
+/** How the posters are narrowed: by words in their titles, to one shelf, and to warnings. */
 export interface PosterFilters {
   search: string;
-  media: "all" | "comic" | "video";
+  /** Key of the chosen shelf, or null for All; the posters offer the shelves as tabs. */
+  shelf: string | null;
   attentionOnly: boolean;
 }
 
 export const NO_FILTERS: PosterFilters = {
   search: "",
-  media: "all",
+  shelf: null,
   attentionOnly: false,
 };
 
-const MEDIA: [PosterFilters["media"], string][] = [
-  ["all", "All"],
-  ["comic", "Comics"],
-  ["video", "Films"],
-];
-
 /**
  * Above the library: what it holds (with disk [usage] on hover), the view switcher once there are
- * folders, and in the posters view the search, media filter and warnings toggle. Study documents
- * without media link to the documents view, which lists them.
+ * folders, and in the posters view the search and warnings toggle (the shelf tabs sit above the
+ * posters). Study documents without media link to the documents view, which lists them.
  */
 export function LibraryToolbar({
   view,
@@ -106,22 +101,8 @@ export function LibraryToolbar({
           />
         )}
       </div>
-      <div className="library-filter-row">
-        {posters && (
-          <div className="library-filters" role="group" aria-label="Media type">
-            {MEDIA.map(([value, label]) => (
-              <button
-                key={value}
-                type="button"
-                aria-pressed={filters.media === value}
-                onClick={() => onFilters({ ...filters, media: value })}
-              >
-                {label}
-              </button>
-            ))}
-          </div>
-        )}
-        {summary?.unlinked && (
+      {summary?.unlinked && (
+        <div className="library-filter-row">
           <Anchor
             size="xs"
             className="library-unlinked"
@@ -133,8 +114,8 @@ export function LibraryToolbar({
           >
             {summary.unlinked}
           </Anchor>
-        )}
-      </div>
+        </div>
+      )}
     </section>
   );
 }

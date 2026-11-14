@@ -99,7 +99,8 @@ export function Library({ actionsTarget }: { actionsTarget?: Element | null }) {
           <Posters
             data={data}
             search={filters.search}
-            mediaFilter={filters.media}
+            shelf={filters.shelf}
+            onShelf={(shelf) => setFilters({ ...filters, shelf })}
             attentionOnly={filters.attentionOnly}
             language={chosen}
             selection={selection}

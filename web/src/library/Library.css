@@ -153,13 +153,19 @@
   align-items: center;
   gap: 24px;
   flex-wrap: wrap;
-  min-height: 43px;
-  border-bottom: 1px solid var(--bd);
-  padding: 4px 0;
 }
 .library-filters {
   display: flex;
   gap: 24px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  min-height: 43px;
+  border-bottom: 1px solid var(--bd);
+}
+.library-filter-count {
+  margin-left: 6px;
+  font-size: 11px;
+  opacity: 0.7;
 }
 .library-filters button {
   border: 0;
@@ -168,11 +174,13 @@
   padding: 10px 0;
   font-size: 13px;
   position: relative;
+  white-space: nowrap;
+  flex: none;
 }
-.library-filters button[aria-pressed="true"] {
+.library-filters button[aria-selected="true"] {
   color: var(--acc);
 }
-.library-filters button[aria-pressed="true"]:after {
+.library-filters button[aria-selected="true"]:after {
   content: "";
   position: absolute;
   bottom: 0;
