@@ -224,12 +224,53 @@ jobs:
           disable-animations: true
           working-directory: android
           script: ./gradlew --no-daemon -PprebuiltLibrary :app:connectedDebugAndroidTest
-      - name: Keep the instrumentation reports when a test failed
-        if: failure()
+      - name: Keep the instrumentation reports
+        if: always()
         uses: actions/upload-artifact@v7
         with:
           name: instrumentation-reports
           path: |
             android/app/build/reports/androidTests
             android/app/build/outputs/androidTest-results
-          if-no-files-found: ignore
+          if-no-files-found: warn
+      # A green Gradle run is not proof that tests ran, so count them from the result XML.
+      - name: Check the instrumented tests actually ran
+        if: always()
+        env:
+          # The number of @Test methods under android/app/src/androidTest.
+          # Raise it when device tests are added.
+          MIN_DEVICE_TESTS: 7
+          REQUIRED_CLASSES: DocumentReaderDeviceTest ProgressStoreTest
+        run: |
+          python3 - <<'PY'
+          import collections, glob, os, sys
+          import xml.etree.ElementTree as ET
+
+          results = "android/app/build/outputs/androidTest-results/connected"
+          files = glob.glob(results + "/**/TEST-*.xml", recursive=True)
+          # Per class: [tests, failures, skipped]; failures include errors.
+          classes = collections.defaultdict(lambda: [0, 0, 0])
+          for path in files:
+              for case in ET.parse(path).iter("testcase"):
+                  counts = classes[case.get("classname").rsplit(".", 1)[-1]]
+                  counts[0] += 1
+                  counts[1] += case.find("failure") is not None or case.find("error") is not None
+                  counts[2] += case.find("skipped") is not None
+
+          print(f"{len(files)} result file(s) under {results}")
+          for name, (tests, failures, skipped) in sorted(classes.items()):
+              print(f"{name}: {tests} tests, {failures} failures, {skipped} skipped")
+          total = sum(counts[0] for counts in classes.values())
+          print(f"total: {total} tests")
+
+          problems = []
+          minimum = int(os.environ["MIN_DEVICE_TESTS"])
+          if total < minimum:
+              problems.append(f"only {total} tests ran, expected at least {minimum}")
+          for name in os.environ["REQUIRED_CLASSES"].split():
+              if name not in classes:
+                  problems.append(f"{name} did not run")
+          for problem in problems:
+              print(f"::error::{problem}")
+          sys.exit(1 if problems else 0)
+          PY
