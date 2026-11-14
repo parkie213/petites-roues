@@ -100,19 +100,32 @@ indices or boundary pages fail explicitly. This is document behavior, independen
 of quizzes.
 
 `study-prompts` prepares material and instructions for an LLM; it does not run
-quizzes, assess answers or implement study activities. It currently owns
-`ChapterQuizBuilder`: deterministic Markdown construction
-from a selected chapter, teaching rules and optional type instructions. It includes
-source text and translations, omits learner notes and suggests a filename. It has
-no framework, filesystem, sharing or AI-client dependency. Android calls it offline;
-its video and general-quiz builders remain platform code.
+quizzes, assess answers or implement study activities. It owns two deterministic
+Markdown builders that share one skeleton (`QuizBrief`): `ChapterQuizBuilder` for a
+comic chapter, from teaching rules and optional type instructions, and
+`VideoQuizBuilder` for a video, from the bundled rules (`QuizGuides.bundled()`, the
+repository's `agents/workflows/subtitle-quiz.md` and `quiz-types.md` packaged in the
+jar), a `QuizType` and a `VideoQuizScope` (whole title or a time range). Times are
+strict `m:ss` or `h:mm:ss` (`QuizTime`), and `VideoQuizScope.defaultFor` is the one
+rule for which scope a quiz opens on. Both builders include source text and
+translations, omit learner notes and suggest a filename. The module has no framework,
+filesystem, sharing or AI-client dependency. Android calls it offline; its
+general-quiz builder remains platform code.
 
-Desktop `ChapterQuizService` loads the current served document, including queued
-edits. `POST /api/titles/{id}/comic/quiz` accepts `chapterPageId`, `rules` and optional
-`type` (`label`, `instructions`), and returns `text` and `fileName` with no-store
-caching. Chapter identity is its first page ID, so a stale menu cannot silently
-select a different chapter after reordering. This operation writes no content or
-progress. Callers supply their bundled teaching guide and selected menu instructions.
+`ChapterQuizService` and `VideoQuizService` load the current served document,
+including queued edits; `QuizController` serves both. `POST /api/titles/{id}/comic/quiz`
+accepts `chapterPageId`, `rules` and optional `type` (`label`, `instructions`), and
+returns `text` and `fileName` with no-store caching. Chapter identity is its first
+page ID, so a stale menu cannot silently select a different chapter after
+reordering. Chapter callers still supply their bundled teaching guide and selected
+menu instructions.
+
+`GET /api/titles/{id}/quiz?position=..` (optional `scope=whole|range`, `start`, `end`,
+`type`, `duration`) prepares a video quiz in one reply: the type menu, the resolved
+scope (the default rule when none is asked for), whether it is valid, the line count
+and large flag, and the brief with its file name. An unreadable range is a 200 reply
+with `valid` false; a comic is a 400 and an unknown title a 404. Neither route writes
+content or progress.
 
 React prepares on dialog open/selection change, cancels stale requests and enables
 export only for the current result. Clipboard, chat opening, downloading and system
