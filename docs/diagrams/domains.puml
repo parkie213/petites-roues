@@ -20,7 +20,7 @@ package "Local — this machine only\n(SQLite and files beside documents)" as lo
 }
 
 Library --> Documents : imports (read only)
-Editing --> Documents : replays pending edits\nover the accepted copy when served
+Editing --> Documents : keeps pending edits\napplied in the served copy
 Agent --> Documents : the only writer
 Agent --> Editing : claims and completes\nreview batches
 Learner --> Editing : edits, comments

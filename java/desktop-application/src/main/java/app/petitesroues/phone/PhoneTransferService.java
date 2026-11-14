@@ -1,6 +1,5 @@
 package app.petitesroues.phone;
 
-import app.petitesroues.documents.StudyDocumentCodec;
 import app.petitesroues.library.LibraryService;
 import app.petitesroues.library.TitleMediaService;
 import app.petitesroues.library.persistence.CatalogueStore;
@@ -16,7 +15,6 @@ import app.petitesroues.sync.PhoneRoutes;
 import app.petitesroues.sync.model.DesktopTitle;
 import app.petitesroues.sync.model.TitleFile;
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -51,21 +49,18 @@ public class PhoneTransferService {
   private final ContentRepositoryStore repositories;
   private final ReviewQueueService served;
   private final MarkdownPageScanner pages;
-  private final StudyDocumentCodec codec;
 
   public PhoneTransferService(
       CatalogueStore catalogue,
       TitleMediaService media,
       ContentRepositoryStore repositories,
       ReviewQueueService served,
-      MarkdownPageScanner pages,
-      StudyDocumentCodec codec) {
+      MarkdownPageScanner pages) {
     this.catalogue = catalogue;
     this.media = media;
     this.repositories = repositories;
     this.served = served;
     this.pages = pages;
-    this.codec = codec;
   }
 
   /** A title as offered, and the desktop file behind each role. */
@@ -166,7 +161,7 @@ public class PhoneTransferService {
   }
 
   /**
-   * The title's document as the player sees it (pending edits replayed), in canonical JSON.
+   * The title's document as the player sees it (the stored served copy), in canonical JSON.
    *
    * @throws NoSuchElementException if the title cannot be copied
    */
@@ -185,9 +180,9 @@ public class PhoneTransferService {
     return offer;
   }
 
-  /** The document's bytes as the player sees it: pending edits replayed, canonical JSON. */
+  /** The document's bytes as the player sees it: the stored served copy, canonical JSON. */
   private byte[] served(CatalogueEntry entry) throws IOException {
-    return codec.encode(served.document(entry)).getBytes(StandardCharsets.UTF_8);
+    return served.servedBytes(entry);
   }
 
   /** The offer for a title, or null when its document is not on disk. */

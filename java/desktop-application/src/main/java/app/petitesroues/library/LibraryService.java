@@ -59,7 +59,7 @@ public class LibraryService {
     return repository.contains(id);
   }
 
-  /** The document as the player sees it: the file with pending queued edits replayed. */
+  /** The document as the player sees it: the stored served copy. */
   public StudyDocument document(String id) throws IOException {
     return served.document(
         repository.find(id).orElseThrow(() -> new NoSuchElementException("Unknown title: " + id)));

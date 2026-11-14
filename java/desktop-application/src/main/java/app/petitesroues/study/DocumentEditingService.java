@@ -19,10 +19,13 @@ import org.springframework.transaction.support.TransactionTemplate;
 /**
  * Accepts player and reader edits by queueing them; it never writes document files. Each edit is
  * applied to the served document (accepted copy plus earlier queued edits) to validate it, then
- * stored with any identities it introduces. Edits that change nothing are not queued.
+ * stored with any identities it introduces. An edit that changes the document also saves the new
+ * served copy, so reads need no replay. Edits whose encoded result equals the stored bytes change
+ * nothing and are not queued.
  *
- * <p>Loading the served document, validating the edit and appending the queue row happen in one
- * transaction. This relies on the application's database having a single pooled connection ({@code
+ * <p>Loading the served document, validating the edit, saving the served copy and appending the
+ * queue row happen in one transaction, so they commit or roll back together. This relies on the
+ * application's database having a single pooled connection ({@code
  * spring.datasource.hikari.maximum-pool-size=1}), so a transaction excludes all other database
  * work: each edit is validated against a state that includes every edit committed before it, and a
  * repository removal or batch completion lands wholly before or after it. Identities for added cues
@@ -31,13 +34,13 @@ import org.springframework.transaction.support.TransactionTemplate;
 @Service
 public class DocumentEditingService {
   private final CatalogueStore titles;
-  private final ReviewQueueService served;
+  private final ServedDocuments served;
   private final ReviewQueue queue;
   private final TransactionTemplate transactions;
 
   public DocumentEditingService(
       CatalogueStore titles,
-      ReviewQueueService served,
+      ServedDocuments served,
       ReviewQueue queue,
       TransactionTemplate transactions) {
     this.titles = titles;
@@ -58,7 +61,7 @@ public class DocumentEditingService {
     return transactions.execute(
         status -> {
           var title = entry(id);
-          var current = served.document(title);
+          var current = served.document(served.current(title));
           DocumentEdits.apply(current, edit);
           queue.append(title, edit);
           return current;
@@ -93,7 +96,7 @@ public class DocumentEditingService {
     return transactions.execute(
         status -> {
           var ordered = new ArrayList<String>();
-          for (var cue : served.document(entry(id)).video().cues())
+          for (var cue : served.document(served.current(entry(id))).video().cues())
             if (selected.contains(cue.line().id())) ordered.add(cue.line().id());
           if (ordered.size() != merge.ids().size()) ordered = new ArrayList<>(merge.ids());
           return record(id, new DocumentEdit.MergeVideoCues(List.copyOf(ordered)));
@@ -127,16 +130,21 @@ public class DocumentEditingService {
   }
 
   /**
-   * Applies the edit to the served document and queues it unless it changes nothing, in one
-   * transaction (joining the caller's).
+   * Applies the edit to the served document, then saves the result as the served copy and queues
+   * the edit unless the encoded result equals the stored bytes, in one transaction (joining the
+   * caller's).
    */
   private StudyDocument record(String id, DocumentEdit edit) {
     return transactions.execute(
         status -> {
           var title = entry(id);
-          var current = served.document(title);
-          var result = DocumentEdits.apply(current, edit);
-          if (!result.equals(current)) queue.append(title, edit);
+          var current = served.current(title);
+          var result = DocumentEdits.apply(served.document(current), edit);
+          byte[] json = served.encode(result);
+          if (!Arrays.equals(json, current.json())) {
+            served.save(title, json);
+            queue.append(title, edit);
+          }
           return result;
         });
   }

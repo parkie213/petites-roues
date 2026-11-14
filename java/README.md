@@ -157,9 +157,15 @@ server's `application.properties`; the pool also sets `busy_timeout`): a transac
 connection, so all other database work waits for it. With a larger pool the read-then-write
 checks below would no longer be atomic. A test fails if the pool size changes.
 
-- Every player or reader edit loads the served document, validates the edit and queues it in one
-  transaction (`DocumentEditingService`), as does a review request. Claim, complete, discard and
-  import decide and write in one transaction; their file reads happen before it.
+- Every player or reader edit loads the served copy, validates the edit, saves the edited served
+  copy and queues the command in one transaction (`DocumentEditingService`); a review request
+  validates and queues in one. Claim, complete, discard and import decide and write in one
+  transaction, and the last three rebuild the served copy (`ServedDocuments`) before it commits;
+  their file reads happen before it. A read is one transaction too: a lookup of the served copy
+  and the queue rows, which rebuilds a missing or stale served copy first.
+- Because the served copy is saved before the queue row is appended, a failure of the append
+  rolls the saved copy back with it. Nothing outside the transaction (no file, no cache) holds a
+  copy that could survive a rollback.
 - Add and Refresh discover (scan, read, probe) with no lock and no transaction, so edits proceed
   meanwhile. The commit is one transaction that first checks the repository still exists and has
   not been refreshed since discovery began; otherwise it changes nothing and the job fails with a

@@ -21,9 +21,9 @@ import java.util.stream.Collectors;
 
 /**
  * Applies one {@link DocumentEdit} to a document, with no I/O. The same function accepts a new
- * player edit and replays queued edits over the file, so both always agree. Invalid or no longer
- * applicable edits throw {@link IllegalArgumentException} or {@link NoSuchElementException}; the
- * input is immutable and never changes. Changed results are validated and video cues kept in
+ * player edit and replays queued edits over the accepted copy, so both always agree. Invalid or no
+ * longer applicable edits throw {@link IllegalArgumentException} or {@link NoSuchElementException};
+ * the input is immutable and never changes. Changed results are validated and video cues kept in
  * playback order; an edit that changes nothing (a comment, a review request) returns the input as
  * it is, which is valid because documents are validated when decoded.
  *

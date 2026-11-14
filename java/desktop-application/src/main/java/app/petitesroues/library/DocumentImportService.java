@@ -5,6 +5,7 @@ import app.petitesroues.library.persistence.CatalogueStore;
 import app.petitesroues.model.library.CatalogueEntry;
 import app.petitesroues.study.DocumentStore;
 import app.petitesroues.study.ReviewQueue;
+import app.petitesroues.study.ServedDocuments;
 import java.io.IOException;
 import java.time.Instant;
 import java.util.List;
@@ -25,8 +26,9 @@ import org.springframework.transaction.support.TransactionTemplate;
  * <p>The file is read, hashed and validated once, outside any transaction. The transaction that
  * follows does only SQL: it confirms the accepted hash is still the one the read started from, so a
  * concurrent change makes the import a {@link Result#CONFLICT} that changes nothing, then stores
- * the bytes with their hash, which is the copy's revision. A title with an open review batch is
- * never imported; its batch completion owns that import.
+ * the bytes with their hash, which is the copy's revision, and rebuilds the served copy, replaying
+ * the title's pending edits over the new bytes. A title with an open review batch is never
+ * imported; its batch completion owns that import.
  */
 @Service
 public class DocumentImportService {
@@ -48,6 +50,7 @@ public class DocumentImportService {
   private final DocumentStore documents;
   private final AcceptedDocumentStore accepted;
   private final ReviewQueue queue;
+  private final ServedDocuments served;
   private final RepositoryContentService registration;
   private final TransactionTemplate transactions;
 
@@ -56,12 +59,14 @@ public class DocumentImportService {
       DocumentStore documents,
       AcceptedDocumentStore accepted,
       ReviewQueue queue,
+      ServedDocuments served,
       RepositoryContentService registration,
       TransactionTemplate transactions) {
     this.catalogue = catalogue;
     this.documents = documents;
     this.accepted = accepted;
     this.queue = queue;
+    this.served = served;
     this.registration = registration;
     this.transactions = transactions;
   }
@@ -92,7 +97,8 @@ public class DocumentImportService {
   /**
    * Saves {@code read} as the title's accepted copy inside the caller's transaction, unless the
    * accepted hash is no longer {@code expectedHash} (null for none), already equals the file's, or
-   * the title has an open review batch. Performs no file access.
+   * the title has an open review batch. An imported copy is followed by a rebuild of the served
+   * copy. Performs no file access.
    */
   Result accept(CatalogueEntry entry, String expectedHash, DocumentStore.Bytes read) {
     Optional<String> current = accepted.findHash(entry.id());
@@ -100,6 +106,7 @@ public class DocumentImportService {
     if (current.filter(read.sha256()::equals).isPresent()) return Result.UNCHANGED;
     if (queue.hasOpenBatch(entry.id())) return Result.SKIPPED_OPEN_BATCH;
     accepted.save(entry.id(), read.bytes(), read.sha256(), Instant.now().toString());
+    served.rebuild(entry);
     return Result.IMPORTED;
   }
 
@@ -108,7 +115,8 @@ public class DocumentImportService {
    * as the accepted copy and updates the title's metadata, even though the title has its open
    * batch. {@code batchBaseHash} is the accepted hash the batch was claimed against; if the copy
    * has moved the result is {@link Result#CONFLICT}. {@link Result#UNCHANGED} when the file already
-   * is the accepted copy. Performs no file access.
+   * is the accepted copy. Performs no file access. Does not rebuild the served copy: the completion
+   * does, after closing the batch's rows.
    */
   public Result acceptCompletedBatch(
       CatalogueEntry entry, String batchBaseHash, DocumentStore.Bytes read) {

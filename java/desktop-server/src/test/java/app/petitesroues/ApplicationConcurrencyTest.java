@@ -338,7 +338,11 @@ class ApplicationConcurrencyTest {
     }
   }
 
-  /** Pauses the first queue read, which every edit and completion makes inside its transaction. */
+  /**
+   * Pauses inside the transaction of the first edit (after its queue row is appended, which follows
+   * saving the served copy) or of the first completion (after it reads the queue rows). Reads of
+   * the served copy no longer touch the queue, so an edit's first queue access is its append.
+   */
   private Gate pauseAfter(ReviewQueue spy) throws Exception {
     var gate = new Gate();
     doAnswer(
@@ -349,6 +353,14 @@ class ApplicationConcurrencyTest {
             })
         .when(spy)
         .read(any());
+    doAnswer(
+            call -> {
+              Object result = call.callRealMethod();
+              gate.pass();
+              return result;
+            })
+        .when(spy)
+        .append(any(), any());
     return gate;
   }
 

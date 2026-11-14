@@ -9,8 +9,10 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
 
 /**
- * The accepted copy of each title's document. Owns SQL and row mapping only; services decide when a
- * copy may change and own the transaction. A title has at most one copy, removed with the title.
+ * The accepted copy of each title's document and the served copy derived from it. Owns SQL and row
+ * mapping only; services decide when a copy may change and own the transaction. A title has at most
+ * one of each, removed with the title. The served copy is the accepted copy with the pending queue
+ * replayed over it, stamped with the accepted hash it was built from.
  */
 @Repository
 public class AcceptedDocumentStore {
@@ -72,6 +74,52 @@ public class AcceptedDocumentStore {
         sha256,
         json,
         importedAt);
+  }
+
+  /**
+   * The title's served bytes if they were built over the accepted copy with {@code acceptedSha256};
+   * empty when there is no served row or it is stale.
+   */
+  public Optional<byte[]> findServed(String titleId, String acceptedSha256) {
+    return jdbc
+        .query(
+            "SELECT json FROM served_documents WHERE title_id=? AND accepted_sha256=?",
+            (row, i) -> row.getBytes("json"),
+            titleId,
+            acceptedSha256)
+        .stream()
+        .findFirst();
+  }
+
+  /** Inserts or replaces the title's served copy, built over the accepted copy {@code sha256}. */
+  public void saveServed(String titleId, String acceptedSha256, byte[] json) {
+    jdbc.update(
+        """
+        INSERT INTO served_documents (title_id, accepted_sha256, json) VALUES (?, ?, ?)
+        ON CONFLICT(title_id) DO UPDATE SET
+          accepted_sha256 = excluded.accepted_sha256,
+          json = excluded.json
+        """,
+        titleId,
+        acceptedSha256,
+        json);
+  }
+
+  /**
+   * IDs of titles with an accepted copy whose served copy is missing or stale, or that have pending
+   * queue rows, in ID order.
+   */
+  public List<String> titlesNeedingServed() {
+    return jdbc.queryForList(
+        """
+        SELECT a.title_id FROM accepted_documents a
+        LEFT JOIN served_documents s ON s.title_id = a.title_id
+        WHERE s.title_id IS NULL OR s.accepted_sha256 <> a.source_sha256
+          OR EXISTS (SELECT 1 FROM review_queue q
+                     WHERE q.title_id = a.title_id AND q.reviewed_at IS NULL)
+        ORDER BY a.title_id
+        """,
+        String.class);
   }
 
   /** IDs of titles that have no accepted copy yet, in ID order. */

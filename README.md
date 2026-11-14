@@ -159,7 +159,7 @@ most comfortable with.
 The server has document editing functionality, but to stop an agent and the server fighting over
 document writes, the server stores user edits and makes them available over an API. An agent picks
 up a batch of changes, updates the documents and tells the server they have been applied. To avoid
-serving stale content, the server reads the document together with its pending edits.
+serving stale content, the server serves the document with its pending edits applied.
 
 ```mermaid
 flowchart LR
@@ -167,7 +167,7 @@ flowchart LR
   queue --> agent["Agent claims<br/>a batch"]
   agent --> doc[("document.json")]
   agent -. completes .-> queue
-  doc --> serve["Served with<br/>pending edits applied"]
+  doc --> serve["Served copy with<br/>pending edits applied"]
   queue --> serve
 ```
 

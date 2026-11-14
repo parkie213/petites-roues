@@ -13,22 +13,27 @@ import app.petitesroues.model.review.ReviewCompletion;
 import java.io.IOException;
 import java.time.Instant;
 import java.util.*;
-import java.util.function.Predicate;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.support.TransactionTemplate;
 
 /**
- * Serves each title's accepted copy plus its queued player edits, and hands those edits to agents
- * in batches. The application never writes document files and never reads them to answer a read: an
- * agent claims a batch, writes the batch's document into the file with its annotations, checkpoints
- * it with Git and completes the batch, which imports that file as the new accepted copy.
+ * Serves each title's document, the accepted copy plus its queued player edits, and hands those
+ * edits to agents in batches. The application never writes document files and never reads them to
+ * answer a read: an agent claims a batch, writes the batch's document into the file with its
+ * annotations, checkpoints it with Git and completes the batch, which imports that file as the new
+ * accepted copy.
  *
- * <p>Every read loads the accepted copy and the queue rows in one transaction, so a document is
- * wholly before or wholly after a completion. Queued edits replay over the copy until their batch
- * is completed; edits that no longer apply are skipped and reported as conflicts.
+ * <p>A read is a lookup of the title's served copy (see {@link ServedDocuments}) and its queue rows
+ * in one transaction, so a document is wholly before or wholly after a completion. Queued edits
+ * stay in the served copy until their batch is completed or discarded; edits that no longer apply
+ * are skipped and reported as conflicts. Completing and discarding rebuild the served copy in the
+ * transaction that changes the queue.
  */
 @Service
 public class ReviewQueueService {
+  private static final Logger log = LoggerFactory.getLogger(ReviewQueueService.class);
   private static final Set<String> OUTCOMES =
       Set.of("applied", "already_correct", "not_adopted", "reviewed");
 
@@ -37,6 +42,7 @@ public class ReviewQueueService {
   private final AcceptedDocumentStore accepted;
   private final DocumentImportService imports;
   private final ReviewQueue queue;
+  private final ServedDocuments served;
   private final TransactionTemplate transactions;
 
   public ReviewQueueService(
@@ -45,12 +51,14 @@ public class ReviewQueueService {
       AcceptedDocumentStore accepted,
       DocumentImportService imports,
       ReviewQueue queue,
+      ServedDocuments served,
       TransactionTemplate transactions) {
     this.titles = titles;
     this.documents = documents;
     this.accepted = accepted;
     this.imports = imports;
     this.queue = queue;
+    this.served = served;
     this.transactions = transactions;
   }
 
@@ -68,17 +76,26 @@ public class ReviewQueueService {
       long batch, String baseSha256, List<CueChange> changes, StudyDocument document) {}
 
   /**
-   * The accepted copy and the queue rows read in one transaction, replayed. Never reads the file.
+   * The served copy and the queue rows read in one transaction; a missing or stale served copy is
+   * rebuilt first. Never reads the file and replays nothing otherwise.
    *
    * @throws DocumentConflictException if the title has no accepted copy yet
    */
   public Effective effective(CatalogueEntry title) {
     return transactions.execute(
-        status -> replay(acceptedCopy(title), queue.read(title), change -> true));
+        status -> {
+          var copy = served.current(title);
+          return new Effective(served.document(copy), copy.baseSha256(), queue.read(title));
+        });
   }
 
   public StudyDocument document(CatalogueEntry title) {
-    return effective(title).document();
+    return transactions.execute(status -> served.document(served.current(title)));
+  }
+
+  /** The served document as canonical JSON bytes, exactly as stored. */
+  public byte[] servedBytes(CatalogueEntry title) {
+    return transactions.execute(status -> served.current(title).json());
   }
 
   public List<CueChange> pending(String id) throws IOException {
@@ -120,26 +137,28 @@ public class ReviewQueueService {
 
   /**
    * Returns the title's open batch, or claims up to {@code limit} of the oldest pending edits as a
-   * new one against the accepted copy. The batch document is built from the same snapshot. Empty
-   * when nothing is pending.
+   * new one against the accepted copy. The batch document is built from the same snapshot: the
+   * served copy when the batch covers every pending edit, otherwise the accepted copy with just the
+   * batch's edits replayed. Empty when nothing is pending.
    */
   public Optional<BatchView> claim(String id, int limit) throws IOException {
     if (limit < 1) throw new IllegalArgumentException("Limit must be positive");
     return transactions.execute(
         status -> {
           var title = entry(id);
-          var copy = acceptedCopy(title);
           var open = queue.openBatch(title);
           if (open.isEmpty() && queue.read(title).isEmpty()) return Optional.<BatchView>empty();
-          var batch = open.orElseGet(() -> queue.claim(title, copy.sha256(), limit));
-          var effective =
-              replay(copy, queue.read(title), change -> Objects.equals(change.batch(), batch.id()));
-          var changes =
-              effective.pending().stream()
-                  .filter(c -> Objects.equals(c.batch(), batch.id()))
-                  .toList();
-          return Optional.of(
-              new BatchView(batch.id(), batch.baseSha256(), changes, effective.document()));
+          var current = served.current(title);
+          var batch = open.orElseGet(() -> queue.claim(title, current.baseSha256(), limit));
+          var rows = queue.read(title);
+          var changes = rows.stream().filter(c -> Objects.equals(c.batch(), batch.id())).toList();
+          var document =
+              changes.size() == rows.size()
+                  ? served.document(current)
+                  : ServedDocuments.replay(
+                          acceptedCopy(title), rows, c -> Objects.equals(c.batch(), batch.id()))
+                      .document();
+          return Optional.of(new BatchView(batch.id(), batch.baseSha256(), changes, document));
         });
   }
 
@@ -149,7 +168,9 @@ public class ReviewQueueService {
    * is read once, before the transaction. Replayable edits can only be completed after the file has
    * changed since the claim, unless they are explicitly {@code not_adopted}; this stops an agent
    * from completing edits it never wrote. Comments and review requests change nothing by
-   * themselves, so they never require a file change.
+   * themselves, so they never require a file change. The served copy is rebuilt in the same
+   * transaction, even when the file is unchanged, because the closed rows leave it; the edits
+   * queued after the batch are replayed over the new accepted copy with fresh conflict states.
    *
    * <p>Repeating the completion of a closed batch succeeds when the file is the accepted copy, so a
    * lost response can be retried.
@@ -199,6 +220,7 @@ public class ReviewQueueService {
             throw new DocumentConflictException(
                 "The accepted copy of " + id + " changed since batch " + batchId + " was claimed");
           queue.complete(title, batchId, outcomes, Instant.now().toString());
+          served.rebuild(title);
         });
   }
 
@@ -227,8 +249,8 @@ public class ReviewQueueService {
   }
 
   /**
-   * Discards exactly the displayed pending edits, reverting them in the served document. Completed
-   * decisions are kept.
+   * Discards exactly the displayed pending edits, reverting them in the served document, which is
+   * rebuilt in the same transaction. Completed decisions are kept.
    */
   public void discard(String id, List<Long> expected) {
     transactions.executeWithoutResult(
@@ -237,45 +259,41 @@ public class ReviewQueueService {
           if (!queue.read(title).stream().map(CueChange::sequence).toList().equals(expected))
             throw new IllegalArgumentException("Queue changed; reload before discarding");
           queue.discard(title);
+          served.rebuild(title);
         });
   }
 
-  /** A title's accepted document with its hash. */
-  private record Accepted(StudyDocument document, String sha256) {}
+  /**
+   * Rebuilds the served copy of every title whose copy is missing or stale or that has pending
+   * edits, one transaction per title. A title that cannot be rebuilt is logged and skipped; it is
+   * rebuilt on its next read. Safe to repeat.
+   *
+   * @return how many titles were rebuilt
+   */
+  public int rebuildServedCopies() {
+    int rebuilt = 0;
+    for (String id : accepted.titlesNeedingServed()) {
+      try {
+        transactions.executeWithoutResult(status -> served.rebuild(entry(id)));
+        rebuilt++;
+      } catch (RuntimeException failure) {
+        log.warn("Cannot rebuild the served copy of title {}: {}", id, failure.toString());
+      }
+    }
+    return rebuilt;
+  }
 
-  /** Loads the accepted copy; the caller's transaction keeps it consistent with the queue rows. */
-  private Accepted acceptedCopy(CatalogueEntry title) {
+  /** Loads and decodes the accepted copy, for a claim that covers only some pending edits. */
+  private StudyDocument acceptedCopy(CatalogueEntry title) {
     return accepted
         .find(title.id())
-        .map(copy -> new Accepted(documents.decode(copy.json()), copy.sha256()))
+        .map(copy -> documents.decode(copy.json()))
         .orElseThrow(
             () ->
                 new DocumentConflictException(
                     "Title "
                         + title.id()
                         + " has no accepted copy of its document; Refresh its folder"));
-  }
-
-  /** Replays the selected pending edits over the accepted copy, recording each edit's state. */
-  private Effective replay(Accepted copy, List<CueChange> rows, Predicate<CueChange> include) {
-    var document = copy.document();
-    var states = new ArrayList<CueChange>();
-    for (var row : rows) {
-      String state;
-      if (row.command() == null) state = "review";
-      else {
-        state = "pending";
-        if (include.test(row)) {
-          try {
-            document = DocumentEdits.apply(document, row.command());
-          } catch (IllegalArgumentException | NoSuchElementException noLongerApplies) {
-            state = "conflict";
-          }
-        }
-      }
-      states.add(row.withState(state));
-    }
-    return new Effective(document, copy.sha256(), List.copyOf(states));
   }
 
   private CatalogueEntry entry(String id) {

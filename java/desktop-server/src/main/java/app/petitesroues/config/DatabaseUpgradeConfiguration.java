@@ -1,6 +1,7 @@
 package app.petitesroues.config;
 
 import app.petitesroues.library.DocumentImportService;
+import app.petitesroues.study.ReviewQueueService;
 import javax.sql.DataSource;
 import org.flywaydb.core.Flyway;
 import org.flywaydb.core.api.MigrationVersion;
@@ -10,11 +11,13 @@ import org.springframework.boot.ApplicationRunner;
 import org.springframework.boot.flyway.autoconfigure.FlywayMigrationStrategy;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.annotation.Order;
 import org.springframework.jdbc.core.JdbcTemplate;
 
 /**
  * Startup steps around the catalogue migration: refusing an upgrade that would strand pending
- * player edits, and giving titles that predate accepted copies theirs once migrated.
+ * player edits, giving titles that predate accepted copies theirs once migrated, and then building
+ * every title's served copy.
  */
 @Configuration(proxyBeanMethods = false)
 public class DatabaseUpgradeConfiguration {
@@ -63,10 +66,24 @@ public class DatabaseUpgradeConfiguration {
 
   /** Imports every title without an accepted copy once startup has migrated the database. */
   @Bean
+  @Order(1)
   public ApplicationRunner acceptedDocumentBackfill(DocumentImportService imports) {
     return arguments -> {
       int imported = imports.backfill();
       if (imported > 0) log.info("Accepted {} existing documents", imported);
+    };
+  }
+
+  /**
+   * Builds the served copy of every title that lacks a current one or has pending edits, after the
+   * accepted copies exist. Until it has run, a read rebuilds the title it asks for.
+   */
+  @Bean
+  @Order(2)
+  public ApplicationRunner servedDocumentRebuild(ReviewQueueService review) {
+    return arguments -> {
+      int rebuilt = review.rebuildServedCopies();
+      if (rebuilt > 0) log.info("Rebuilt the served copy of {} documents", rebuilt);
     };
   }
 }

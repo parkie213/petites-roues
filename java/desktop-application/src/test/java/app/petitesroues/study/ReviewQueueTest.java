@@ -42,6 +42,8 @@ class ReviewQueueTest {
   ReviewQueueService service;
   DocumentImportService imports;
   AcceptedDocumentStore accepted;
+  ServedDocuments servedDocuments;
+  TransactionTemplate transactions;
   CatalogueEntry title;
   StudyDocumentCodec codec;
   final DocumentEdit delete = new DocumentEdit.DeleteVideoCue("stable-cue");
@@ -57,23 +59,39 @@ class ReviewQueueTest {
     var catalogue = new CatalogueStore(jdbc);
     var store = new DocumentStore(new StudyDocumentReader(codec));
     accepted = new AcceptedDocumentStore(jdbc);
-    var transactions = new TransactionTemplate(new DataSourceTransactionManager(source));
+    transactions = new TransactionTemplate(new DataSourceTransactionManager(source));
+    servedDocuments = new ServedDocuments(accepted, queue, store, codec);
     imports =
         new DocumentImportService(
             catalogue,
             store,
             accepted,
             queue,
+            servedDocuments,
             new RepositoryContentService(new ContentRepositoryStore(jdbc), catalogue),
             transactions);
-    service = new ReviewQueueService(catalogue, store, accepted, imports, queue, transactions);
+    service =
+        new ReviewQueueService(
+            catalogue, store, accepted, imports, queue, servedDocuments, transactions);
     title = register("example");
-    queue.append(title, delete);
+    append(title, delete);
   }
 
   @AfterEach
   void close() {
     source.destroy();
+  }
+
+  /**
+   * Queues an edit the way the editing service does, then restores the served copy: the queue and
+   * the served copy only change together.
+   */
+  private void append(CatalogueEntry entry, DocumentEdit edit) {
+    transactions.executeWithoutResult(
+        status -> {
+          queue.append(entry, edit);
+          servedDocuments.rebuild(entry);
+        });
   }
 
   private CatalogueEntry register(String id) throws Exception {
@@ -120,7 +138,7 @@ class ReviewQueueTest {
 
   @Test
   void aBatchClaimsOnlyUpToItsLimitAndLaterEditsStayUnclaimed() throws Exception {
-    queue.append(title, new DocumentEdit.Suggestion("stable-cue", "Bonsoir ?"));
+    append(title, new DocumentEdit.Suggestion("stable-cue", "Bonsoir ?"));
     var batch = service.claim(title.id(), 1).orElseThrow();
     assertEquals(1, batch.changes().size());
     assertEquals("delete", batch.changes().getFirst().kind());
@@ -131,7 +149,7 @@ class ReviewQueueTest {
   void discardingPendingWorkLeavesCompletedHistoryAndRejectsStaleQueues() throws Exception {
     service.complete(title.id(), claimAndWrite(), null);
     var history = queue.history(title);
-    queue.append(title, delete);
+    append(title, delete);
     assertThrows(IllegalArgumentException.class, () -> service.discard(title.id(), List.of()));
     service.discard(title.id(), queue.read(title).stream().map(c -> c.sequence()).toList());
     assertTrue(queue.read(title).isEmpty());
@@ -141,7 +159,7 @@ class ReviewQueueTest {
   @Test
   void completionCannotCloseAnotherTitlesBatch() throws Exception {
     var other = register("other");
-    queue.append(other, delete);
+    append(other, delete);
     long foreign = service.claim(other.id(), 50).orElseThrow().batch();
     assertThrows(
         NoSuchElementException.class,
@@ -153,7 +171,7 @@ class ReviewQueueTest {
 
   @Test
   void failedCompletionRollsBackEarlierDecisionsInTheSameBatch() throws Exception {
-    queue.append(title, new DocumentEdit.Suggestion("stable-cue", "Bonsoir ?"));
+    append(title, new DocumentEdit.Suggestion("stable-cue", "Bonsoir ?"));
     var before = accepted.findHash(title.id()).orElseThrow();
     long batch = claimAndWrite();
     long last = queue.read(title).getLast().sequence();
@@ -219,6 +237,7 @@ class ReviewQueueTest {
         "2026-10-01T00:00:00Z",
         "edit",
         "[\"stable-cue\"]");
+    servedDocuments.rebuild(title);
     var legacy = service.pending(title.id()).getLast();
     assertEquals("review", legacy.state());
     assertNull(legacy.command());

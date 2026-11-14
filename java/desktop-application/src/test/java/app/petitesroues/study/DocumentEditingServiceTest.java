@@ -48,6 +48,7 @@ class DocumentEditingServiceTest {
   @TempDir Path root;
   DocumentEditingService editing;
   ReviewQueueService served;
+  ServedDocuments servedDocuments;
   DocumentImportService imports;
   JdbcTemplate jdbc;
   CatalogueEntry entry;
@@ -68,17 +69,21 @@ class DocumentEditingServiceTest {
     var store = new DocumentStore(new StudyDocumentReader(codec));
     var accepted = new AcceptedDocumentStore(jdbc);
     var transactions = new TransactionTemplate(new DataSourceTransactionManager(source));
+    servedDocuments = new ServedDocuments(accepted, log, store, codec);
     imports =
         new DocumentImportService(
             titles,
             store,
             accepted,
             log,
+            servedDocuments,
             new RepositoryContentService(new ContentRepositoryStore(jdbc), titles),
             transactions);
-    served = new ReviewQueueService(titles, store, accepted, imports, log, transactions);
+    served =
+        new ReviewQueueService(
+            titles, store, accepted, imports, log, servedDocuments, transactions);
     write(document(entry.id()));
-    editing = new DocumentEditingService(titles, served, log, transactions);
+    editing = new DocumentEditingService(titles, servedDocuments, log, transactions);
   }
 
   /** Writes the file as an agent or preparation script would, without the app noticing. */
@@ -267,11 +272,14 @@ class DocumentEditingServiceTest {
   }
 
   @Test
-  void failedQueueAppendLeavesTheServedDocumentUnchanged() throws Exception {
+  void failedQueueAppendRollsBackTheServedCopyToo() throws Exception {
+    // The served copy is saved before the append, so this proves the two share one transaction.
+    byte[] before = served.servedBytes(entry);
     doThrow(new IllegalStateException("Disk full")).when(log).append(any(), any());
     VideoCue cue = readVideo().video().cues().getFirst().withLine(s -> s.withSource("Bonsoir"));
     assertThrows(
         IllegalStateException.class, () -> editing.editCue(entry.id(), cue.line().id(), edit(cue)));
+    assertArrayEquals(before, served.servedBytes(entry));
     assertEquals("Bonjour !", readVideo().video().cues().getFirst().line().source());
     assertTrue(history().isEmpty());
   }
@@ -474,13 +482,19 @@ class DocumentEditingServiceTest {
     var reader = new SingleConnectionDataSource("jdbc:sqlite:" + root.resolve("db.sqlite"), true);
     var other = new JdbcTemplate(reader);
     var titles = new CatalogueStore(other);
+    var readerQueue = new ReviewQueue(other, StudyDocumentJson.newMapper());
     var readerService =
         new ReviewQueueService(
             titles,
             new DocumentStore(new StudyDocumentReader(codec)),
             new AcceptedDocumentStore(other),
             imports,
-            new ReviewQueue(other, StudyDocumentJson.newMapper()),
+            readerQueue,
+            new ServedDocuments(
+                new AcceptedDocumentStore(other),
+                readerQueue,
+                new DocumentStore(new StudyDocumentReader(codec)),
+                codec),
             new TransactionTemplate(new DataSourceTransactionManager(reader)));
     var seen = new ArrayList<StudyDocument>();
     doAnswer(
@@ -523,7 +537,13 @@ class DocumentEditingServiceTest {
     var accepted = new AcceptedDocumentStore(jdbc);
     var other =
         codec.encode(batch.document().withTitle("Elsewhere")).getBytes(StandardCharsets.UTF_8);
-    accepted.save(entry.id(), other, DocumentStore.sha256(other), "now");
+    // Another import accepting a different file; it rebuilds the served copy as every import does.
+    new TransactionTemplate(new DataSourceTransactionManager(jdbc.getDataSource()))
+        .executeWithoutResult(
+            status -> {
+              accepted.save(entry.id(), other, DocumentStore.sha256(other), "now");
+              servedDocuments.rebuild(entry);
+            });
     writeFile(batch.document().withTitle("Agent"));
 
     assertThrows(

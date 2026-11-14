@@ -4,11 +4,11 @@ skinparam defaultFontName sans-serif
 hide empty description
 
 [*] --> Pending : player or reader edit,\nwith any new IDs fixed
-Pending : replayed over the accepted copy\nwhenever the document is served
-Pending --> Conflict : no longer applies\nto the accepted copy
-Conflict : not replayed;\ndecided by hand
+Pending : in the served copy, saved with the edit;\nreplayed again on completion, discard\nor import
+Pending --> Conflict : a rebuild finds it no longer applies\nto the accepted copy
+Conflict : stored by the rebuild, left out of\nthe served copy; decided by hand
 Pending --> Claimed : agent claims a batch\n(records the accepted\ncopy's SHA-256)
-Claimed : still replayed until the batch\nis completed; writing the file\nchanges nothing served
+Claimed : still in the served copy until the batch\nis completed; writing the file\nchanges nothing served
 Claimed --> Completed : agent writes document.json,\ncompletes the batch (imports the file)
 Conflict --> Completed : agent completes\nthe batch
 Claimed --> Completed : complete unchanged, only if\nnot_adopted, comment or review-request

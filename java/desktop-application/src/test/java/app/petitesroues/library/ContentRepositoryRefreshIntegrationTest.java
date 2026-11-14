@@ -29,6 +29,7 @@ import app.petitesroues.study.DocumentEditingService;
 import app.petitesroues.study.DocumentStore;
 import app.petitesroues.study.ReviewQueue;
 import app.petitesroues.study.ReviewQueueService;
+import app.petitesroues.study.ServedDocuments;
 import app.petitesroues.support.DatabaseFixtures;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -86,12 +87,21 @@ class ContentRepositoryRefreshIntegrationTest {
     return new TransactionTemplate(new DataSourceTransactionManager(source));
   }
 
+  private ServedDocuments servedDocuments() {
+    return new ServedDocuments(
+        new AcceptedDocumentStore(jdbc),
+        new ReviewQueue(jdbc, mapper),
+        new DocumentStore(reader),
+        new StudyDocumentCodec());
+  }
+
   private DocumentImportService imports(RepositoryContentService registration) {
     return new DocumentImportService(
         catalogue,
         new DocumentStore(reader),
         new AcceptedDocumentStore(jdbc),
         new ReviewQueue(jdbc, mapper),
+        servedDocuments(),
         registration,
         transactions());
   }
@@ -183,6 +193,7 @@ class ContentRepositoryRefreshIntegrationTest {
             new AcceptedDocumentStore(jdbc),
             imports(new RepositoryContentService(repositories, catalogue)),
             queue,
+            servedDocuments(),
             transactions);
     var library =
         new LibraryService(
@@ -193,7 +204,7 @@ class ContentRepositoryRefreshIntegrationTest {
             new PlaybackProgressStore(jdbc),
             new ReadingProgressStore(jdbc),
             new TitleMediaService(new MediaStore(jdbc), new MediaLinkStore(jdbc)));
-    var editing = new DocumentEditingService(catalogue, served, queue, transactions);
+    var editing = new DocumentEditingService(catalogue, servedDocuments(), queue, transactions);
     byte[] originalFirst = Files.readAllBytes(firstFile);
     var cue =
         library
