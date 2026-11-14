@@ -223,7 +223,12 @@ jobs:
           emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
           disable-animations: true
           working-directory: android
-          script: ./gradlew --no-daemon -PprebuiltLibrary :app:connectedDebugAndroidTest
+          # The cached snapshot can hold an earlier run's build, signed with another runner's debug
+          # key. Gradle then fails the install yet still exits 0, so remove it first.
+          script: |
+            adb uninstall app.petitesroues.android || true
+            adb uninstall app.petitesroues.android.test || true
+            ./gradlew --no-daemon -PprebuiltLibrary :app:connectedDebugAndroidTest
       - name: Keep the instrumentation reports
         if: always()
         uses: actions/upload-artifact@v7
