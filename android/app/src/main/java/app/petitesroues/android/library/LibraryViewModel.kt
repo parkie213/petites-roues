@@ -36,7 +36,7 @@ import kotlinx.coroutines.withContext
 /**
  * The library and what can be done to it: reading the index and progress, refreshing from the
  * content folders, adding and removing folders, clearing a title's progress, and the pages behind
- * the Notes and Quiz me tabs. The library screen draws [state], [section] and [pages] and calls
+ * the Notes and Practice tabs. The library screen draws [state], [section] and [pages] and calls
  * back here; the work runs in this ViewModel's scope, so it outlives recomposition and is tested
  * without drawing anything.
  */
@@ -65,12 +65,12 @@ constructor(
   /** The titles, their progress and the state of any refresh. */
   val state: StateFlow<LibraryUiState> = _state.asStateFlow()
 
-  /** The open tab: the library, Notes or Quiz me. Kept across process death. */
+  /** The open tab: the library, Notes or Practice. Kept across process death. */
   val section: StateFlow<Section> = saved.getStateFlow(SECTION, Section.LIBRARY)
 
   private val _pages = MutableStateFlow<List<MarkdownPageEntry>?>(null)
 
-  /** The open Notes or Quiz me tab's pages; null while they are read, or on the library tab. */
+  /** The open Notes or Practice tab's pages; null while they are read, or on the library tab. */
   val pages: StateFlow<List<MarkdownPageEntry>?> = _pages.asStateFlow()
 
   private var reading: Job? = null
@@ -184,7 +184,7 @@ constructor(
     }
   }
 
-  /** Opens the library, Notes or Quiz me; Notes and Quiz me read their pages each time. */
+  /** Opens the library, Notes or Practice; Notes and Practice read their pages each time. */
   fun selectSection(section: Section) {
     saved[SECTION] = section
     readPages()

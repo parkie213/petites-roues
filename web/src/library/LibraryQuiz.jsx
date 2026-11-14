@@ -5,7 +5,7 @@ import { useStoredState } from "../shared/storage.ts";
 import { generalQuizBrief, generalQuizFileName, quizKey } from "./quizzes.js";
 
 /**
- * The library's "Quiz me": general quizzes from the repositories' quizzes/ folders, listed
+ * The library's Practice page: general quizzes from the repositories' quizzes/ folders, listed
  * again each time the dialog opens so a newly added file appears. The last quiz chosen is
  * remembered in this browser.
  */

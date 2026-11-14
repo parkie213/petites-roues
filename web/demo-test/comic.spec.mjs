@@ -271,7 +271,23 @@ test("example notes render and the general quiz exports a complete prompt", asyn
     page.getByRole("heading", { name: "Only the first verb is conjugated" }),
   ).toBeVisible();
   await page.screenshot({ path: info.outputPath("example-notes.png") });
-  await page.getByRole("link", { name: "Quiz me", exact: true }).click();
+  await page.getByRole("link", { name: "Practice", exact: true }).click();
+  const topics = page.getByRole("navigation", { name: "Choose a quiz" });
+  const browse = page.getByRole("button", { name: "Browse quizzes" });
+  await expect(
+    page.getByRole("article").getByRole("heading", {
+      name: "A1 Conversation",
+      exact: true,
+    }),
+  ).toBeVisible();
+  if (await browse.isVisible()) await browse.click();
+  await expect(topics.getByRole("link")).toHaveText([
+    "A1 Conversation",
+    "Verbs followed by an infinitive",
+  ]);
+  await topics
+    .getByRole("link", { name: "Verbs followed by an infinitive" })
+    .click();
   await expect(
     page.getByRole("article").getByRole("heading", {
       name: "Verbs followed by an infinitive",
@@ -294,7 +310,10 @@ test("example notes render and the general quiz exports a complete prompt", asyn
   expect(prompt).toContain("wait for the attempt");
   expect(prompt).not.toContain("Oh non, il pleut !");
   const quizzes = await readJson(page, "/api/quizzes");
-  expect(quizzes.map((quiz) => quiz.id)).toEqual(["verb-plus-infinitive"]);
+  expect(quizzes.map((quiz) => quiz.id)).toEqual([
+    "a1-conversation",
+    "verb-plus-infinitive",
+  ]);
   await page.screenshot({ path: info.outputPath("example-general-quiz.png") });
 });
 

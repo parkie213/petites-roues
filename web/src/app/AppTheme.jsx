@@ -4,7 +4,7 @@ import "@mantine/core/styles.layer.css";
 
 const libraryPage =
   appLocation().pathname === "/" ||
-  /^\/(notes|quizzes)(\/|$)/.test(appLocation().pathname);
+  /^\/(notes|practice)(\/|$)/.test(appLocation().pathname);
 
 const theme = createTheme({
   primaryColor: "coral",

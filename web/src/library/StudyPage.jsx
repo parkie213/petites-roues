@@ -32,7 +32,7 @@ function selectedKey(kind) {
 /** Shared read-only topic browser. Selection has a URL and follows browser Back/Forward. */
 export function StudyPage({ kind }) {
   const quiz = kind === "quizzes";
-  const title = quiz ? "Quiz me" : "Notes";
+  const title = quiz ? "Practice" : "Notes";
   const [items, setItems] = useState(null);
   const [error, setError] = useState("");
   const [search, setSearch] = useState("");
@@ -118,7 +118,7 @@ export function StudyPage({ kind }) {
                     key={quizKey(item)}
                     href={appHref(
                       quiz
-                        ? `/quizzes?topic=${encodeURIComponent(quizKey(item))}`
+                        ? `/practice?topic=${encodeURIComponent(quizKey(item))}`
                         : notePath(item),
                     )}
                     aria-current={current === item ? "page" : undefined}

@@ -79,10 +79,10 @@ private val Chat = Color(0xFF3568A8)
 enum class Section(val label: String, val folder: String?, val noun: String) {
   LIBRARY("Library", null, "title"),
   NOTES("Notes", MarkdownPageEntry.NOTES, "note"),
-  QUIZZES("Quiz me", MarkdownPageEntry.QUIZZES, "quiz"),
+  QUIZZES("Practice", MarkdownPageEntry.QUIZZES, "quiz"),
 }
 
-/** The Library / Notes / Quiz me tabs: the current one in coral with an underline. */
+/** The Library / Notes / Practice tabs: the current one in coral with an underline. */
 @Composable
 fun StudyTabs(section: Section, onSection: (Section) -> Unit) {
   val underline = MaterialTheme.colorScheme.primary

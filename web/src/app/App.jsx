@@ -22,8 +22,8 @@ export function App() {
   const section =
     path === "/"
       ? "library"
-      : /^\/quizzes\/?$/.test(path)
-        ? "quizzes"
+      : /^\/practice\/?$/.test(path)
+        ? "practice"
         : /^\/notes(?:\/[^/]+\/[^/]+)?\/?$/.test(path)
           ? "notes"
           : null;

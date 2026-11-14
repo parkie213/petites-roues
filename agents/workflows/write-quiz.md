@@ -2,7 +2,7 @@
 
 A general quiz drills a grammar point or a set of words, not a title's lines. It is one Markdown
 file in the `quizzes/` folder at the root of a registered content repository, e.g.
-`quizzes/passe-compose-vs-imparfait.md`. The library's Quiz me lists those files by their
+`quizzes/passe-compose-vs-imparfait.md`. The library's Practice tab lists those files by their
 `# heading` and hands the chosen one to a chat app, followed by the general [quiz
 rules](subtitle-quiz.md) (one item at a time, hint, retry). The chat model makes up its own
 sentences, so the file only has to describe the topic. The app reads no other structure.
@@ -20,4 +20,4 @@ Write the file to the chat model running the quiz:
 
 Check every example: it must be idiomatic, correct and in the stated register. Keep the file
 under about 2,000 characters; the rules are added on top. Commit the file to the content
-repository; it appears the next time Quiz me opens, with no refresh.
+repository; it appears the next time Practice opens, with no refresh.

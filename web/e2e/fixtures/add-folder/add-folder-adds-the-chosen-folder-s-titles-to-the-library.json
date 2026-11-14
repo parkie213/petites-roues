@@ -971,7 +971,7 @@
     "status": 200,
     "type": "application/json",
     "json": {
-      "libraryBytes": 2379514,
+      "libraryBytes": 2381254,
       "disks": [
         {
           "repositories": [
@@ -989,7 +989,7 @@
     "status": 200,
     "type": "application/json",
     "json": {
-      "libraryBytes": 3513083,
+      "libraryBytes": 3514823,
       "disks": [
         {
           "repositories": [
