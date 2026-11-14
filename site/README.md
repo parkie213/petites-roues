@@ -13,7 +13,7 @@ Demo notes and general quiz prompts reuse `example/documents-fr/notes/` and
 `document.json`, just as they do in the desktop app. The demo adds no chapter override.
 The comic’s source text, translations, media references, images and audio are unchanged.
 
-Notes and the general Quiz me page use the real Markdown renderer and prompt export controls.
+Notes and the Practice page use the real Markdown renderer and prompt export controls.
 The reader’s chapter Quiz me prepares a selected chapter and quiz type using shared browser
 brief-formatting helpers, equivalent to the server’s chapter quiz response. Preparation is
 read-only and requires no chat API: copy or download the prompt, then use it in a chat.

@@ -138,7 +138,7 @@ they are moved into place. Syncing again skips files already there. Documents an
 quizzes pages carry a hash of the bytes served, so a title whose document changed on the desktop
 counts as an update and fetches only the document. The desktop's notes and quizzes are one
 row at the top of the list, **Notes and quizzes**, followed like a series and copied to `<repository>/notes|quizzes/` and
-read by the app's Notes and Quiz me screens. The listing is
+read by the app's Notes and Practice screens. The listing is
 `GET /phone/titles`, and each file names its own route: `GET /phone/titles/{id}/{role}` (media
 and posters accept `Range`) or `GET /phone/pages/{repository}/{folder}/{name}`.
 

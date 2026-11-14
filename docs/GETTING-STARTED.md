@@ -68,6 +68,7 @@ example/
       lulu/
         le-parapluie-de-lulu/document.json  speech balloons, translations and notes
     quizzes/
+      a1-conversation.md
       verb-plus-infinitive.md
     notes/
       verb-plus-infinitive.md
@@ -130,10 +131,10 @@ The example comes with one: **Verbs followed by an infinitive**.
 
 <img src="../images/getting-started/08-general-quiz.png" alt="Choose a general quiz" style="max-width: 100%; height: auto;">
 
-Back in the library, click **Quiz me** and choose **Verbs followed by an infinitive**.
+Back in the library, click **Practice** and choose **Verbs followed by an infinitive**.
 This general quiz practises a grammar topic using new sentences, rather than the episode
 lines. Click **Copy & open ChatGPT** or **Copy & open Claude**, paste into the new chat
-and send.
+and send. The example also has **A1 Conversation**, an open chat in simple French rather than a drill.
 
 <img src="../images/getting-started/09-general-quiz-chatgpt.png" alt="Practise the general quiz in ChatGPT" style="max-width: 100%; height: auto;">
 

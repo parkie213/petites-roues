@@ -46,7 +46,7 @@ example comic's CBZ. They run with `kotlinx-coroutines-test`
 (`runTest`, `MainDispatcherRule`) and Turbine for the states a `StateFlow` passes through.
 `NavigationTest` starts the whole Hilt app over the same in-memory databases (`TestDataModule`
 replaces `DataModule`) and taps from the library into a title and back. The screenshot tests
-(`app/src/test/.../screens/`) draw the library, Notes and Quiz me, the comic reader and the
+(`app/src/test/.../screens/`) draw the library, Notes and Practice, the comic reader and the
 player and compare them with the PNGs committed in `app/src/test/screenshots/`. The library uses
 a small made-up catalogue (`Fixtures`) with the `example/` comic and poster as card art, and the
 example note and quiz beside a couple of made-up ones; the reader and the player open the
@@ -73,7 +73,7 @@ doesn't wipe the phone's pairing, folders or progress.
 | Package | What is in it |
 | --- | --- |
 | `PetitesRouesApp`, `di/` | The Hilt application and `DataModule`, which provides the databases, DAOs and app-wide scope |
-| `MainActivity`, `Routes` | The single activity and its Navigation 3 back stack: the library (with Notes and Quiz me), an open title, the desktop's titles |
+| `MainActivity`, `Routes` | The single activity and its Navigation 3 back stack: the library (with Notes and Practice), an open title, the desktop's titles |
 | `data/` | Room: the library index and reading/playback progress |
 | `library/` | Refreshing the index from the content folders (`LibraryService`), the library's state and actions (`LibraryViewModel`), the library screen, card images |
 | `player/`, `comic/` | The video player and the comic reader |

@@ -410,7 +410,7 @@
     "status": 200,
     "type": "application/json",
     "json": {
-      "libraryBytes": 2379514,
+      "libraryBytes": 2381254,
       "disks": [
         {
           "repositories": [
@@ -428,6 +428,13 @@
     "status": 200,
     "type": "application/json",
     "json": [
+      {
+        "repository": "00000000-0000-4000-8000-000000000001",
+        "repositoryName": "documents-fr",
+        "id": "a1-conversation",
+        "title": "A1 Conversation",
+        "text": "# A1 Conversation\n\nThe learner is studying French and wants explanations in English.\n\nHold a friendly role-play conversation at CEFR A1, not a translation drill. Begin by greeting\nthe learner in French and asking which topic they want, or choose one yourself. Suggest:\ntheir weekend, ordering at a café, introducing themselves, asking the way, family and food.\nSpeak only in the present tense, in one or two short sentences, with common words (`aimer`,\n`avoir`, `être`, `aller`, `vouloir`, `manger`, `habiter`). End each turn with one simple\nquestion so the learner replies.\n\n## Exercise\n\nPlay your part (the waiter, a new neighbour, a passer-by) and let the learner answer in French.\nIf they are stuck, give a short English hint or a French starter to complete, then go back to\nFrench. Never correct more than one mistake per turn: repeat their sentence correctly inside\nyour reply (a recast), and add a one-line English reason only if the mistake repeats. After\nfive or six turns, suggest a new topic. Step up gently: add a negation, then a question the\nlearner must ask.\n\n## Traps to look for\n\n- `Je suis faim`: say `J'ai faim`. French treats hunger as something you have, like\n  `j'ai soif`; English \"I am hungry\" misleads.\n- `Je suis vingt ans`: say `J'ai vingt ans`. Age also uses `avoir`.\n- `Je habite à Paris`: say `J'habite à Paris`. `je` drops its vowel before a vowel sound,\n  and `h` does not block this.\n- `Je veux un café`: understood, but blunt at a café; model `Je voudrais un café, s'il vous\n  plaît`.\n\n## Examples of the style wanted\n\n- Bonjour ! Je m'appelle Claire. Et toi, comment tu t'appelles ?\n- Qu'est-ce que tu veux manger ? Moi, j'ai faim !\n- Pardon, où est la gare, s'il vous plaît ? C'est tout droit.\n"
+      },
       {
         "repository": "00000000-0000-4000-8000-000000000001",
         "repositoryName": "documents-fr",

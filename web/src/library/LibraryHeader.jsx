@@ -1,5 +1,5 @@
 import { appHref, appHistory, publicAsset } from "../shared/app-location.js";
-/** Shared navigation for the library, study notes and general quizzes. */
+/** Shared navigation for the library, study notes and Practice. */
 function navigate(event) {
   if (
     event.button !== 0 ||
@@ -35,7 +35,7 @@ export function LibraryHeader({ active, actionsRef }) {
         {[
           ["library", "/", "Library"],
           ["notes", "/notes", "Notes"],
-          ["quizzes", "/quizzes", "Quiz me"],
+          ["practice", "/practice", "Practice"],
         ].map(([key, href, label]) => (
           <a
             key={key}

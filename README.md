@@ -146,7 +146,7 @@ and sharing them.
 A repository can also hold:
 
 - **Quizzes** not tied to a title: Markdown prompts in a `quizzes/` folder at its root, offered by
-  the library's *Quiz me* (lightbulb) and handed to a chat app. See
+  the library's *Practice* page and handed to a chat app. See
   [write-quiz.md](agents/workflows/write-quiz.md).
 - **Study notes**: Markdown pages in a `notes/` folder at its root, read in the library's *Notes*.
   See [write-notes.md](agents/workflows/write-notes.md).
