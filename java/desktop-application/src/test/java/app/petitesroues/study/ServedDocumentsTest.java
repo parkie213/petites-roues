@@ -5,28 +5,22 @@ import static app.petitesroues.support.TestDocuments.catalogueEntry;
 import static org.junit.jupiter.api.Assertions.*;
 
 import app.petitesroues.documents.StudyDocumentCodec;
-import app.petitesroues.documents.StudyDocumentJson;
-import app.petitesroues.documents.StudyDocumentReader;
 import app.petitesroues.library.DocumentImportService;
-import app.petitesroues.library.RepositoryContentService;
 import app.petitesroues.library.persistence.AcceptedDocumentStore;
 import app.petitesroues.library.persistence.CatalogueStore;
-import app.petitesroues.library.persistence.ContentRepositoryStore;
 import app.petitesroues.model.editing.DocumentEdit;
 import app.petitesroues.model.library.CatalogueEntry;
 import app.petitesroues.model.review.CueChange;
+import app.petitesroues.support.StudyTestServices;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
-import org.flywaydb.core.Flyway;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.jdbc.datasource.DataSourceTransactionManager;
-import org.springframework.jdbc.datasource.SingleConnectionDataSource;
 import org.springframework.transaction.support.TransactionTemplate;
 
 /**
@@ -36,7 +30,7 @@ import org.springframework.transaction.support.TransactionTemplate;
  */
 class ServedDocumentsTest {
   @TempDir Path root;
-  SingleConnectionDataSource source;
+  StudyTestServices services;
   JdbcTemplate jdbc;
   StudyDocumentCodec codec;
   DocumentStore store;
@@ -51,29 +45,17 @@ class ServedDocumentsTest {
 
   /** Wires the services over a database with the schema migrated up to {@code version}. */
   void open(String version) {
-    codec = new StudyDocumentCodec();
-    source = new SingleConnectionDataSource("jdbc:sqlite:" + root.resolve("db.sqlite"), true);
-    jdbc = new JdbcTemplate(source);
-    jdbc.execute("PRAGMA foreign_keys=ON");
-    Flyway.configure().dataSource(source).target(version).load().migrate();
-    catalogue = new CatalogueStore(jdbc);
-    store = new DocumentStore(new StudyDocumentReader(codec));
-    accepted = new AcceptedDocumentStore(jdbc);
-    queue = new ReviewQueue(jdbc, StudyDocumentJson.newMapper());
-    transactions = new TransactionTemplate(new DataSourceTransactionManager(source));
-    servedDocuments = new ServedDocuments(accepted, queue, store, codec);
-    imports =
-        new DocumentImportService(
-            catalogue,
-            store,
-            accepted,
-            queue,
-            servedDocuments,
-            new RepositoryContentService(new ContentRepositoryStore(jdbc), catalogue),
-            transactions);
-    review =
-        new ReviewQueueService(
-            catalogue, store, accepted, imports, queue, servedDocuments, transactions);
+    services = StudyTestServices.builder(root).schemaVersion(version).build();
+    jdbc = services.jdbc;
+    codec = services.codec;
+    store = services.documents;
+    accepted = services.accepted;
+    queue = services.queue;
+    servedDocuments = services.served;
+    review = services.review;
+    imports = services.imports;
+    catalogue = services.titles;
+    transactions = services.transactions;
   }
 
   @BeforeEach
@@ -89,7 +71,7 @@ class ServedDocumentsTest {
 
   @AfterEach
   void close() {
-    source.destroy();
+    services.close();
   }
 
   private byte[] storedServed() {
@@ -168,7 +150,7 @@ class ServedDocumentsTest {
 
   @Test
   void aDatabaseUpgradedFromVersionThreeServesWhatTheOldReplayServed() throws Exception {
-    source.destroy();
+    services.close();
     root.resolve("db.sqlite").toFile().delete();
     open("3");
     entry = catalogueEntry(jdbc, "title", root);
@@ -187,7 +169,7 @@ class ServedDocumentsTest {
     replayed = DocumentEdits.apply(replayed, commands.get(1));
     byte[] expected = codec.encode(replayed).getBytes(StandardCharsets.UTF_8);
 
-    source.destroy();
+    services.close();
     open("latest");
     assertEquals(0, jdbc.queryForObject("SELECT count(*) FROM served_documents", Integer.class));
     assertEquals(

@@ -10,14 +10,9 @@ import static app.petitesroues.support.TestDocuments.edit;
 import static org.junit.jupiter.api.Assertions.*;
 
 import app.petitesroues.documents.StudyDocumentCodec;
-import app.petitesroues.documents.StudyDocumentJson;
-import app.petitesroues.documents.StudyDocumentReader;
 import app.petitesroues.library.DocumentConflictException;
 import app.petitesroues.library.DocumentImportService;
-import app.petitesroues.library.RepositoryContentService;
 import app.petitesroues.library.persistence.AcceptedDocumentStore;
-import app.petitesroues.library.persistence.CatalogueStore;
-import app.petitesroues.library.persistence.ContentRepositoryStore;
 import app.petitesroues.model.document.ComicBox;
 import app.petitesroues.model.document.ComicPage;
 import app.petitesroues.model.document.Line;
@@ -36,7 +31,7 @@ import app.petitesroues.model.library.CatalogueEntry;
 import app.petitesroues.model.review.CueChange;
 import app.petitesroues.model.review.CueReviewRequest;
 import app.petitesroues.model.review.ReviewCompletion;
-import app.petitesroues.support.DatabaseFixtures;
+import app.petitesroues.support.StudyTestServices;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -52,9 +47,6 @@ import org.junit.jupiter.api.io.TempDir;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.jdbc.datasource.DataSourceTransactionManager;
-import org.springframework.jdbc.datasource.SingleConnectionDataSource;
-import org.springframework.transaction.support.TransactionTemplate;
 
 /**
  * The served copy's invariant on real SQLite: after every operation, the stored served bytes equal
@@ -71,7 +63,7 @@ class ServedInvariantTest {
   private static final int STEPS = 120;
 
   @TempDir Path root;
-  SingleConnectionDataSource source;
+  StudyTestServices services;
   JdbcTemplate jdbc;
   StudyDocumentCodec codec;
   DocumentStore store;
@@ -88,37 +80,23 @@ class ServedInvariantTest {
 
   @BeforeEach
   void setup() {
-    codec = new StudyDocumentCodec();
-    source = new SingleConnectionDataSource("jdbc:sqlite:" + root.resolve("db.sqlite"), true);
-    DatabaseFixtures.migrate(source);
-    jdbc = new JdbcTemplate(source);
-    var mapper = StudyDocumentJson.newMapper();
-    var catalogue = new CatalogueStore(jdbc);
-    store = new DocumentStore(new StudyDocumentReader(codec));
-    accepted = new AcceptedDocumentStore(jdbc);
-    queue = new ReviewQueue(jdbc, mapper);
-    var transactions = new TransactionTemplate(new DataSourceTransactionManager(source));
-    servedDocuments = new ServedDocuments(accepted, queue, store, codec);
-    imports =
-        new DocumentImportService(
-            catalogue,
-            store,
-            accepted,
-            queue,
-            servedDocuments,
-            new RepositoryContentService(new ContentRepositoryStore(jdbc), catalogue),
-            transactions);
-    review =
-        new ReviewQueueService(
-            catalogue, store, accepted, imports, queue, servedDocuments, transactions);
-    editing = new DocumentEditingService(catalogue, servedDocuments, queue, transactions);
+    services = StudyTestServices.create(root);
+    jdbc = services.jdbc;
+    codec = services.codec;
+    store = services.documents;
+    accepted = services.accepted;
+    queue = services.queue;
+    servedDocuments = services.served;
+    imports = services.imports;
+    review = services.review;
+    editing = services.editing;
     entry = catalogueEntry(jdbc, "title", root);
-    catalogue.saveTitle(entry);
+    services.titles.saveTitle(entry);
   }
 
   @AfterEach
   void close() {
-    source.destroy();
+    services.close();
   }
 
   // The fixtures
