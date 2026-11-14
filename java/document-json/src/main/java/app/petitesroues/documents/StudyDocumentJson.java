@@ -95,6 +95,10 @@ public final class StudyDocumentJson {
       String sourceUrl,
       VideoDocument video,
       ComicDocument comic) {
+    /** Explicit so Jackson finds it where records are not reported as records (Android). */
+    @JsonCreator
+    WireDocument {}
+
     StudyDocument toModel() {
       if (video != null && comic != null)
         throw new IllegalArgumentException("Exactly one video or comic body is required");
