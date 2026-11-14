@@ -152,3 +152,41 @@ test("the chosen type sits above the rules", () => {
   assert.ok(at1 > 0 && at1 < brief.indexOf("## Quiz rules"));
   assert.ok(brief.includes("Ask for the tense or mood and the infinitive"));
 });
+
+// temporary parity check, removed in step 6: the old JS brief still equals the goldens that the
+// Java VideoQuizBuilder is held to (java/study-prompts/src/test/resources/golden).
+const repository = new URL("../../", import.meta.url);
+const read = (path) => readFileSync(new URL(path, repository), "utf8");
+const examples = {
+  peppa: "example/documents-fr/series/peppa-pig/s01e01",
+  masha: "example/documents-de/series/masha-and-the-bear/083",
+};
+for (const [name, dir] of Object.entries(examples)) {
+  test(`old JS brief equals the ${name} goldens`, () => {
+    const rules = read("agents/workflows/subtitle-quiz.md");
+    const document = JSON.parse(read(`${dir}/document.json`));
+    const flat = document.video.cues.map((cue) => ({
+      start: cue.start,
+      end: cue.end,
+      notes: cue.line?.notes ?? [],
+      source: cue.line?.source,
+      translation: cue.line?.translation,
+    }));
+    const range = { start: 10, end: 40 };
+    const tenses = quizType(types, "tenses", document);
+    const golden = (variant) =>
+      read(
+        `java/study-prompts/src/test/resources/golden/${name}-${variant}.md`,
+      );
+    assert.equal(quizBrief(rules, document, flat, null), golden("whole"));
+    assert.equal(
+      quizBrief(rules, document, flat, null, tenses),
+      golden("whole-tenses"),
+    );
+    assert.equal(quizBrief(rules, document, flat, range), golden("range"));
+    assert.equal(
+      quizBrief(rules, document, flat, range, tenses),
+      golden("range-tenses"),
+    );
+  });
+}
