@@ -257,7 +257,7 @@ export function Timeline({
       <canvas
         ref={canvas}
         tabIndex={0}
-        aria-label="Subtitle timeline: drag the line's ends or the line; arrow keys nudge the chosen end; [ and ] set the start and end to the playhead"
+        aria-label="Subtitle timeline: drag the line's ends or the line; arrow keys nudge the chosen end; [ and ] step to the previous and next line"
         style={{ width: "100%", height: HEIGHT }}
         onPointerDown={down}
         onPointerMove={move}

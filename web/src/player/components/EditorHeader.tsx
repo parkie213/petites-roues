@@ -9,8 +9,8 @@ interface Props {
   /** The lines before and after this one, by their start, or null where there is none. */
   previous: number | null;
   next: number | null;
-  /** Goes to the line [step] away, the playhead to [start]. */
-  onStep: (step: -1 | 1, start: number) => void;
+  /** Goes to the line [step] away. */
+  onStep: (step: -1 | 1) => void;
   onClose: () => void;
 }
 
@@ -25,8 +25,8 @@ export function EditorHeader({
   onClose,
 }: Props) {
   const steps = [
-    ["Previous line", -1, ChevronLeft, previous],
-    ["Next line", 1, ChevronRight, next],
+    ["Previous line", -1, ChevronLeft, previous, "["],
+    ["Next line", 1, ChevronRight, next, "]"],
   ] as const;
   return (
     <header>
@@ -34,14 +34,14 @@ export function EditorHeader({
         {adding ? "Add subtitle" : "Edit subtitle"} <kbd>E</kbd>
       </h2>
       <Group gap={2} ml="auto" mr="xs">
-        {steps.map(([label, step, Icon, start]) => (
+        {steps.map(([label, step, Icon, start, shortcut]) => (
           <ActionIcon
             key={label}
             variant="subtle"
             aria-label={label}
-            title={dirty ? `Save and go to the ${label.toLowerCase()}` : label}
+            title={`${dirty ? `Save and go to the ${label.toLowerCase()}` : label} (${shortcut})`}
             disabled={busy || start === null}
-            onClick={() => start !== null && onStep(step, start)}
+            onClick={() => onStep(step)}
           >
             <Icon size={18} />
           </ActionIcon>
