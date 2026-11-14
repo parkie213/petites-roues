@@ -164,3 +164,72 @@ jobs:
           name: screenshot-diffs
           path: android/app/build/outputs/roborazzi
           if-no-files-found: ignore
+
+  # The instrumented tests, on a real Android runtime. ART does not report records as records, so
+  # the shared reader could not build its private wire record and every phone document failed to
+  # decode: JVM and Robolectric tests run on the JVM, which cannot see this class of bug.
+  android-device:
+    needs: library
+    runs-on: ubuntu-26.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version-file: .java-version
+          cache: gradle
+          cache-dependency-path: |
+            android/**/*.gradle.kts
+            android/gradle/libs.versions.toml
+            android/gradle/wrapper/gradle-wrapper.properties
+      - uses: actions/download-artifact@v8
+        with:
+          name: library
+          path: ~/.m2/repository/app/petitesroues
+      # The emulator needs hardware acceleration, which the runner offers through KVM.
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - name: Cache the emulator snapshot
+        id: avd-cache
+        uses: actions/cache@v6
+        with:
+          path: |
+            ~/.android/avd/*
+            ~/.android/adb*
+          key: avd-api-34-x86_64-default
+      # With no snapshot cached, boot once and save it, so later runs start from it.
+      - name: Create the emulator snapshot
+        if: steps.avd-cache.outputs.cache-hit != 'true'
+        uses: reactivecircus/android-emulator-runner@v2.38.0
+        with:
+          api-level: 34
+          target: default
+          arch: x86_64
+          force-avd-creation: false
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+          disable-animations: false
+          script: echo "Generated the emulator snapshot"
+      - name: Run the instrumented tests on the emulator
+        uses: reactivecircus/android-emulator-runner@v2.38.0
+        with:
+          api-level: 34
+          target: default
+          arch: x86_64
+          force-avd-creation: false
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+          disable-animations: true
+          working-directory: android
+          script: ./gradlew --no-daemon -PprebuiltLibrary :app:connectedDebugAndroidTest
+      - name: Keep the instrumentation reports when a test failed
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: instrumentation-reports
+          path: |
+            android/app/build/reports/androidTests
+            android/app/build/outputs/androidTest-results
+          if-no-files-found: ignore

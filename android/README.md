@@ -66,7 +66,10 @@ capturing, so the images don't depend on timing. The tests run on Robolectric's 
 hides the app's, so the reader can't open a CBZ there.
 
 Device tests leave the app installed with its data (`gradle.properties`), so running them
-doesn't wipe the phone's pairing, folders or progress.
+doesn't wipe the phone's pairing, folders or progress. CI runs them on an Android emulator
+(the `android-device` job), because ART does not report records as records, so only a real
+Android runtime catches a shared reader that cannot build its records; run `connectedAndroidTest`
+only on an emulator or a phone whose data you can lose.
 
 ## How it fits together
 
