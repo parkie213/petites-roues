@@ -212,22 +212,35 @@ test("moving a line's end moves the next line's start with it, and the editor st
   await expect(boundary).toContainText(b.line.source);
   await expect(boundary).toContainText(`0:07.020 → ${end}`);
   const video = page.locator("video");
+  // Each play starts at its range's start and pauses where it ends, saving that spot. The start
+  // is read from the video's own "play" event: seeking to a spot the app already saved (the
+  // restored position, or where the last play ended) writes nothing, so it is no proof. The
+  // ends differ from one play to the next, so each leaves a save to wait for.
+  await video.evaluate((element) => {
+    globalThis.playedFrom = [];
+    element.addEventListener("play", () =>
+      globalThis.playedFrom.push(element.currentTime),
+    );
+  });
   const plays = [
     ["All of A", a.start, a.end],
-    ["Last 1 s of A", a.end - 1, a.end],
     ["First 1 s of B", b.start, b.start + 1],
+    ["Last 1 s of A", a.end - 1, a.end],
     ["All of B", b.start, b.end],
   ];
-  for (const [name, from, to] of plays) {
-    await seek(
+  for (const [index, [name, from, to]] of plays.entries()) {
+    const stopped = await seek(
       page,
       () => boundary.getByRole("button", { name }).click(),
-      from,
+      to - 0.001,
     );
-    await expect(toolbar.getByRole("button", { name: "Pause" })).toBeVisible();
+    expect(stopped.positionSeconds).toBeCloseTo(to, 1);
     await expect(toolbar.getByRole("button", { name: "Play" })).toBeVisible({
       timeout: 15000,
     });
+    const playedFrom = await page.evaluate(() => globalThis.playedFrom);
+    expect(playedFrom).toHaveLength(index + 1);
+    expect(playedFrom[index]).toBeCloseTo(from, 1);
     expect(await video.evaluate((element) => element.currentTime)).toBeCloseTo(
       to,
       1,
