@@ -16,18 +16,16 @@ import java.io.File
  * share; nothing is kept elsewhere.
  */
 object QuizShare {
-  /**
-   * The video player's quiz of type [typeId]: the lines watched up to index [current] of [cues].
-   */
+  /** The video player's quiz of type [typeId] on the lines [scope] holds in [cues]. */
   fun share(
     context: Context,
     document: StudyDocument,
     cues: List<VideoCue>,
-    current: Int,
+    scope: QuizScope,
     typeId: String,
   ) =
     share(context, document, QuizPack.fileName(document), typeId) { rules, type ->
-      QuizPack.build(rules, document, cues, current, type)
+      QuizPack.build(rules, document, cues, scope, type)
     }
 
   /**

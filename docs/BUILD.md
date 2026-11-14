@@ -269,8 +269,11 @@ disappears after a Refresh falls back to All). Unlike the desktop,
 posters are only picked up on Refresh. Card images are cached in the app's cache and
 rebuilt after each Refresh. The paused player's quiz button shares a Markdown brief through
 the share sheet (pick the Claude app): `agents/workflows/subtitle-quiz.md` and
-`agents/guides/translation-notes.md`, bundled at build time, plus the last 30 lines watched with
-their translations and notes. The comic reader's top bar can lock landscape for two-page
+`agents/workflows/quiz-types.md`, bundled at build time, plus the lines of the chosen scope with
+their translations. The dialog offers Whole title, Time range (`m:ss` or `h:mm:ss`, as in the
+browser) and Last 30 lines, shows how many lines the scope holds and warns above 400. It opens on
+the whole title for a title under 15 minutes or on a shelf other than Films, otherwise on the
+last 10 minutes watched; the scope rules are written in `subtitle-quiz.md`. The comic reader's top bar can lock landscape for two-page
 spreads when the phone's auto-rotate is off. Hidden folders (`.git`, `.stversions`) are skipped. Text to speech uses the
 phone's own voice for the document's `sourceLanguage`. Edits still queued on the
 desktop are not visible until an agent has written them into the documents.

@@ -34,3 +34,13 @@ For audio dictation in the browser use the shared player's “Type what you hear
 Keep subtitles and notes hidden while attempting; reveal them when the learner chooses.
 Browser attempts remain local to that browser. Never claim that translation-chat practice
 or study packs automatically synchronize those attempts between machines.
+
+## Quiz scope
+
+The brief's heading names the lines it carries: "Whole episode", "Lines in time range (a–b)", or
+on the phone "Lines just watched (a–b)" (the last 30). Quiz only on those lines.
+
+Quiz me offers Whole video, Time range (`m:ss` or `h:mm:ss`, every overlapping line) and, on the
+phone, Last 30 lines. The browser opens on the whole video. The phone opens on the whole title when
+it is under 15 minutes or on a shelf other than Films, otherwise on the last 10 minutes watched,
+shows the line count and warns above 400 lines; the learner narrows it, nothing is cut.

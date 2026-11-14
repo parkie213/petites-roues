@@ -430,7 +430,7 @@ fun ReadScreen(
         document,
         initialType = model.quizType,
         onDismiss = { quizzing = false },
-        onShare = { type, chapter ->
+        onShare = { type, chapter, _ ->
           model.quizShared(type)
           quizzing = false
           QuizShare.share(

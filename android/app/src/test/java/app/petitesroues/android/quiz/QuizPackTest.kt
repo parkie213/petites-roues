@@ -34,7 +34,12 @@ class QuizPackTest {
     )
 
   private fun build(cues: List<VideoCue>, current: Int) =
-    QuizPack.build("# Subtitle quiz agent\n\nRules.", document(cues), cues, current)
+    QuizPack.build(
+      "# Subtitle quiz agent\n\nRules.",
+      document(cues),
+      cues,
+      QuizScope.Last(current),
+    )
 
   @Test
   fun carriesTheRulesAndWatchedLinesWithTheirTranslations() {
@@ -74,11 +79,38 @@ class QuizPackTest {
       (0 until 40).map { at(it * 3.0, cue("c$it", if (it == 39) "" else "Ligne $it", "Line $it")) }
     val pack = build(cues, current = 39)
     assertEquals(
-      QuizPack.LINES,
+      QuizScope.LAST_LINES,
       Regex("^- \\d+:\\d\\d ", RegexOption.MULTILINE).findAll(pack).count(),
     )
     assertTrue("Ligne 38 → Line 38" in pack)
     assertFalse("Ligne 8 " in pack)
+  }
+
+  private val rules = "# Subtitle quiz agent\n\nRules."
+  private val timed =
+    (0 until 6).map { at(it * 100.0, cue("t$it", "Ligne $it", "Line $it")) } +
+      at(700.0, cue("blank", "", "No source"))
+
+  @Test
+  fun aWholeTitleBriefHasEveryLineUnderTheWholeEpisodeHeading() {
+    val pack = QuizPack.build(rules, document(timed), timed, QuizScope.Whole)
+    assertTrue("## Whole episode\n\nPick items from all over these lines" in pack)
+    assertEquals(6, Regex("^- \\d+:\\d\\d ", RegexOption.MULTILINE).findAll(pack).count())
+    assertTrue("- 0:00 Ligne 0 → Line 0\n" in pack && "- 8:20 Ligne 5 → Line 5\n" in pack)
+    assertFalse("No source" in pack)
+  }
+
+  @Test
+  fun aTimeRangeBriefNamesTheRangeAndKeepsOverlappingLines() {
+    val pack = QuizPack.build(rules, document(timed), timed, QuizScope.Range(150.0, 301.0))
+    assertTrue("## Lines in time range (2:30–5:01)\n\nPick items" in pack)
+    // Cue 2 spans 200-202 and cue 3 starts at 300, inside; cues 1 and 4 are outside.
+    assertTrue("Ligne 2" in pack && "Ligne 3" in pack)
+    assertFalse("Ligne 1 " in pack || "Ligne 4" in pack)
+    val inside = QuizPack.build(rules, document(timed), timed, QuizScope.Range(101.0, 102.0))
+    assertTrue("Ligne 1 " in inside)
+    val touching = QuizPack.build(rules, document(timed), timed, QuizScope.Range(102.0, 150.0))
+    assertTrue("No subtitle lines in this selection." in touching)
   }
 
   @Test
@@ -153,7 +185,7 @@ class QuizPackTest {
         "# Rules",
         document(cues),
         cues,
-        0,
+        QuizScope.Last(0),
         QuizPack.type(types, "tenses", document(cues)),
       )
     val at = pack.indexOf("## Quiz type: Verb tenses")

@@ -20,9 +20,6 @@ object QuizPack {
     "Pick items from all over these lines, in a mixed order: do not start at the beginning, " +
       "and do not take two items in a row from the same page or moment."
 
-  /** How many watched lines the video brief carries, ending at the current one. */
-  const val LINES = 30
-
   /**
    * A quiz type offered by Quiz me. Its instructions are the section of the bundled `quiz-types.md`
    * under [heading]; [label] names it for the learner. Matches the browser's list.
@@ -69,37 +66,42 @@ object QuizPack {
   class Item(val line: Line, val label: String? = null, val group: String? = null)
 
   /**
-   * The video brief for [document], with up to [LINES] cues ending at index [current] in [cues]
-   * (the document's sorted video cues). Lines without source text are skipped.
+   * The video brief for [document]: the lines [scope] holds in [cues] (the document's sorted video
+   * cues; see [QuizScope.select]), with the scope named in the section heading as the browser's
+   * brief does. Lines without source text are skipped.
    */
   fun build(
     rules: String,
     document: StudyDocument,
     cues: List<VideoCue>,
-    current: Int,
+    scope: QuizScope,
     type: Chosen? = null,
   ): String {
-    val watched =
-      cues
-        .subList(0, (current + 1).coerceIn(0, cues.size))
-        .filter { it.line().source().isNotBlank() }
-        .takeLast(LINES)
+    val selected = QuizScope.select(cues, scope)
     return brief(
       rules,
       type,
       document,
       heading = "Subtitle quiz: ${document.title()}",
       intro =
-        "Run the subtitle quiz below for a learner on their phone, using the lines they have just " +
-          "watched. Start the first exercise straight away. Instructions about the browser player " +
+        "Run the subtitle quiz below for a learner on their phone, using the selected subtitle " +
+          "lines. Start the first exercise straight away. Instructions about the browser player " +
           "do not apply here, and the rules mention files from the library (a teaching guide, " +
           "documents) that are not included: work from the lines below.",
       section =
-        if (watched.isEmpty()) "Lines just watched"
-        else
-          "Lines just watched (${clock(watched.first().start())}–${clock(watched.last().end())})",
-      empty = "None yet: the learner is at the start of the film.",
-      items = watched.map { Item(it.line(), label = clock(it.start())) },
+        when (scope) {
+          QuizScope.Whole -> "Whole episode"
+          is QuizScope.Range -> "Lines in time range (${clock(scope.start)}–${clock(scope.end)})"
+          is QuizScope.Last ->
+            if (selected.isEmpty()) "Lines just watched"
+            else
+              "Lines just watched " +
+                "(${clock(selected.first().start())}–${clock(selected.last().end())})"
+        },
+      empty =
+        if (scope is QuizScope.Last) "None yet: the learner is at the start of the film."
+        else "No subtitle lines in this selection.",
+      items = selected.map { Item(it.line(), label = clock(it.start())) },
     )
   }
 
@@ -223,9 +225,5 @@ object QuizPack {
   private fun demote(markdown: String): String =
     markdown.trim().lines().joinToString("\n") { if (it.startsWith("#")) "##$it" else it }
 
-  private fun clock(seconds: Double): String {
-    val total = seconds.toInt().coerceAtLeast(0)
-    return if (total >= 3600) "%d:%02d:%02d".format(total / 3600, total % 3600 / 60, total % 60)
-    else "%d:%02d".format(total / 60, total % 60)
-  }
+  private fun clock(seconds: Double): String = QuizScope.clock(seconds)
 }
