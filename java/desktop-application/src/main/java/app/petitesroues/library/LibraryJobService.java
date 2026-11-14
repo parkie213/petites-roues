@@ -11,14 +11,14 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Runs one Add or Refresh at a time and retains its latest progress for polling and page reloads.
- * {@link #start} admits a job only when none is running, so jobs submitted here never overlap, even
- * though the executor runs each on its own thread. Work holds no lock: it commits through short
- * database transactions, so player edits continue while it discovers. A Refresh started outside
- * this service can still overlap one; {@link ContentRepositoryService} makes the older commit
- * harmless. The JDK task owns completion, failure and cancellation. Only the latest job is
- * retained, in memory. The executor is borrowed from the composition layer, which owns admission
- * during shutdown and termination of running work.
+ * Runs one Add, Refresh or Reset at a time and retains its latest progress for polling and page
+ * reloads. {@link #start} admits a job only when none is running, so jobs submitted here never
+ * overlap, even though the executor runs each on its own thread. Work holds no lock: it commits
+ * through short database transactions, so player edits continue while it discovers. A Refresh
+ * started outside this service can still overlap one; {@link ContentRepositoryService} makes the
+ * older commit harmless. The JDK task owns completion, failure and cancellation. Only the latest
+ * job is retained, in memory. The executor is borrowed from the composition layer, which owns
+ * admission during shutdown and termination of running work.
  */
 public class LibraryJobService {
   private static final Logger LOG = LoggerFactory.getLogger(LibraryJobService.class);
@@ -77,6 +77,7 @@ public class LibraryJobService {
                   throw interrupted;
                 } catch (Exception failure) {
                   if (!(failure instanceof IllegalArgumentException
+                      || failure instanceof DocumentConflictException
                       || failure instanceof NoSuchElementException))
                     LOG.error("Library job failed", failure);
                   throw failure;
@@ -96,6 +97,7 @@ public class LibraryJobService {
               failure instanceof InterruptedException
                   ? "Server is shutting down"
                   : failure instanceof IllegalArgumentException
+                          || failure instanceof DocumentConflictException
                           || failure instanceof NoSuchElementException
                       ? failure.getMessage()
                       : "Something went wrong; the server log has the details";

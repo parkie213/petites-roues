@@ -8,6 +8,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 import app.petitesroues.documents.StudyDocumentCodec;
+import app.petitesroues.library.AcceptedDocuments;
 import app.petitesroues.library.DocumentConflictException;
 import app.petitesroues.library.DocumentImportService;
 import app.petitesroues.model.document.Line;
@@ -411,7 +412,7 @@ class DocumentEditingServiceTest {
     var original = readVideo();
     writeFile(original.withTitle("Rewritten"));
     assertEquals(original, readVideo());
-    assertEquals(DocumentImportService.Result.IMPORTED, imports.importFile(entry.id()));
+    assertEquals(AcceptedDocuments.Result.IMPORTED, imports.importFile(entry.id()));
     assertEquals("Rewritten", readVideo().title());
   }
 

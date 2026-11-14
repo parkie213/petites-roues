@@ -10,6 +10,7 @@ import static app.petitesroues.support.TestDocuments.edit;
 import static org.junit.jupiter.api.Assertions.*;
 
 import app.petitesroues.documents.StudyDocumentCodec;
+import app.petitesroues.library.AcceptedDocuments;
 import app.petitesroues.library.DocumentConflictException;
 import app.petitesroues.library.DocumentImportService;
 import app.petitesroues.library.persistence.AcceptedDocumentStore;
@@ -131,7 +132,7 @@ class ServedInvariantTest {
     random = new Random(seed);
     step = 0;
     write(fixture);
-    assertEquals(DocumentImportService.Result.IMPORTED, imports.importFile(entry.id()));
+    assertEquals(AcceptedDocuments.Result.IMPORTED, imports.importFile(entry.id()));
     assertInvariant("import of the fixture");
   }
 
@@ -534,8 +535,8 @@ class ServedInvariantTest {
       Files.write(entry.documentFile(), accepted.find(entry.id()).orElseThrow().json());
       return "import refused";
     }
-    assertEquals(DocumentImportService.Result.IMPORTED, review.importFile(entry.id()));
-    assertEquals(DocumentImportService.Result.UNCHANGED, review.importFile(entry.id()));
+    assertEquals(AcceptedDocuments.Result.IMPORTED, review.importFile(entry.id()));
+    assertEquals(AcceptedDocuments.Result.UNCHANGED, review.importFile(entry.id()));
     return "import changed";
   }
 

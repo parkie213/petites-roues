@@ -53,6 +53,10 @@ test("a finished job says what it did", () => {
   assert.equal(jobSucceeded({ kind: "add" }, null), "Folder added.");
   assert.equal(jobSucceeded({ kind: "refresh" }, {}), "Library refreshed.");
   assert.equal(
+    jobSucceeded({ kind: "reset" }, { kind: "reset" }),
+    "Library reset and rebuilt.",
+  );
+  assert.equal(
     jobSucceeded({ kind: "refresh" }, { repositoryId: "r" }),
     "Folder refreshed.",
   );

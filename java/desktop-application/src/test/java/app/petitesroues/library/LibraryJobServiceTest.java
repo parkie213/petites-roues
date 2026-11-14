@@ -51,6 +51,34 @@ class LibraryJobServiceTest {
   }
 
   @Test
+  void aResetCannotStartWhileAnotherJobRunsAndAConflictFailsWithItsMessage() throws Exception {
+    var release = new CountDownLatch(1);
+    try (var executor = Executors.newVirtualThreadPerTaskExecutor()) {
+      try {
+        var jobs = new LibraryJobService(executor);
+        var running = jobs.start("refresh", listener -> release.await());
+        var attempt = jobs.start("reset", listener -> fail("reset overlapped a running job"));
+        assertEquals(running.id(), attempt.id());
+        assertEquals("refresh", attempt.kind());
+        release.countDown();
+        await().atMost(Duration.ofSeconds(5)).until(() -> jobs.get(running.id()).finished());
+
+        var refused =
+            jobs.start(
+                "reset",
+                listener -> {
+                  throw new DocumentConflictException("1 edit is pending: process or discard them");
+                });
+        await().atMost(Duration.ofSeconds(5)).until(() -> jobs.get(refused.id()).finished());
+        assertEquals("failed", jobs.get(refused.id()).state());
+        assertEquals("1 edit is pending: process or discard them", jobs.get(refused.id()).error());
+      } finally {
+        release.countDown();
+      }
+    }
+  }
+
+  @Test
   void failedSubmissionDoesNotPublishAPhantomJob() {
     var jobs =
         new LibraryJobService(

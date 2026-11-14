@@ -52,7 +52,7 @@ class ContentRepositoryServiceTest {
   @Mock StudyDocumentReader reader;
   @Mock RepositoryContentService registration;
   @Mock ReviewQueue queue;
-  @Mock DocumentImportService imports;
+  @Mock AcceptedDocuments imports;
   @Mock MediaStore media;
   @Mock MediaProbe probe;
   @Mock TransactionTemplate transactions;

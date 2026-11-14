@@ -1,5 +1,6 @@
 package app.petitesroues.study;
 
+import app.petitesroues.library.AcceptedDocuments;
 import app.petitesroues.library.DocumentConflictException;
 import app.petitesroues.library.DocumentImportService;
 import app.petitesroues.library.persistence.AcceptedDocumentStore;
@@ -41,6 +42,7 @@ public class ReviewQueueService {
   private final DocumentStore documents;
   private final AcceptedDocumentStore accepted;
   private final DocumentImportService imports;
+  private final AcceptedDocuments acceptedDocuments;
   private final ReviewQueue queue;
   private final ServedDocuments served;
   private final TransactionTemplate transactions;
@@ -50,6 +52,7 @@ public class ReviewQueueService {
       DocumentStore documents,
       AcceptedDocumentStore accepted,
       DocumentImportService imports,
+      AcceptedDocuments acceptedDocuments,
       ReviewQueue queue,
       ServedDocuments served,
       TransactionTemplate transactions) {
@@ -57,6 +60,7 @@ public class ReviewQueueService {
     this.documents = documents;
     this.accepted = accepted;
     this.imports = imports;
+    this.acceptedDocuments = acceptedDocuments;
     this.queue = queue;
     this.served = served;
     this.transactions = transactions;
@@ -215,8 +219,8 @@ public class ReviewQueueService {
             throw new IllegalArgumentException(
                 "document.json is unchanged since this batch was claimed. Write the batch's"
                     + " edits into it first, or complete them as not_adopted.");
-          if (imports.acceptCompletedBatch(title, batch.baseSha256(), file)
-              == DocumentImportService.Result.CONFLICT)
+          if (acceptedDocuments.saveCompletedBatch(title, batch.baseSha256(), file)
+              == AcceptedDocuments.Result.CONFLICT)
             throw new DocumentConflictException(
                 "The accepted copy of " + id + " changed since batch " + batchId + " was claimed");
           queue.complete(title, batchId, outcomes, Instant.now().toString());
@@ -231,7 +235,7 @@ public class ReviewQueueService {
    * @throws DocumentConflictException if the title has an open batch or the accepted copy changed
    *     during the import
    */
-  public DocumentImportService.Result importFile(String id) throws IOException {
+  public AcceptedDocuments.Result importFile(String id) throws IOException {
     var result = imports.importFile(id);
     return switch (result) {
       case SKIPPED_OPEN_BATCH ->

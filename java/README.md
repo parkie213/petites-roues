@@ -170,6 +170,10 @@ checks below would no longer be atomic. A test fails if the pool size changes.
   meanwhile. The commit is one transaction that first checks the repository still exists and has
   not been refreshed since discovery began; otherwise it changes nothing and the job fails with a
   message. Removal checks for unwritten edits and deletes in one transaction.
+- Reset (`LibraryResetService`, job kind `reset`) checks for unreviewed queue rows and open
+  batches and wipes the library in one transaction, so it changes nothing or everything. The
+  rebuild is then an ordinary refresh of every folder, outside that transaction. If it fails, the
+  folders stay registered and a later Refresh finishes the rebuild.
 - No file, process or network access happens inside these transactions.
 
 HTTP integration tests stay in `desktop-server`. `document-test-fixtures` and

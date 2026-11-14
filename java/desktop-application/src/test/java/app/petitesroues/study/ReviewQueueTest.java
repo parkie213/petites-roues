@@ -5,6 +5,7 @@ import static app.petitesroues.support.TestDocuments.catalogueEntry;
 import static org.junit.jupiter.api.Assertions.*;
 
 import app.petitesroues.documents.StudyDocumentCodec;
+import app.petitesroues.library.AcceptedDocuments;
 import app.petitesroues.library.DocumentConflictException;
 import app.petitesroues.library.DocumentImportService;
 import app.petitesroues.library.persistence.AcceptedDocumentStore;
@@ -196,7 +197,7 @@ class ReviewQueueTest {
         assertThrows(DocumentConflictException.class, () -> service.importFile(title.id()));
     assertTrue(failure.getMessage().contains("batch " + batch));
     service.complete(title.id(), batch, new ReviewCompletion("applied", null));
-    assertEquals(DocumentImportService.Result.UNCHANGED, service.importFile(title.id()));
+    assertEquals(AcceptedDocuments.Result.UNCHANGED, service.importFile(title.id()));
   }
 
   @Test

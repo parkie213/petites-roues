@@ -10,7 +10,7 @@ through a content repository) and what is **local** (this machine's paths, state
 | --- | --- | --- | --- |
 | Content | Portable | `document.json`, `quizzes/*.md` and `notes/*.md` in a content repository | Agents only |
 | Editing | Local queue of commands that refer only to portable IDs | SQLite `review_queue`, `review_batches` | The app, from player and reader edits |
-| Library | Local | SQLite `repositories`, `titles`, `media`, progress tables; posters found beside media | The app, on Add/Refresh |
+| Library | Local | SQLite `repositories`, `titles`, `media`, progress tables; posters found beside media | The app, on Add/Refresh/Reset |
 
 Two rules hold the boundary:
 
@@ -146,6 +146,12 @@ The library is this machine's index of what it can open, and what the learner ha
   repositories.
 - A title also caches document metadata (title, series, season, episode, volume,
   reference duration, type), so browsing never opens JSON. Import refreshes that cache from the file.
+- **Reset library** (the "..." menu next to Add folder, job kind `reset`) deletes everything
+  local except the registered folders and settings, then refreshes every folder. Titles,
+  accepted and served copies, review history, reading and playback positions, hand-made media
+  links, media rows and phone pairings are rebuilt or lost; documents and media on disk are
+  untouched. It refuses while any edit is pending or a review batch is open, because those
+  edits exist only in SQLite. Phones must pair again.
 - A registration survives a missing file (`missing`), so progress and reviews outlive a moved
   folder or an unplugged drive.
 - Media is indexed by Refresh (SQLite `media`: path, size, modification time, fingerprint,
