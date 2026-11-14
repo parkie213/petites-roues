@@ -5,19 +5,14 @@ import static app.petitesroues.support.TestDocuments.catalogueEntry;
 import static org.junit.jupiter.api.Assertions.*;
 
 import app.petitesroues.documents.StudyDocumentCodec;
-import app.petitesroues.documents.StudyDocumentJson;
-import app.petitesroues.documents.StudyDocumentReader;
 import app.petitesroues.library.DocumentConflictException;
 import app.petitesroues.library.DocumentImportService;
-import app.petitesroues.library.RepositoryContentService;
 import app.petitesroues.library.persistence.AcceptedDocumentStore;
-import app.petitesroues.library.persistence.CatalogueStore;
-import app.petitesroues.library.persistence.ContentRepositoryStore;
 import app.petitesroues.model.document.StudyDocument;
 import app.petitesroues.model.editing.DocumentEdit;
 import app.petitesroues.model.library.CatalogueEntry;
 import app.petitesroues.model.review.ReviewCompletion;
-import app.petitesroues.support.DatabaseFixtures;
+import app.petitesroues.support.StudyTestServices;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -30,13 +25,11 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.springframework.dao.DataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.jdbc.datasource.DataSourceTransactionManager;
-import org.springframework.jdbc.datasource.SingleConnectionDataSource;
 import org.springframework.transaction.support.TransactionTemplate;
 
 class ReviewQueueTest {
   @TempDir Path root;
-  SingleConnectionDataSource source;
+  StudyTestServices services;
   JdbcTemplate jdbc;
   ReviewQueue queue;
   ReviewQueueService service;
@@ -50,36 +43,22 @@ class ReviewQueueTest {
 
   @BeforeEach
   void setup() throws Exception {
-    var mapper = StudyDocumentJson.newMapper();
-    codec = new StudyDocumentCodec();
-    source = new SingleConnectionDataSource("jdbc:sqlite::memory:", true);
-    jdbc = new JdbcTemplate(source);
-    DatabaseFixtures.migrate(source);
-    queue = new ReviewQueue(jdbc, mapper);
-    var catalogue = new CatalogueStore(jdbc);
-    var store = new DocumentStore(new StudyDocumentReader(codec));
-    accepted = new AcceptedDocumentStore(jdbc);
-    transactions = new TransactionTemplate(new DataSourceTransactionManager(source));
-    servedDocuments = new ServedDocuments(accepted, queue, store, codec);
-    imports =
-        new DocumentImportService(
-            catalogue,
-            store,
-            accepted,
-            queue,
-            servedDocuments,
-            new RepositoryContentService(new ContentRepositoryStore(jdbc), catalogue),
-            transactions);
-    service =
-        new ReviewQueueService(
-            catalogue, store, accepted, imports, queue, servedDocuments, transactions);
+    services = StudyTestServices.create(root);
+    jdbc = services.jdbc;
+    queue = services.queue;
+    service = services.review;
+    imports = services.imports;
+    accepted = services.accepted;
+    servedDocuments = services.served;
+    transactions = services.transactions;
+    codec = services.codec;
     title = register("example");
     append(title, delete);
   }
 
   @AfterEach
   void close() {
-    source.destroy();
+    services.close();
   }
 
   /**
@@ -96,7 +75,7 @@ class ReviewQueueTest {
 
   private CatalogueEntry register(String id) throws Exception {
     var entry = catalogueEntry(jdbc, id, root);
-    new CatalogueStore(jdbc).saveTitle(entry);
+    services.titles.saveTitle(entry);
     write(entry, document(id));
     imports.importFile(entry.id());
     return entry;

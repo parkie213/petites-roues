@@ -6,129 +6,57 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 import app.petitesroues.comic.ReadingProgressStore;
-import app.petitesroues.documents.StudyDocumentCodec;
-import app.petitesroues.documents.StudyDocumentJson;
-import app.petitesroues.documents.StudyDocumentReader;
-import app.petitesroues.library.discovery.ContentRepositoryScanner;
-import app.petitesroues.library.persistence.AcceptedDocumentStore;
 import app.petitesroues.library.persistence.CatalogueStore;
 import app.petitesroues.library.persistence.ContentRepositoryStore;
 import app.petitesroues.library.persistence.MediaLinkStore;
-import app.petitesroues.library.persistence.MediaStore;
-import app.petitesroues.media.Ffmpeg;
 import app.petitesroues.media.MediaFingerprint;
-import app.petitesroues.media.MediaProbe;
-import app.petitesroues.media.ProcessRunner;
 import app.petitesroues.model.document.StudyDocument;
 import app.petitesroues.model.document.VideoDocument;
 import app.petitesroues.model.document.VideoReference;
 import app.petitesroues.model.library.ContentRepository;
 import app.petitesroues.model.progress.PlaybackProgress;
 import app.petitesroues.playback.PlaybackProgressStore;
-import app.petitesroues.study.DocumentEditingService;
-import app.petitesroues.study.DocumentStore;
-import app.petitesroues.study.ReviewQueue;
-import app.petitesroues.study.ReviewQueueService;
-import app.petitesroues.study.ServedDocuments;
-import app.petitesroues.support.DatabaseFixtures;
+import app.petitesroues.support.StudyTestServices;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.springframework.dao.DataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.jdbc.datasource.DataSourceTransactionManager;
-import org.springframework.jdbc.datasource.SingleConnectionDataSource;
-import org.springframework.transaction.support.TransactionTemplate;
 import tools.jackson.core.JacksonException;
-import tools.jackson.databind.json.JsonMapper;
 
 /** Exercises repository reconciliation with real files, SQLite and transaction rollback. */
 class ContentRepositoryRefreshIntegrationTest {
-  private final ExecutorService processExecutor = Executors.newVirtualThreadPerTaskExecutor();
-
-  @AfterEach
-  void closeProcessExecutor() {
-    processExecutor.close();
-  }
-
   @TempDir Path root;
-  SingleConnectionDataSource source;
+  StudyTestServices services;
   JdbcTemplate jdbc;
   CatalogueStore catalogue;
   ContentRepositoryStore repositories;
-  ContentRepositoryScanner scanner;
-  StudyDocumentReader reader;
   ContentRepositoryService service;
-  JsonMapper mapper = StudyDocumentJson.newMapper();
 
   @BeforeEach
   void setup() {
-    source = new SingleConnectionDataSource("jdbc:sqlite::memory:", true);
-    jdbc = new JdbcTemplate(source);
-    jdbc.execute("PRAGMA foreign_keys=ON");
-    DatabaseFixtures.migrate(source);
-    catalogue = new CatalogueStore(jdbc);
-    repositories = new ContentRepositoryStore(jdbc);
-    scanner = new ContentRepositoryScanner();
-    reader = new StudyDocumentReader(new StudyDocumentCodec());
-    service = service(new RepositoryContentService(repositories, catalogue));
-  }
-
-  private TransactionTemplate transactions() {
-    return new TransactionTemplate(new DataSourceTransactionManager(source));
-  }
-
-  private ServedDocuments servedDocuments() {
-    return new ServedDocuments(
-        new AcceptedDocumentStore(jdbc),
-        new ReviewQueue(jdbc, mapper),
-        new DocumentStore(reader),
-        new StudyDocumentCodec());
-  }
-
-  private DocumentImportService imports(RepositoryContentService registration) {
-    return new DocumentImportService(
-        catalogue,
-        new DocumentStore(reader),
-        new AcceptedDocumentStore(jdbc),
-        new ReviewQueue(jdbc, mapper),
-        servedDocuments(),
-        registration,
-        transactions());
+    services = StudyTestServices.create(root);
+    jdbc = services.jdbc;
+    catalogue = services.titles;
+    repositories = services.repositories;
+    service = services.contentRepositories;
   }
 
   @AfterEach
   void close() {
-    source.destroy();
-  }
-
-  private ContentRepositoryService service(RepositoryContentService registration) {
-    return new ContentRepositoryService(
-        repositories,
-        scanner,
-        reader,
-        transactions(),
-        registration,
-        new ReviewQueue(jdbc, mapper),
-        imports(registration),
-        new MediaStore(jdbc),
-        new MediaProbe(
-            new Ffmpeg(mapper, new ProcessRunner(processExecutor, Duration.ofSeconds(30)))));
+    services.close();
   }
 
   private Path write(String folder, StudyDocument document) throws IOException {
     Path file = root.resolve(folder).resolve("document.json");
     Files.createDirectories(file.getParent());
-    Files.writeString(file, new StudyDocumentCodec().encode(document));
+    Files.writeString(file, services.codec.encode(document));
     return file;
   }
 
@@ -183,28 +111,18 @@ class ContentRepositoryRefreshIntegrationTest {
     var second = catalogue.findDocument(secondRepo.id(), "shared").orElseThrow();
     assertNotEquals(first.id(), second.id());
     assertEquals("shared", second.documentId());
-    var queue = new ReviewQueue(jdbc, mapper);
-    var store = new DocumentStore(reader);
-    var transactions = new TransactionTemplate(new DataSourceTransactionManager(source));
-    var served =
-        new ReviewQueueService(
-            catalogue,
-            store,
-            new AcceptedDocumentStore(jdbc),
-            imports(new RepositoryContentService(repositories, catalogue)),
-            queue,
-            servedDocuments(),
-            transactions);
+    var queue = services.queue;
+    var served = services.review;
     var library =
         new LibraryService(
             catalogue,
             served,
             repositories,
-            store,
+            services.documents,
             new PlaybackProgressStore(jdbc),
             new ReadingProgressStore(jdbc),
-            new TitleMediaService(new MediaStore(jdbc), new MediaLinkStore(jdbc)));
-    var editing = new DocumentEditingService(catalogue, servedDocuments(), queue, transactions);
+            new TitleMediaService(services.media, new MediaLinkStore(jdbc)));
+    var editing = services.editing;
     byte[] originalFirst = Files.readAllBytes(firstFile);
     var cue =
         library
@@ -340,14 +258,14 @@ class ContentRepositoryRefreshIntegrationTest {
     var changed = document("existing").withTitle("Must roll back");
     write("a", changed);
     Path second = write("b", document("new-title"));
-    var registration = spy(new RepositoryContentService(repositories, catalogue));
+    var registration = spy(services.registration);
     doThrow(new IllegalStateException("Second registration failed"))
         .when(registration)
         .register(
             eq(new RepositoryContentService.Registration(second.toString(), true)),
             any(),
             eq(repository.id()));
-    var failing = service(registration);
+    var failing = services.contentRepositories(registration);
 
     assertThrows(IllegalStateException.class, () -> failing.refresh(repository.id()));
     verify(registration)
@@ -380,7 +298,7 @@ class ContentRepositoryRefreshIntegrationTest {
         Files.copy(fixture, folder.resolve(name));
       }
     var repository = add();
-    var media = new MediaStore(jdbc).inRepository(repository.id());
+    var media = services.media.inRepository(repository.id());
     assertEquals(
         List.of("films/aac.mp4", "films/ac3.mp4"),
         media.stream().map(m -> m.relativePath()).toList());
@@ -396,6 +314,6 @@ class ContentRepositoryRefreshIntegrationTest {
 
     Files.delete(folder.resolve("ac3.mp4"));
     service.refresh(repository.id());
-    assertEquals(1, new MediaStore(jdbc).inRepository(repository.id()).size());
+    assertEquals(1, services.media.inRepository(repository.id()).size());
   }
 }

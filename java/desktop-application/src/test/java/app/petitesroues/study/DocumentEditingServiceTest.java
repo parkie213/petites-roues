@@ -8,14 +8,8 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 import app.petitesroues.documents.StudyDocumentCodec;
-import app.petitesroues.documents.StudyDocumentJson;
-import app.petitesroues.documents.StudyDocumentReader;
 import app.petitesroues.library.DocumentConflictException;
 import app.petitesroues.library.DocumentImportService;
-import app.petitesroues.library.RepositoryContentService;
-import app.petitesroues.library.persistence.AcceptedDocumentStore;
-import app.petitesroues.library.persistence.CatalogueStore;
-import app.petitesroues.library.persistence.ContentRepositoryStore;
 import app.petitesroues.model.document.Line;
 import app.petitesroues.model.document.PhraseAlignment;
 import app.petitesroues.model.document.StudyDocument;
@@ -26,26 +20,25 @@ import app.petitesroues.model.editing.UpdateCueTiming;
 import app.petitesroues.model.library.CatalogueEntry;
 import app.petitesroues.model.review.CueChange;
 import app.petitesroues.model.review.ReviewCompletion;
-import app.petitesroues.support.DatabaseFixtures;
+import app.petitesroues.support.StudyTestServices;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.jdbc.datasource.DataSourceTransactionManager;
-import org.springframework.jdbc.datasource.SingleConnectionDataSource;
-import org.springframework.transaction.support.TransactionTemplate;
 
 /**
  * Player edits are queued and replayed over the accepted copy; agents write them through batches.
  */
 class DocumentEditingServiceTest {
   @TempDir Path root;
+  StudyTestServices services;
   DocumentEditingService editing;
   ReviewQueueService served;
   ServedDocuments servedDocuments;
@@ -57,33 +50,22 @@ class DocumentEditingServiceTest {
 
   @BeforeEach
   void setup() throws Exception {
-    var mapper = StudyDocumentJson.newMapper();
-    codec = new StudyDocumentCodec();
-    var source = new SingleConnectionDataSource("jdbc:sqlite:" + root.resolve("db.sqlite"), true);
-    DatabaseFixtures.migrate(source);
-    jdbc = new JdbcTemplate(source);
+    services = StudyTestServices.builder(root).spyQueue().build();
+    jdbc = services.jdbc;
+    codec = services.codec;
+    log = services.queue;
+    servedDocuments = services.served;
+    imports = services.imports;
+    served = services.review;
+    editing = services.editing;
     entry = catalogueEntry(jdbc, "example", root);
-    var titles = new CatalogueStore(jdbc);
-    titles.saveTitle(entry);
-    log = spy(new ReviewQueue(jdbc, mapper));
-    var store = new DocumentStore(new StudyDocumentReader(codec));
-    var accepted = new AcceptedDocumentStore(jdbc);
-    var transactions = new TransactionTemplate(new DataSourceTransactionManager(source));
-    servedDocuments = new ServedDocuments(accepted, log, store, codec);
-    imports =
-        new DocumentImportService(
-            titles,
-            store,
-            accepted,
-            log,
-            servedDocuments,
-            new RepositoryContentService(new ContentRepositoryStore(jdbc), titles),
-            transactions);
-    served =
-        new ReviewQueueService(
-            titles, store, accepted, imports, log, servedDocuments, transactions);
+    services.titles.saveTitle(entry);
     write(document(entry.id()));
-    editing = new DocumentEditingService(titles, servedDocuments, log, transactions);
+  }
+
+  @AfterEach
+  void close() {
+    services.close();
   }
 
   /** Writes the file as an agent or preparation script would, without the app noticing. */
@@ -479,35 +461,19 @@ class DocumentEditingServiceTest {
             .withVideo(v -> v.withCue(0, c -> c.withLine(s -> s.withNotes(List.of("N")))));
     writeFile(agent);
     // The accepted copy is saved by the time the batch rows close; read from a second connection.
-    var reader = new SingleConnectionDataSource("jdbc:sqlite:" + root.resolve("db.sqlite"), true);
-    var other = new JdbcTemplate(reader);
-    var titles = new CatalogueStore(other);
-    var readerQueue = new ReviewQueue(other, StudyDocumentJson.newMapper());
-    var readerService =
-        new ReviewQueueService(
-            titles,
-            new DocumentStore(new StudyDocumentReader(codec)),
-            new AcceptedDocumentStore(other),
-            imports,
-            readerQueue,
-            new ServedDocuments(
-                new AcceptedDocumentStore(other),
-                readerQueue,
-                new DocumentStore(new StudyDocumentReader(codec)),
-                codec),
-            new TransactionTemplate(new DataSourceTransactionManager(reader)));
+    var reader = StudyTestServices.create(root);
     var seen = new ArrayList<StudyDocument>();
     doAnswer(
             call -> {
-              seen.add(readerService.document(entry));
+              seen.add(reader.review.document(entry));
               return call.callRealMethod();
             })
         .when(log)
         .complete(any(), anyLong(), any(), any());
 
     served.complete(entry.id(), batch.batch(), null);
-    seen.add(readerService.document(entry));
-    reader.destroy();
+    seen.add(reader.review.document(entry));
+    reader.close();
 
     assertEquals(before, seen.get(0));
     assertEquals(readVideo(), seen.get(1));
@@ -534,16 +500,15 @@ class DocumentEditingServiceTest {
   void completionFailsWithAConflictWhenTheAcceptedCopyMovedSinceTheClaim() throws Exception {
     editing.saveCueTiming(entry.id(), List.of(new UpdateCueTiming("stable-cue", .2, .8)));
     var batch = served.claim(entry.id(), 50).orElseThrow();
-    var accepted = new AcceptedDocumentStore(jdbc);
+    var accepted = services.accepted;
     var other =
         codec.encode(batch.document().withTitle("Elsewhere")).getBytes(StandardCharsets.UTF_8);
     // Another import accepting a different file; it rebuilds the served copy as every import does.
-    new TransactionTemplate(new DataSourceTransactionManager(jdbc.getDataSource()))
-        .executeWithoutResult(
-            status -> {
-              accepted.save(entry.id(), other, DocumentStore.sha256(other), "now");
-              servedDocuments.rebuild(entry);
-            });
+    services.transactions.executeWithoutResult(
+        status -> {
+          accepted.save(entry.id(), other, DocumentStore.sha256(other), "now");
+          servedDocuments.rebuild(entry);
+        });
     writeFile(batch.document().withTitle("Agent"));
 
     assertThrows(

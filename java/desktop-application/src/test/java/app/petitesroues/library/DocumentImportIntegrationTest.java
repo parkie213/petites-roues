@@ -4,45 +4,28 @@ import static app.petitesroues.support.DocumentFixtures.document;
 import static org.junit.jupiter.api.Assertions.*;
 
 import app.petitesroues.documents.StudyDocumentCodec;
-import app.petitesroues.documents.StudyDocumentJson;
-import app.petitesroues.documents.StudyDocumentReader;
 import app.petitesroues.library.DocumentImportService.Result;
-import app.petitesroues.library.discovery.ContentRepositoryScanner;
 import app.petitesroues.library.persistence.AcceptedDocumentStore;
 import app.petitesroues.library.persistence.CatalogueStore;
 import app.petitesroues.library.persistence.ContentRepositoryStore;
-import app.petitesroues.library.persistence.MediaStore;
-import app.petitesroues.media.Ffmpeg;
-import app.petitesroues.media.MediaProbe;
-import app.petitesroues.media.ProcessRunner;
 import app.petitesroues.model.document.StudyDocument;
 import app.petitesroues.model.library.CatalogueEntry;
 import app.petitesroues.study.DocumentStore;
-import app.petitesroues.study.ReviewQueue;
-import app.petitesroues.study.ServedDocuments;
-import app.petitesroues.support.DatabaseFixtures;
+import app.petitesroues.support.StudyTestServices;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.time.Duration;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.jdbc.datasource.DataSourceTransactionManager;
-import org.springframework.jdbc.datasource.SingleConnectionDataSource;
-import org.springframework.transaction.support.TransactionTemplate;
 
 /** Accepted copies kept by Add, Refresh, import and backfill, against real files and SQLite. */
 class DocumentImportIntegrationTest {
-  private final ExecutorService processExecutor = Executors.newVirtualThreadPerTaskExecutor();
-  private final StudyDocumentCodec codec = new StudyDocumentCodec();
-
   @TempDir Path root;
-  SingleConnectionDataSource source;
+  StudyTestServices services;
+  StudyDocumentCodec codec;
   JdbcTemplate jdbc;
   CatalogueStore catalogue;
   AcceptedDocumentStore accepted;
@@ -52,60 +35,19 @@ class DocumentImportIntegrationTest {
 
   @BeforeEach
   void setup() {
-    source = new SingleConnectionDataSource("jdbc:sqlite::memory:", true);
-    jdbc = new JdbcTemplate(source);
-    jdbc.execute("PRAGMA foreign_keys=ON");
-    DatabaseFixtures.migrate(source);
-    catalogue = new CatalogueStore(jdbc);
-    accepted = new AcceptedDocumentStore(jdbc);
-    repositories = new ContentRepositoryStore(jdbc);
-    imports = imports(new DocumentStore(new StudyDocumentReader(codec)));
-    service = service(imports);
+    services = StudyTestServices.create(root);
+    codec = services.codec;
+    jdbc = services.jdbc;
+    catalogue = services.titles;
+    accepted = services.accepted;
+    repositories = services.repositories;
+    imports = services.imports;
+    service = services.contentRepositories;
   }
 
   @AfterEach
   void close() {
-    source.destroy();
-    processExecutor.close();
-  }
-
-  private TransactionTemplate transactions() {
-    return new TransactionTemplate(new DataSourceTransactionManager(source));
-  }
-
-  private DocumentImportService imports(DocumentStore documents) {
-    return new DocumentImportService(
-        catalogue,
-        documents,
-        accepted,
-        queue(),
-        servedDocuments(documents),
-        new RepositoryContentService(repositories, catalogue),
-        transactions());
-  }
-
-  private ReviewQueue queue() {
-    return new ReviewQueue(jdbc, StudyDocumentJson.newMapper());
-  }
-
-  private ServedDocuments servedDocuments(DocumentStore documents) {
-    return new ServedDocuments(accepted, queue(), documents, codec);
-  }
-
-  private ContentRepositoryService service(DocumentImportService imports) {
-    return new ContentRepositoryService(
-        repositories,
-        new ContentRepositoryScanner(),
-        new StudyDocumentReader(codec),
-        transactions(),
-        new RepositoryContentService(repositories, catalogue),
-        new ReviewQueue(jdbc, StudyDocumentJson.newMapper()),
-        imports,
-        new MediaStore(jdbc),
-        new MediaProbe(
-            new Ffmpeg(
-                StudyDocumentJson.newMapper(),
-                new ProcessRunner(processExecutor, Duration.ofSeconds(30)))));
+    services.close();
   }
 
   private Path write(String folder, StudyDocument document) throws IOException {
@@ -181,21 +123,19 @@ class DocumentImportIntegrationTest {
     add();
     write("a", document("one").withTitle("Newer"));
     byte[] concurrent = codec.encode(document("one").withTitle("Concurrent")).getBytes();
-    var documents = new StudyDocumentReader(codec);
     // The file is read; before the import transaction starts, another import accepts a copy.
     var racing =
-        imports(
-            new DocumentStore(documents) {
+        services.importsOver(
+            new DocumentStore(services.reader) {
               @Override
               public Bytes readBytes(CatalogueEntry entry) throws IOException {
                 var read = super.readBytes(entry);
                 // A concurrent import saves its copy and rebuilds the served copy together.
-                transactions()
-                    .executeWithoutResult(
-                        status -> {
-                          accepted.save("one", concurrent, DocumentStore.sha256(concurrent), "now");
-                          servedDocuments(this).rebuild(catalogue.find("one").orElseThrow());
-                        });
+                services.transactions.executeWithoutResult(
+                    status -> {
+                      accepted.save("one", concurrent, DocumentStore.sha256(concurrent), "now");
+                      services.servedOver(this).rebuild(catalogue.find("one").orElseThrow());
+                    });
                 return read;
               }
             });
