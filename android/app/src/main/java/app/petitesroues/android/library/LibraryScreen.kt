@@ -6,6 +6,7 @@ import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -25,6 +26,7 @@ import androidx.compose.foundation.lazy.grid.LazyGridState
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.grid.rememberLazyGridState
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -55,10 +57,12 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -84,6 +88,7 @@ import app.petitesroues.library.progress.LibraryProgress
 import app.petitesroues.library.shelves.Shelves
 import app.petitesroues.library.shelves.Shelves.CardArt
 import app.petitesroues.library.shelves.Shelves.Group
+import app.petitesroues.library.shelves.Shelves.Shelf
 import app.petitesroues.library.shelves.Shelves.Slot
 import java.util.Locale
 
@@ -146,6 +151,13 @@ fun LibraryScreen(
       onDismiss = { managing = false },
     )
   val shelves = remember(state.titles) { Shelves.shelves(state.titles) }
+  // The chip's shelf key survives rotation; a shelf gone after a Refresh falls back to All.
+  var chosenShelf by rememberSaveable { mutableStateOf<String?>(null) }
+  val shelf = shelfChoice(shelves, chosenShelf)
+  LaunchedEffect(shelves, chosenShelf) {
+    if (shelves.isNotEmpty() && shelf != chosenShelf) chosenShelf = null
+  }
+  val shown = narrowShelves(shelves, shelf)
   // Cards name their language only when the library has more than one.
   val multilingual =
     remember(state.titles) { state.titles.mapNotNull { it.sourceLanguage }.distinct().size > 1 }
@@ -223,7 +235,8 @@ fun LibraryScreen(
       }
       if (open != null)
         SeriesView(open, browse.season, cards, multilingual) { onBrowse(browse.copy(season = it)) }
-      else
+      else {
+        if (shelves.isNotEmpty()) ShelfChips(shelves, shelf) { chosenShelf = it }
         PosterGrid(shelvesScroll) {
           state.usage?.let { usage ->
             heading {
@@ -236,7 +249,7 @@ fun LibraryScreen(
           }
           if (state.titles.isEmpty() && !state.refreshing)
             heading { Text("No titles yet. Refresh after your content has synced.") }
-          for (shelf in shelves) {
+          for (shelf in shown) {
             if (shelf.groups.isEmpty()) continue
             heading {
               Row(
@@ -283,7 +296,29 @@ fun LibraryScreen(
             }
           }
         }
+      }
     }
+  }
+}
+
+/**
+ * A horizontally scrollable row of chips above the shelves: All, then every shelf of [shelves] in
+ * order. [chosen] is the selected shelf's key (null for All) and [onChoose] receives the new one.
+ */
+@Composable
+private fun ShelfChips(shelves: List<Shelf<Title>>, chosen: String?, onChoose: (String?) -> Unit) {
+  Row(
+    Modifier.fillMaxWidth()
+      .horizontalScroll(rememberScrollState())
+      .padding(horizontal = 16.dp, vertical = 4.dp),
+    horizontalArrangement = Arrangement.spacedBy(8.dp),
+  ) {
+    FilterChip(selected = chosen == null, onClick = { onChoose(null) }, label = { Text("All") })
+    for (shelf in shelves) FilterChip(
+      selected = chosen == shelf.key,
+      onClick = { onChoose(shelf.key) },
+      label = { Text("${shelf.label} ${shelf.groups.size}") },
+    )
   }
 }
 
