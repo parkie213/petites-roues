@@ -13,3 +13,25 @@ Add future changes as `V2__Describe_change.sql`, `V3__Describe_change.sql`, etc.
 applied migration or add a startup bean that checks columns. Flyway tracks completed versions in
 `flyway_schema_history` and validates checksums on startup. Test fixtures migrate through Flyway
 too (`DatabaseFixtures`).
+
+## Migrate or rebuild
+
+Prefer a Flyway migration for additive changes: a new table or column. Rebuild instead when a
+change would alter or reinterpret stored data, or when carrying it forward would need backfills
+and equivalence tests. The catalogue is an index of the documents and media on disk, so a rebuild
+is always possible.
+
+A rebuild recreates `repositories`, `titles`, `media`, `accepted_documents` and
+`served_documents` from the files. It loses the data that exists only in SQLite: playback and
+reading progress, settings, phone pairings, hand-made media links and the review history.
+Edits still pending in `review_queue` exist only in SQLite until an agent writes them into the
+documents, so never rebuild while any are pending.
+
+To rebuild:
+
+1. Process or discard the review queue until `GET /api/review/pending` returns `[]` and no batch
+   is open.
+2. Stop the app and copy `content/library.sqlite` somewhere safe.
+3. Note anything worth keeping that the list above says is lost, such as phone pairings.
+4. Delete `content/library.sqlite`, start the app, add each folder and Refresh it.
+5. Pair the phones again.
