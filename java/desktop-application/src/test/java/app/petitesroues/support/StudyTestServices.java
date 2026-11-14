@@ -5,6 +5,8 @@ import static org.mockito.Mockito.spy;
 import app.petitesroues.documents.StudyDocumentCodec;
 import app.petitesroues.documents.StudyDocumentJson;
 import app.petitesroues.documents.StudyDocumentReader;
+import app.petitesroues.library.AcceptedDocumentBackfill;
+import app.petitesroues.library.AcceptedDocuments;
 import app.petitesroues.library.ContentRepositoryService;
 import app.petitesroues.library.DocumentImportService;
 import app.petitesroues.library.RepositoryContentService;
@@ -60,7 +62,9 @@ public final class StudyTestServices implements AutoCloseable {
 
   public final ServedDocuments served;
   public final RepositoryContentService registration;
+  public final AcceptedDocuments acceptedDocuments;
   public final DocumentImportService imports;
+  public final AcceptedDocumentBackfill backfill;
   public final ReviewQueueService review;
   public final DocumentEditingService editing;
 
@@ -97,9 +101,12 @@ public final class StudyTestServices implements AutoCloseable {
             new Ffmpeg(mapper, new ProcessRunner(processExecutor, Duration.ofSeconds(30))));
     served = servedOver(documents);
     registration = new RepositoryContentService(repositories, titles);
-    imports = importsOver(documents, served, registration);
+    acceptedDocuments = acceptedOver(served, registration);
+    imports = new DocumentImportService(titles, documents, acceptedDocuments, transactions);
+    backfill = new AcceptedDocumentBackfill(accepted, imports);
     review =
-        new ReviewQueueService(titles, documents, accepted, imports, queue, served, transactions);
+        new ReviewQueueService(
+            titles, documents, accepted, imports, acceptedDocuments, queue, served, transactions);
     editing = new DocumentEditingService(titles, served, queue, transactions);
     contentRepositories = contentRepositories(registration);
   }
@@ -124,12 +131,13 @@ public final class StudyTestServices implements AutoCloseable {
    * same database, for tests that intercept the file read.
    */
   public DocumentImportService importsOver(DocumentStore documents) {
-    return importsOver(documents, servedOver(documents), registration);
+    return new DocumentImportService(
+        titles, documents, acceptedOver(servedOver(documents), registration), transactions);
   }
 
   /**
-   * A repository service (and the import service it uses) registering through {@code registration},
-   * for tests that spy on or fail registration.
+   * A repository service (and the accepted-copy rules it uses) registering through {@code
+   * registration}, for tests that spy on or fail registration.
    */
   public ContentRepositoryService contentRepositories(RepositoryContentService registration) {
     return new ContentRepositoryService(
@@ -139,15 +147,14 @@ public final class StudyTestServices implements AutoCloseable {
         transactions,
         registration,
         queue,
-        importsOver(documents, served, registration),
+        acceptedOver(served, registration),
         media,
         probe);
   }
 
-  private DocumentImportService importsOver(
-      DocumentStore documents, ServedDocuments served, RepositoryContentService registration) {
-    return new DocumentImportService(
-        titles, documents, accepted, queue, served, registration, transactions);
+  private AcceptedDocuments acceptedOver(
+      ServedDocuments served, RepositoryContentService registration) {
+    return new AcceptedDocuments(accepted, queue, served, registration);
   }
 
   /** Closes the database connection and the probe's executor. */

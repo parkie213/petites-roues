@@ -1,6 +1,6 @@
 package app.petitesroues.config;
 
-import app.petitesroues.library.DocumentImportService;
+import app.petitesroues.library.AcceptedDocumentBackfill;
 import app.petitesroues.study.ReviewQueueService;
 import javax.sql.DataSource;
 import org.flywaydb.core.Flyway;
@@ -67,9 +67,9 @@ public class DatabaseUpgradeConfiguration {
   /** Imports every title without an accepted copy once startup has migrated the database. */
   @Bean
   @Order(1)
-  public ApplicationRunner acceptedDocumentBackfill(DocumentImportService imports) {
+  public ApplicationRunner acceptedDocumentBackfillRunner(AcceptedDocumentBackfill backfill) {
     return arguments -> {
-      int imported = imports.backfill();
+      int imported = backfill.run();
       if (imported > 0) log.info("Accepted {} existing documents", imported);
     };
   }

@@ -86,7 +86,7 @@ public class ContentRepositoryService {
   private final TransactionTemplate transactions;
   private final RepositoryContentService registration;
   private final ReviewQueue queue;
-  private final DocumentImportService imports;
+  private final AcceptedDocuments acceptedDocuments;
   private final MediaStore media;
   private final MediaProbe probe;
 
@@ -97,7 +97,7 @@ public class ContentRepositoryService {
       TransactionTemplate transactions,
       RepositoryContentService registration,
       ReviewQueue queue,
-      DocumentImportService imports,
+      AcceptedDocuments acceptedDocuments,
       MediaStore media,
       MediaProbe probe) {
     this.repositories = repositories;
@@ -106,7 +106,7 @@ public class ContentRepositoryService {
     this.transactions = transactions;
     this.registration = registration;
     this.queue = queue;
-    this.imports = imports;
+    this.acceptedDocuments = acceptedDocuments;
     this.media = media;
     this.probe = probe;
   }
@@ -243,7 +243,7 @@ public class ContentRepositoryService {
       List<IndexedMedia> previous,
       LibraryProgress.Listener progress)
       throws IOException {
-    Map<String, String> acceptedHashes = imports.acceptedHashes(repositoryId);
+    Map<String, String> acceptedHashes = acceptedDocuments.acceptedHashes(repositoryId);
     progress.report(new LibraryProgress(folder, "scanning", 0, 0, null));
     var found = scanner.scan(root);
     int count = 0, total = found.media().size();
@@ -343,7 +343,7 @@ public class ContentRepositoryService {
    * registered and marked present, and the folder's media index is replaced. Registration assigns
    * or retains each local entry ID from the document already read, through {@link
    * RepositoryContentService}, and each title's accepted copy is saved by {@link
-   * DocumentImportService#accept}. No file, process or network access happens here.
+   * AcceptedDocuments#save}. No file, process or network access happens here.
    */
   private void updateIndex(String repositoryId, Discovered discovered) {
     repositories.markTitlesMissing(repositoryId);
@@ -354,7 +354,7 @@ public class ContentRepositoryService {
               new RepositoryContentService.Registration(item.documentPath().toString(), true),
               read.document(),
               repositoryId);
-      imports.accept(entry, discovered.acceptedHashes().get(read.document().id()), read);
+      acceptedDocuments.save(entry, discovered.acceptedHashes().get(read.document().id()), read);
     }
     media.replace(repositoryId, discovered.media());
     repositories.recordRefresh(repositoryId, Instant.now().toString());

@@ -4,7 +4,7 @@ import static app.petitesroues.support.DocumentFixtures.document;
 import static org.junit.jupiter.api.Assertions.*;
 
 import app.petitesroues.documents.StudyDocumentCodec;
-import app.petitesroues.library.DocumentImportService.Result;
+import app.petitesroues.library.AcceptedDocuments.Result;
 import app.petitesroues.library.persistence.AcceptedDocumentStore;
 import app.petitesroues.library.persistence.CatalogueStore;
 import app.petitesroues.library.persistence.ContentRepositoryStore;
@@ -31,6 +31,7 @@ class DocumentImportIntegrationTest {
   AcceptedDocumentStore accepted;
   ContentRepositoryStore repositories;
   DocumentImportService imports;
+  AcceptedDocumentBackfill backfill;
   ContentRepositoryService service;
 
   @BeforeEach
@@ -42,6 +43,7 @@ class DocumentImportIntegrationTest {
     accepted = services.accepted;
     repositories = services.repositories;
     imports = services.imports;
+    backfill = services.backfill;
     service = services.contentRepositories;
   }
 
@@ -181,14 +183,14 @@ class DocumentImportIntegrationTest {
     Files.delete(gone);
     Files.writeString(root.resolve("c/document.json"), "{ not json");
 
-    assertEquals(1, imports.backfill());
+    assertEquals(1, backfill.run());
     assertAcceptedEqualsFile("one", one);
     assertTrue(accepted.find("gone").isEmpty());
     assertTrue(accepted.find("bad").isEmpty());
 
-    assertEquals(0, imports.backfill(), "titles already accepted are left alone");
+    assertEquals(0, backfill.run(), "titles already accepted are left alone");
     Files.writeString(root.resolve("c/document.json"), codec.encode(document("bad")));
-    assertEquals(1, imports.backfill(), "a repaired file is picked up on the next start");
-    assertEquals(0, imports.backfill());
+    assertEquals(1, backfill.run(), "a repaired file is picked up on the next start");
+    assertEquals(0, backfill.run());
   }
 }
