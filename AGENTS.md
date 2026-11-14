@@ -52,8 +52,8 @@ Keep canonical annotation sources and generated/live outputs synchronized. Check
 
 ## Live annotation reviews
 
-The app never writes document files. Player and reader edits are queued in SQLite and replayed
-over the title's accepted copy of `document.json` (held in SQLite) when it is served; agents are
+The app never writes document files. Player and reader edits are queued in SQLite and applied
+to a served copy of the title's accepted copy of `document.json` (both held in SQLite); agents are
 the only writers, and a written file reaches the app only when imported. To review, first read
 [the translation notes guide](agents/guides/translation-notes.md), then follow
 [agents/workflows/review-content.md](agents/workflows/review-content.md): claim a batch, write its

@@ -26,7 +26,10 @@ public class ReviewQueue {
   /** An open or completed claim on queued edits, bound to the file it was claimed against. */
   public record Batch(long id, String baseSha256, String createdAt, String completedAt) {}
 
-  /** Pending edits in sequence order, without replay state. */
+  /**
+   * Pending edits in sequence order, each with the state the last replay stored: {@code review},
+   * {@code conflict} or {@code pending}.
+   */
   public List<CueChange> read(CatalogueEntry title) {
     return read(title, false);
   }
@@ -53,7 +56,9 @@ public class ReviewQueue {
               r.getString("reviewed_at"),
               r.getString("outcome"),
               batch == null ? null : ((Number) batch).longValue(),
-              null,
+              completed
+                  ? null
+                  : command == null ? "review" : r.getInt("conflict") != 0 ? "conflict" : "pending",
               command == null ? null : mapper.readValue(command, DocumentEdit.class));
         },
         title.id());
@@ -69,6 +74,14 @@ public class ReviewQueue {
         mapper.writeValueAsString(edit.cueIds()),
         edit.suggestion(),
         mapper.writeValueAsString(edit));
+  }
+
+  /**
+   * Stores whether a pending edit no longer applies. Written only by {@link
+   * ServedDocuments#rebuild}, which decides it by replaying the queue.
+   */
+  public void setConflict(long sequence, boolean conflict) {
+    jdbc.update("UPDATE review_queue SET conflict=? WHERE sequence=?", conflict ? 1 : 0, sequence);
   }
 
   public Optional<Batch> batch(CatalogueEntry title, long id) {

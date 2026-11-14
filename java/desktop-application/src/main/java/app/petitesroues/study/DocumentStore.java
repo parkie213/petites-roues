@@ -14,8 +14,9 @@ import org.springframework.stereotype.Component;
 
 /**
  * Reads portable subtitle/notes JSON documents. The application never changes them: player edits
- * are queued and replayed, and agents or preparation scripts own the files. Reads bind the decoded
- * document to the hash of the exact bytes read; this class never writes files.
+ * are queued and kept in the served copy (see {@link ServedDocuments}), and agents or preparation
+ * scripts own the files. Reads bind the decoded document to the hash of the exact bytes read; this
+ * class never writes files.
  */
 @Component
 public class DocumentStore {

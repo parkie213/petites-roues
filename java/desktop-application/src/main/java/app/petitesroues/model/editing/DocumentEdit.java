@@ -5,9 +5,10 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import java.util.List;
 
 /**
- * One player or reader edit, stored in the review queue and replayed over the document file until
- * an agent writes it into that file. Every identity the edit introduces (new cue IDs) is fixed here
- * when the edit is first accepted, so each replay produces the same document.
+ * One player or reader edit, stored in the review queue and part of the title's served copy until
+ * an agent writes it into the document file and completes its batch. Every identity the edit
+ * introduces (new cue IDs) is fixed here when the edit is first accepted, so replaying the queue
+ * over an accepted copy, as a rebuild of the served copy does, always produces the same document.
  *
  * <p>{@link #kind()} and {@link #cueIds()} describe the edit to reviewers; they are derived from
  * the command and not stored separately in the JSON.

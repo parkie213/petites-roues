@@ -17,7 +17,7 @@ Two rules hold the boundary:
 - **Local state never enters a document.** Paths, progress, availability and queue history stay
   out of `document.json`, so a content repository can be shared and synced as-is.
 - **The app never writes documents.** It reads a file only to import it, as the title's accepted
-  copy in SQLite, and serves that copy plus the title's pending edits. Agents write the file,
+  copy in SQLite, and serves a stored copy of it with the title's pending edits applied. Agents write the file,
   then complete the batch, which imports it and closes the edits.
 
 ## Study documents
@@ -95,8 +95,9 @@ Standalone desktop registrations are not repository-owned entries.
 ## Editing
 
 Every player or reader change is stored as a command, not as a new copy of the document. Pending
-commands are replayed over the title's accepted copy (the file as last imported) whenever the
-document is served, so the learner sees their change straight away while the file stays untouched. The HTTP side is specified in
+commands are applied over the title's accepted copy (the file as last imported) to make its
+**served copy**, which is stored and updated in the same transaction as every edit, so a read is
+a lookup and the learner sees their change straight away while the file stays untouched. The HTTP side is specified in
 [REVIEW-API.md](REVIEW-API.md).
 
 ![Editing model](diagrams/editing-model.svg)
@@ -106,13 +107,20 @@ document is served, so the learner sees their change straight away while the fil
   they always agree.
 - A command fixes every identity it introduces (a split's second line, a new box and its
   line) when it's first accepted, so each replay produces the same document.
+- The served copy equals the encoded replay of the pending commands over the accepted copy after
+  every commit, and `ServedDocuments` is the only code that replays to write it. A new edit
+  applies to the served copy and saves the result; completion, discard and import rebuild it by
+  replaying, and that rebuild stores each command's `conflict` verdict. The copy is derived, so
+  deleting it only costs a rebuild on the next read.
 - Commands refer to documents' own IDs, never to local paths. What ties them to the machine is
   the queue row, which is keyed by the local title.
 - A **review batch** is an agent's claim on the oldest pending edits. It records the SHA-256 of
-  the accepted copy at claim time and its edits keep replaying until the batch is completed.
+  the accepted copy at claim time and its edits stay in the served copy until the batch is
+  completed.
   Completion imports the agent's file as the new accepted copy and closes the edits in one
   transaction, so they are never applied twice or lost.
-- Loading the served document, validating an edit and queueing it also happen in one transaction.
+- Loading the served document, validating an edit, saving the new served copy and queueing the
+  command also happen in one transaction.
   The database has a single connection, so two concurrent edits are each validated against a
   state that includes the other, and an edit cannot be queued for a repository that was removed
   a moment before.

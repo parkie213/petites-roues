@@ -1,8 +1,8 @@
 # Agent, service and content repository contract
 
 Status: draft for review, 13 November 2026, partly implemented. Implemented: the accepted copy,
-import (Add/Refresh, `POST /api/titles/{id}/import`, completion), reads from the accepted copy,
-and claim and completion as described below, including the safe retry of a completed batch and the
+import (Add/Refresh, `POST /api/titles/{id}/import`, completion), reads from the served copy (the
+accepted copy with pending edits applied, stored), and claim and completion as described below, including the safe retry of a completed batch and the
 `prepare/` scripts' open-batch check and import, edits validated and queued in one transaction,
 and the removal of the shared library monitor (discovery runs without a lock; its commit is one
 transaction), and the skeleton endpoint. Not yet implemented: request IDs for add and split, the
@@ -13,9 +13,12 @@ discovery changes for Refresh All and the post-pull trigger. It replaces stage 1
 
 1. **Files are the portable content.** `document.json` files live in a content repository.
    Agents and scripts are their only writers. The service never writes them and never runs Git.
-2. **The service serves its accepted copy.** Each title has one accepted document in SQLite.
-   Every read (player, reader, quiz, speech, phone export) is that copy plus pending edits, from
-   one database snapshot. Reads never open `document.json`.
+2. **The service serves a stored copy of the accepted copy plus pending edits.** Each title has
+   one accepted document in SQLite and one served copy: the accepted copy with the pending edits
+   applied, stored as canonical JSON and rewritten in every transaction that changes the accepted
+   copy or the queue. Every read (player, reader, quiz, speech, phone export) is a lookup of that
+   copy, from one database snapshot. Reads never open `document.json` and never replay the queue.
+   A missing or stale served copy is rebuilt by the read that finds it.
 3. **Import is the only way in.** One operation, *import this registered file*, turns a file
    into the accepted copy. Add, Refresh, a pull, a new title and a review completion are all that
    same operation. Changing a file on disk changes nothing in the app until it is imported.
@@ -26,10 +29,11 @@ discovery changes for Refresh All and the post-pull trigger. It replaces stage 1
    can name its cues, and the agent commits afterwards. The service does not verify either.
 
 ```
-content repo files ──import──▶ accepted copy (SQLite) ──▶ served document
-        ▲                              ▲
-        │                              │ replayed
- agent/script writes ◀──claim batch── pending edits ◀── player/reader
+content repo files ──import──▶ accepted copy ──┐ replayed on rebuild
+        ▲                                      ▼
+        │                      pending edits ─▶ served copy ──▶ reads
+ agent/script writes ◀─claim batch─┘   ▲
+                              player/reader (each edit also saves its result)
 ```
 
 ## Import
@@ -40,8 +44,10 @@ one transaction:
 - applies only if the accepted copy is still the one seen when the read started; otherwise it
   reports a conflict and changes nothing;
 - replaces the accepted copy and the catalogue summary derived from it;
-- replays pending edits over the new base and marks those that no longer apply as `conflict`;
-- with an open batch, also requires that batch's outcomes and closes exactly its edits.
+- rebuilds the served copy: replays pending edits over the new base and marks those that no
+  longer apply as `conflict`, storing the verdict with each queue row;
+- with an open batch, also requires that batch's outcomes and closes exactly its edits, then
+  rebuilds the served copy without them, even when the file is unchanged.
 
 An import of an unchanged file is a no-op. Repeating a completion for a batch that is already
 closed with the same file hash returns the stored result. A title with an open batch can only be
@@ -60,8 +66,8 @@ invalid is listed with its problems and has no accepted copy.
 
 ### 2. Adjust subtitle timing
 
-The player sends a timing command; the service validates it against the accepted copy plus
-pending edits and queues it in one transaction. The learner sees it at once. It is durable in
+The player sends a timing command; the service validates it against the served copy, saves the
+edited served copy and queues the command in one transaction. The learner sees it at once. It is durable in
 SQLite but not yet in the file or Git.
 
 The agent picks them up like any other edit. A batch is one commit, however many edits it
@@ -105,8 +111,10 @@ against its cue IDs.
 
 ## Upgrading an existing library
 
-The upgrade requires an empty review queue: finish or discard open batches and pending edits
-first. Then every accepted copy is simply the current file. Learner progress and title
+The upgrade from version 2 requires an empty review queue: finish or discard open batches and
+pending edits first. Then every accepted copy is simply the current file. From version 3 the
+upgrade does not need an empty queue: startup builds every served copy by replaying the pending
+edits, once, and keeps their order. Learner progress and title
 identities are kept. There is no recovery mode and no reader for the old replay scheme.
 
 ## What this makes unnecessary

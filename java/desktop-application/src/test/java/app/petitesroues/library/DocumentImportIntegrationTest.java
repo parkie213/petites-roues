@@ -19,6 +19,7 @@ import app.petitesroues.model.document.StudyDocument;
 import app.petitesroues.model.library.CatalogueEntry;
 import app.petitesroues.study.DocumentStore;
 import app.petitesroues.study.ReviewQueue;
+import app.petitesroues.study.ServedDocuments;
 import app.petitesroues.support.DatabaseFixtures;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -77,9 +78,18 @@ class DocumentImportIntegrationTest {
         catalogue,
         documents,
         accepted,
-        new ReviewQueue(jdbc, StudyDocumentJson.newMapper()),
+        queue(),
+        servedDocuments(documents),
         new RepositoryContentService(repositories, catalogue),
         transactions());
+  }
+
+  private ReviewQueue queue() {
+    return new ReviewQueue(jdbc, StudyDocumentJson.newMapper());
+  }
+
+  private ServedDocuments servedDocuments(DocumentStore documents) {
+    return new ServedDocuments(accepted, queue(), documents, codec);
   }
 
   private ContentRepositoryService service(DocumentImportService imports) {
@@ -179,7 +189,13 @@ class DocumentImportIntegrationTest {
               @Override
               public Bytes readBytes(CatalogueEntry entry) throws IOException {
                 var read = super.readBytes(entry);
-                accepted.save("one", concurrent, DocumentStore.sha256(concurrent), "now");
+                // A concurrent import saves its copy and rebuilds the served copy together.
+                transactions()
+                    .executeWithoutResult(
+                        status -> {
+                          accepted.save("one", concurrent, DocumentStore.sha256(concurrent), "now");
+                          servedDocuments(this).rebuild(catalogue.find("one").orElseThrow());
+                        });
                 return read;
               }
             });

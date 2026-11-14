@@ -67,14 +67,29 @@ class DatabaseUpgradeConfigurationTest {
 
     upgrade();
 
-    assertEquals("3", version());
+    assertEquals("4", version());
+  }
+
+  @Test
+  void aVersionThreeDatabaseWithPendingReviewRowsIsUpgradedAndKeepsThem() {
+    flyway(source, "3").migrate();
+    insertReview(null);
+
+    upgrade();
+
+    assertEquals("4", version());
+    assertEquals(
+        1,
+        jdbc.queryForObject(
+            "SELECT count(*) FROM review_queue WHERE reviewed_at IS NULL AND conflict=0",
+            Integer.class));
   }
 
   @Test
   void aFreshDatabaseIsMigrated() {
     upgrade();
 
-    assertEquals("3", version());
+    assertEquals("4", version());
   }
 
   @Test
@@ -84,6 +99,6 @@ class DatabaseUpgradeConfigurationTest {
 
     upgrade();
 
-    assertEquals("3", version());
+    assertEquals("4", version());
   }
 }
