@@ -5,7 +5,6 @@ import static org.mockito.Mockito.spy;
 import app.petitesroues.documents.StudyDocumentCodec;
 import app.petitesroues.documents.StudyDocumentJson;
 import app.petitesroues.documents.StudyDocumentReader;
-import app.petitesroues.library.AcceptedDocumentBackfill;
 import app.petitesroues.library.AcceptedDocuments;
 import app.petitesroues.library.ContentRepositoryService;
 import app.petitesroues.library.DocumentImportService;
@@ -66,7 +65,6 @@ public final class StudyTestServices implements AutoCloseable {
   public final RepositoryContentService registration;
   public final AcceptedDocuments acceptedDocuments;
   public final DocumentImportService imports;
-  public final AcceptedDocumentBackfill backfill;
   public final ReviewQueueService review;
   public final DocumentEditingService editing;
 
@@ -108,7 +106,6 @@ public final class StudyTestServices implements AutoCloseable {
     registration = new RepositoryContentService(repositories, titles);
     acceptedDocuments = acceptedOver(served, registration);
     imports = new DocumentImportService(titles, documents, acceptedDocuments, transactions);
-    backfill = new AcceptedDocumentBackfill(accepted, imports);
     review =
         new ReviewQueueService(
             titles, documents, accepted, imports, acceptedDocuments, queue, served, transactions);

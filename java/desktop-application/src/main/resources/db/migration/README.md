@@ -17,9 +17,13 @@ too (`DatabaseFixtures`).
 ## Migrate or rebuild
 
 Prefer a Flyway migration for additive changes: a new table or column. Rebuild instead when a
-change would alter or reinterpret stored data, or when carrying it forward would need backfills
-and equivalence tests. The catalogue is an index of the documents and media on disk, so a rebuild
-is always possible.
+change would alter or reinterpret stored data, or when carrying it forward would need a data
+conversion and equivalence tests. The catalogue is an index of the documents and media on disk, so
+a rebuild is always possible.
+
+After an upgrade, no title has an accepted copy until you fix it: **Refresh** its folder (learner
+progress kept) or use **Reset library** (learner progress lost). Startup does not import the
+documents on upgrade.
 
 While the app runs, use **Reset library** (the "..." menu next to Add folder, API job kind
 `reset`). It deletes every table's rows except `repositories`, `settings` and Flyway's history,

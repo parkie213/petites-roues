@@ -112,10 +112,12 @@ against its cue IDs.
 ## Upgrading an existing library
 
 The upgrade from version 2 requires an empty review queue: finish or discard open batches and
-pending edits first. Then every accepted copy is simply the current file. From version 3 the
-upgrade does not need an empty queue: startup builds every served copy by replaying the pending
-edits, once, and keeps their order. Learner progress and title
-identities are kept. There is no recovery mode and no reader for the old replay scheme.
+pending edits first. From version 3 the upgrade does not need an empty queue: startup builds
+every served copy by replaying the pending edits, once, and keeps their order. Learner progress
+and title identities are kept. There is no recovery mode and no reader for the old replay scheme.
+
+Startup does not import the documents, so after an upgrade no title has an accepted copy until it
+is fixed: Refresh its folder (learner progress kept) or use Reset library (learner progress lost).
 
 ## What this makes unnecessary
 
