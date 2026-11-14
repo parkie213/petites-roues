@@ -166,6 +166,18 @@ public class ReviewQueue {
         title.id());
   }
 
+  /** Queue rows not yet reviewed, across all titles, including those in an open batch. */
+  public int unreviewedCount() {
+    return jdbc.queryForObject(
+        "SELECT count(*) FROM review_queue WHERE reviewed_at IS NULL", Integer.class);
+  }
+
+  /** Review batches claimed but not yet completed, across all titles. */
+  public int openBatchCount() {
+    return jdbc.queryForObject(
+        "SELECT count(*) FROM review_batches WHERE completed_at IS NULL", Integer.class);
+  }
+
   /** A title with pending queue rows, for agents choosing what to process. */
   public record PendingTitle(String titleId, String title, int pending, Long openBatch) {}
 

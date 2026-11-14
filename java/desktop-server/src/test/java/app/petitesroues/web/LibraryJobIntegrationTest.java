@@ -1,5 +1,6 @@
 package app.petitesroues.web;
 
+import static app.petitesroues.support.DocumentFixtures.document;
 import static org.awaitility.Awaitility.await;
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -49,6 +50,27 @@ class LibraryJobIntegrationTest extends HttpIntegrationTest {
 
     var refreshed = run(Map.of("kind", "refresh"));
     assertEquals("succeeded", refreshed.state());
+  }
+
+  @Test
+  void resettingTheLibraryRebuildsItAndPendingEditsRefuseIt() throws Exception {
+    registerTitle(document("reset-me"));
+    jdbc.update("INSERT INTO playback_progress VALUES('reset-me',3.5,'t')");
+    jdbc.update(
+        "INSERT INTO review_queue(title_id,timestamp,kind,cue_ids_json) VALUES('reset-me','t','edit','[]')");
+    var refused = run(Map.of("kind", "reset"));
+    assertEquals("reset", refused.kind());
+    assertEquals("failed", refused.state());
+    assertEquals("1 edit is pending: process or discard them first", refused.error());
+    assertEquals(1, jdbc.queryForObject("SELECT count(*) FROM playback_progress", Integer.class));
+
+    jdbc.update("DELETE FROM review_queue");
+    var done = run(Map.of("kind", "reset"));
+    assertEquals("succeeded", done.state());
+    assertEquals(0, jdbc.queryForObject("SELECT count(*) FROM playback_progress", Integer.class));
+    var titles = http.get().uri("/api/library").retrieve().body(String.class);
+    assertTrue(titles.contains("reset-me"), titles);
+    assertEquals(1, jdbc.queryForObject("SELECT count(*) FROM repositories", Integer.class));
   }
 
   @Test

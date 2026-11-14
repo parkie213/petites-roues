@@ -9,6 +9,20 @@ carrying upgrade paths. A catalogue from before then fails at startup, either on
 checksum or because it has tables but no Flyway history. Delete it (`content/library.sqlite`
 by default) and add the folders again.
 
+## Migrate or rebuild
+
+Because the catalogue is a rebuildable index, an incompatible catalogue is rebuilt, not migrated.
+While the app runs, use **Reset library** (the "..." menu next to Add folder, API job kind
+`reset`). It deletes every table's rows except `repositories`, `settings` and Flyway's history,
+then refreshes every registered folder. Reading and playback positions, hand-made media links,
+review history and phone pairings are lost, and phones must pair again; folders, files on disk
+and settings (including the phone certificate) are kept. It refuses while edits are pending or a
+review batch is open, because pending edits exist only in SQLite: process or discard them first.
+If the rebuild fails, the folders stay registered and Refresh finishes it.
+
+When the app cannot start (a catalogue that fails Flyway validation), delete the catalogue file
+and add the folders again instead.
+
 Add future changes as `V2__Describe_change.sql`, `V3__Describe_change.sql`, etc. Do not edit an
 applied migration or add a startup bean that checks columns. Flyway tracks completed versions in
 `flyway_schema_history` and validates checksums on startup. Test fixtures migrate through Flyway

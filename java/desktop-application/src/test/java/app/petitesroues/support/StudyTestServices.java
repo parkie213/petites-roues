@@ -9,11 +9,13 @@ import app.petitesroues.library.AcceptedDocumentBackfill;
 import app.petitesroues.library.AcceptedDocuments;
 import app.petitesroues.library.ContentRepositoryService;
 import app.petitesroues.library.DocumentImportService;
+import app.petitesroues.library.LibraryResetService;
 import app.petitesroues.library.RepositoryContentService;
 import app.petitesroues.library.discovery.ContentRepositoryScanner;
 import app.petitesroues.library.persistence.AcceptedDocumentStore;
 import app.petitesroues.library.persistence.CatalogueStore;
 import app.petitesroues.library.persistence.ContentRepositoryStore;
+import app.petitesroues.library.persistence.LibraryResetStore;
 import app.petitesroues.library.persistence.MediaStore;
 import app.petitesroues.media.Ffmpeg;
 import app.petitesroues.media.MediaProbe;
@@ -71,6 +73,9 @@ public final class StudyTestServices implements AutoCloseable {
   /** Repository Add/Refresh/Remove over the real scanner and probe, using {@link #registration}. */
   public final ContentRepositoryService contentRepositories;
 
+  /** Library reset over {@link #contentRepositories}, the queue and this database. */
+  public final LibraryResetService reset;
+
   private final ContentRepositoryScanner scanner = new ContentRepositoryScanner();
   public final StudyDocumentReader reader;
   private final MediaProbe probe;
@@ -109,6 +114,9 @@ public final class StudyTestServices implements AutoCloseable {
             titles, documents, accepted, imports, acceptedDocuments, queue, served, transactions);
     editing = new DocumentEditingService(titles, served, queue, transactions);
     contentRepositories = contentRepositories(registration);
+    reset =
+        new LibraryResetService(
+            new LibraryResetStore(jdbc), queue, contentRepositories, transactions);
   }
 
   /** Starts a fixture whose database lives in {@code directory} (a JUnit {@code @TempDir}). */

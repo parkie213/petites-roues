@@ -63,6 +63,9 @@ export function Library({ actionsTarget }: { actionsTarget?: Element | null }) {
           onConnect={() => setConnecting(true)}
           onRefresh={library.refreshLibrary}
           onAdd={library.addFolder}
+          hasPendingEdits={library.pendingEdits}
+          onMenuOpen={library.checkPendingEdits}
+          onReset={library.resetLibrary}
         />
         <LibraryToolbar
           view={selection.view}

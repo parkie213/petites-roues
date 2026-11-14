@@ -2,6 +2,7 @@ package app.petitesroues.web;
 
 import app.petitesroues.library.ContentRepositoryService;
 import app.petitesroues.library.LibraryJobService;
+import app.petitesroues.library.LibraryResetService;
 import app.petitesroues.model.library.LibraryJob;
 import org.springframework.http.CacheControl;
 import org.springframework.http.HttpStatus;
@@ -14,25 +15,30 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
- * Add and Refresh as background jobs whose progress the library polls, so adding a large folder
- * shows how far it has got. The synchronous endpoints in {@link RepositoriesController} remain for
- * scripts and tests. Work runs in {@link LibraryJobService}; this controller starts jobs and
- * returns their latest state.
+ * Add, Refresh and Reset as background jobs whose progress the library polls, so adding a large
+ * folder shows how far it has got. The synchronous endpoints in {@link RepositoriesController}
+ * remain for scripts and tests. Work runs in {@link LibraryJobService}; this controller starts jobs
+ * and returns their latest state.
  */
 @RestController
 @RequestMapping("/api/jobs")
 public class LibraryJobController {
   private final LibraryJobService jobs;
   private final ContentRepositoryService repositories;
+  private final LibraryResetService reset;
 
-  public LibraryJobController(LibraryJobService jobs, ContentRepositoryService repositories) {
+  public LibraryJobController(
+      LibraryJobService jobs, ContentRepositoryService repositories, LibraryResetService reset) {
     this.jobs = jobs;
     this.repositories = repositories;
+    this.reset = reset;
   }
 
   /**
    * What to do: {@code add} a folder at {@code localPath} (optionally {@code name}d), or {@code
-   * refresh} one folder by {@code repositoryId}, or every folder when it is absent.
+   * refresh} one folder by {@code repositoryId}, or every folder when it is absent, or {@code
+   * reset} the library (the other fields are ignored). A reset that finds pending edits fails the
+   * job with the reason.
    */
   public record Start(String kind, String localPath, String name, String repositoryId) {}
 
@@ -55,6 +61,7 @@ public class LibraryJobController {
                     if (request.repositoryId() == null) repositories.refreshAll(progress);
                     else repositories.refresh(request.repositoryId(), progress);
                   });
+          case "reset" -> jobs.start("reset", reset::reset);
           default -> throw new IllegalArgumentException("Unknown job: " + request.kind());
         };
     return ResponseEntity.status(HttpStatus.ACCEPTED).body(job);
