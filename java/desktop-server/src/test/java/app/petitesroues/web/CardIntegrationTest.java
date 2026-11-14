@@ -10,6 +10,7 @@ import app.petitesroues.model.document.ComicReference;
 import app.petitesroues.model.document.ReadingDirection;
 import app.petitesroues.model.library.CatalogueItem;
 import app.petitesroues.model.library.Library;
+import app.petitesroues.model.library.MediaItem;
 import app.petitesroues.support.DocumentFixtures;
 import app.petitesroues.support.HttpIntegrationTest;
 import java.awt.image.BufferedImage;
@@ -158,6 +159,65 @@ class CardIntegrationTest extends HttpIntegrationTest {
     Files.delete(tome.resolve("poster.png"));
     Files.delete(tome.resolve("book.cbz"));
     assertEquals(404, status(api + "/card"));
+  }
+
+  @Test
+  void landscapeCardIsThePosterElseAFrameOfTheVideoAndAMissingFrameIsAPlaceholder()
+      throws Exception {
+    Path folder = Files.createDirectories(root.resolve("videos/clip"));
+    Path video = folder.resolve("Clip.mp4");
+    new ProcessBuilder(
+            "ffmpeg",
+            "-v",
+            "error",
+            "-y",
+            "-f",
+            "lavfi",
+            "-i",
+            "testsrc=size=320x240:rate=10:duration=2",
+            "-pix_fmt",
+            "yuv420p",
+            video.toString())
+        .inheritIO()
+        .start()
+        .waitFor();
+    http.post()
+        .uri("/api/repositories")
+        .body(Map.of("localPath", root.resolve("videos").toString()))
+        .retrieve()
+        .toBodilessEntity();
+    String api = "/api/media/" + onlyMedia().fingerprint();
+
+    // A video with no poster has no portrait card, but a landscape shelf shows a 16:9 frame.
+    assertEquals(404, status(api + "/card"));
+    var frame = image(api + "/frame-card");
+    assertEquals(480, frame.getWidth());
+    assertEquals(270, frame.getHeight());
+
+    // A poster beside the media wins over the frame, under its own version.
+    String frameUrl = location(api + "/frame-card");
+    Files.write(folder.resolve("poster.png"), image(160, 90));
+    http.post().uri("/api/repositories/refresh").retrieve().toBodilessEntity();
+    assertEquals(160, image(api + "/frame-card").getWidth());
+    assertNotEquals(frameUrl, location(api + "/frame-card"));
+
+    // A video without a poster that cannot be read has no frame: 404, the placeholder.
+    Files.delete(folder.resolve("poster.png"));
+    http.post().uri("/api/repositories/refresh").retrieve().toBodilessEntity();
+    String unreadable = location(api + "/frame-card");
+    Files.write(video, new byte[] {1, 2, 3});
+    assertEquals(404, status(api + "/frame-card/" + unreadable));
+  }
+
+  private MediaItem onlyMedia() {
+    return http.get()
+        .uri("/api/library")
+        .retrieve()
+        .body(Library.class)
+        .repositories()
+        .getFirst()
+        .media()
+        .getFirst();
   }
 
   private CatalogueItem onlyTitle() {

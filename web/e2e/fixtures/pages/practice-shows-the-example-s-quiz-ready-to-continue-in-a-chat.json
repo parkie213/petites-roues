@@ -16,11 +16,38 @@
             "name": "documents-fr",
             "localPath": "<repository>/example/documents-fr",
             "lastRefreshedAt": "2026-01-01T00:00:00Z",
-            "titles": 3,
+            "titles": 4,
             "missing": 0,
             "media": 0
           },
           "entries": [
+            {
+              "id": "demonstration-courte-example-fr",
+              "documentId": "demonstration-courte-example-fr",
+              "title": "Une vidéo de démonstration",
+              "series": null,
+              "season": null,
+              "episode": null,
+              "volume": null,
+              "shelf": "YouTube",
+              "sourceLanguage": "fr",
+              "sourceUrl": null,
+              "repositoryId": "00000000-0000-4000-8000-000000000001",
+              "repositoryName": "documents-fr",
+              "relativePath": "youtube/demonstration-courte/document.json",
+              "durationSeconds": 3,
+              "documentAvailable": true,
+              "videoAvailable": true,
+              "unavailable": {},
+              "type": "video",
+              "mediaAvailable": true,
+              "posterAvailable": false,
+              "seriesPosterAvailable": false,
+              "progress": null,
+              "mediaRepositoryId": "00000000-0000-4000-8000-000000000002",
+              "mediaPath": "youtube/demonstration-courte.mp4",
+              "mediaLinkedByHand": false
+            },
             {
               "id": "lulu-example-le-parapluie",
               "documentId": "lulu-example-le-parapluie",
@@ -115,7 +142,7 @@
             "lastRefreshedAt": "2026-01-01T00:00:00Z",
             "titles": 0,
             "missing": 0,
-            "media": 3
+            "media": 4
           },
           "entries": [],
           "media": [
@@ -162,6 +189,20 @@
               "warnings": [
                 "No study document"
               ]
+            },
+            {
+              "repositoryId": "00000000-0000-4000-8000-000000000002",
+              "relativePath": "youtube/demonstration-courte.mp4",
+              "series": "Youtube",
+              "title": "Demonstration courte",
+              "kind": "video",
+              "fingerprint": "v1:f53a24fcc06e9d5adcfff4407273ec271031dd5fcf84692f4b84ca80fcac9e77",
+              "titleId": "demonstration-courte-example-fr",
+              "linkedByHand": false,
+              "durationSeconds": 3,
+              "posterAvailable": false,
+              "seriesPosterAvailable": false,
+              "warnings": []
             }
           ]
         }
@@ -253,7 +294,8 @@
                 "url": "/api/titles/lulu-example-le-parapluie/card"
               }
             }
-          ]
+          ],
+          "landscape": false
         },
         {
           "key": "series",
@@ -396,7 +438,90 @@
                 "url": "/api/titles/peppa-pig-example-s01e01/series-card"
               }
             }
-          ]
+          ],
+          "landscape": false
+        },
+        {
+          "key": "youtube",
+          "label": "YouTube",
+          "groups": [
+            {
+              "key": "youtube:d:demonstration-courte-example-fr",
+              "shelf": "youtube",
+              "type": "video",
+              "language": "fr",
+              "name": "Une vidéo de démonstration",
+              "single": true,
+              "slots": [
+                {
+                  "key": "d:demonstration-courte-example-fr",
+                  "entry": {
+                    "id": "demonstration-courte-example-fr",
+                    "documentId": "demonstration-courte-example-fr",
+                    "title": "Une vidéo de démonstration",
+                    "series": null,
+                    "season": null,
+                    "episode": null,
+                    "volume": null,
+                    "shelf": "YouTube",
+                    "sourceLanguage": "fr",
+                    "type": "video",
+                    "repositoryId": "00000000-0000-4000-8000-000000000001",
+                    "durationSeconds": 3,
+                    "documentAvailable": true,
+                    "videoAvailable": true,
+                    "mediaAvailable": true,
+                    "posterAvailable": false,
+                    "seriesPosterAvailable": false,
+                    "unavailable": {},
+                    "progress": null,
+                    "fingerprint": null,
+                    "mediaPath": "youtube/demonstration-courte.mp4",
+                    "mediaRepositoryId": "00000000-0000-4000-8000-000000000002",
+                    "linkedByHand": false
+                  },
+                  "copies": [
+                    {
+                      "id": "demonstration-courte-example-fr",
+                      "documentId": "demonstration-courte-example-fr",
+                      "title": "Une vidéo de démonstration",
+                      "series": null,
+                      "season": null,
+                      "episode": null,
+                      "volume": null,
+                      "shelf": "YouTube",
+                      "sourceLanguage": "fr",
+                      "type": "video",
+                      "repositoryId": "00000000-0000-4000-8000-000000000001",
+                      "durationSeconds": 3,
+                      "documentAvailable": true,
+                      "videoAvailable": true,
+                      "mediaAvailable": true,
+                      "posterAvailable": false,
+                      "seriesPosterAvailable": false,
+                      "unavailable": {},
+                      "progress": null,
+                      "fingerprint": null,
+                      "mediaPath": "youtube/demonstration-courte.mp4",
+                      "mediaRepositoryId": "00000000-0000-4000-8000-000000000002",
+                      "linkedByHand": false
+                    }
+                  ],
+                  "label": "Une vidéo de démonstration",
+                  "detail": null,
+                  "art": {
+                    "url": "/api/titles/demonstration-courte-example-fr/frame-card"
+                  }
+                }
+              ],
+              "seasons": [],
+              "count": null,
+              "art": {
+                "url": "/api/titles/demonstration-courte-example-fr/frame-card"
+              }
+            }
+          ],
+          "landscape": true
         }
       ],
       "folders": [
@@ -410,7 +535,7 @@
     "status": 200,
     "type": "application/json",
     "json": {
-      "libraryBytes": 2381254,
+      "libraryBytes": 2415850,
       "disks": [
         {
           "repositories": [
@@ -443,6 +568,17 @@
         "text": "# Verbs followed by an infinitive\n\nThe learner is studying French and wants explanations in English.\n\nDrill a conjugated verb followed by an infinitive: the dictionary form of the next verb.\nCover direct combinations (`aimer`, `adorer`, `vouloir`, `pouvoir`, `devoir`, `aller`),\nthen expressions with `de` (`avoir envie de`, `essayer de`, `oublier de`) and `à`\n(`commencer à`, `apprendre à`). Keep the same subject for both actions.\n\n## Exercise\n\nGive a short English sentence and ask for natural French. Invent varied everyday situations:\nfood, travel, work, study, hobbies, plans and chores. Use different subjects and verbs; do not\nrely on a show, its characters or its dialogue. Start with direct combinations in the present,\nthen mix in `de`, `à`, questions and negation as the learner improves. Keep vocabulary simple\nso the challenge is choosing and forming the verb construction.\n\n## Traps to look for\n\n- Conjugating both verbs: `je veux partir` — I want to leave. Here `veux` changes with the\n  subject; `partir` stays in the infinitive because it names the wanted action.\n- Copying English -ing: `j'aime cuisiner` — I like cooking. French uses the infinitive after\n  `aimer`, even when English uses -ing.\n- Treating English \"to\" as a fixed French word: `je peux venir` — I can come;\n  `j'essaie de comprendre` — I'm trying to understand; `j'apprends à conduire` — I'm learning\n  to drive. Learn each leading expression with its connector; English cannot predict it.\n- Negating the wrong action: `je ne veux pas partir` — I don't want to leave;\n  `je veux ne pas oublier` — I want not to forget. Position changes what is negated.\n\n## Examples of the style wanted\n\n- Nous devons acheter du pain. — We need to buy bread.\n- Tu as envie de regarder un film ? — Do you feel like watching a film?\n- Elle commence à apprendre le français. — She's starting to learn French.\n"
       }
     ]
+  },
+  {
+    "request": "GET /api/titles/demonstration-courte-example-fr/frame-card",
+    "status": 302,
+    "location": "/api/titles/demonstration-courte-example-fr/frame-card/3bbc6a83962dd1d10baf"
+  },
+  {
+    "request": "GET /api/titles/demonstration-courte-example-fr/frame-card/3bbc6a83962dd1d10baf",
+    "status": 200,
+    "type": "image/jpeg",
+    "blob": "7103fb8a90804628.jpg"
   },
   {
     "request": "GET /api/titles/lulu-example-le-parapluie/card",

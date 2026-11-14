@@ -250,7 +250,13 @@ export interface PosterGroup {
 
 /** GET /api/library/posters; grouping and preferred copies belong to the server. */
 export interface PosterShelves {
-  shelves: { key: string; label: string; groups: PosterGroup[] }[];
+  shelves: {
+    key: string;
+    label: string;
+    groups: PosterGroup[];
+    /** Cards drawn 16:9: a shelf a document named, holding only videos. */
+    landscape: boolean;
+  }[];
   folders: string[];
   multilingual: boolean;
 }

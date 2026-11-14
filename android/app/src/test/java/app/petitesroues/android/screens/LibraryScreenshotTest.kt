@@ -45,6 +45,7 @@ class LibraryScreenshotTest {
     // Cards decode their images on a background thread; load them first so they're drawn.
     runBlocking {
       images.load(CardSource.Poster(Fixtures.poster))
+      images.load(CardSource.Poster(Fixtures.poster, wide = true))
       images.load(CardSource.Page(Fixtures.comic, null))
     }
     compose.setContent {
@@ -105,6 +106,22 @@ class LibraryScreenshotTest {
         emptyList(),
         null,
         usage = "3.2 GB · 41 GB free",
+      )
+    )
+    compose.onRoot().captureRoboImage()
+  }
+
+  /** Videos on a shelf a document named are 16:9, two portrait cells wide; the rest stay 2:3. */
+  @Test
+  fun landscapeShelf() {
+    library(
+      LibraryUiState(
+        folders,
+        Fixtures.titles.filter { it.name == "La rivière" } + Fixtures.youtube,
+        Fixtures.progress,
+        false,
+        emptyList(),
+        null,
       )
     )
     compose.onRoot().captureRoboImage()

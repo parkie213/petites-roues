@@ -101,6 +101,7 @@ class PostersIntegrationTest extends HttpIntegrationTest {
     assertTrue(all.path("multilingual").asBoolean());
     var comics = all.path("shelves").get(0);
     assertEquals("Comics", comics.path("label").asString());
+    assertFalse(comics.path("landscape").asBoolean(), "a built-in shelf is portrait");
     assertEquals(List.of("Naruto", "Tintin"), names(all));
 
     var naruto = comics.path("groups").get(0);

@@ -231,6 +231,17 @@ Without an image, a comic uses its first page and a video gets a placeholder. Ke
 poster per folder: when a folder has several, the media it affects shows a (!) and no poster. Refresh finds posters, so click **Refresh library** after adding one; replacing an existing poster's image needs no Refresh. Card-sized copies are cached locally in `content/.cache/cards/`
 (`petitesroues.cards.cache`) and can be deleted at any time.
 
+A shelf is **landscape** when a document's `shelf` names it (so not the built-in Comics, Series,
+Films or Unsorted, even if a document names one of those) and every card on it is a video: a
+YouTube or Music videos shelf, say. Its cards are 16:9 instead of 2:3, in wider grid cells, on the
+desktop and on Android. A landscape card shows the poster beside its media when there is one,
+else a frame grabbed from the video about a quarter of the way in (to skip intros), scaled to 480
+pixels wide and center-cropped to 16:9. The frame is cached like other card images, named by the
+video's path, size and modification time, and needs `ffmpeg` on the desktop; without it, or for an
+unreadable video, the card keeps the placeholder. A shelf that holds a comic stays 2:3, whatever
+its name. The shared shelf rules (`Shelves`) decide this, and the posters API reports it as
+`landscape` on each shelf.
+
 Posters group titles from document metadata onto shelves (see `shelf` above), ordered by name:
 comics by `series` and `comic.volume`, videos with a season or episode by `series`, and other
 videos one card each. A series card sits on the shelf most of its titles name, so one volume

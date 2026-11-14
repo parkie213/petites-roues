@@ -70,11 +70,38 @@
             "name": "documents-fr",
             "localPath": "<repository>/example/documents-fr",
             "lastRefreshedAt": "2026-01-01T00:00:00Z",
-            "titles": 3,
+            "titles": 4,
             "missing": 0,
             "media": 0
           },
           "entries": [
+            {
+              "id": "demonstration-courte-example-fr",
+              "documentId": "demonstration-courte-example-fr",
+              "title": "Une vidéo de démonstration",
+              "series": null,
+              "season": null,
+              "episode": null,
+              "volume": null,
+              "shelf": "YouTube",
+              "sourceLanguage": "fr",
+              "sourceUrl": null,
+              "repositoryId": "00000000-0000-4000-8000-000000000002",
+              "repositoryName": "documents-fr",
+              "relativePath": "youtube/demonstration-courte/document.json",
+              "durationSeconds": 3,
+              "documentAvailable": true,
+              "videoAvailable": true,
+              "unavailable": {},
+              "type": "video",
+              "mediaAvailable": true,
+              "posterAvailable": false,
+              "seriesPosterAvailable": false,
+              "progress": null,
+              "mediaRepositoryId": "00000000-0000-4000-8000-000000000003",
+              "mediaPath": "youtube/demonstration-courte.mp4",
+              "mediaLinkedByHand": false
+            },
             {
               "id": "lulu-example-le-parapluie",
               "documentId": "lulu-example-le-parapluie",
@@ -169,7 +196,7 @@
             "lastRefreshedAt": "2026-01-01T00:00:00Z",
             "titles": 0,
             "missing": 0,
-            "media": 3
+            "media": 4
           },
           "entries": [],
           "media": [
@@ -216,6 +243,20 @@
               "warnings": [
                 "No study document"
               ]
+            },
+            {
+              "repositoryId": "00000000-0000-4000-8000-000000000003",
+              "relativePath": "youtube/demonstration-courte.mp4",
+              "series": "Youtube",
+              "title": "Demonstration courte",
+              "kind": "video",
+              "fingerprint": "v1:f53a24fcc06e9d5adcfff4407273ec271031dd5fcf84692f4b84ca80fcac9e77",
+              "titleId": "demonstration-courte-example-fr",
+              "linkedByHand": false,
+              "durationSeconds": 3,
+              "posterAvailable": false,
+              "seriesPosterAvailable": false,
+              "warnings": []
             }
           ]
         }
@@ -234,11 +275,38 @@
             "name": "documents-fr",
             "localPath": "<repository>/example/documents-fr",
             "lastRefreshedAt": "2026-01-01T00:00:00Z",
-            "titles": 3,
+            "titles": 4,
             "missing": 0,
             "media": 0
           },
           "entries": [
+            {
+              "id": "demonstration-courte-example-fr",
+              "documentId": "demonstration-courte-example-fr",
+              "title": "Une vidéo de démonstration",
+              "series": null,
+              "season": null,
+              "episode": null,
+              "volume": null,
+              "shelf": "YouTube",
+              "sourceLanguage": "fr",
+              "sourceUrl": null,
+              "repositoryId": "00000000-0000-4000-8000-000000000002",
+              "repositoryName": "documents-fr",
+              "relativePath": "youtube/demonstration-courte/document.json",
+              "durationSeconds": 3,
+              "documentAvailable": true,
+              "videoAvailable": true,
+              "unavailable": {},
+              "type": "video",
+              "mediaAvailable": true,
+              "posterAvailable": false,
+              "seriesPosterAvailable": false,
+              "progress": null,
+              "mediaRepositoryId": "00000000-0000-4000-8000-000000000003",
+              "mediaPath": "youtube/demonstration-courte.mp4",
+              "mediaLinkedByHand": false
+            },
             {
               "id": "lulu-example-le-parapluie",
               "documentId": "lulu-example-le-parapluie",
@@ -363,7 +431,7 @@
             "lastRefreshedAt": "2026-01-01T00:00:00Z",
             "titles": 0,
             "missing": 0,
-            "media": 3
+            "media": 4
           },
           "entries": [],
           "media": [
@@ -410,6 +478,20 @@
               "warnings": [
                 "No study document"
               ]
+            },
+            {
+              "repositoryId": "00000000-0000-4000-8000-000000000003",
+              "relativePath": "youtube/demonstration-courte.mp4",
+              "series": "Youtube",
+              "title": "Demonstration courte",
+              "kind": "video",
+              "fingerprint": "v1:f53a24fcc06e9d5adcfff4407273ec271031dd5fcf84692f4b84ca80fcac9e77",
+              "titleId": "demonstration-courte-example-fr",
+              "linkedByHand": false,
+              "durationSeconds": 3,
+              "posterAvailable": false,
+              "seriesPosterAvailable": false,
+              "warnings": []
             }
           ]
         }
@@ -501,7 +583,8 @@
                 "url": "/api/titles/lulu-example-le-parapluie/card"
               }
             }
-          ]
+          ],
+          "landscape": false
         },
         {
           "key": "series",
@@ -644,7 +727,90 @@
                 "url": "/api/titles/peppa-pig-example-s01e01/series-card"
               }
             }
-          ]
+          ],
+          "landscape": false
+        },
+        {
+          "key": "youtube",
+          "label": "YouTube",
+          "groups": [
+            {
+              "key": "youtube:d:demonstration-courte-example-fr",
+              "shelf": "youtube",
+              "type": "video",
+              "language": "fr",
+              "name": "Une vidéo de démonstration",
+              "single": true,
+              "slots": [
+                {
+                  "key": "d:demonstration-courte-example-fr",
+                  "entry": {
+                    "id": "demonstration-courte-example-fr",
+                    "documentId": "demonstration-courte-example-fr",
+                    "title": "Une vidéo de démonstration",
+                    "series": null,
+                    "season": null,
+                    "episode": null,
+                    "volume": null,
+                    "shelf": "YouTube",
+                    "sourceLanguage": "fr",
+                    "type": "video",
+                    "repositoryId": "00000000-0000-4000-8000-000000000002",
+                    "durationSeconds": 3,
+                    "documentAvailable": true,
+                    "videoAvailable": true,
+                    "mediaAvailable": true,
+                    "posterAvailable": false,
+                    "seriesPosterAvailable": false,
+                    "unavailable": {},
+                    "progress": null,
+                    "fingerprint": null,
+                    "mediaPath": "youtube/demonstration-courte.mp4",
+                    "mediaRepositoryId": "00000000-0000-4000-8000-000000000003",
+                    "linkedByHand": false
+                  },
+                  "copies": [
+                    {
+                      "id": "demonstration-courte-example-fr",
+                      "documentId": "demonstration-courte-example-fr",
+                      "title": "Une vidéo de démonstration",
+                      "series": null,
+                      "season": null,
+                      "episode": null,
+                      "volume": null,
+                      "shelf": "YouTube",
+                      "sourceLanguage": "fr",
+                      "type": "video",
+                      "repositoryId": "00000000-0000-4000-8000-000000000002",
+                      "durationSeconds": 3,
+                      "documentAvailable": true,
+                      "videoAvailable": true,
+                      "mediaAvailable": true,
+                      "posterAvailable": false,
+                      "seriesPosterAvailable": false,
+                      "unavailable": {},
+                      "progress": null,
+                      "fingerprint": null,
+                      "mediaPath": "youtube/demonstration-courte.mp4",
+                      "mediaRepositoryId": "00000000-0000-4000-8000-000000000003",
+                      "linkedByHand": false
+                    }
+                  ],
+                  "label": "Une vidéo de démonstration",
+                  "detail": null,
+                  "art": {
+                    "url": "/api/titles/demonstration-courte-example-fr/frame-card"
+                  }
+                }
+              ],
+              "seasons": [],
+              "count": null,
+              "art": {
+                "url": "/api/titles/demonstration-courte-example-fr/frame-card"
+              }
+            }
+          ],
+          "landscape": true
         }
       ],
       "folders": [
@@ -738,7 +904,8 @@
                 "url": "/api/titles/lulu-example-le-parapluie/card"
               }
             }
-          ]
+          ],
+          "landscape": false
         },
         {
           "key": "series",
@@ -956,7 +1123,90 @@
                 "url": "/api/titles/peppa-pig-example-s01e01/series-card"
               }
             }
-          ]
+          ],
+          "landscape": false
+        },
+        {
+          "key": "youtube",
+          "label": "YouTube",
+          "groups": [
+            {
+              "key": "youtube:d:demonstration-courte-example-fr",
+              "shelf": "youtube",
+              "type": "video",
+              "language": "fr",
+              "name": "Une vidéo de démonstration",
+              "single": true,
+              "slots": [
+                {
+                  "key": "d:demonstration-courte-example-fr",
+                  "entry": {
+                    "id": "demonstration-courte-example-fr",
+                    "documentId": "demonstration-courte-example-fr",
+                    "title": "Une vidéo de démonstration",
+                    "series": null,
+                    "season": null,
+                    "episode": null,
+                    "volume": null,
+                    "shelf": "YouTube",
+                    "sourceLanguage": "fr",
+                    "type": "video",
+                    "repositoryId": "00000000-0000-4000-8000-000000000002",
+                    "durationSeconds": 3,
+                    "documentAvailable": true,
+                    "videoAvailable": true,
+                    "mediaAvailable": true,
+                    "posterAvailable": false,
+                    "seriesPosterAvailable": false,
+                    "unavailable": {},
+                    "progress": null,
+                    "fingerprint": null,
+                    "mediaPath": "youtube/demonstration-courte.mp4",
+                    "mediaRepositoryId": "00000000-0000-4000-8000-000000000003",
+                    "linkedByHand": false
+                  },
+                  "copies": [
+                    {
+                      "id": "demonstration-courte-example-fr",
+                      "documentId": "demonstration-courte-example-fr",
+                      "title": "Une vidéo de démonstration",
+                      "series": null,
+                      "season": null,
+                      "episode": null,
+                      "volume": null,
+                      "shelf": "YouTube",
+                      "sourceLanguage": "fr",
+                      "type": "video",
+                      "repositoryId": "00000000-0000-4000-8000-000000000002",
+                      "durationSeconds": 3,
+                      "documentAvailable": true,
+                      "videoAvailable": true,
+                      "mediaAvailable": true,
+                      "posterAvailable": false,
+                      "seriesPosterAvailable": false,
+                      "unavailable": {},
+                      "progress": null,
+                      "fingerprint": null,
+                      "mediaPath": "youtube/demonstration-courte.mp4",
+                      "mediaRepositoryId": "00000000-0000-4000-8000-000000000003",
+                      "linkedByHand": false
+                    }
+                  ],
+                  "label": "Une vidéo de démonstration",
+                  "detail": null,
+                  "art": {
+                    "url": "/api/titles/demonstration-courte-example-fr/frame-card"
+                  }
+                }
+              ],
+              "seasons": [],
+              "count": null,
+              "art": {
+                "url": "/api/titles/demonstration-courte-example-fr/frame-card"
+              }
+            }
+          ],
+          "landscape": true
         }
       ],
       "folders": [
@@ -971,7 +1221,7 @@
     "status": 200,
     "type": "application/json",
     "json": {
-      "libraryBytes": 2381254,
+      "libraryBytes": 2415850,
       "disks": [
         {
           "repositories": [
@@ -989,7 +1239,7 @@
     "status": 200,
     "type": "application/json",
     "json": {
-      "libraryBytes": 3514823,
+      "libraryBytes": 3549419,
       "disks": [
         {
           "repositories": [
@@ -1013,7 +1263,7 @@
         "name": "documents-fr",
         "localPath": "<repository>/example/documents-fr",
         "lastRefreshedAt": "2026-01-01T00:00:00Z",
-        "titles": 3,
+        "titles": 4,
         "missing": 0,
         "media": 0
       },
@@ -1033,9 +1283,20 @@
         "lastRefreshedAt": "2026-01-01T00:00:00Z",
         "titles": 0,
         "missing": 0,
-        "media": 3
+        "media": 4
       }
     ]
+  },
+  {
+    "request": "GET /api/titles/demonstration-courte-example-fr/frame-card",
+    "status": 302,
+    "location": "/api/titles/demonstration-courte-example-fr/frame-card/3bbc6a83962dd1d10baf"
+  },
+  {
+    "request": "GET /api/titles/demonstration-courte-example-fr/frame-card/3bbc6a83962dd1d10baf",
+    "status": 200,
+    "type": "image/jpeg",
+    "blob": "7103fb8a90804628.jpg"
   },
   {
     "request": "GET /api/titles/lulu-example-le-parapluie/card",

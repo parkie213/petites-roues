@@ -24,6 +24,8 @@ object Fixtures {
     document: Boolean = true,
     media: Uri = Uri.parse("file:///fixtures/$path.media"),
     seriesPoster: Uri? = null,
+    poster: Uri? = null,
+    shelf: String? = null,
   ) =
     Title(
       path = "fixtures/$path",
@@ -37,9 +39,10 @@ object Fixtures {
       season = season,
       episode = episode,
       volume = volume,
-      poster = null,
+      poster = poster,
       seriesPoster = seriesPoster,
       firstPage = null,
+      shelf = shelf,
       sourceLanguage = "fr",
       mediaPath = "$path.media",
     )
@@ -84,6 +87,22 @@ object Fixtures {
       episode("s02e01", 2, 1),
       title("films/la-riviere", "La rivière", TitleKind.VIDEO),
       title("films/holiday", "holiday", TitleKind.VIDEO, document = false),
+    )
+
+  /**
+   * Two videos a document put on a "YouTube" shelf, which is landscape: one with its own poster and
+   * one without, whose card would show a frame of its video.
+   */
+  val youtube =
+    listOf(
+      title(
+        "youtube/cuisine",
+        "Une omelette parfaite",
+        TitleKind.VIDEO,
+        poster = Fixtures.poster,
+        shelf = "YouTube",
+      ),
+      title("youtube/voyage", "Voyage en Bretagne", TitleKind.VIDEO, shelf = "YouTube"),
     )
 
   val progress =

@@ -422,4 +422,42 @@ class ShelvesTest {
     assertTrue(NaturalOrder.COMPARATOR.compare("Naruto T09", "Naruto T10") < 0);
     assertTrue(NaturalOrder.COMPARATOR.compare("des frigos", "Paris") < 0);
   }
+
+  private static boolean landscape(String key, E... entries) {
+    return Shelves.shelves(Arrays.asList(entries)).stream()
+        .filter(shelf -> shelf.key().equals(key))
+        .findFirst()
+        .orElseThrow()
+        .landscape();
+  }
+
+  @Test
+  void aShelfADocumentNamesIsLandscapeWhenEveryCardOnItIsAVideo() {
+    var first = new E().title("Cuisine").shelf("YouTube");
+    var second = new E().title("Voyage").series("Chaine").shelf("YouTube");
+    assertTrue(landscape("youtube", first, second));
+    assertTrue(landscape("youtube", new E().shelf(" youtube "), new E().shelf("Music videos")));
+  }
+
+  @Test
+  void theBuiltInShelvesAreNeverLandscape() {
+    var film = new E().title("Amelie");
+    var episode = new E().series("Peppa").season(1).episode(1);
+    var comic = new E().kind(MediaKind.COMIC).title("Tintin").volume(1);
+    var unsorted = bare("misc/clip.mp4", MediaKind.VIDEO);
+    assertFalse(landscape("films", film));
+    assertFalse(landscape("series", episode));
+    assertFalse(landscape("comics", comic));
+    assertFalse(landscape(Shelves.seriesKey(Shelves.UNSORTED), unsorted));
+    // Naming a built-in shelf explicitly does not change that.
+    assertFalse(landscape("films", new E().shelf("Films")));
+  }
+
+  @Test
+  void aNamedShelfWithAComicOnItStaysPortrait() {
+    var video = new E().title("Clip").shelf("Manga");
+    var comic = new E().kind(MediaKind.COMIC).title("Naruto").volume(1).shelf("Manga");
+    assertFalse(landscape("manga", video, comic));
+    assertFalse(landscape("manga", comic));
+  }
 }

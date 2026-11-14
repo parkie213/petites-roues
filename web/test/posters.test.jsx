@@ -47,12 +47,13 @@ function group(overrides = {}) {
 }
 function open({
   groups = [group()],
+  landscape = false,
   selection = {},
   response,
   ...overrides
 } = {}) {
   const posters = {
-    shelves: [{ key: "films", label: "Films", groups }],
+    shelves: [{ key: "films", label: "Films", groups, landscape }],
     folders: ["repo", "other"],
     multilingual: true,
   };
@@ -262,4 +263,44 @@ test("replacing a request aborts the previous load", async () => {
   rerender({ language: "en" });
   expect(signal.aborted).toBe(true);
   expect(fetcher).toHaveBeenCalledTimes(2);
+});
+
+test("a landscape shelf draws 16:9 cards in wide cells; other shelves keep 2:3", async () => {
+  const single = group({
+    key: "clip",
+    name: "A clip",
+    single: true,
+    slots: [slot(entry({ id: "clip" }))],
+  });
+  open({ landscape: true, groups: [single] });
+  const card = (await screen.findByRole("link", { name: "A clip" })).closest(
+    ".poster-card",
+  );
+  expect(card.classList.contains("poster-landscape")).toBe(true);
+  expect(card.parentElement.classList.contains("poster-grid-landscape")).toBe(
+    true,
+  );
+});
+
+test("a portrait shelf's cards are not landscape", async () => {
+  open({ groups: [group({ key: "film", name: "A film" })] });
+  const card = (await screen.findByRole("link", { name: "A film" })).closest(
+    ".poster-card",
+  );
+  expect(card.classList.contains("poster-landscape")).toBe(false);
+  expect(card.parentElement.classList.contains("poster-grid-landscape")).toBe(
+    false,
+  );
+});
+
+test("the episodes of a series on a landscape shelf are landscape too", async () => {
+  open({
+    landscape: true,
+    selection: { group: "series" },
+    groups: [group({ slots: [slot(entry({ id: "Episode" }))] })],
+  });
+  const card = (await screen.findByRole("link", { name: "Episode" })).closest(
+    ".poster-card",
+  );
+  expect(card.classList.contains("poster-landscape")).toBe(true);
 });

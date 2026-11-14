@@ -89,8 +89,16 @@ public final class Shelves {
 
   /**
    * A shelf with its cards sorted by name; {@code key} matches labels ignoring case and spacing.
+   *
+   * @param landscape whether its cards are drawn 16:9 rather than 2:3: the shelf is one a document
+   *     named (not one of the built-in Comics, Series, Films and Unsorted) and every card on it is
+   *     a video, so a YouTube or Music videos shelf shows wide thumbnails
    */
-  public record Shelf<T>(String key, String label, List<Group<T>> groups) {}
+  public record Shelf<T>(String key, String label, List<Group<T>> groups, boolean landscape) {}
+
+  /** The shelves every library has by kind; a shelf of these names is never landscape. */
+  private static final Set<String> BUILT_IN =
+      Set.of("comics", "series", "films", seriesKey(UNSORTED));
 
   /** Series and shelf names match ignoring case, spacing and Unicode composition. */
   public static String seriesKey(String name) {
@@ -169,7 +177,9 @@ public final class Shelves {
     for (var key : groups.keySet()) {
       var cards = new ArrayList<>(groups.get(key));
       cards.sort(Comparator.comparing(Group::name, Comparator.nullsLast(NaturalOrder.COMPARATOR)));
-      result.add(new Shelf<>(key, mostCommon(labels.get(key)), List.copyOf(cards)));
+      boolean landscape =
+          !BUILT_IN.contains(key) && cards.stream().allMatch(c -> c.kind() == MediaKind.VIDEO);
+      result.add(new Shelf<>(key, mostCommon(labels.get(key)), List.copyOf(cards), landscape));
     }
     result.sort(Comparator.comparing(Shelf::label, NaturalOrder.COMPARATOR));
     return List.copyOf(result);

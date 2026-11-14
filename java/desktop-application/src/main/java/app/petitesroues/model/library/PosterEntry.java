@@ -122,6 +122,16 @@ public record PosterEntry(
     return base + (series ? "/series-card" : "/card");
   }
 
+  /**
+   * Where a frame grabbed from this entry's video is served, for cards on landscape shelves that
+   * have no poster.
+   */
+  public String frameUrl() {
+    String base =
+        fingerprint != null ? "/api/media/" + encode(fingerprint) : "/api/titles/" + encode(id);
+    return base + "/frame-card";
+  }
+
   private static String encode(String value) {
     return URLEncoder.encode(value, StandardCharsets.UTF_8).replace("+", "%20");
   }
