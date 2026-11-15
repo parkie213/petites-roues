@@ -86,8 +86,8 @@ import app.petitesroues.android.pages.StudyTabs
 import app.petitesroues.library.discovery.MediaKind
 import app.petitesroues.library.progress.LibraryProgress
 import app.petitesroues.library.shelves.Shelves
-import app.petitesroues.library.shelves.Shelves.CardArt
 import app.petitesroues.library.shelves.Shelves.Group
+import app.petitesroues.library.shelves.Shelves.Shape
 import app.petitesroues.library.shelves.Shelves.Shelf
 import app.petitesroues.library.shelves.Shelves.Slot
 import java.util.Locale
@@ -234,7 +234,14 @@ fun LibraryScreen(
         return@Column
       }
       if (open != null)
-        SeriesView(open, browse.season, cards, multilingual) { onBrowse(browse.copy(season = it)) }
+        SeriesView(
+          open,
+          browse.season,
+          cards,
+          multilingual,
+        ) {
+          onBrowse(browse.copy(season = it))
+        }
       else {
         if (shelves.isNotEmpty()) ShelfChips(shelves, shelf) { chosenShelf = it }
         PosterGrid(shelvesScroll) {
@@ -264,19 +271,24 @@ fun LibraryScreen(
                 )
               }
             }
-            items(shelf.groups, key = { it.key }) { group ->
+            items(
+              shelf.groups,
+              key = { it.key },
+              span = { landscapeSpan(it.shape() == Shape.LANDSCAPE, maxLineSpan) },
+            ) { group ->
               val language = group.language?.takeIf { multilingual }
               if (group.single) cards.Slot(group.slots.single(), group.name, null, language)
               else
                 cards.Card(
                   group.name,
                   group.count,
-                  group.art,
+                  CardSource.of(group.art, group.frame),
                   group.kind == MediaKind.COMIC,
                   null,
                   emptyList(),
                   onClick = { onBrowse(Browse(group.key)) },
                   language = language,
+                  landscape = group.shape() == Shape.LANDSCAPE,
                 )
             }
           }
@@ -322,7 +334,10 @@ private fun ShelfChips(shelves: List<Shelf<Title>>, chosen: String?, onChoose: (
   }
 }
 
-/** A grid of portrait cards that fits as many columns as the screen allows. */
+/**
+ * A grid of cards that fits as many columns as the screen allows. A card is portrait or landscape
+ * by its own [Shape], so one shelf can hold both.
+ */
 @Composable
 private fun PosterGrid(state: LazyGridState, content: LazyGridScope.() -> Unit) {
   LazyVerticalGrid(
@@ -335,6 +350,13 @@ private fun PosterGrid(state: LazyGridState, content: LazyGridScope.() -> Unit) 
     content = content,
   )
 }
+
+/**
+ * How many of a [PosterGrid]'s [columns] a card takes: one for a portrait card, two for a
+ * [landscape] one (as wide as two portrait cells), or the whole row when there is only one.
+ */
+internal fun landscapeSpan(landscape: Boolean, columns: Int): GridItemSpan =
+  GridItemSpan(if (landscape) minOf(2, columns) else 1)
 
 /** A full-width row in a [PosterGrid], such as a shelf heading. */
 private fun LazyGridScope.heading(content: @Composable () -> Unit) =
@@ -416,7 +438,13 @@ private fun SeriesView(
           }
       }
     }
-    items(slots, key = { it.key }) { slot -> cards.Slot(slot, slot.label, slot.detail) }
+    items(
+      slots,
+      key = { it.key },
+      span = { landscapeSpan(it.shape() == Shape.LANDSCAPE, maxLineSpan) },
+    ) { slot ->
+      cards.Slot(slot, slot.label, slot.detail)
+    }
   }
 }
 
@@ -429,7 +457,12 @@ private class Cards(
 ) {
   /** A tome, episode or single title: opens its preferred copy, or a chosen copy from the menu. */
   @Composable
-  fun Slot(slot: Slot<Title>, name: String, detail: String?, language: String? = null) {
+  fun Slot(
+    slot: Slot<Title>,
+    name: String,
+    detail: String?,
+    language: String? = null,
+  ) {
     val entry = slot.entry
     val problem =
       when {
@@ -445,7 +478,7 @@ private class Cards(
       listOfNotNull(detail, resume?.let { "Resume ${clock(it)}" }).joinToString(" · ").ifEmpty {
         null
       },
-      slot.art,
+      CardSource.of(slot.art, slot.frame),
       entry.kind == TitleKind.COMIC,
       problem,
       slot.copies,
@@ -460,18 +493,20 @@ private class Cards(
       progress = saved?.fraction?.takeIf { it > 0 }?.toFloat(),
       onClearProgress = if (saved != null) ({ onClearProgress(entry) }) else null,
       language = language,
+      landscape = slot.shape() == Shape.LANDSCAPE,
     )
   }
 
   /**
-   * A portrait card: art (or a tinted placeholder) with a thin [progress] bar along its bottom, a
-   * two-line name and a dimmed detail. [onClearProgress] adds a menu to forget the saved position.
+   * A portrait card (16:9 when [landscape]): art (or a tinted placeholder) with a thin [progress]
+   * bar along its bottom, a two-line name and a dimmed detail. [onClearProgress] adds a menu to
+   * forget the saved position.
    */
   @Composable
   fun Card(
     name: String,
     detail: String?,
-    art: CardArt<Title>?,
+    source: CardSource?,
     comic: Boolean,
     problem: String?,
     copies: List<Title>,
@@ -479,6 +514,7 @@ private class Cards(
     progress: Float? = null,
     onClearProgress: (() -> Unit)? = null,
     language: String? = null,
+    landscape: Boolean = false,
   ) {
     Column(
       Modifier.alpha(if (onClick == null) 0.55f else 1f),
@@ -486,7 +522,7 @@ private class Cards(
     ) {
       Box(
         Modifier.fillMaxWidth()
-          .aspectRatio(2f / 3f)
+          .aspectRatio(if (landscape) 16f / 9f else 2f / 3f)
           .clip(RoundedCornerShape(5.dp))
           // The art is what is tapped, so it carries the card's name for TalkBack.
           .then(
@@ -495,7 +531,7 @@ private class Cards(
             else Modifier
           )
       ) {
-        Art(CardSource.of(art), name, comic)
+        Art(source, name, comic)
         language?.let {
           Text(
             nativeName(it),

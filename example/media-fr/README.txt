@@ -18,3 +18,8 @@ demonstrations and are not covered by the repository's MIT licence.
 comics/lulu/le-parapluie-de-lulu.cbz
   Le parapluie de Lulu, a four-page comic made for this example. Unlike the clips, it is
   original and covered by the repository's MIT licence.
+
+youtube/demonstration-courte.mp4
+  A three-second 4:3 test pattern with a silent audio track, generated with ffmpeg (testsrc2) for this example. Its document
+  names the shelf "YouTube", so the library shows it as a wide card with a frame grabbed from the
+  video. Original and covered by the repository's MIT licence, unlike the clips.

@@ -1,0 +1,16 @@
+{
+  "id": "demonstration-courte-example-fr",
+  "title": "Une vidéo de démonstration",
+  "sourceLanguage": "fr",
+  "translationLanguage": "en",
+  "notesLanguage": "en",
+  "shelf": "YouTube",
+  "video": {
+    "reference": {
+      "fingerprint": "v1:f53a24fcc06e9d5adcfff4407273ec271031dd5fcf84692f4b84ca80fcac9e77",
+      "sizeBytes": 33859,
+      "durationSeconds": 3.0
+    },
+    "cues": []
+  }
+}

@@ -100,10 +100,12 @@ async function exampleFile(body) {
 const randomId =
   /[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}/g;
 
-// A media file's or card's version in its URL, made from the file's path, size and modified time,
-// which differ between checkouts.
+// A media file's, card's or frame card's version in its URL, made from the file's path, size and
+// modified time, which differ between checkouts. A frame card is `/frame-card/{version}` under a
+// title (`/titles/{id}/`) or a media file (`/media/{fingerprint}/`), so the segment before the
+// version may be `frame-card` as well as the bare route names.
 const fileVersion =
-  /\/(media|video|card|series-card)\/(?:\d+-\d+|[0-9a-f]{20})(?=$|[/?"])/g;
+  /\/(media|video|card|series-card|frame-card)\/(?:\d+-\d+|[0-9a-f]{20})(?=$|[/?"])/g;
 
 /**
  * Replaces each random id in a recording with the next fixed one, the same one wherever it recurs,

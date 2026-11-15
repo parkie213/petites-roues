@@ -6,16 +6,17 @@ import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Set;
 import org.springframework.stereotype.Component;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 
 /**
- * Lists a video's audio tracks and duration with ffprobe and writes thumbnails with ffmpeg. Both
- * tools must be on the PATH. Browsers play only a file's first audio track, whichever the file
- * marks as default, and cannot decode AC3, E-AC3 or DTS, so each track records whether a browser
- * could play it.
+ * Lists a video's audio tracks and duration with ffprobe and writes thumbnails and video frames
+ * with ffmpeg. Both tools must be on the PATH. Browsers play only a file's first audio track,
+ * whichever the file marks as default, and cannot decode AC3, E-AC3 or DTS, so each track records
+ * whether a browser could play it.
  */
 @Component
 public class Ffmpeg {
@@ -90,27 +91,45 @@ public class Ffmpeg {
    * its own temporary file beside it and moves that into place.
    */
   public void thumbnail(Path image, int width, Path target) throws IOException {
+    writeJpeg(target, List.of("-i", image.toString()), "scale='min(" + width + ",iw)':-2");
+  }
+
+  /**
+   * Writes {@code target} as a 16:9 JPEG, {@code width} pixels wide, of a frame grabbed from {@code
+   * video} {@code fraction} of the way through its duration (a fraction past the opening credits
+   * and intros, such as 0.25). The frame is scaled to cover and center-cropped, so a 4:3 or
+   * portrait video loses its edges rather than being stretched. Like {@link #thumbnail}, the file
+   * appears complete or not at all.
+   *
+   * @throws IOException if ffmpeg or ffprobe is not installed, or the video cannot be read
+   */
+  public void frame(Path video, double fraction, int width, Path target) throws IOException {
+    double at = duration(video) * fraction;
+    int height = width * 9 / 16;
+    writeJpeg(
+        target,
+        List.of("-ss", String.format(Locale.ROOT, "%.3f", at), "-i", video.toString()),
+        "scale="
+            + width
+            + ":"
+            + height
+            + ":force_original_aspect_ratio=increase,crop="
+            + width
+            + ":"
+            + height);
+  }
+
+  /** Runs ffmpeg for one JPEG frame with {@code input}, writing {@code target} atomically. */
+  private void writeJpeg(Path target, List<String> input, String filter) throws IOException {
     Path partial =
         Files.createTempFile(target.getParent(), target.getFileName() + ".", ".partial.jpg");
     try {
-      processes.run(
+      var command = new ArrayList<>(List.of("ffmpeg", "-nostdin", "-v", "error", "-y"));
+      command.addAll(input);
+      command.addAll(
           List.of(
-              "ffmpeg",
-              "-nostdin",
-              "-v",
-              "error",
-              "-y",
-              "-i",
-              image.toString(),
-              "-frames:v",
-              "1",
-              "-vf",
-              "scale='min(" + width + ",iw)':-2",
-              "-q:v",
-              "3",
-              "-update",
-              "1",
-              partial.toString()));
+              "-frames:v", "1", "-vf", filter, "-q:v", "3", "-update", "1", partial.toString()));
+      processes.run(command);
       Files.move(
           partial, target, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);
     } finally {

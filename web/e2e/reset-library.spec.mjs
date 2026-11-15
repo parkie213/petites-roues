@@ -9,7 +9,7 @@ test("Reset library rebuilds the library from its folders", async ({
   page,
 }) => {
   await page.goto("/");
-  await expect(page.getByText("2 videos · 1 comic")).toBeVisible();
+  await expect(page.getByText("3 videos · 1 comic")).toBeVisible();
   const before = await readJson(page, "/api/library");
   expect(entries(before).length).toBeGreaterThan(0);
 
@@ -31,7 +31,7 @@ test("Reset library rebuilds the library from its folders", async ({
   await expect(
     page.getByText("Library reset and rebuilt.", { exact: true }),
   ).toBeVisible({ timeout: 30_000 });
-  await expect(page.getByText("2 videos · 1 comic")).toBeVisible();
+  await expect(page.getByText("3 videos · 1 comic")).toBeVisible();
   expect(await readJson(page, "/api/jobs/latest")).toMatchObject({
     kind: "reset",
     state: "succeeded",
@@ -42,5 +42,5 @@ test("Reset library rebuilds the library from its folders", async ({
     before.repositories.map((repo) => repo.repository.id).sort(),
   );
   await page.reload();
-  await expect(page.getByText("2 videos · 1 comic")).toBeVisible();
+  await expect(page.getByText("3 videos · 1 comic")).toBeVisible();
 });

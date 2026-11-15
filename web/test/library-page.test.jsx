@@ -149,7 +149,7 @@ test("the shelf tabs list every shelf with its count and narrow the posters", as
     within(tabs)
       .getAllByRole("tab")
       .map((tab) => tab.textContent),
-  ).toEqual(["All2", "Comics1", "Series1"]);
+  ).toEqual(["All3", "Comics1", "Series1", "YouTube1"]);
   expect(
     within(tabs)
       .getByRole("tab", { name: /All/ })

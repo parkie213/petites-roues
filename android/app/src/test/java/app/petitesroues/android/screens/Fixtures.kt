@@ -24,6 +24,8 @@ object Fixtures {
     document: Boolean = true,
     media: Uri = Uri.parse("file:///fixtures/$path.media"),
     seriesPoster: Uri? = null,
+    poster: Uri? = null,
+    shelf: String? = null,
   ) =
     Title(
       path = "fixtures/$path",
@@ -37,9 +39,10 @@ object Fixtures {
       season = season,
       episode = episode,
       volume = volume,
-      poster = null,
+      poster = poster,
       seriesPoster = seriesPoster,
       firstPage = null,
+      shelf = shelf,
       sourceLanguage = "fr",
       mediaPath = "$path.media",
     )
@@ -84,6 +87,31 @@ object Fixtures {
       episode("s02e01", 2, 1),
       title("films/la-riviere", "La rivière", TitleKind.VIDEO),
       title("films/holiday", "holiday", TitleKind.VIDEO, document = false),
+    )
+
+  /**
+   * A shelf a document named that mixes shapes: a comic and a video with a poster stay 2:3, and a
+   * video without a poster is a 16:9 frame card.
+   */
+  val favourites =
+    listOf(
+      title(
+        "favourites/la-plume-t03",
+        "La Plume T03",
+        TitleKind.COMIC,
+        "La Plume",
+        volume = 3,
+        media = comic,
+        shelf = "Favourites",
+      ),
+      title(
+        "favourites/cuisine",
+        "Une omelette parfaite",
+        TitleKind.VIDEO,
+        poster = Fixtures.poster,
+        shelf = "Favourites",
+      ),
+      title("favourites/voyage", "Voyage en Bretagne", TitleKind.VIDEO, shelf = "Favourites"),
     )
 
   val progress =

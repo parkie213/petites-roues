@@ -26,6 +26,10 @@ import org.springframework.stereotype.Service;
  * keyed by its fingerprint, with a CBZ's first page as its cover. Without one, the library draws a
  * placeholder.
  *
+ * <p>Landscape cards ({@link app.petitesroues.library.shelves.Shelves.Shape}), videos without a
+ * poster, ask for a frame card: the poster beside the media when there is one, else a 16:9 frame
+ * grabbed from the video about a quarter of the way in, which skips intros.
+ *
  * <p>Images are downscaled once to card size and kept in a local cache directory, never in content
  * folders. A card's version is derived from its source files' paths, sizes and modification times,
  * so replacing a poster or CBZ produces a new version and a new cached file.
@@ -34,6 +38,9 @@ import org.springframework.stereotype.Service;
 public class CardArtService {
   /** Card width in pixels; about twice the displayed width, for high-density screens. */
   private static final int WIDTH = 480;
+
+  /** How far into a video its frame is grabbed: past opening credits and intros. */
+  private static final double FRAME_POSITION = 0.25;
 
   private final CatalogueStore titles;
   private final LibraryService library;
@@ -62,8 +69,9 @@ public class CardArtService {
    *
    * @param source an image, or a CBZ when {@code page} names the entry to show
    * @param page the CBZ entry holding the image, or null
+   * @param frame whether {@code source} is a video to grab a frame from, not an image
    */
-  public record Card(String version, Path source, String page) {}
+  public record Card(String version, Path source, String page, boolean frame) {}
 
   /**
    * The title card's source: its poster, else a comic's first page, else empty.
@@ -83,6 +91,30 @@ public class CardArtService {
     String first = comics.document(id).comic().pages().getFirst().entry();
     // The first page can change with the document, so its version covers both files.
     return Optional.of(card(archive, first, List.of(archive, document)));
+  }
+
+  /**
+   * The title's landscape card: its poster, else a frame of its video, else empty (no media, or
+   * media that is not a video).
+   */
+  public Optional<Card> titleFrameCard(String id) throws IOException {
+    var poster = library.poster(id);
+    if (poster.isPresent()) return Optional.of(card(poster.get(), null, List.of(poster.get())));
+    var entry = titles.find(id);
+    if (entry.isEmpty()
+        || entry.get().location() == null
+        || "comic".equals(entry.get().location().documentType())) return Optional.empty();
+    return library.media(id).filter(Files::isRegularFile).map(CardArtService::frameCard);
+  }
+
+  /** A media file's landscape card by fingerprint: its poster, else a frame of its video. */
+  public Optional<Card> mediaFrameCard(String fingerprint) throws IOException {
+    var item = library.indexedMedia(fingerprint);
+    if (item.isEmpty()) return Optional.empty();
+    Path poster = LibraryService.poster(item.get());
+    if (poster != null) return Optional.of(card(poster, null, List.of(poster)));
+    if ("comic".equals(item.get().kind())) return Optional.empty();
+    return Optional.of(frameCard(item.get().file()));
   }
 
   /** The series card's source: the series poster for the title's media, else empty. */
@@ -122,6 +154,10 @@ public class CardArtService {
     Path target = cache.resolve(card.version() + ".jpg");
     if (Files.isRegularFile(target)) return target;
     Files.createDirectories(cache);
+    if (card.frame()) {
+      ffmpeg.frame(card.source(), FRAME_POSITION, WIDTH, target);
+      return target;
+    }
     if (card.page() == null) {
       ffmpeg.thumbnail(card.source(), WIDTH, target);
       return target;
@@ -141,8 +177,18 @@ public class CardArtService {
    * and any replaced file yields a new name.
    */
   private static Card card(Path source, String page, List<Path> versioned) {
+    return versioned(source, page, false, versioned);
+  }
+
+  /** A frame of {@code video}, versioned by the video's own path, size and modification time. */
+  private static Card frameCard(Path video) {
+    return versioned(video, null, true, List.of(video));
+  }
+
+  private static Card versioned(Path source, String page, boolean frame, List<Path> versioned) {
     try {
-      var stamp = new StringBuilder(page == null ? "" : page).append('\0');
+      var stamp = new StringBuilder(frame ? "frame" : "").append(page == null ? "" : page);
+      stamp.append('\0');
       for (Path file : versioned) {
         Path absolute = file.toAbsolutePath().normalize();
         stamp.append(absolute).append('\0').append(Files.size(absolute)).append('\0');
@@ -151,7 +197,7 @@ public class CardArtService {
       byte[] digest =
           MessageDigest.getInstance("SHA-256")
               .digest(stamp.toString().getBytes(StandardCharsets.UTF_8));
-      return new Card(HexFormat.of().formatHex(digest).substring(0, 20), source, page);
+      return new Card(HexFormat.of().formatHex(digest).substring(0, 20), source, page, frame);
     } catch (IOException failure) {
       throw new UncheckedIOException(failure);
     } catch (NoSuchAlgorithmException impossible) {

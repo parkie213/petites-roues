@@ -228,8 +228,12 @@ export interface PosterSlot {
   copies: PosterEntry[];
   label: string;
   detail?: string | null;
+  shape: PosterShape;
   art?: PosterArt | null;
 }
+
+/** 2:3 for a poster, cover or placeholder; 16:9 for a frame of a video with no poster. */
+export type PosterShape = "portrait" | "landscape";
 
 export interface PosterArt {
   url: string;
@@ -245,12 +249,18 @@ export interface PosterGroup {
   slots: PosterSlot[];
   seasons: number[];
   count: string;
+  /** Decided per card by the server, so one shelf may mix both. */
+  shape: PosterShape;
   art?: PosterArt | null;
 }
 
 /** GET /api/library/posters; grouping and preferred copies belong to the server. */
 export interface PosterShelves {
-  shelves: { key: string; label: string; groups: PosterGroup[] }[];
+  shelves: {
+    key: string;
+    label: string;
+    groups: PosterGroup[];
+  }[];
   folders: string[];
   multilingual: boolean;
 }

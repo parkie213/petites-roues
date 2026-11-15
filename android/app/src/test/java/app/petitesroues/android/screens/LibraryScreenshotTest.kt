@@ -110,6 +110,25 @@ class LibraryScreenshotTest {
     compose.onRoot().captureRoboImage()
   }
 
+  /**
+   * A shelf mixing shapes: a video without a poster is 16:9, two portrait cells wide, beside a
+   * comic and a video with a poster that stay 2:3.
+   */
+  @Test
+  fun mixedShelf() {
+    library(
+      LibraryUiState(
+        folders,
+        Fixtures.favourites,
+        Fixtures.progress,
+        false,
+        emptyList(),
+        null,
+      )
+    )
+    compose.onRoot().captureRoboImage()
+  }
+
   @Test
   fun series() {
     library(

@@ -37,6 +37,7 @@ export function groupCard(
         language={language}
         art={group.art}
         type={type}
+        landscape={group.shape === "landscape"}
         href={openHref(slot.entry)}
         slot={slot}
         repositoryNames={repositoryNames}
@@ -61,6 +62,7 @@ export function groupCard(
       }
       art={group.art}
       type={type}
+      landscape={group.shape === "landscape"}
       href={postersHref({ repository: selection.repository, group: group.key })}
       repositoryNames={repositoryNames}
     />
@@ -137,6 +139,7 @@ export function SeriesView({
             detail={slot.detail}
             art={slot.art}
             type={slot.entry.type}
+            landscape={slot.shape === "landscape"}
             href={openHref(slot.entry)}
             slot={slot}
             repositoryNames={repositoryNames}

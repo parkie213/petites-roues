@@ -4,9 +4,12 @@ import app.petitesroues.library.CardArtService;
 import app.petitesroues.library.CardArtService.Card;
 import java.io.IOException;
 import java.net.URI;
+import java.nio.file.Path;
 import java.time.Duration;
 import java.util.NoSuchElementException;
 import java.util.Optional;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.core.io.Resource;
 import org.springframework.http.*;
@@ -22,6 +25,8 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/api")
 public class CardController {
+  private static final Logger LOG = LoggerFactory.getLogger(CardController.class);
+
   private final CardArtService cards;
 
   public CardController(CardArtService cards) {
@@ -76,6 +81,33 @@ public class CardController {
     return serve(require(cards.mediaSeriesCard(fingerprint)), version);
   }
 
+  /**
+   * A landscape card: the title's poster, else a frame of its video. Without ffmpeg or a readable
+   * video the frame cannot be made and the response is 404, so the library draws its placeholder.
+   */
+  @GetMapping("/titles/{id}/frame-card")
+  public ResponseEntity<Void> titleFrameCard(@PathVariable String id) throws IOException {
+    return redirect("frame-card/", require(cards.titleFrameCard(id)));
+  }
+
+  @GetMapping("/titles/{id}/frame-card/{version}")
+  public ResponseEntity<Resource> titleFrameCard(
+      @PathVariable String id, @PathVariable String version) throws IOException {
+    return serve(require(cards.titleFrameCard(id)), version);
+  }
+
+  /** A media file's landscape card by fingerprint. */
+  @GetMapping("/media/{fingerprint}/frame-card")
+  public ResponseEntity<Void> mediaFrameCard(@PathVariable String fingerprint) throws IOException {
+    return redirect("frame-card/", require(cards.mediaFrameCard(fingerprint)));
+  }
+
+  @GetMapping("/media/{fingerprint}/frame-card/{version}")
+  public ResponseEntity<Resource> mediaFrameCard(
+      @PathVariable String fingerprint, @PathVariable String version) throws IOException {
+    return serve(require(cards.mediaFrameCard(fingerprint)), version);
+  }
+
   private static Card require(Optional<Card> card) {
     return card.orElseThrow(() -> new NoSuchElementException("No card image"));
   }
@@ -94,9 +126,19 @@ public class CardController {
           .location(URI.create(card.version()))
           .cacheControl(CacheControl.noStore())
           .build();
+    Path image;
+    try {
+      image = cards.image(card);
+    } catch (IOException failure) {
+      // A grabbed frame is optional art: without ffmpeg, or for an unreadable video, show the
+      // placeholder instead of failing the page.
+      if (!card.frame()) throw failure;
+      LOG.warn("No frame for {}: {}", card.source(), failure.getMessage());
+      return ResponseEntity.notFound().build();
+    }
     return ResponseEntity.ok()
         .contentType(MediaType.IMAGE_JPEG)
         .cacheControl(CacheControl.maxAge(Duration.ofDays(365)).immutable())
-        .body(new FileSystemResource(cards.image(card)));
+        .body(new FileSystemResource(image));
   }
 }

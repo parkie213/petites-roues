@@ -106,6 +106,8 @@ class PostersIntegrationTest extends HttpIntegrationTest {
     var naruto = comics.path("groups").get(0);
     assertEquals("fr", naruto.path("language").asString(), "media without a document joins fr");
     assertEquals("2 tomes", naruto.path("count").asString());
+    assertEquals("portrait", naruto.path("shape").asString(), "a comic card is portrait");
+    assertEquals("portrait", naruto.path("slots").get(0).path("shape").asString());
     var slots = naruto.path("slots");
     assertEquals("Naruto T01", slots.get(0).path("label").asString());
     assertEquals("Naruto T02", slots.get(1).path("label").asString());

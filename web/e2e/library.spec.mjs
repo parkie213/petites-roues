@@ -1,9 +1,16 @@
-import { test, expect, looksLike } from "./api.mjs";
+import { test, expect, readJson, looksLike } from "./api.mjs";
+
+// Card shape by shelf and card in the example library: only the clip has no poster.
+const EXPECTED_SHAPES = [
+  ["Comics", "Lulu", "portrait"],
+  ["Series", "Peppa Pig", "portrait"],
+  ["YouTube", "Une vidéo de démonstration", "landscape"],
+];
 
 test("the library shelves the example's comic and series", async ({ page }) => {
   await page.goto("/");
 
-  await expect(page.getByText("2 videos · 1 comic")).toBeVisible();
+  await expect(page.getByText("3 videos · 1 comic")).toBeVisible();
   await expect(
     page.getByRole("link", { name: "Lulu", exact: true }),
   ).toBeVisible();
@@ -73,9 +80,10 @@ test("shelf tabs list the shelves and show only the chosen shelf's cards", async
 
   const tabs = page.getByRole("tablist", { name: "Shelves" });
   await expect(tabs.getByRole("tab")).toHaveText([
-    "All2",
+    "All3",
     "Comics1",
     "Series1",
+    "YouTube1",
   ]);
   await expect(tabs.getByRole("tab", { name: /^All/ })).toHaveAttribute(
     "aria-selected",
@@ -100,4 +108,46 @@ test("shelf tabs list the shelves and show only the chosen shelf's cards", async
   await expect(
     page.getByRole("link", { name: "Lulu", exact: true }),
   ).toBeVisible();
+});
+
+test("a video with no poster is a wide frame card whatever its shelf; a card with a poster keeps 2:3", async ({
+  page,
+}) => {
+  await page.goto("/");
+
+  const clip = page.getByRole("link", { name: "Une vidéo de démonstration" });
+  const peppa = page.getByRole("link", { name: "Peppa Pig" });
+  await expect(clip).toBeVisible();
+  const ratio = async (card) => {
+    const box = await card.locator(".poster-art").boundingBox();
+    return box.width / box.height;
+  };
+  expect(await ratio(clip)).toBeCloseTo(16 / 9, 1);
+  expect(await ratio(peppa)).toBeCloseTo(2 / 3, 1);
+
+  // The clip has no poster: its card is a 480 x 270 frame the server grabbed, not a placeholder.
+  const art = clip.locator("img.poster-art");
+  await expect(art).toBeVisible();
+  await expect
+    .poll(() => art.evaluate((img) => [img.naturalWidth, img.naturalHeight]))
+    .toEqual([480, 270]);
+  // Peppa Pig's poster fills a portrait card, so its image is portrait too.
+  await expect(peppa.locator("img.poster-art")).toBeVisible();
+
+  // The server's own answer agrees, card by card: the shape follows the art, not the shelf.
+  const { shelves } = await readJson(page, "/api/library/posters");
+  expect(
+    shelves.flatMap((shelf) =>
+      shelf.groups.map((group) => [shelf.label, group.name, group.shape]),
+    ),
+  ).toEqual(EXPECTED_SHAPES);
+
+  // Its tab narrows to the wide cards; search still finds them.
+  await page
+    .getByRole("tablist", { name: "Shelves" })
+    .getByRole("tab", { name: /^YouTube/ })
+    .click();
+  await expect(peppa).toBeHidden();
+  await expect(clip).toBeVisible();
+  await looksLike(page, "landscape-shelf");
 });

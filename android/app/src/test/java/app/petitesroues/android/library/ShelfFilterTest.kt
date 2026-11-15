@@ -28,4 +28,11 @@ class ShelfFilterTest {
     assertNull(shelfChoice(shelves, "films"))
     assertNull(shelfChoice(emptyList<Shelf<String>>(), "series"))
   }
+
+  @Test
+  fun aLandscapeCardSpansTwoColumnsOrTheWholeRowWhenThereIsOne() {
+    assertEquals(1, landscapeSpan(false, 3).currentLineSpan)
+    assertEquals(2, landscapeSpan(true, 3).currentLineSpan)
+    assertEquals(1, landscapeSpan(true, 1).currentLineSpan)
+  }
 }

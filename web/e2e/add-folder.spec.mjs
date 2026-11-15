@@ -11,7 +11,7 @@ test("Add folder adds the chosen folder's titles to the library", async ({
     route.fulfill({ json: { path: folder } }),
   );
   await page.goto("/");
-  await expect(page.getByText("2 videos · 1 comic")).toBeVisible();
+  await expect(page.getByText("3 videos · 1 comic")).toBeVisible();
 
   const chosen = expectWrite(
     page,
@@ -32,7 +32,7 @@ test("Add folder adds the chosen folder's titles to the library", async ({
   );
   expect((await chosen).path.endsWith("/example/media-de")).toBe(true);
 
-  await expect(page.getByText("3 videos · 1 comic")).toBeVisible({
+  await expect(page.getByText("4 videos · 1 comic")).toBeVisible({
     timeout: 30_000,
   });
   await expect(page.getByText("Folder added.", { exact: true })).toBeVisible();
@@ -43,5 +43,5 @@ test("Add folder adds the chosen folder's titles to the library", async ({
   const job = await readJson(page, "/api/jobs/latest");
   expect(job).toMatchObject({ kind: "add", state: "succeeded" });
   await page.reload();
-  await expect(page.getByText("3 videos · 1 comic")).toBeVisible();
+  await expect(page.getByText("4 videos · 1 comic")).toBeVisible();
 });

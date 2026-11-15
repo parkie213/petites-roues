@@ -13,6 +13,8 @@ interface PosterCardProps extends Partial<LinkActions> {
   detail?: string | null;
   art?: PosterArt | null;
   type: PosterEntry["type"];
+  /** Draws the art 16:9 (spanning two grid columns) instead of 2:3. */
+  landscape?: boolean;
   href: string | null;
   slot?: PosterSlot;
   repositoryNames: Map<string, string>;
@@ -93,6 +95,7 @@ export function PosterCard({
   detail,
   art,
   type,
+  landscape = false,
   href,
   slot,
   repositoryNames,
@@ -129,7 +132,9 @@ export function PosterCard({
     </div>
   );
   return (
-    <div className={`poster-card${dimmed ? " poster-unavailable" : ""}`}>
+    <div
+      className={`poster-card${landscape ? " poster-landscape" : ""}${dimmed ? " poster-unavailable" : ""}`}
+    >
       {href ? (
         <a className="poster-link" href={href} aria-label={name}>
           {content}

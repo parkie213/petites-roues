@@ -3,6 +3,7 @@ package app.petitesroues.android.library
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.media.MediaMetadataRetriever
 import android.net.Uri
 import android.util.LruCache
 import androidx.compose.ui.graphics.ImageBitmap
@@ -19,12 +20,21 @@ import javax.inject.Singleton
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
-/** Where a card image comes from: a poster file, or a page inside a CBZ. */
+/** Where a card image comes from: a poster file, a page inside a CBZ, or a frame of a video. */
 sealed interface CardSource {
   val key: String
 
   data class Poster(val uri: Uri) : CardSource {
     override val key = uri.toString()
+  }
+
+  /**
+   * A frame grabbed from [video] about a quarter of the way in ([framePositionMicros]) and
+   * center-cropped to 16:9 ([landscapeCrop]): the image of a landscape card, a video with no
+   * poster.
+   */
+  data class Frame(val video: Uri) : CardSource {
+    override val key = "$video#frame"
   }
 
   /** A comic page: [entry], or with none the CBZ's first image (media without a document). */
@@ -33,8 +43,15 @@ sealed interface CardSource {
   }
 
   companion object {
-    /** The image for [art]: a series poster, else the title's poster or a comic's first page. */
-    fun of(art: CardArt<Title>?): CardSource? {
+    /**
+     * The image for [art]: a series poster, else the title's poster or a comic's first page; with
+     * no art, a frame of [frame], the video the shared rules chose for a landscape card
+     * ([app.petitesroues.library.shelves.Shelves]).
+     */
+    fun of(art: CardArt<Title>?, frame: Title? = null): CardSource? =
+      posterOrPage(art) ?: frame?.mediaUri?.let(::Frame)
+
+    private fun posterOrPage(art: CardArt<Title>?): CardSource? {
       val title = art?.copy ?: return null
       if (art.series) return title.seriesPoster?.let(::Poster)
       title.poster?.let {
@@ -66,7 +83,7 @@ class CardImages @Inject constructor(@ApplicationContext private val context: Co
         val file = File(folder, sha1(source.key) + ".jpg")
         val image =
           BitmapFactory.decodeFile(file.path)?.asImageBitmap()
-            ?: fit(decode(source)).also { image ->
+            ?: fit(decode(source), source.width).also { image ->
               folder.mkdirs()
               file.outputStream().use {
                 image.asAndroidBitmap().compress(Bitmap.CompressFormat.JPEG, 85, it)
@@ -93,13 +110,16 @@ class CardImages @Inject constructor(@ApplicationContext private val context: Co
             source.entry ?: reader.firstPage() ?: error("${source.archive} has no page images")
           reader.page(entry, WIDTH, HEIGHT)
         }
+      is CardSource.Frame -> grabFrame(source.video)
       is CardSource.Poster -> {
         val resolver = context.contentResolver
         val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
         resolver.openInputStream(source.uri)?.use { BitmapFactory.decodeStream(it, null, bounds) }
         var sample = 1
+        val width = source.width
+        val height = HEIGHT
         while (
-          bounds.outWidth / (sample * 2) >= WIDTH && bounds.outHeight / (sample * 2) >= HEIGHT
+          bounds.outWidth / (sample * 2) >= width && bounds.outHeight / (sample * 2) >= height
         ) sample *= 2
         val options = BitmapFactory.Options().apply { inSampleSize = sample }
         val bitmap =
@@ -110,12 +130,39 @@ class CardImages @Inject constructor(@ApplicationContext private val context: Co
       }
     }
 
-  /** Scales [image] down to the card width, so cached cards stay small. */
-  private fun fit(image: ImageBitmap): ImageBitmap {
-    if (image.width <= WIDTH) return image
-    val bitmap = image.asAndroidBitmap()
-    return bitmap.scale(WIDTH, bitmap.height * WIDTH / bitmap.width).asImageBitmap()
+  /**
+   * A 16:9 frame of [video], a quarter of the way through it, center-cropped and scaled to the wide
+   * card width. Fails when the video cannot be read or has no decodable frame.
+   */
+  private fun grabFrame(video: Uri): ImageBitmap {
+    val retriever = MediaMetadataRetriever()
+    try {
+      retriever.setDataSource(context, video)
+      val duration =
+        retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION)?.toLongOrNull()
+      val frame =
+        retriever.getFrameAtTime(
+          framePositionMicros(duration),
+          MediaMetadataRetriever.OPTION_CLOSEST_SYNC,
+        ) ?: error("No frame in $video")
+      val crop = landscapeCrop(frame.width, frame.height)
+      val cropped = Bitmap.createBitmap(frame, crop.x, crop.y, crop.width, crop.height)
+      return cropped.asImageBitmap()
+    } finally {
+      retriever.release()
+    }
   }
+
+  /** Scales [image] down to [width], so cached cards stay small. */
+  private fun fit(image: ImageBitmap, width: Int): ImageBitmap {
+    if (image.width <= width) return image
+    val bitmap = image.asAndroidBitmap()
+    return bitmap.scale(width, bitmap.height * width / bitmap.width).asImageBitmap()
+  }
+
+  /** The width a card from [this] source is kept at. */
+  private val CardSource.width: Int
+    get() = if (this is CardSource.Frame) WIDE_WIDTH else WIDTH
 
   private fun sha1(text: String): String =
     MessageDigest.getInstance("SHA-1").digest(text.toByteArray()).joinToString("") {
@@ -126,5 +173,8 @@ class CardImages @Inject constructor(@ApplicationContext private val context: Co
     // Twice a phone card's size, so cards stay sharp on a dense screen.
     const val WIDTH = 360
     const val HEIGHT = 540
+
+    // A landscape card is about twice as wide, 16:9.
+    const val WIDE_WIDTH = 480
   }
 }

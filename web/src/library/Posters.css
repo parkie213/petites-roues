@@ -1,4 +1,6 @@
-/* Poster grid: 2:3 cards that keep their proportions from phone to desktop widths. */
+/* Poster grid: 2:3 cards that keep their proportions from phone to desktop widths. A landscape
+   card (a video with no poster, showing a frame) is 16:9 and spans two columns, so a shelf can mix
+   both; cards stay top-aligned in their rows. */
 .poster-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
@@ -9,6 +11,9 @@
     grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
     gap: 16px 12px;
   }
+}
+.poster-card.poster-landscape {
+  grid-column: span 2;
 }
 .poster-card {
   display: flex;
@@ -34,6 +39,9 @@
     0 1px 0 var(--mantine-color-dark-4) inset,
     0 6px 18px rgb(0 0 0 / 0.35);
   transition: box-shadow 140ms ease;
+}
+.poster-landscape .poster-art {
+  aspect-ratio: 16 / 9;
 }
 /* The whole frame lifts, so the language pill and progress bar move with the art. */
 a.poster-link:hover .poster-frame,

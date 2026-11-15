@@ -23,12 +23,13 @@ function entry(overrides = {}) {
     ...overrides,
   };
 }
-function slot(item = entry()) {
+function slot(item = entry(), shape = "portrait") {
   return {
     key: item.id,
     label: item.id,
     entry: item,
     copies: [item],
+    shape,
     art: null,
   };
 }
@@ -42,6 +43,7 @@ function group(overrides = {}) {
     slots: [slot()],
     seasons: [],
     count: "1 episode",
+    shape: "portrait",
     ...overrides,
   };
 }
@@ -262,4 +264,69 @@ test("replacing a request aborts the previous load", async () => {
   rerender({ language: "en" });
   expect(signal.aborted).toBe(true);
   expect(fetcher).toHaveBeenCalledTimes(2);
+});
+
+function cardOf(name) {
+  return screen
+    .findByRole("link", { name })
+    .then((link) => link.closest(".poster-card"));
+}
+
+test("a landscape card is 16:9 and spans two columns; a portrait card keeps 2:3", async () => {
+  open({
+    groups: [
+      group({
+        key: "clip",
+        name: "A clip",
+        single: true,
+        shape: "landscape",
+        slots: [slot(entry({ id: "clip" }), "landscape")],
+      }),
+      group({ key: "film", name: "A film", single: true }),
+    ],
+  });
+  const clip = await cardOf("A clip");
+  expect(clip.classList.contains("poster-landscape")).toBe(true);
+  expect((await cardOf("A film")).classList.contains("poster-landscape")).toBe(
+    false,
+  );
+});
+
+test("one shelf mixes shapes card by card, in its order", async () => {
+  open({
+    groups: [
+      group({ key: "a", name: "A comic", type: "comic" }),
+      group({ key: "b", name: "A clip", shape: "landscape" }),
+      group({ key: "c", name: "A poster video" }),
+    ],
+  });
+  const cards = [
+    await cardOf("A comic"),
+    await cardOf("A clip"),
+    await cardOf("A poster video"),
+  ];
+  expect(
+    cards.map((card) => card.classList.contains("poster-landscape")),
+  ).toEqual([false, true, false]);
+  expect(new Set(cards.map((card) => card.parentElement)).size).toBe(1);
+});
+
+test("each episode of a series follows its own shape", async () => {
+  open({
+    selection: { group: "series" },
+    groups: [
+      group({
+        slots: [
+          slot(entry({ id: "Wide" }), "landscape"),
+          slot(entry({ id: "Tall" })),
+        ],
+      }),
+    ],
+  });
+  expect((await cardOf("Wide")).classList.contains("poster-landscape")).toBe(
+    true,
+  );
+  expect((await cardOf("Tall")).classList.contains("poster-landscape")).toBe(
+    false,
+  );
 });

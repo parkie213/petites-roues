@@ -132,6 +132,7 @@ class LibraryViewModelTest {
       "lulu-example-le-parapluie",
       "peppa-pig-example-s01e01",
       "peppa-pig-example-s01e02",
+      "demonstration-courte-example-fr",
       "media:media-fr/series/peppa-pig/s01e02-a-la-recherche-de-mr-dinosaure.mp4",
     )
 
