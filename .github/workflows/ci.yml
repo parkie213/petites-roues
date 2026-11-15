@@ -244,8 +244,8 @@ jobs:
         env:
           # The number of @Test methods under android/app/src/androidTest.
           # Raise it when device tests are added.
-          MIN_DEVICE_TESTS: 7
-          REQUIRED_CLASSES: DocumentReaderDeviceTest ProgressStoreTest
+          MIN_DEVICE_TESTS: 11
+          REQUIRED_CLASSES: DocumentReaderDeviceTest ProgressStoreTest VideoQuizDeviceTest
         run: |
           python3 - <<'PY'
           import collections, glob, os, sys

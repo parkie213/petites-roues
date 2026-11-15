@@ -112,10 +112,7 @@ class Settings @Inject constructor(@ApplicationContext context: Context) {
     get() = prefs.getBoolean("showSubtitles", true)
     set(value) = prefs.edit { putBoolean("showSubtitles", value) }
 
-  /**
-   * The quiz type last chosen in the Quiz me dialog (a
-   * [app.petitesroues.android.quiz.QuizPack.TYPES] id).
-   */
+  /** The quiz type last chosen in the Quiz me dialog (a [app.petitesroues.quiz.QuizType] id). */
   var quizType: String
     get() = prefs.getString("quizType", null) ?: "to-source"
     set(value) = prefs.edit { putString("quizType", value) }

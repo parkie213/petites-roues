@@ -268,9 +268,10 @@ chips above them: All, then one per shelf, narrowing the grid to that shelf (a s
 disappears after a Refresh falls back to All). Unlike the desktop,
 posters are only picked up on Refresh. Card images are cached in the app's cache and
 rebuilt after each Refresh. The paused player's quiz button shares a Markdown brief through
-the share sheet (pick the Claude app): `agents/workflows/subtitle-quiz.md` and
-`agents/guides/translation-notes.md`, bundled at build time, plus the last 30 lines watched with
-their translations and notes. The comic reader's top bar can lock landscape for two-page
+the share sheet (pick the Claude app), built by the shared `study-prompts` module: the quiz rules
+and types from `agents/workflows/` (packaged in its jar) plus the subtitle lines of the chosen
+scope, the whole title or a time range (m:ss or h:mm:ss), with their translations; learner notes
+are left out. The dialog opens on the shared default scope and warns above 400 lines. The comic reader's top bar can lock landscape for two-page
 spreads when the phone's auto-rotate is off. Hidden folders (`.git`, `.stversions`) are skipped. Text to speech uses the
 phone's own voice for the document's `sourceLanguage`. Edits still queued on the
 desktop are not visible until an agent has written them into the documents.

@@ -275,8 +275,7 @@ export function Watch({
         )}
         {quizOpen && (
           <VideoQuizPanel
-            doc={doc}
-            cues={cues}
+            id={id}
             video={video}
             time={time}
             onClose={() => setQuizOpen(false)}

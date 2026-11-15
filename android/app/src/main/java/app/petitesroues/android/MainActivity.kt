@@ -204,7 +204,7 @@ class MainActivity : ComponentActivity() {
               .setPrimaryClip(
                 ClipData.newPlainText(
                   quiz.content().title(),
-                  QuizShare.prompt(this@MainActivity, quiz.content()),
+                  QuizShare.prompt(quiz.content()),
                 )
               )
           },

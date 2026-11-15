@@ -1,7 +1,7 @@
 /**
- * A self-contained Markdown brief for running the subtitle quiz in a chat app, matching the phone
- * player's: the quiz rules (from the repository's agents/) plus the lines the learner has just
- * watched with their translations, so the quiz uses the film's real text.
+ * Quiz helpers shared by the comic and general quizzes and the library: the quiz types, the
+ * Markdown skeleton of a brief, file names and clock text. The video quiz brief is built by the
+ * desktop (`GET /api/titles/{id}/quiz`), not here.
  */
 import { languageName } from "./languages.js";
 
@@ -49,40 +49,6 @@ export function quizType(types, id, doc) {
 const SPREAD =
   "Pick items from all over these lines, in a mixed order: do not start at the " +
   "beginning, and do not take two items in a row from the same page or moment.";
-
-/** Parses a player time in M:SS or H:MM:SS; invalid values return null. */
-export function parseQuizTime(value) {
-  if (!/^\d+:\d{2}(?::\d{2})?$/.test(value)) return null;
-  const parts = value.split(":").map(Number);
-  if (parts.at(-1) > 59 || (parts.length === 3 && parts[1] > 59)) return null;
-  const seconds = parts.reduce((total, part) => total * 60 + part, 0);
-  return Number.isFinite(seconds) ? seconds : null;
-}
-
-/** Includes all source lines, or lines overlapping the half-open time range [start, end). */
-export function quizBrief(rules, doc, cues, range, type) {
-  const watched = cues.filter(
-    (cue) =>
-      cue.source?.trim() &&
-      (!range || (cue.start < range.end && cue.end > range.start)),
-  );
-  return briefMarkdown({
-    rules,
-    type,
-    doc,
-    heading: `Subtitle quiz: ${doc.title}`,
-    intro:
-      "Run the subtitle quiz below for a learner, using the selected subtitle lines. " +
-      "Start the first exercise straight away. Instructions about the browser player do " +
-      "not apply here, and the rules mention files from the library (a teaching guide, " +
-      "documents) that are not included: work from the lines below.",
-    section: range
-      ? `Lines in time range (${clock(range.start)}–${clock(range.end)})`
-      : "Whole episode",
-    empty: "No subtitle lines in this selection.",
-    items: watched.map((cue) => ({ label: clock(cue.start), cue })),
-  });
-}
 
 /**
  * The Markdown shared by every quiz brief: heading, instructions, language roles, the chosen quiz

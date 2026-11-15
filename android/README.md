@@ -117,5 +117,6 @@ the app's private storage. There are two because they are kept differently:
 Room refuses queries on the main thread. To look inside on a phone, run the app from Android
 Studio and open **App Inspection → Database Inspector**.
 
-Chapter selection and quiz prompt preparation use the shared `study-prompts`
-builder. Android retains the quiz menu, bundled teaching rules and platform sharing.
+Chapter selection and the video and chapter quiz briefs use the shared `study-prompts`
+builders, including the quiz types, scopes and the packaged quiz rules (`QuizGuides.bundled()`).
+Android retains the quiz dialog and platform sharing.

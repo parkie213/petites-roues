@@ -25,9 +25,28 @@
       <artifactId>content-model</artifactId>
     </dependency>
     <dependency>
+      <groupId>app.petitesroues</groupId>
+      <artifactId>document-json</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
       <groupId>org.junit.jupiter</groupId>
       <artifactId>junit-jupiter</artifactId>
       <scope>test</scope>
     </dependency>
   </dependencies>
+
+  <build>
+    <resources>
+      <!-- The quiz rules and types are owned once under agents/ and packaged for every caller. -->
+      <resource>
+        <targetPath>app/petitesroues/quiz</targetPath>
+        <directory>../../agents/workflows</directory>
+        <includes>
+          <include>subtitle-quiz.md</include>
+          <include>quiz-types.md</include>
+        </includes>
+      </resource>
+    </resources>
+  </build>
 </project>

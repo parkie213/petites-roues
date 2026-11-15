@@ -72,8 +72,8 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.ui.compose.ContentFrame
 import app.petitesroues.android.quiz.QuizDialog
-import app.petitesroues.android.quiz.QuizPack
 import app.petitesroues.android.quiz.QuizShare
+import app.petitesroues.android.quiz.VideoQuiz
 import app.petitesroues.android.study.LearnerNote
 import app.petitesroues.android.study.PhraseLine
 import app.petitesroues.android.study.SubtitleLook
@@ -109,8 +109,8 @@ private val panelBackground = Color(0xF520242A)
  * rail columns collapse together. Phrase cycling pauses on each explanation in source order.
  * Horizontal swipes step between lines. Translation appears above the source subtitles. The
  * transport bar can hide source subtitles (remembered per device). Its quiz button shares the lines
- * just watched with a chat app such as Claude ([QuizShare]). Controls keep clear of the camera
- * cutout. Read-only: no editing on the phone.
+ * of a chosen scope (the whole title or a time range) with a chat app such as Claude ([QuizShare]).
+ * Controls keep clear of the camera cutout. Read-only: no editing on the phone.
  */
 // ContentFrame, the Compose video surface, is Media3 API still marked unstable.
 @OptIn(UnstableApi::class)
@@ -422,12 +422,12 @@ fun WatchScreen(model: PlayerViewModel, onBack: () -> Unit) {
         document,
         initialType = model.quizType,
         onDismiss = { quizzing = false },
-        onShare = { type, _ ->
-          model.quizShared(type)
+        onShare = { type, _, scope ->
+          model.quizShared(type.id())
           quizzing = false
-          QuizShare.share(context, document, timeline.cues, timeline.current(time), type)
+          if (scope != null) QuizShare.share(context, document, scope, type.id())
         },
-        scopeNote = "Uses the last ${QuizPack.LINES} lines you watched.",
+        video = VideoQuiz(time, playback.durationSeconds),
       )
   }
 }

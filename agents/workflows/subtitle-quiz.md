@@ -34,3 +34,7 @@ For audio dictation in the browser use the shared player's “Type what you hear
 Keep subtitles and notes hidden while attempting; reveal them when the learner chooses.
 Browser attempts remain local to that browser. Never claim that translation-chat practice
 or study packs automatically synchronize those attempts between machines.
+
+## Quiz scope
+
+A video quiz covers the whole title or a time range given as m:ss or h:mm:ss. Quiz only the subtitle lines inside the scope; leave lines outside it unquizzed, even when they are interesting.
