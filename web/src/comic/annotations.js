@@ -20,15 +20,28 @@ export function boxOf(boxes, lineId) {
 
 /** Clamps a drawn or dragged region into valid normalized bounds with a minimum size. */
 export function clampRegion(region) {
-  const x = Math.min(Math.max(region.x, 0), 1);
-  const y = Math.min(Math.max(region.y, 0), 1);
+  // Clamp on the stored six-decimal grid so rounding cannot push an edge outside the page.
+  const units = 1e6;
+  const minimum = 5000;
+  const x = Math.min(
+    Math.max(Math.round(region.x * units), 0),
+    units - minimum,
+  );
+  const y = Math.min(
+    Math.max(Math.round(region.y * units), 0),
+    units - minimum,
+  );
   return {
-    x: Math.round(x * 1e6) / 1e6,
-    y: Math.round(y * 1e6) / 1e6,
+    x: x / units,
+    y: y / units,
     width:
-      Math.round(Math.min(Math.max(region.width, 0.005), 1 - x) * 1e6) / 1e6,
+      Math.min(Math.max(Math.round(region.width * units), minimum), units - x) /
+      units,
     height:
-      Math.round(Math.min(Math.max(region.height, 0.005), 1 - y) * 1e6) / 1e6,
+      Math.min(
+        Math.max(Math.round(region.height * units), minimum),
+        units - y,
+      ) / units,
   };
 }
 
