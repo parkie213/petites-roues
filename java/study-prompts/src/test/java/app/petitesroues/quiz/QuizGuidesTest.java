@@ -6,6 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Arrays;
 import org.junit.jupiter.api.Test;
 
 class QuizGuidesTest {
@@ -20,15 +21,15 @@ class QuizGuidesTest {
   }
 
   /**
-   * The rules are pasted into every brief, so the scope section must stay short. Checked once the
-   * section exists in subtitle-quiz.md.
+   * The rules are pasted into every brief, so the scope section must stay short. Fails if the
+   * section is missing, so the budget cannot pass vacuously.
    */
   @Test
   void theQuizScopeSectionStaysUnderTheBudget() {
     var sections = QuizGuides.bundled().rules().split("(?m)^## ");
-    for (var section : sections) {
-      if (section.startsWith("Quiz scope"))
-        assertTrue(section.length() < 250, "Quiz scope section is " + section.length() + " chars");
-    }
+    var scope = Arrays.stream(sections).filter(s -> s.startsWith("Quiz scope")).findFirst();
+    assertTrue(scope.isPresent(), "subtitle-quiz.md has no Quiz scope section");
+    assertTrue(
+        scope.get().length() < 250, "Quiz scope section is " + scope.get().length() + " chars");
   }
 }

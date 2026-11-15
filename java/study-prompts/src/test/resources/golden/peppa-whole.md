@@ -43,6 +43,10 @@ Keep subtitles and notes hidden while attempting; reveal them when the learner c
 Browser attempts remain local to that browser. Never claim that translation-chat practice
 or study packs automatically synchronize those attempts between machines.
 
+#### Quiz scope
+
+A video quiz covers the whole title or a time range given as m:ss or h:mm:ss. Quiz only the subtitle lines inside the scope; leave lines outside it unquizzed, even when they are interesting.
+
 ## Whole episode
 
 Pick items from all over these lines, in a mixed order: do not start at the beginning, and do not take two items in a row from the same page or moment.
