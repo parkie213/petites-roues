@@ -90,19 +90,28 @@ object Fixtures {
     )
 
   /**
-   * Two videos a document put on a "YouTube" shelf, which is landscape: one with its own poster and
-   * one without, whose card would show a frame of its video.
+   * A shelf a document named that mixes shapes: a comic and a video with a poster stay 2:3, and a
+   * video without a poster is a 16:9 frame card.
    */
-  val youtube =
+  val favourites =
     listOf(
       title(
-        "youtube/cuisine",
+        "favourites/la-plume-t03",
+        "La Plume T03",
+        TitleKind.COMIC,
+        "La Plume",
+        volume = 3,
+        media = comic,
+        shelf = "Favourites",
+      ),
+      title(
+        "favourites/cuisine",
         "Une omelette parfaite",
         TitleKind.VIDEO,
         poster = Fixtures.poster,
-        shelf = "YouTube",
+        shelf = "Favourites",
       ),
-      title("youtube/voyage", "Voyage en Bretagne", TitleKind.VIDEO, shelf = "YouTube"),
+      title("favourites/voyage", "Voyage en Bretagne", TitleKind.VIDEO, shelf = "Favourites"),
     )
 
   val progress =

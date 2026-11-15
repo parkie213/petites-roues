@@ -1,5 +1,12 @@
 import { test, expect, readJson, looksLike } from "./api.mjs";
 
+// Card shape by shelf and card in the example library: only the clip has no poster.
+const EXPECTED_SHAPES = [
+  ["Comics", "Lulu", "portrait"],
+  ["Series", "Peppa Pig", "portrait"],
+  ["YouTube", "Une vidéo de démonstration", "landscape"],
+];
+
 test("the library shelves the example's comic and series", async ({ page }) => {
   await page.goto("/");
 
@@ -103,7 +110,7 @@ test("shelf tabs list the shelves and show only the chosen shelf's cards", async
   ).toBeVisible();
 });
 
-test("a shelf a document names shows wide cards with a frame of the video; the series shelf keeps 2:3", async ({
+test("a video with no poster is a wide frame card whatever its shelf; a card with a poster keeps 2:3", async ({
   page,
 }) => {
   await page.goto("/");
@@ -127,13 +134,13 @@ test("a shelf a document names shows wide cards with a frame of the video; the s
   // Peppa Pig's poster fills a portrait card, so its image is portrait too.
   await expect(peppa.locator("img.poster-art")).toBeVisible();
 
-  // The server's own answer agrees: only the shelf a document named is landscape.
+  // The server's own answer agrees, card by card: the shape follows the art, not the shelf.
   const { shelves } = await readJson(page, "/api/library/posters");
-  expect(shelves.map((shelf) => [shelf.label, shelf.landscape])).toEqual([
-    ["Comics", false],
-    ["Series", false],
-    ["YouTube", true],
-  ]);
+  expect(
+    shelves.flatMap((shelf) =>
+      shelf.groups.map((group) => [shelf.label, group.name, group.shape]),
+    ),
+  ).toEqual(EXPECTED_SHAPES);
 
   // Its tab narrows to the wide cards; search still finds them.
   await page

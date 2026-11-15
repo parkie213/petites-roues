@@ -26,8 +26,8 @@ import org.springframework.stereotype.Service;
  * keyed by its fingerprint, with a CBZ's first page as its cover. Without one, the library draws a
  * placeholder.
  *
- * <p>Cards on landscape shelves ({@link app.petitesroues.library.shelves.Shelves.Shelf#landscape})
- * ask for a frame card instead: the poster beside the media when there is one, else a 16:9 frame
+ * <p>Landscape cards ({@link app.petitesroues.library.shelves.Shelves.Shape}), videos without a
+ * poster, ask for a frame card: the poster beside the media when there is one, else a 16:9 frame
  * grabbed from the video about a quarter of the way in, which skips intros.
  *
  * <p>Images are downscaled once to card size and kept in a local cache directory, never in content

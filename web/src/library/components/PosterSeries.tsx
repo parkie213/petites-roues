@@ -18,18 +18,12 @@ import { PosterCard } from "./PosterCard.tsx";
 /** Internal library navigation preserves modified clicks for the browser. */
 export type FollowPoster = (event: MouseEvent | null, href: string) => void;
 
-/** The class of a grid of cards; a landscape shelf's cards are wide, so its cells are too. */
-export function gridClass(landscape: boolean) {
-  return landscape ? "poster-grid poster-grid-landscape" : "poster-grid";
-}
-
 export function groupCard(
   group: PosterGroup,
   selection: Selection,
   repositoryNames: Map<string, string>,
   actions: LinkActions,
   tagged: boolean,
-  landscape = false,
 ) {
   const { onChanged, onLink } = actions;
   const type = group.type;
@@ -43,7 +37,7 @@ export function groupCard(
         language={language}
         art={group.art}
         type={type}
-        landscape={landscape}
+        landscape={group.shape === "landscape"}
         href={openHref(slot.entry)}
         slot={slot}
         repositoryNames={repositoryNames}
@@ -68,7 +62,7 @@ export function groupCard(
       }
       art={group.art}
       type={type}
-      landscape={landscape}
+      landscape={group.shape === "landscape"}
       href={postersHref({ repository: selection.repository, group: group.key })}
       repositoryNames={repositoryNames}
     />
@@ -83,11 +77,8 @@ export function SeriesView({
   repositoryNames,
   onChanged,
   onLink,
-  landscape = false,
 }: LinkActions & {
   group: PosterGroup;
-  /** Whether the shelf the series is on draws 16:9 cards. */
-  landscape?: boolean;
   selection: Selection;
   follow: FollowPoster;
   repositoryNames: Map<string, string>;
@@ -140,7 +131,7 @@ export function SeriesView({
           />
         )}
       </Group>
-      <div className={gridClass(landscape)}>
+      <div className="poster-grid">
         {slots.map((slot) => (
           <PosterCard
             key={slot.key}
@@ -148,7 +139,7 @@ export function SeriesView({
             detail={slot.detail}
             art={slot.art}
             type={slot.entry.type}
-            landscape={landscape}
+            landscape={slot.shape === "landscape"}
             href={openHref(slot.entry)}
             slot={slot}
             repositoryNames={repositoryNames}

@@ -1,5 +1,6 @@
-/* Poster grid: 2:3 cards that keep their proportions from phone to desktop widths; a landscape
-   shelf (videos a document put on a shelf of its own) has 16:9 cards in wider cells. */
+/* Poster grid: 2:3 cards that keep their proportions from phone to desktop widths. A landscape
+   card (a video with no poster, showing a frame) is 16:9 and spans two columns, so a shelf can mix
+   both; cards stay top-aligned in their rows. */
 .poster-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
@@ -11,13 +12,8 @@
     gap: 16px 12px;
   }
 }
-.poster-grid-landscape {
-  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
-}
-@media (max-width: 600px) {
-  .poster-grid-landscape {
-    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-  }
+.poster-card.poster-landscape {
+  grid-column: span 2;
 }
 .poster-card {
   display: flex;
@@ -208,24 +204,6 @@ a.poster-link:focus-visible .poster-art {
 @media (max-width: 380px) {
   .mantine-library .poster-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-}
-.mantine-library .poster-grid.poster-grid-landscape {
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-}
-@media (max-width: 1100px) {
-  .mantine-library .poster-grid.poster-grid-landscape {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
-}
-@media (max-width: 850px) {
-  .mantine-library .poster-grid.poster-grid-landscape {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-}
-@media (max-width: 380px) {
-  .mantine-library .poster-grid.poster-grid-landscape {
-    grid-template-columns: repeat(1, minmax(0, 1fr));
   }
 }
 @media (prefers-reduced-motion: reduce) {

@@ -23,12 +23,13 @@ function entry(overrides = {}) {
     ...overrides,
   };
 }
-function slot(item = entry()) {
+function slot(item = entry(), shape = "portrait") {
   return {
     key: item.id,
     label: item.id,
     entry: item,
     copies: [item],
+    shape,
     art: null,
   };
 }
@@ -42,18 +43,18 @@ function group(overrides = {}) {
     slots: [slot()],
     seasons: [],
     count: "1 episode",
+    shape: "portrait",
     ...overrides,
   };
 }
 function open({
   groups = [group()],
-  landscape = false,
   selection = {},
   response,
   ...overrides
 } = {}) {
   const posters = {
-    shelves: [{ key: "films", label: "Films", groups, landscape }],
+    shelves: [{ key: "films", label: "Films", groups }],
     folders: ["repo", "other"],
     multilingual: true,
   };
@@ -265,42 +266,67 @@ test("replacing a request aborts the previous load", async () => {
   expect(fetcher).toHaveBeenCalledTimes(2);
 });
 
-test("a landscape shelf draws 16:9 cards in wide cells; other shelves keep 2:3", async () => {
-  const single = group({
-    key: "clip",
-    name: "A clip",
-    single: true,
-    slots: [slot(entry({ id: "clip" }))],
-  });
-  open({ landscape: true, groups: [single] });
-  const card = (await screen.findByRole("link", { name: "A clip" })).closest(
-    ".poster-card",
-  );
-  expect(card.classList.contains("poster-landscape")).toBe(true);
-  expect(card.parentElement.classList.contains("poster-grid-landscape")).toBe(
-    true,
-  );
-});
+function cardOf(name) {
+  return screen
+    .findByRole("link", { name })
+    .then((link) => link.closest(".poster-card"));
+}
 
-test("a portrait shelf's cards are not landscape", async () => {
-  open({ groups: [group({ key: "film", name: "A film" })] });
-  const card = (await screen.findByRole("link", { name: "A film" })).closest(
-    ".poster-card",
-  );
-  expect(card.classList.contains("poster-landscape")).toBe(false);
-  expect(card.parentElement.classList.contains("poster-grid-landscape")).toBe(
+test("a landscape card is 16:9 and spans two columns; a portrait card keeps 2:3", async () => {
+  open({
+    groups: [
+      group({
+        key: "clip",
+        name: "A clip",
+        single: true,
+        shape: "landscape",
+        slots: [slot(entry({ id: "clip" }), "landscape")],
+      }),
+      group({ key: "film", name: "A film", single: true }),
+    ],
+  });
+  const clip = await cardOf("A clip");
+  expect(clip.classList.contains("poster-landscape")).toBe(true);
+  expect((await cardOf("A film")).classList.contains("poster-landscape")).toBe(
     false,
   );
 });
 
-test("the episodes of a series on a landscape shelf are landscape too", async () => {
+test("one shelf mixes shapes card by card, in its order", async () => {
   open({
-    landscape: true,
-    selection: { group: "series" },
-    groups: [group({ slots: [slot(entry({ id: "Episode" }))] })],
+    groups: [
+      group({ key: "a", name: "A comic", type: "comic" }),
+      group({ key: "b", name: "A clip", shape: "landscape" }),
+      group({ key: "c", name: "A poster video" }),
+    ],
   });
-  const card = (await screen.findByRole("link", { name: "Episode" })).closest(
-    ".poster-card",
+  const cards = [
+    await cardOf("A comic"),
+    await cardOf("A clip"),
+    await cardOf("A poster video"),
+  ];
+  expect(
+    cards.map((card) => card.classList.contains("poster-landscape")),
+  ).toEqual([false, true, false]);
+  expect(new Set(cards.map((card) => card.parentElement)).size).toBe(1);
+});
+
+test("each episode of a series follows its own shape", async () => {
+  open({
+    selection: { group: "series" },
+    groups: [
+      group({
+        slots: [
+          slot(entry({ id: "Wide" }), "landscape"),
+          slot(entry({ id: "Tall" })),
+        ],
+      }),
+    ],
+  });
+  expect((await cardOf("Wide")).classList.contains("poster-landscape")).toBe(
+    true,
   );
-  expect(card.classList.contains("poster-landscape")).toBe(true);
+  expect((await cardOf("Tall")).classList.contains("poster-landscape")).toBe(
+    false,
+  );
 });

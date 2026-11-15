@@ -82,9 +82,8 @@ public class CardController {
   }
 
   /**
-   * A card on a landscape shelf: the title's poster, else a frame of its video. Without ffmpeg or a
-   * readable video the frame cannot be made and the response is 404, so the library draws its
-   * placeholder.
+   * A landscape card: the title's poster, else a frame of its video. Without ffmpeg or a readable
+   * video the frame cannot be made and the response is 404, so the library draws its placeholder.
    */
   @GetMapping("/titles/{id}/frame-card")
   public ResponseEntity<Void> titleFrameCard(@PathVariable String id) throws IOException {

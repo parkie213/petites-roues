@@ -30,6 +30,7 @@ import org.junit.jupiter.api.io.TempDir;
 import org.springframework.http.ResponseEntity;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
+import tools.jackson.databind.JsonNode;
 
 /** Card images through the real catalogue, CBZ reader, ffmpeg and cache directory. */
 class CardIntegrationTest extends HttpIntegrationTest {
@@ -188,8 +189,11 @@ class CardIntegrationTest extends HttpIntegrationTest {
         .toBodilessEntity();
     String api = "/api/media/" + onlyMedia().fingerprint();
 
-    // A video with no poster has no portrait card, but a landscape shelf shows a 16:9 frame.
+    // A video with no poster has no portrait card: it is a landscape card showing a 16:9 frame.
     assertEquals(404, status(api + "/card"));
+    var landscape = onlyCard();
+    assertEquals("landscape", landscape.path("shape").asString());
+    assertTrue(landscape.path("art").path("url").asString().endsWith("/frame-card"));
     var frame = image(api + "/frame-card");
     assertEquals(480, frame.getWidth());
     assertEquals(270, frame.getHeight());
@@ -200,6 +204,9 @@ class CardIntegrationTest extends HttpIntegrationTest {
     http.post().uri("/api/repositories/refresh").retrieve().toBodilessEntity();
     assertEquals(160, image(api + "/frame-card").getWidth());
     assertNotEquals(frameUrl, location(api + "/frame-card"));
+    var portrait = onlyCard();
+    assertEquals("portrait", portrait.path("shape").asString(), "a poster makes it portrait");
+    assertFalse(portrait.path("art").path("url").asString().endsWith("/frame-card"));
 
     // A video without a poster that cannot be read has no frame: 404, the placeholder.
     Files.delete(folder.resolve("poster.png"));
@@ -207,6 +214,16 @@ class CardIntegrationTest extends HttpIntegrationTest {
     String unreadable = location(api + "/frame-card");
     Files.write(video, new byte[] {1, 2, 3});
     assertEquals(404, status(api + "/frame-card/" + unreadable));
+  }
+
+  /** The only card of the Posters view. */
+  private JsonNode onlyCard() {
+    return mapper
+        .readTree(http.get().uri("/api/library/posters").retrieve().body(String.class))
+        .path("shelves")
+        .get(0)
+        .path("groups")
+        .get(0);
   }
 
   private MediaItem onlyMedia() {

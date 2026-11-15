@@ -41,22 +41,3 @@ test("a shelf key narrows to that shelf; null keeps every shelf", () => {
   assert.equal(filterShelves(shelves, { shelf: null }).length, 2);
   assert.equal(filterShelves(shelves, { shelf: "gone" }).length, 0);
 });
-test("filtering keeps whether a shelf is landscape", () => {
-  const wide = [
-    {
-      key: "youtube",
-      landscape: true,
-      groups: [{ name: "Cuisine", type: "video", slots: [ready] }],
-    },
-    { key: "films", landscape: false, groups: shelves[1].groups },
-  ];
-  const result = filterShelves(wide, { search: "cuisine" });
-  assert.deepEqual(
-    result.map((s) => [s.key, s.landscape]),
-    [["youtube", true]],
-  );
-  assert.deepEqual(
-    filterShelves(wide).map((s) => s.landscape),
-    [true, false],
-  );
-});

@@ -13,7 +13,7 @@ interface PosterCardProps extends Partial<LinkActions> {
   detail?: string | null;
   art?: PosterArt | null;
   type: PosterEntry["type"];
-  /** Draws the art 16:9 instead of 2:3, for a landscape shelf of videos. */
+  /** Draws the art 16:9 (spanning two grid columns) instead of 2:3. */
   landscape?: boolean;
   href: string | null;
   slot?: PosterSlot;

@@ -760,6 +760,7 @@
                   ],
                   "label": "Le parapluie de Lulu",
                   "detail": null,
+                  "shape": "portrait",
                   "art": {
                     "url": "/api/titles/lulu-example-le-parapluie/card"
                   }
@@ -767,12 +768,12 @@
               ],
               "seasons": [],
               "count": "1 tome",
+              "shape": "portrait",
               "art": {
                 "url": "/api/titles/lulu-example-le-parapluie/card"
               }
             }
-          ],
-          "landscape": false
+          ]
         },
         {
           "key": "series",
@@ -842,6 +843,7 @@
                   ],
                   "label": "Les Flaques de Boue - one-minute example",
                   "detail": "S1 · E1",
+                  "shape": "portrait",
                   "art": null
                 },
                 {
@@ -904,6 +906,7 @@
                   ],
                   "label": "A la recherche de mr dinosaure",
                   "detail": "S1 · E2",
+                  "shape": "portrait",
                   "art": null
                 }
               ],
@@ -911,12 +914,12 @@
                 1
               ],
               "count": "2 episodes",
+              "shape": "portrait",
               "art": {
                 "url": "/api/titles/peppa-pig-example-s01e01/series-card"
               }
             }
-          ],
-          "landscape": false
+          ]
         },
         {
           "key": "youtube",
@@ -986,6 +989,7 @@
                   ],
                   "label": "Une vidéo de démonstration",
                   "detail": null,
+                  "shape": "landscape",
                   "art": {
                     "url": "/api/titles/demonstration-courte-example-fr/frame-card"
                   }
@@ -993,12 +997,12 @@
               ],
               "seasons": [],
               "count": null,
+              "shape": "landscape",
               "art": {
                 "url": "/api/titles/demonstration-courte-example-fr/frame-card"
               }
             }
-          ],
-          "landscape": true
+          ]
         }
       ],
       "folders": [

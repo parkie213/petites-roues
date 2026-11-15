@@ -42,6 +42,13 @@ import java.util.stream.Collectors;
  * preferred copy is the one whose document and media are present. Entries arrive in folder order,
  * which breaks ties between equally available copies. Shelves are ordered by label and cards by
  * name, comparing numbers by value ("Tome 2" before "Tome 10").
+ *
+ * <p>Each card has a shape, decided by the card alone and never by its shelf, so a shelf may mix
+ * shapes. A comic card is portrait (2:3, its cover). A video or series card with a poster (its own
+ * art or the folder's series poster) is portrait with that poster. A video card without a poster
+ * whose media is present is landscape (16:9) and shows a frame grabbed from that video; a series of
+ * such videos uses its first one with media. Anything else, with no art and no media, is portrait
+ * and drawn as a placeholder.
  */
 public final class Shelves {
   private Shelves() {}
@@ -55,6 +62,12 @@ public final class Shelves {
    */
   public record CardArt<T>(T copy, boolean series) {}
 
+  /** The proportions a card is drawn in: 2:3 for a poster or cover, 16:9 for a video's frame. */
+  public enum Shape {
+    PORTRAIT,
+    LANDSCAPE
+  }
+
   /**
    * One tome, episode or film.
    *
@@ -62,9 +75,16 @@ public final class Shelves {
    * @param copies every copy, preferred first
    * @param detail "S1 · E2" for numbered videos, else null
    * @param art the first copy with its own art, or null
+   * @param frame the copy whose video supplies a grabbed frame, when this is a video with no poster
+   *     of any kind and a copy's media is present; null otherwise
    */
   public record Slot<T>(
-      String key, T entry, List<T> copies, String label, String detail, CardArt<T> art) {}
+      String key, T entry, List<T> copies, String label, String detail, CardArt<T> art, T frame) {
+    /** Landscape exactly when the card shows a frame of {@link #frame}. */
+    public Shape shape() {
+      return frame == null ? Shape.PORTRAIT : Shape.LANDSCAPE;
+    }
+  }
 
   /**
    * A card: a whole series, or a {@code single} title.
@@ -74,6 +94,8 @@ public final class Shelves {
    * @param language the source language most of its entries declare, or null
    * @param seasons the seasons its slots have, in order
    * @param count "3 tomes", "2 seasons · 12 episodes"; null for a single title
+   * @param frame for a card with no art, the video its frame is grabbed from: the first slot's with
+   *     media; null when the card has art or no video is present
    */
   public record Group<T>(
       String key,
@@ -85,20 +107,18 @@ public final class Shelves {
       List<Slot<T>> slots,
       List<Integer> seasons,
       String count,
-      CardArt<T> art) {}
+      CardArt<T> art,
+      T frame) {
+    /** Landscape exactly when the card shows a frame of {@link #frame}. */
+    public Shape shape() {
+      return frame == null ? Shape.PORTRAIT : Shape.LANDSCAPE;
+    }
+  }
 
   /**
    * A shelf with its cards sorted by name; {@code key} matches labels ignoring case and spacing.
-   *
-   * @param landscape whether its cards are drawn 16:9 rather than 2:3: the shelf is one a document
-   *     named (not one of the built-in Comics, Series, Films and Unsorted) and every card on it is
-   *     a video, so a YouTube or Music videos shelf shows wide thumbnails
    */
-  public record Shelf<T>(String key, String label, List<Group<T>> groups, boolean landscape) {}
-
-  /** The shelves every library has by kind; a shelf of these names is never landscape. */
-  private static final Set<String> BUILT_IN =
-      Set.of("comics", "series", "films", seriesKey(UNSORTED));
+  public record Shelf<T>(String key, String label, List<Group<T>> groups) {}
 
   /** Series and shelf names match ignoring case, spacing and Unicode composition. */
   public static String seriesKey(String name) {
@@ -171,15 +191,14 @@ public final class Shelves {
                   group.slots(),
                   group.seasons(),
                   group.count(),
-                  group.art()));
+                  group.art(),
+                  group.frame()));
     }
     List<Shelf<T>> result = new ArrayList<>();
     for (var key : groups.keySet()) {
       var cards = new ArrayList<>(groups.get(key));
       cards.sort(Comparator.comparing(Group::name, Comparator.nullsLast(NaturalOrder.COMPARATOR)));
-      boolean landscape =
-          !BUILT_IN.contains(key) && cards.stream().allMatch(c -> c.kind() == MediaKind.VIDEO);
-      result.add(new Shelf<>(key, mostCommon(labels.get(key)), List.copyOf(cards), landscape));
+      result.add(new Shelf<>(key, mostCommon(labels.get(key)), List.copyOf(cards)));
     }
     result.sort(Comparator.comparing(Shelf::label, NaturalOrder.COMPARATOR));
     return List.copyOf(result);
@@ -252,6 +271,10 @@ public final class Shelves {
         seasons.size() > 1
             ? plural(seasons.size(), "season") + " · " + plural(slots.size(), unit)
             : plural(slots.size(), unit);
+    CardArt<T> art =
+        poster != null
+            ? new CardArt<>(poster, true)
+            : slots.stream().map(Slot::art).filter(Objects::nonNull).findFirst().orElse(null);
     return new Group<>(
         key,
         null,
@@ -262,9 +285,10 @@ public final class Shelves {
         slots,
         List.copyOf(seasons),
         count,
-        poster != null
-            ? new CardArt<>(poster, true)
-            : slots.stream().map(Slot::art).filter(Objects::nonNull).findFirst().orElse(null));
+        art,
+        art != null
+            ? null
+            : slots.stream().map(Slot::frame).filter(Objects::nonNull).findFirst().orElse(null));
   }
 
   private static <T extends Shelvable> List<Group<T>> singleGroups(
@@ -291,7 +315,8 @@ public final class Shelves {
               List.of(slot),
               List.of(),
               null,
-              art));
+              art,
+              slot.frame()));
     }
     return groups;
   }
@@ -319,10 +344,22 @@ public final class Shelves {
               List.copyOf(ordered),
               slotLabel(entry),
               slotDetail(entry),
-              art));
+              art,
+              frameOf(ordered, art)));
     }
     slots.sort(SLOT_ORDER);
     return List.copyOf(slots);
+  }
+
+  /**
+   * The copy a landscape card takes its frame from: for a video with no art and no series poster,
+   * the first copy whose media is present; null when the slot has a poster, is a comic, or has no
+   * media to grab a frame from.
+   */
+  private static <T extends Shelvable> T frameOf(List<T> copies, CardArt<T> art) {
+    if (art != null || copies.get(0).kind() != MediaKind.VIDEO) return null;
+    if (copies.stream().anyMatch(Shelvable::hasSeriesPoster)) return null;
+    return copies.stream().filter(Shelvable::mediaAvailable).findFirst().orElse(null);
   }
 
   /** Copies share a slot only within one language: another language's tome 1 is not a copy. */

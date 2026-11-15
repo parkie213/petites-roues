@@ -423,41 +423,90 @@ class ShelvesTest {
     assertTrue(NaturalOrder.COMPARATOR.compare("des frigos", "Paris") < 0);
   }
 
-  private static boolean landscape(String key, E... entries) {
-    return Shelves.shelves(Arrays.asList(entries)).stream()
-        .filter(shelf -> shelf.key().equals(key))
-        .findFirst()
-        .orElseThrow()
-        .landscape();
+  private static Shelves.Shape shape(String key, E... entries) {
+    return shelf(Shelves.shelves(Arrays.asList(entries)), key).get(0).shape();
   }
 
   @Test
-  void aShelfADocumentNamesIsLandscapeWhenEveryCardOnItIsAVideo() {
-    var first = new E().title("Cuisine").shelf("YouTube");
-    var second = new E().title("Voyage").series("Chaine").shelf("YouTube");
-    assertTrue(landscape("youtube", first, second));
-    assertTrue(landscape("youtube", new E().shelf(" youtube "), new E().shelf("Music videos")));
-  }
-
-  @Test
-  void theBuiltInShelvesAreNeverLandscape() {
-    var film = new E().title("Amelie");
-    var episode = new E().series("Peppa").season(1).episode(1);
+  void aComicCardIsPortraitEvenWithoutACover() {
     var comic = new E().kind(MediaKind.COMIC).title("Tintin").volume(1);
-    var unsorted = bare("misc/clip.mp4", MediaKind.VIDEO);
-    assertFalse(landscape("films", film));
-    assertFalse(landscape("series", episode));
-    assertFalse(landscape("comics", comic));
-    assertFalse(landscape(Shelves.seriesKey(Shelves.UNSORTED), unsorted));
-    // Naming a built-in shelf explicitly does not change that.
-    assertFalse(landscape("films", new E().shelf("Films")));
+    assertEquals(Shelves.Shape.PORTRAIT, shape("comics", comic));
+    assertNull(shelf("comics", comic).get(0).frame());
   }
 
   @Test
-  void aNamedShelfWithAComicOnItStaysPortrait() {
-    var video = new E().title("Clip").shelf("Manga");
+  void aVideoWithItsOwnPosterOrTheFolderPosterIsPortrait() {
+    var own = new E().title("Amelie").titleArt();
+    var folder = new E().title("Ponyo").seriesPoster();
+    assertEquals(Shelves.Shape.PORTRAIT, shape("films", own));
+    assertEquals(Shelves.Shape.PORTRAIT, shape("films", folder));
+    var series = shelf("series", episode(1, 1).seriesPoster(), episode(1, 2).seriesPoster()).get(0);
+    assertEquals(Shelves.Shape.PORTRAIT, series.shape());
+    assertEquals(
+        List.of(Shelves.Shape.PORTRAIT, Shelves.Shape.PORTRAIT),
+        series.slots().stream().map(Slot::shape).toList());
+  }
+
+  @Test
+  void aVideoWithoutAPosterWhoseMediaIsPresentIsLandscapeWithItsOwnFrame() {
+    var film = new E().title("Amelie");
+    var card = shelf("films", film).get(0);
+    assertEquals(Shelves.Shape.LANDSCAPE, card.shape());
+    assertSame(film, card.frame());
+    assertSame(film, card.slots().get(0).frame());
+    var bare = bare("misc/clip.mp4", MediaKind.VIDEO);
+    assertEquals(Shelves.Shape.LANDSCAPE, shape("unsorted", bare));
+  }
+
+  @Test
+  void aVideoWithoutAPosterOrMediaStaysAPortraitPlaceholder() {
+    var film = new E().title("Amelie").media(false);
+    assertEquals(Shelves.Shape.PORTRAIT, shape("films", film));
+    assertNull(shelf("films", film).get(0).frame());
+  }
+
+  @Test
+  void theFrameComesFromACopyWhoseMediaIsPresent() {
+    var missing = new E().documentId("robots").title("ROBOTS").media(false);
+    var present = new E().documentId("robots").title("ROBOTS");
+    var card = shelf("films", missing, present).get(0);
+    assertSame(present, card.frame());
+    assertSame(present, card.slots().get(0).frame());
+  }
+
+  @Test
+  void aSeriesOfPosterlessVideosIsLandscapeFromItsFirstVideoWithMedia() {
+    var first = episode(1, 1).media(false);
+    var second = episode(1, 2);
+    var third = episode(1, 3);
+    var card = shelf("series", third, second, first).get(0);
+    assertEquals(Shelves.Shape.LANDSCAPE, card.shape());
+    assertSame(second, card.frame());
+    assertEquals(
+        List.of(Shelves.Shape.PORTRAIT, Shelves.Shape.LANDSCAPE, Shelves.Shape.LANDSCAPE),
+        card.slots().stream().map(Slot::shape).toList());
+    assertEquals(
+        Shelves.Shape.PORTRAIT,
+        shape("series", episode(1, 1).media(false), episode(1, 2).media(false)));
+  }
+
+  @Test
+  void aShelfADocumentNamesMixesShapesCardByCard() {
     var comic = new E().kind(MediaKind.COMIC).title("Naruto").volume(1).shelf("Manga");
-    assertFalse(landscape("manga", video, comic));
-    assertFalse(landscape("manga", comic));
+    var clip = new E().title("Clip").shelf("Manga");
+    var poster = new E().title("Trailer").shelf("Manga").titleArt();
+    var cards = shelf("manga", comic, clip, poster);
+    assertEquals(List.of("Clip", "Naruto", "Trailer"), cards.stream().map(Group::name).toList());
+    assertEquals(
+        List.of(Shelves.Shape.LANDSCAPE, Shelves.Shape.PORTRAIT, Shelves.Shape.PORTRAIT),
+        cards.stream().map(Group::shape).toList());
+  }
+
+  @Test
+  void aShelfsNameDoesNotDecideShape() {
+    var film = new E().title("Amelie").shelf("Films");
+    var named = new E().title("Clip").shelf("YouTube");
+    assertEquals(Shelves.Shape.LANDSCAPE, shape("films", film));
+    assertEquals(Shelves.Shape.LANDSCAPE, shape("youtube", named));
   }
 }

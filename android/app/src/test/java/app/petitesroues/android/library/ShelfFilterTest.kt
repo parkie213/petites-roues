@@ -7,8 +7,8 @@ import org.junit.Assert.assertNull
 import org.junit.Test
 
 class ShelfFilterTest {
-  private val comics = Shelf<String>("comics", "Comics", emptyList<Group<String>>(), false)
-  private val series = Shelf<String>("series", "Series", emptyList<Group<String>>(), false)
+  private val comics = Shelf<String>("comics", "Comics", emptyList<Group<String>>())
+  private val series = Shelf<String>("series", "Series", emptyList<Group<String>>())
   private val shelves = listOf(comics, series)
 
   @Test

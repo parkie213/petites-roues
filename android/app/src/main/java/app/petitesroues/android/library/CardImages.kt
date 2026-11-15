@@ -20,20 +20,18 @@ import javax.inject.Singleton
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
-/**
- * Where a card image comes from: a poster file, a page inside a CBZ, or a frame of a video. A
- * [wide] poster is for a landscape card, so it is kept at a larger size.
- */
+/** Where a card image comes from: a poster file, a page inside a CBZ, or a frame of a video. */
 sealed interface CardSource {
   val key: String
 
-  data class Poster(val uri: Uri, val wide: Boolean = false) : CardSource {
-    override val key = if (wide) "$uri#wide" else uri.toString()
+  data class Poster(val uri: Uri) : CardSource {
+    override val key = uri.toString()
   }
 
   /**
    * A frame grabbed from [video] about a quarter of the way in ([framePositionMicros]) and
-   * center-cropped to 16:9 ([landscapeCrop]), for a landscape card whose video has no poster.
+   * center-cropped to 16:9 ([landscapeCrop]): the image of a landscape card, a video with no
+   * poster.
    */
   data class Frame(val video: Uri) : CardSource {
     override val key = "$video#frame"
@@ -46,28 +44,18 @@ sealed interface CardSource {
 
   companion object {
     /**
-     * The image for [art]: a series poster, else the title's poster or a comic's first page. On a
-     * [landscape] shelf a card without art shows a frame of the first of [videos] that is present;
-     * [videos] are the card's own titles, which [art] does not name when it has no art at all.
+     * The image for [art]: a series poster, else the title's poster or a comic's first page; with
+     * no art, a frame of [frame], the video the shared rules chose for a landscape card
+     * ([app.petitesroues.library.shelves.Shelves]).
      */
-    fun of(
-      art: CardArt<Title>?,
-      landscape: Boolean = false,
-      videos: List<Title> = emptyList(),
-    ): CardSource? =
-      posterOrPage(art, landscape)
-        ?: if (landscape)
-          videos
-            .firstOrNull { it.kind == TitleKind.VIDEO && it.mediaUri != null }
-            ?.mediaUri
-            ?.let(::Frame)
-        else null
+    fun of(art: CardArt<Title>?, frame: Title? = null): CardSource? =
+      posterOrPage(art) ?: frame?.mediaUri?.let(::Frame)
 
-    private fun posterOrPage(art: CardArt<Title>?, wide: Boolean): CardSource? {
+    private fun posterOrPage(art: CardArt<Title>?): CardSource? {
       val title = art?.copy ?: return null
-      if (art.series) return title.seriesPoster?.let { Poster(it, wide) }
+      if (art.series) return title.seriesPoster?.let(::Poster)
       title.poster?.let {
-        return Poster(it, wide)
+        return Poster(it)
       }
       val archive = title.mediaUri ?: return null
       return if (title.kind == TitleKind.COMIC) Page(archive, title.firstPage) else null
@@ -129,7 +117,7 @@ class CardImages @Inject constructor(@ApplicationContext private val context: Co
         resolver.openInputStream(source.uri)?.use { BitmapFactory.decodeStream(it, null, bounds) }
         var sample = 1
         val width = source.width
-        val height = if (source.wide) WIDE_HEIGHT else HEIGHT
+        val height = HEIGHT
         while (
           bounds.outWidth / (sample * 2) >= width && bounds.outHeight / (sample * 2) >= height
         ) sample *= 2
@@ -174,8 +162,7 @@ class CardImages @Inject constructor(@ApplicationContext private val context: Co
 
   /** The width a card from [this] source is kept at. */
   private val CardSource.width: Int
-    get() =
-      if (this is CardSource.Frame || (this is CardSource.Poster && wide)) WIDE_WIDTH else WIDTH
+    get() = if (this is CardSource.Frame) WIDE_WIDTH else WIDTH
 
   private fun sha1(text: String): String =
     MessageDigest.getInstance("SHA-1").digest(text.toByteArray()).joinToString("") {
@@ -189,6 +176,5 @@ class CardImages @Inject constructor(@ApplicationContext private val context: Co
 
     // A landscape card is about twice as wide, 16:9.
     const val WIDE_WIDTH = 480
-    const val WIDE_HEIGHT = 270
   }
 }

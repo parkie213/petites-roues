@@ -572,6 +572,7 @@
                   ],
                   "label": "Le parapluie de Lulu",
                   "detail": null,
+                  "shape": "portrait",
                   "art": {
                     "url": "/api/titles/lulu-example-le-parapluie/card"
                   }
@@ -579,12 +580,12 @@
               ],
               "seasons": [],
               "count": "1 tome",
+              "shape": "portrait",
               "art": {
                 "url": "/api/titles/lulu-example-le-parapluie/card"
               }
             }
-          ],
-          "landscape": false
+          ]
         },
         {
           "key": "series",
@@ -654,6 +655,7 @@
                   ],
                   "label": "Les Flaques de Boue - one-minute example",
                   "detail": "S1 · E1",
+                  "shape": "portrait",
                   "art": null
                 },
                 {
@@ -716,6 +718,7 @@
                   ],
                   "label": "A la recherche de mr dinosaure",
                   "detail": "S1 · E2",
+                  "shape": "portrait",
                   "art": null
                 }
               ],
@@ -723,12 +726,12 @@
                 1
               ],
               "count": "2 episodes",
+              "shape": "portrait",
               "art": {
                 "url": "/api/titles/peppa-pig-example-s01e01/series-card"
               }
             }
-          ],
-          "landscape": false
+          ]
         },
         {
           "key": "youtube",
@@ -798,6 +801,7 @@
                   ],
                   "label": "Une vidéo de démonstration",
                   "detail": null,
+                  "shape": "landscape",
                   "art": {
                     "url": "/api/titles/demonstration-courte-example-fr/frame-card"
                   }
@@ -805,12 +809,12 @@
               ],
               "seasons": [],
               "count": null,
+              "shape": "landscape",
               "art": {
                 "url": "/api/titles/demonstration-courte-example-fr/frame-card"
               }
             }
-          ],
-          "landscape": true
+          ]
         }
       ],
       "folders": [
@@ -893,6 +897,7 @@
                   ],
                   "label": "Le parapluie de Lulu",
                   "detail": null,
+                  "shape": "portrait",
                   "art": {
                     "url": "/api/titles/lulu-example-le-parapluie/card"
                   }
@@ -900,12 +905,12 @@
               ],
               "seasons": [],
               "count": "1 tome",
+              "shape": "portrait",
               "art": {
                 "url": "/api/titles/lulu-example-le-parapluie/card"
               }
             }
-          ],
-          "landscape": false
+          ]
         },
         {
           "key": "series",
@@ -979,12 +984,18 @@
                   ],
                   "label": "Bienenalarm",
                   "detail": "E83",
-                  "art": null
+                  "shape": "landscape",
+                  "art": {
+                    "url": "/api/media/v1%3Afadb5c924b0af2e5f17446026908cb4336e5aabcdf2ed9680f7888c33b377aa4/frame-card"
+                  }
                 }
               ],
               "seasons": [],
               "count": "1 episode",
-              "art": null
+              "shape": "landscape",
+              "art": {
+                "url": "/api/media/v1%3Afadb5c924b0af2e5f17446026908cb4336e5aabcdf2ed9680f7888c33b377aa4/frame-card"
+              }
             },
             {
               "key": "series:peppa pig@fr",
@@ -1050,6 +1061,7 @@
                   ],
                   "label": "Les Flaques de Boue - one-minute example",
                   "detail": "S1 · E1",
+                  "shape": "portrait",
                   "art": null
                 },
                 {
@@ -1112,6 +1124,7 @@
                   ],
                   "label": "A la recherche de mr dinosaure",
                   "detail": "S1 · E2",
+                  "shape": "portrait",
                   "art": null
                 }
               ],
@@ -1119,12 +1132,12 @@
                 1
               ],
               "count": "2 episodes",
+              "shape": "portrait",
               "art": {
                 "url": "/api/titles/peppa-pig-example-s01e01/series-card"
               }
             }
-          ],
-          "landscape": false
+          ]
         },
         {
           "key": "youtube",
@@ -1194,6 +1207,7 @@
                   ],
                   "label": "Une vidéo de démonstration",
                   "detail": null,
+                  "shape": "landscape",
                   "art": {
                     "url": "/api/titles/demonstration-courte-example-fr/frame-card"
                   }
@@ -1201,12 +1215,12 @@
               ],
               "seasons": [],
               "count": null,
+              "shape": "landscape",
               "art": {
                 "url": "/api/titles/demonstration-courte-example-fr/frame-card"
               }
             }
-          ],
-          "landscape": true
+          ]
         }
       ],
       "folders": [
@@ -1252,6 +1266,17 @@
         }
       ]
     }
+  },
+  {
+    "request": "GET /api/media/v1%3Afadb5c924b0af2e5f17446026908cb4336e5aabcdf2ed9680f7888c33b377aa4/frame-card",
+    "status": 302,
+    "location": "/api/media/v1%3Afadb5c924b0af2e5f17446026908cb4336e5aabcdf2ed9680f7888c33b377aa4/frame-card/recorded"
+  },
+  {
+    "request": "GET /api/media/v1%3Afadb5c924b0af2e5f17446026908cb4336e5aabcdf2ed9680f7888c33b377aa4/frame-card/recorded",
+    "status": 200,
+    "type": "image/jpeg",
+    "blob": "b5d7de6e2401900f.jpg"
   },
   {
     "request": "GET /api/repositories?journeyCheck=1",

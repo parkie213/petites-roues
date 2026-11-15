@@ -87,6 +87,7 @@ import app.petitesroues.library.discovery.MediaKind
 import app.petitesroues.library.progress.LibraryProgress
 import app.petitesroues.library.shelves.Shelves
 import app.petitesroues.library.shelves.Shelves.Group
+import app.petitesroues.library.shelves.Shelves.Shape
 import app.petitesroues.library.shelves.Shelves.Shelf
 import app.petitesroues.library.shelves.Shelves.Slot
 import java.util.Locale
@@ -235,7 +236,6 @@ fun LibraryScreen(
       if (open != null)
         SeriesView(
           open,
-          shelves.any { it.landscape && open in it.groups },
           browse.season,
           cards,
           multilingual,
@@ -274,22 +274,21 @@ fun LibraryScreen(
             items(
               shelf.groups,
               key = { it.key },
-              span = { landscapeSpan(shelf.landscape, maxLineSpan) },
+              span = { landscapeSpan(it.shape() == Shape.LANDSCAPE, maxLineSpan) },
             ) { group ->
               val language = group.language?.takeIf { multilingual }
-              if (group.single)
-                cards.Slot(group.slots.single(), group.name, null, language, shelf.landscape)
+              if (group.single) cards.Slot(group.slots.single(), group.name, null, language)
               else
                 cards.Card(
                   group.name,
                   group.count,
-                  CardSource.of(group.art, shelf.landscape, group.slots.map { it.entry }),
+                  CardSource.of(group.art, group.frame),
                   group.kind == MediaKind.COMIC,
                   null,
                   emptyList(),
                   onClick = { onBrowse(Browse(group.key)) },
                   language = language,
-                  landscape = shelf.landscape,
+                  landscape = group.shape() == Shape.LANDSCAPE,
                 )
             }
           }
@@ -336,8 +335,8 @@ private fun ShelfChips(shelves: List<Shelf<Title>>, chosen: String?, onChoose: (
 }
 
 /**
- * A grid of cards, portrait unless a shelf is landscape, that fits as many columns as the screen
- * allows.
+ * A grid of cards that fits as many columns as the screen allows. A card is portrait or landscape
+ * by its own [Shape], so one shelf can hold both.
  */
 @Composable
 private fun PosterGrid(state: LazyGridState, content: LazyGridScope.() -> Unit) {
@@ -413,7 +412,6 @@ private fun RefreshProgress(progress: LibraryProgress?) {
 @Composable
 private fun SeriesView(
   group: Group<Title>,
-  landscape: Boolean,
   chosen: Int?,
   cards: Cards,
   multilingual: Boolean,
@@ -440,8 +438,12 @@ private fun SeriesView(
           }
       }
     }
-    items(slots, key = { it.key }, span = { landscapeSpan(landscape, maxLineSpan) }) { slot ->
-      cards.Slot(slot, slot.label, slot.detail, landscape = landscape)
+    items(
+      slots,
+      key = { it.key },
+      span = { landscapeSpan(it.shape() == Shape.LANDSCAPE, maxLineSpan) },
+    ) { slot ->
+      cards.Slot(slot, slot.label, slot.detail)
     }
   }
 }
@@ -460,7 +462,6 @@ private class Cards(
     name: String,
     detail: String?,
     language: String? = null,
-    landscape: Boolean = false,
   ) {
     val entry = slot.entry
     val problem =
@@ -477,7 +478,7 @@ private class Cards(
       listOfNotNull(detail, resume?.let { "Resume ${clock(it)}" }).joinToString(" · ").ifEmpty {
         null
       },
-      CardSource.of(slot.art, landscape, listOf(entry)),
+      CardSource.of(slot.art, slot.frame),
       entry.kind == TitleKind.COMIC,
       problem,
       slot.copies,
@@ -492,7 +493,7 @@ private class Cards(
       progress = saved?.fraction?.takeIf { it > 0 }?.toFloat(),
       onClearProgress = if (saved != null) ({ onClearProgress(entry) }) else null,
       language = language,
-      landscape = landscape,
+      landscape = slot.shape() == Shape.LANDSCAPE,
     )
   }
 

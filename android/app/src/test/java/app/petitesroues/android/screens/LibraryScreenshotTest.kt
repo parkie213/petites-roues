@@ -45,7 +45,6 @@ class LibraryScreenshotTest {
     // Cards decode their images on a background thread; load them first so they're drawn.
     runBlocking {
       images.load(CardSource.Poster(Fixtures.poster))
-      images.load(CardSource.Poster(Fixtures.poster, wide = true))
       images.load(CardSource.Page(Fixtures.comic, null))
     }
     compose.setContent {
@@ -111,13 +110,16 @@ class LibraryScreenshotTest {
     compose.onRoot().captureRoboImage()
   }
 
-  /** Videos on a shelf a document named are 16:9, two portrait cells wide; the rest stay 2:3. */
+  /**
+   * A shelf mixing shapes: a video without a poster is 16:9, two portrait cells wide, beside a
+   * comic and a video with a poster that stay 2:3.
+   */
   @Test
-  fun landscapeShelf() {
+  fun mixedShelf() {
     library(
       LibraryUiState(
         folders,
-        Fixtures.titles.filter { it.name == "La rivière" } + Fixtures.youtube,
+        Fixtures.favourites,
         Fixtures.progress,
         false,
         emptyList(),

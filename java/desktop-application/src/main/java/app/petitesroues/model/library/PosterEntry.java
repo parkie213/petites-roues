@@ -123,8 +123,8 @@ public record PosterEntry(
   }
 
   /**
-   * Where a frame grabbed from this entry's video is served, for cards on landscape shelves that
-   * have no poster.
+   * Where a frame grabbed from this entry's video is served: the image of a landscape card, a video
+   * with no poster whose media is present ({@link app.petitesroues.library.shelves.Shelves}).
    */
   public String frameUrl() {
     String base =

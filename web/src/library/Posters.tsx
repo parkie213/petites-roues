@@ -8,7 +8,6 @@ import type { PosterFilters } from "./components/LibraryToolbar.tsx";
 import {
   SeriesView,
   groupCard,
-  gridClass,
   type FollowPoster,
 } from "./components/PosterSeries.tsx";
 import { usePosterShelves } from "./usePosterShelves.ts";
@@ -98,9 +97,6 @@ export function Posters({
         .find((g) => g.key === selection.group)
     : null;
   const shown = { ...selection, repository: filter };
-  const openLandscape = Boolean(
-    open && posters.shelves.find((s) => s.groups.includes(open))?.landscape,
-  );
 
   return (
     <Stack gap="xl">
@@ -138,7 +134,6 @@ export function Posters({
       {open ? (
         <SeriesView
           group={open}
-          landscape={openLandscape}
           selection={shown}
           follow={follow}
           repositoryNames={repositoryNames}
@@ -157,7 +152,7 @@ export function Posters({
                 </Text>
               </Group>
               <div
-                className={gridClass(shelf.landscape)}
+                className="poster-grid"
                 onClick={(event) => {
                   const link = (
                     event.target as Element
@@ -166,14 +161,7 @@ export function Posters({
                 }}
               >
                 {shelf.groups.map((group) =>
-                  groupCard(
-                    group,
-                    shown,
-                    repositoryNames,
-                    actions,
-                    tagged,
-                    shelf.landscape,
-                  ),
+                  groupCard(group, shown, repositoryNames, actions, tagged),
                 )}
               </div>
             </Stack>

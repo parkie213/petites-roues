@@ -3,9 +3,10 @@ package app.petitesroues.android.library
 import android.app.Application
 import android.net.Uri
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import app.petitesroues.library.shelves.Shelves
 import app.petitesroues.library.shelves.Shelves.CardArt
+import app.petitesroues.library.shelves.Shelves.Shape
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertNull
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -37,56 +38,65 @@ class CardSourceTest {
     )
 
   @Test
-  fun aPortraitCardWithoutArtHasNoImage() {
-    assertNull(CardSource.of(null, false, listOf(title())))
-    assertNull(CardSource.of(CardArt(title(), false), false, listOf(title())))
+  fun aPortraitCardWithoutArtOrFrameHasNoImage() {
+    assertNull(CardSource.of(null))
+    assertNull(CardSource.of(CardArt(title(), false)))
   }
 
   @Test
-  fun aLandscapeCardWithoutAPosterShowsAFrameOfItsVideo() {
+  fun aLandscapeCardShowsAFrameOfTheVideoTheSharedRulesChose() {
     val clip = title()
-    val frame = CardSource.Frame(clip.mediaUri!!)
-    assertEquals(frame, CardSource.of(null, true, listOf(clip)))
-    assertEquals(
-      frame,
-      CardSource.of(CardArt(clip, false), true, listOf(clip)),
-    )
+    assertEquals(CardSource.Frame(clip.mediaUri!!), CardSource.of(null, clip))
   }
 
   @Test
-  fun aLandscapeCardPrefersItsPosterAndKeepsItWide() {
+  fun aPosterWinsOverAFrame() {
     val poster = Uri.parse("file:///media/poster.jpg")
     val clip = title(poster = poster)
-    assertEquals(
-      CardSource.Poster(poster, wide = true),
-      CardSource.of(CardArt(clip, false), true, listOf(clip)),
-    )
-    assertEquals(
-      CardSource.Poster(poster),
-      CardSource.of(CardArt(clip, false), false, listOf(clip)),
-    )
+    assertEquals(CardSource.Poster(poster), CardSource.of(CardArt(clip, false), clip))
   }
 
   @Test
-  fun aLandscapeSeriesFramesItsFirstVideoThatIsPresent() {
-    val missing = title(media = null)
-    val present = title()
-    assertEquals(
-      CardSource.Frame(present.mediaUri!!),
-      CardSource.of(null, true, listOf(missing, present)),
-    )
-    assertNull(CardSource.of(null, true, listOf(missing)))
+  fun aFrameOfAVideoWithoutMediaIsNoImage() {
+    assertNull(CardSource.of(null, title(media = null)))
   }
 
   @Test
-  fun aComicIsNeverFramed() {
-    assertNull(CardSource.of(null, true, listOf(title(kind = TitleKind.COMIC))))
-  }
-
-  @Test
-  fun wideAndPortraitCopiesOfOnePosterAreCachedSeparately() {
+  fun framesAreCachedUnderTheirOwnKey() {
     val poster = Uri.parse("file:///media/poster.jpg")
-    assertNotEquals(CardSource.Poster(poster).key, CardSource.Poster(poster, true).key)
+    assertEquals("file:///media/poster.jpg", CardSource.Poster(poster).key)
     assertEquals("file:///media/clip.mp4#frame", CardSource.Frame(title().mediaUri!!).key)
+  }
+
+  @Test
+  fun eachCardOnAMixedShelfTakesItsShapeAndImageFromTheSharedRules() {
+    val poster = Uri.parse("file:///media/poster.jpg")
+    val comic =
+      title(kind = TitleKind.COMIC)
+        .copy(documentId = "comic", name = "Comic", shelf = "Mixed", firstPage = "p1")
+    val wide =
+      title()
+        .copy(
+          documentId = "clip-1",
+          name = "Clip",
+          shelf = "Mixed",
+          documentUri = Uri.parse("file:///d"),
+        )
+    val tall =
+      title(poster = poster)
+        .copy(
+          documentId = "trailer",
+          name = "Trailer",
+          shelf = "Mixed",
+          documentUri = Uri.parse("file:///e"),
+        )
+    val cards = Shelves.shelves(listOf(comic, wide, tall)).single().groups.associateBy { it.name }
+    assertEquals(Shape.PORTRAIT, cards.getValue("Comic").shape())
+    assertEquals(Shape.LANDSCAPE, cards.getValue("Clip").shape())
+    assertEquals(Shape.PORTRAIT, cards.getValue("Trailer").shape())
+    val clip = cards.getValue("Clip")
+    assertEquals(CardSource.Frame(wide.mediaUri!!), CardSource.of(clip.art, clip.frame))
+    val trailer = cards.getValue("Trailer")
+    assertEquals(CardSource.Poster(poster), CardSource.of(trailer.art, trailer.frame))
   }
 }

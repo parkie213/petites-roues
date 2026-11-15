@@ -231,16 +231,18 @@ Without an image, a comic uses its first page and a video gets a placeholder. Ke
 poster per folder: when a folder has several, the media it affects shows a (!) and no poster. Refresh finds posters, so click **Refresh library** after adding one; replacing an existing poster's image needs no Refresh. Card-sized copies are cached locally in `content/.cache/cards/`
 (`petitesroues.cards.cache`) and can be deleted at any time.
 
-A shelf is **landscape** when a document's `shelf` names it (so not the built-in Comics, Series,
-Films or Unsorted, even if a document names one of those) and every card on it is a video: a
-YouTube or Music videos shelf, say. Its cards are 16:9 instead of 2:3, in wider grid cells, on the
-desktop and on Android. A landscape card shows the poster beside its media when there is one,
-else a frame grabbed from the video about a quarter of the way in (to skip intros), scaled to 480
-pixels wide and center-cropped to 16:9. The frame is cached like other card images, named by the
-video's path, size and modification time, and needs `ffmpeg` on the desktop; without it, or for an
-unreadable video, the card keeps the placeholder. A shelf that holds a comic stays 2:3, whatever
-its name. The shared shelf rules (`Shelves`) decide this, and the posters API reports it as
-`landscape` on each shelf.
+Each card's **shape** is decided by the card, never by its shelf name, so one shelf may mix
+shapes. A comic card is portrait (2:3) with its cover. A video or series card that has a poster
+(its own, or the folder's series poster) is portrait with that poster. A video card with no poster
+whose media is present is **landscape** (16:9) and shows a frame grabbed from the video about a
+quarter of the way in (to skip intros), scaled to 480 pixels wide and center-cropped to 16:9; a
+series of such videos uses its first video that has media. Anything else (no art, media missing)
+stays a portrait placeholder. A landscape card spans two portrait columns of the grid, on the
+desktop and on Android, and cards are top-aligned. The frame is cached like other card images,
+named by the video's path, size and modification time, and needs `ffmpeg` on the desktop; without
+it, or for an unreadable video, the card keeps its placeholder. The shared shelf rules (`Shelves`)
+decide this once for both platforms, and the posters API reports it as `shape` (`portrait` or
+`landscape`) on each card and episode.
 
 Posters group titles from document metadata onto shelves (see `shelf` above), ordered by name:
 comics by `series` and `comic.volume`, videos with a season or episode by `series`, and other
