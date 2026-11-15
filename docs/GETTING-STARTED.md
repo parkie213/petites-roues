@@ -112,8 +112,9 @@ Hover over phrases to see their notes.
 
 <img src="../images/getting-started/05-quiz-options.png" alt="Choose the subtitle quiz scope and type" style="max-width: 100%; height: auto;">
 
-Click **Quiz me** at the bottom. Choose **Whole episode** or **Time range**, then choose a
-quiz type. Click **Copy & open ChatGPT** or **Copy & open Claude**, paste into the new chat
+Click **Quiz me** at the top. Choose **Whole title** or **Time range** (type Start and End as
+`m:ss`, or use the target buttons to take the playhead), then choose a quiz type. A long film
+opens on its last ten minutes. The panel shows how many subtitle lines the quiz will use. Click **Copy & open ChatGPT** or **Copy & open Claude**, paste into the new chat
 and send. The quiz instructions are bundled in the app.
 
 <img src="../images/getting-started/06-agent-quiz-chatgpt.png" alt="Practise subtitle translations in ChatGPT" style="max-width: 100%; height: auto;">
