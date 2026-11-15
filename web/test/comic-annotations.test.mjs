@@ -92,3 +92,43 @@ test("lines are listed in reading order and each finds its box", () => {
   // Box ids are not line ids.
   assert.equal(boxOf(boxes, "b2"), undefined);
 });
+
+test("edge coordinates stay positive and inside the page after rounding", () => {
+  for (const position of [0.1234565, 0.9999999, 1, 1.2]) {
+    const region = clampRegion({
+      x: position,
+      y: position,
+      width: 1,
+      height: 1,
+    });
+    assert.ok(region.x + region.width <= 1, JSON.stringify(region));
+    assert.ok(region.y + region.height <= 1, JSON.stringify(region));
+    assert.ok(region.width >= 0.005, JSON.stringify(region));
+    assert.ok(region.height >= 0.005, JSON.stringify(region));
+  }
+});
+
+test("a drag starting at the bottom-right corner produces a valid box", () => {
+  assert.deepEqual(regionFromDrag({ x: 1, y: 1 }, { x: 1, y: 1 }), {
+    x: 0.995,
+    y: 0.995,
+    width: 0.005,
+    height: 0.005,
+  });
+});
+
+test("edge drags remain within server bounds across rounding positions", () => {
+  for (let step = 0; step <= 10000; step++) {
+    const position = step / 10000 + 0.0000005;
+    for (const region of [
+      regionFromDrag({ x: position, y: 0 }, { x: 1, y: 1 }),
+      regionFromDrag({ x: 0, y: position }, { x: 1, y: 1 }),
+    ]) {
+      assert.ok(region.x >= 0 && region.y >= 0);
+      assert.ok(region.width > 0 && region.height > 0);
+      assert.ok(region.x + region.width <= 1, JSON.stringify(region));
+      assert.ok(region.y + region.height <= 1, JSON.stringify(region));
+      assert.deepEqual(clampRegion(region), region);
+    }
+  }
+});
