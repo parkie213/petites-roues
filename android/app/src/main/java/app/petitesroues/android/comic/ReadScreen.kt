@@ -430,16 +430,16 @@ fun ReadScreen(
         document,
         initialType = model.quizType,
         onDismiss = { quizzing = false },
-        onShare = { type, chapter ->
-          model.quizShared(type)
+        onShare = { type, chapter, _ ->
+          model.quizShared(type.id())
           quizzing = false
           QuizShare.share(
             context,
             document,
             ChapterQuizBuilder.fileName(document, chapter),
-            type,
-          ) { rules, chosen ->
-            QuizPack.chapter(rules, document, chapter, chosen)
+            type.id(),
+          ) { guides, chosen ->
+            QuizPack.chapter(guides, document, chapter, chosen)
           }
         },
         chapters = chapters.map(Chapters::name),

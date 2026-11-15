@@ -1,7 +1,6 @@
 package app.petitesroues.android.quiz
 
 import app.petitesroues.android.cue
-import app.petitesroues.android.weather
 import app.petitesroues.model.document.ComicBox
 import app.petitesroues.model.document.ComicChapter
 import app.petitesroues.model.document.ComicDocument
@@ -10,79 +9,23 @@ import app.petitesroues.model.document.ComicRegion
 import app.petitesroues.model.document.Line
 import app.petitesroues.model.document.ReadingDirection
 import app.petitesroues.model.document.StudyDocument
-import app.petitesroues.model.document.VideoCue
-import app.petitesroues.model.document.VideoDocument
 import app.petitesroues.model.pages.MarkdownPage
+import app.petitesroues.quiz.QuizType
+import app.petitesroues.quiz.VideoQuizBuilder.Guides
+import java.io.File
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class QuizPackTest {
-  private fun at(start: Double, line: Line) = VideoCue(line, start, start + 2, null)
-
-  private fun document(cues: List<VideoCue>) =
-    StudyDocument(
-      "film",
-      "Le Film",
-      "fr",
-      "en",
-      "en",
-      null,
-      null,
-      VideoDocument(null, null, null, cues),
+  private val guides =
+    Guides(
+      "# Subtitle quiz agent\n\nRules.",
+      File("../../agents/workflows/quiz-types.md").readText(),
     )
 
-  private fun build(cues: List<VideoCue>, current: Int) =
-    QuizPack.build("# Subtitle quiz agent\n\nRules.", document(cues), cues, current)
-
-  @Test
-  fun carriesTheRulesAndWatchedLinesWithTheirTranslations() {
-    val cues =
-      listOf(
-        at(
-          10.0,
-          Line(
-            "a",
-            "Il fait beau",
-            "The weather is nice",
-            listOf("Weather uses faire."),
-            weather(),
-            false,
-            null,
-          ),
-        ),
-        at(70.0, cue("b", "Pas encore vu", "Not seen yet")),
-      )
-    val pack = build(cues, current = 0)
-    assertTrue(pack.startsWith("# Subtitle quiz: Le Film"))
-    assertTrue("bundled headings sit under the brief's sections", "### Subtitle quiz agent" in pack)
-    assertFalse("the teaching guide stays out", "## Teaching guide" in pack)
-    assertTrue("`fr`" in pack)
-    assertTrue("## Lines just watched (0:10–0:12)" in pack)
-    assertTrue("\n- 0:10 Il fait beau → The weather is nice\n" in pack)
-    assertFalse(
-      "learner notes are left out",
-      "adjective describes" in pack || "Weather uses faire" in pack,
-    )
-    assertFalse("lines after the current one are not included", "Pas encore vu" in pack)
-  }
-
-  @Test
-  fun keepsOnlyTheLastLinesWithSourceText() {
-    val cues =
-      (0 until 40).map { at(it * 3.0, cue("c$it", if (it == 39) "" else "Ligne $it", "Line $it")) }
-    val pack = build(cues, current = 39)
-    assertEquals(
-      QuizPack.LINES,
-      Regex("^- \\d+:\\d\\d ", RegexOption.MULTILINE).findAll(pack).count(),
-    )
-    assertTrue("Ligne 38 → Line 38" in pack)
-    assertFalse("Ligne 8 " in pack)
-  }
-
-  @Test
-  fun aChapterBriefCarriesItsBubblesInReadingOrder() {
+  private fun volume(): StudyDocument {
     val bubble = { line: Line ->
       ComicBox("box-${line.id()}", listOf(ComicRegion(0.1, 0.1, 0.2, 0.2)), listOf(line))
     }
@@ -110,8 +53,12 @@ class QuizPackTest {
         pages,
         listOf(ComicChapter(1, "Cruauté", "a1"), ComicChapter(2, "Inconnu", "b1")),
       )
-    val document = StudyDocument("t1", "Demon Slayer — Tome 1", "fr", "en", "en", null, null, comic)
-    val pack = QuizPack.chapter("# Subtitle quiz agent\n\nRules.", document, 0)
+    return StudyDocument("t1", "Demon Slayer — Tome 1", "fr", "en", "en", null, null, comic)
+  }
+
+  @Test
+  fun aChapterBriefCarriesItsBubblesInReadingOrder() {
+    val pack = QuizPack.chapter(guides, volume(), 0)
     assertTrue(pack.startsWith("# Chapter quiz: Demon Slayer — Tome 1, chapter 1 · Cruauté\n"))
     assertTrue(
       "## Bubbles in chapter 1 · Cruauté (pages 2–3)\n\nPick items from all over these lines, in a mixed order" in
@@ -122,40 +69,11 @@ class QuizPackTest {
         pack
     )
     assertFalse("A name called out" in pack || "Excusez-moi" in pack || "- Demon Slayer" in pack)
-    assertEquals("quiz-demon-slayer-tome-1-chapter-2.md", QuizPack.fileName(document, "chapter 2"))
   }
 
   @Test
-  fun saysSoBeforeTheFirstLine() {
-    assertTrue("None yet" in build(listOf(at(5.0, cue("a", "Bonjour"))), current = -1))
-  }
-
-  private val types = java.io.File("../../agents/workflows/quiz-types.md").readText()
-
-  @Test
-  fun everyQuizTypeHasInstructionsInQuizTypesMd() {
-    val document = document(emptyList())
-    for (type in QuizPack.TYPES) {
-      val chosen = QuizPack.type(types, type.id, document)
-      assertTrue(type.id, chosen.instructions.length > 40)
-      assertFalse("${type.id} stops at the next type", "## " in chosen.instructions)
-    }
-    assertEquals("Translate into French", QuizPack.type(types, "to-source", document).label)
-    assertEquals("Translate into English", QuizPack.type(types, "to-translation", document).label)
-    assertEquals("to-source", QuizPack.type(types, "unknown", document).id)
-  }
-
-  @Test
-  fun theChosenTypeSitsAboveTheRules() {
-    val cues = listOf(at(1.0, cue("a", "Il est parti")))
-    val pack =
-      QuizPack.build(
-        "# Rules",
-        document(cues),
-        cues,
-        0,
-        QuizPack.type(types, "tenses", document(cues)),
-      )
+  fun aChapterBriefCarriesTheChosenTypeAboveTheRules() {
+    val pack = QuizPack.chapter(guides, volume(), 0, QuizType.TENSES)
     val at = pack.indexOf("## Quiz type: Verb tenses")
     assertTrue(at > 0 && at < pack.indexOf("## Quiz rules"))
     assertTrue("Ask for the tense or mood and the infinitive" in pack)

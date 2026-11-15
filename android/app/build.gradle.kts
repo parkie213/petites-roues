@@ -57,32 +57,6 @@ android {
   packaging { resources { excludes += setOf("META-INF/{AL2.0,LGPL2.1,LICENSE*,NOTICE*}") } }
 }
 
-/**
- * Bundles the subtitle quiz workflow and quiz types from `agents/` as app assets, so the phone's
- * "Quiz me" share always carries the current versions.
- */
-abstract class QuizAssets : DefaultTask() {
-  @get:InputFiles abstract val sources: ConfigurableFileCollection
-  @get:OutputDirectory abstract val output: DirectoryProperty
-
-  @TaskAction
-  fun copy() {
-    val folder = output.get().asFile.resolve("quiz")
-    folder.deleteRecursively()
-    folder.mkdirs()
-    sources.forEach { it.copyTo(folder.resolve(it.name)) }
-  }
-}
-
-val quizAssets =
-  tasks.register<QuizAssets>("quizAssets") {
-    val agents = rootDir.resolve("../agents")
-    sources.from(
-      agents.resolve("workflows/subtitle-quiz.md"),
-      agents.resolve("workflows/quiz-types.md"),
-    )
-  }
-
 // Screenshot tests (Roborazzi on Robolectric) keep their reference images beside the tests, so a
 // change in what a screen draws shows up in review. `./gradlew recordRoborazziDebug` records them;
 // `verifyRoborazziDebug` (run in CI) fails when a screen no longer matches.
@@ -93,12 +67,6 @@ room { schemaDirectory("$projectDir/schemas") }
 
 // The compiler reports no warnings; keep it that way.
 kotlin { compilerOptions { allWarningsAsErrors = true } }
-
-androidComponents {
-  onVariants { variant ->
-    variant.sources.assets?.addGeneratedSourceDirectory(quizAssets, QuizAssets::output)
-  }
-}
 
 dependencies {
   implementation(libs.content.model)
